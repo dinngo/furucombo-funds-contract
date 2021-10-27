@@ -7,9 +7,8 @@ import {PoolState} from "./PoolState.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 
 contract Implemetation is ShareModule {
-    constructor(
-        IERC20 denomination_,
-        string memory name_,
-        string memory symbol_
-    ) ERC20Permit(name_) ERC20(name_, symbol_) PoolState(denomination_) {}
+    constructor(string memory name_, string memory symbol_)
+        ERC20Permit(name_)
+        ERC20(name_, symbol_)
+    {}
 }

@@ -9,15 +9,19 @@ import {ModuleBase} from "./ModuleBase.sol";
 abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
     using SafeERC20 for IERC20;
 
-    function deposit(uint256 balance) external returns (bool) {
+    function deposit(uint256 balance)
+        external
+        whenStates(State.Executing, State.WithdrawalPending)
+        returns (bool)
+    {
         return _deposit(msg.sender, balance);
     }
 
-    function depositTo(address user, uint256 balance) internal returns (bool) {
-        return _deposit(user, balance);
-    }
-
-    function withdraw(uint256 share) external returns (bool) {
+    function withdraw(uint256 share)
+        external
+        whenStates(State.Executing, State.WithdrawalPending)
+        returns (bool)
+    {
         return _withdraw(msg.sender, share);
     }
 
