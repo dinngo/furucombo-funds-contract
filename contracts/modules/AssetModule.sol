@@ -15,4 +15,8 @@ abstract contract AssetModule is ModuleBase {
     function getAssetList() public view returns (IERC20[] memory assetList) {
         return _assetList;
     }
+
+    function getReserve() public view returns (uint256) {
+        return denomination.balanceOf(vault);
+    }
 }
