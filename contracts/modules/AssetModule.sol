@@ -17,6 +17,6 @@ abstract contract AssetModule is ModuleBase {
     }
 
     function getReserve() public view returns (uint256) {
-        return denomination.balanceOf(vault);
+        return denomination.balanceOf(address(vault));
     }
 }

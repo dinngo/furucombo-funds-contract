@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
+import {IDSProxy} from "./interfaces/IDSProxy.sol";
 
 abstract contract PoolState {
     enum State {
@@ -16,7 +17,7 @@ abstract contract PoolState {
 
     IComptroller public comptroller;
     IERC20 public denomination;
-    address public vault; // DSProxy
+    IDSProxy public vault; // DSProxy
     State public state;
 
     error InvalidState(State expect, State current);
@@ -38,7 +39,7 @@ abstract contract PoolState {
         if (
             address(comptroller) != address(0) &&
             address(denomination) != address(0) &&
-            vault != address(0)
+            address(vault) != address(0)
         ) _enterState(State.Ready);
     }
 

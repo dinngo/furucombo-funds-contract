@@ -81,12 +81,12 @@ abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
         returns (uint256 share)
     {
         share = _addShare(user, balance);
-        denomination.safeTransferFrom(msg.sender, vault, balance);
+        denomination.safeTransferFrom(msg.sender, address(vault), balance);
     }
 
     function _withdraw(address user, uint256 share) internal returns (uint256) {
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
-        denomination.safeTransferFrom(vault, user, balance);
+        denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
             _enterState(State.WithdrawalPending);
             _withdrawPending(user, shareLeft);
