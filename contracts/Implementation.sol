@@ -8,16 +8,18 @@ import {PoolState} from "./PoolState.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
+import {IShareERC20} from "./interfaces/IShareERC20.sol";
 
 contract Implementation is Ownable, ShareModule {
     IDSProxyRegistry public immutable dsProxyRegistry;
 
-    constructor(
-        IDSProxyRegistry dsProxyRegistry_,
-        string memory name_,
-        string memory symbol_
-    ) ERC20Permit(name_) ERC20(name_, symbol_) {
+    constructor(IDSProxyRegistry dsProxyRegistry_) {
         dsProxyRegistry = dsProxyRegistry_;
+    }
+
+    function initializeShare(IShareERC20 shareToken_) public {
+        require(address(shareToken) == address(0), "Share is initialized");
+        shareToken = shareToken_;
     }
 
     function initializeOwnership(address newOwner) public {
@@ -39,6 +41,7 @@ contract Implementation is Ownable, ShareModule {
             address(denomination) == address(0),
             "Denomination is initialized"
         );
+        denomination = denomination_;
     }
 
     function initializeDSProxy() public {

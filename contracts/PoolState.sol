@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy} from "./interfaces/IDSProxy.sol";
+import {IShareERC20} from "./interfaces/IShareERC20.sol";
 
 abstract contract PoolState {
     enum State {
@@ -17,6 +18,7 @@ abstract contract PoolState {
 
     IComptroller public comptroller;
     IERC20 public denomination;
+    IShareERC20 public shareToken;
     IDSProxy public vault; // DSProxy
     State public state;
 

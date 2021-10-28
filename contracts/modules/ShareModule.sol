@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AssetModule} from "./AssetModule.sol";
 import {ModuleBase} from "./ModuleBase.sol";
 
-abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
+abstract contract ShareModule is ModuleBase, AssetModule {
     using SafeERC20 for IERC20;
 
     mapping(address => uint256) public pendingShares;
@@ -40,7 +39,7 @@ abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
         returns (uint256 share)
     {
         uint256 assetValue = getAssetValue();
-        uint256 shareAmount = totalSupply();
+        uint256 shareAmount = shareToken.totalSupply();
         share = (shareAmount * balance) / assetValue;
     }
 
@@ -50,7 +49,7 @@ abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
         returns (uint256 balance)
     {
         uint256 assetValue = getAssetValue();
-        uint256 shareAmount = totalSupply();
+        uint256 shareAmount = shareToken.totalSupply();
         balance = (share * assetValue) / shareAmount;
     }
 
@@ -102,7 +101,7 @@ abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += share;
         totalPendingShare += share;
-        _transfer(user, address(this), share);
+        shareToken.move(user, address(this), share);
 
         return 0;
     }
@@ -112,7 +111,7 @@ abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
         returns (uint256 share)
     {
         share = calculateShare(balance);
-        _mint(user, share);
+        shareToken.mint(user, share);
     }
 
     function _removeShare(address user, uint256 share)
@@ -125,10 +124,10 @@ abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
             uint256 shareToBurn = calculateShare(reserve);
             shareLeft = share - shareToBurn;
             balance = reserve;
-            _burn(user, shareToBurn);
+            shareToken.burn(user, shareToBurn);
         } else {
             shareLeft = 0;
-            _burn(user, share);
+            shareToken.burn(user, share);
         }
     }
 }
