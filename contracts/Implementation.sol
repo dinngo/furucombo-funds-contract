@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {PoolState} from "./PoolState.sol";
+import {ExecutionModule} from "./modules/ExecutionModule.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareERC20} from "./interfaces/IShareERC20.sol";
 
-contract Implementation is Ownable, ShareModule {
+contract Implementation is Ownable, ShareModule, ExecutionModule {
     IDSProxyRegistry public immutable dsProxyRegistry;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
