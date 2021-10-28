@@ -2,9 +2,287 @@
 pragma solidity ^0.8.0;
 
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import {Whitelist} from "./libraries/Whitelist.sol";
 
 contract Comptroller is UpgradeableBeacon {
-    constructor(address implementation_) UpgradeableBeacon(implementation_) {
+    // TODO: optimization data storage
+    using Whitelist for Whitelist.WList;
+    using Whitelist for Whitelist.AssetWList;
+    using Whitelist for Whitelist.ManagerWList;
+
+    // Variable
+    bool public fHalt;
+    address public assetRouter;
+    address public execAction;
+
+    // Map
+    mapping(address => bool) public denomination;
+    mapping(address => bool) public bannedProxy;
+    mapping(uint256 => uint256) public stakedTier;
+
+    // ACL
+    Whitelist.ManagerWList private managerACL;
+    Whitelist.AssetWList private assetACL;
+    Whitelist.WList private delegateCallACL;
+    Whitelist.WList private contractCallACL;
+    Whitelist.WList private handlerCallACL;
+
+    // Event
+    event Halted();
+    event UnHalted();
+    event ProxyBanned(address indexed proxy);
+    event ProxyUnbanned(address indexed proxy);
+    event PermitDenomination(address indexed denomination);
+    event ForbidDenomination(address indexed denomination);
+    event SetStakedTier(uint256 indexed level, uint256 amount);
+    event SetAssetRouter(address indexed assetRouter);
+    event SetExecAction(address indexed action);
+    event PermitManager(address indexed to);
+    event ForbidManager(address indexed to);
+    event PermitAsset(uint256 indexed level, address assets);
+    event ForbidAsset(uint256 indexed level, address assets);
+    event PermitDelegateCall(uint256 indexed level, address to, bytes4 sig);
+    event ForbidDelegateCall(uint256 indexed level, address to, bytes4 sig);
+    event PermitContractCall(uint256 indexed level, address to, bytes4 sig);
+    event ForbidContractCall(uint256 indexed level, address to, bytes4 sig);
+    event PermitHandlerCall(uint256 indexed level, address to, bytes4 sig);
+    event ForbidHandlerCall(uint256 indexed level, address to, bytes4 sig);
+
+    // Modifier
+    modifier onlyUnHalted() {
+        require(!fHalt, "Halted");
+        _;
+    }
+
+    modifier onlyUnbannedProxy() {
+        require(!bannedProxy[msg.sender], "Banned");
+        _;
+    }
+
+    // Public Function
+    constructor(address implementation_, address assetRouter_)
+        UpgradeableBeacon(implementation_)
+    {
+        assetRouter = assetRouter_;
         this;
+    }
+
+    function implementation()
+        public
+        view
+        override
+        onlyUnHalted
+        onlyUnbannedProxy
+        returns (address)
+    {
+        return UpgradeableBeacon.implementation();
+    }
+
+    // Halt
+    function halt() external onlyOwner {
+        fHalt = true;
+        emit Halted();
+    }
+
+    function unHalt() external onlyOwner {
+        fHalt = false;
+        emit UnHalted();
+    }
+
+    // Denomination whitelist
+    function permitDenominations(address[] calldata denominations)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < denominations.length; i++) {
+            denomination[denominations[i]] = true;
+            emit PermitDenomination(denominations[i]);
+        }
+    }
+
+    function forbidDenominations(address[] calldata denominations)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < denominations.length; i++) {
+            denomination[denominations[i]] = false;
+            emit ForbidDenomination(denominations[i]);
+        }
+    }
+
+    // Ban Proxy
+    function banProxy(address proxy) external onlyOwner {
+        bannedProxy[proxy] = true;
+        emit ProxyBanned(proxy);
+    }
+
+    function unBanProxy(address proxy) external onlyOwner {
+        bannedProxy[proxy] = false;
+        emit ProxyUnbanned(proxy);
+    }
+
+    // Stake tier amount
+    function setStakedTier(uint8 level, uint256 amount) external onlyOwner {
+        stakedTier[level] = amount;
+        emit SetStakedTier(level, amount);
+    }
+
+    // Asset Router
+    function setAssetRouter(address _assetRouter) external onlyOwner {
+        assetRouter = _assetRouter;
+        emit SetAssetRouter(_assetRouter);
+    }
+
+    // Action
+    function setExecAction(address action) external onlyOwner {
+        execAction = action;
+        emit SetExecAction(action);
+    }
+
+    // Manager whitelist
+    function permitManagers(address[] calldata managers) external onlyOwner {
+        for (uint256 i = 0; i < managers.length; i++) {
+            managerACL.permit(managers[i]);
+            emit PermitManager(managers[i]);
+        }
+    }
+
+    function forbidManagers(address[] calldata managers) external onlyOwner {
+        for (uint256 i = 0; i < managers.length; i++) {
+            managerACL.forbid(managers[i]);
+            emit ForbidManager(managers[i]);
+        }
+    }
+
+    function validManager(address manager) external view returns (bool) {
+        return managerACL.canCall(manager);
+    }
+
+    // Asset whitelist
+    function permitAssets(uint256 level, address[] calldata assets)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < assets.length; i++) {
+            assetACL.permit(level, assets[i]);
+            emit PermitAsset(level, assets[i]);
+        }
+    }
+
+    function forbidAssets(uint256 level, address[] calldata assets)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < assets.length; i++) {
+            assetACL.forbid(level, assets[i]);
+            emit ForbidAsset(level, assets[i]);
+        }
+    }
+
+    function validAsset(uint256 level, address asset)
+        external
+        view
+        returns (bool)
+    {
+        return assetACL.canCall(level, asset);
+    }
+
+    // DelegateCall whitelist function
+    function permitDelegateCalls(
+        uint256 level,
+        address[] calldata tos,
+        bytes4[] calldata sigs
+    ) external onlyOwner {
+        require(tos.length == sigs.length, "valid length");
+        for (uint256 i = 0; i < tos.length; i++) {
+            delegateCallACL.permit(level, tos[i], sigs[i]);
+            emit PermitDelegateCall(level, tos[i], sigs[i]);
+        }
+    }
+
+    function forbidDelegateCalls(
+        uint256 level,
+        address[] calldata tos,
+        bytes4[] calldata sigs
+    ) external onlyOwner {
+        require(tos.length == sigs.length, "valid length");
+        for (uint256 i = 0; i < tos.length; i++) {
+            delegateCallACL.forbid(level, tos[i], sigs[i]);
+            emit ForbidDelegateCall(level, tos[i], sigs[i]);
+        }
+    }
+
+    function canDelegateCall(
+        uint256 level,
+        address _to,
+        bytes4 sig
+    ) external view returns (bool) {
+        return delegateCallACL.canCall(level, _to, sig);
+    }
+
+    // Contract call whitelist function
+    function permitContractCalls(
+        uint256 level,
+        address[] calldata tos,
+        bytes4[] calldata sigs
+    ) external onlyOwner {
+        require(tos.length == sigs.length, "valid length");
+        for (uint256 i = 0; i < tos.length; i++) {
+            contractCallACL.permit(level, tos[i], sigs[i]);
+            emit PermitContractCall(level, tos[i], sigs[i]);
+        }
+    }
+
+    function forbidContractCalls(
+        uint256 level,
+        address[] calldata tos,
+        bytes4[] calldata sigs
+    ) external onlyOwner {
+        require(tos.length == sigs.length, "valid length");
+        for (uint256 i = 0; i < tos.length; i++) {
+            contractCallACL.forbid(level, tos[i], sigs[i]);
+            emit ForbidContractCall(level, tos[i], sigs[i]);
+        }
+    }
+
+    function canContractCall(
+        uint256 level,
+        address to,
+        bytes4 sig
+    ) external view returns (bool) {
+        return contractCallACL.canCall(level, to, sig);
+    }
+
+    // Handler whitelist function
+    function permitHandlers(
+        uint256 level,
+        address[] calldata tos,
+        bytes4[] calldata sigs
+    ) external onlyOwner {
+        require(tos.length == sigs.length, "valid length");
+        for (uint256 i = 0; i < tos.length; i++) {
+            handlerCallACL.permit(level, tos[i], sigs[i]);
+            emit PermitHandlerCall(level, tos[i], sigs[i]);
+        }
+    }
+
+    function forbidHandlers(
+        uint256 level,
+        address[] calldata tos,
+        bytes4[] calldata sigs
+    ) external onlyOwner {
+        require(tos.length == sigs.length, "valid length");
+        for (uint256 i = 0; i < tos.length; i++) {
+            handlerCallACL.forbid(level, tos[i], sigs[i]);
+            emit ForbidHandlerCall(level, tos[i], sigs[i]);
+        }
+    }
+
+    function canHandlerCalls(
+        uint256 level,
+        address to,
+        bytes4 sig
+    ) external view returns (bool) {
+        return handlerCallACL.canCall(level, to, sig);
     }
 }
