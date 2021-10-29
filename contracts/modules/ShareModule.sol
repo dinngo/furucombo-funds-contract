@@ -38,9 +38,14 @@ abstract contract ShareModule is ModuleBase, AssetModule {
         view
         returns (uint256 share)
     {
-        uint256 assetValue = getAssetValue();
         uint256 shareAmount = shareToken.totalSupply();
-        share = (shareAmount * balance) / assetValue;
+        if (shareAmount == 0) {
+            // Handler initial minting
+            share = balance;
+        } else {
+            uint256 assetValue = getAssetValue();
+            share = (shareAmount * balance) / assetValue;
+        }
     }
 
     function calculateBalance(uint256 share)
@@ -66,6 +71,7 @@ abstract contract ShareModule is ModuleBase, AssetModule {
 
         totalPendingShare = 0;
         _enterState(State.Executing);
+        pendingStartTime = 0;
 
         return true;
     }
@@ -88,6 +94,7 @@ abstract contract ShareModule is ModuleBase, AssetModule {
         denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
             _enterState(State.WithdrawalPending);
+            pendingStartTime = block.timestamp;
             _withdrawPending(user, shareLeft);
         }
 

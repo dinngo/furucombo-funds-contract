@@ -21,6 +21,7 @@ abstract contract PoolState {
     IShareERC20 public shareToken;
     IDSProxy public vault; // DSProxy
     State public state;
+    uint256 public pendingStartTime;
 
     error InvalidState(State current);
 
@@ -57,6 +58,11 @@ abstract contract PoolState {
 
     function finalize() public whenState(State.Ready) {
         _enterState(State.Executing);
+    }
+
+    function liquidate() public whenState(State.WithdrawalPending) {
+        _enterState(State.Liquidating);
+        // Transfer the ownership to proceed liquidation
     }
 
     function _enterState(State state_) internal {
