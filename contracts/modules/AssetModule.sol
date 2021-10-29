@@ -2,29 +2,21 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {LibUniqueAddressList} from "../libs/LibUniqueAddressList.sol";
 import {ModuleBase} from "./ModuleBase.sol";
 
 abstract contract AssetModule is ModuleBase {
-    mapping(address => address) private _predecessor;
-    mapping(address => address) private _successor;
-    uint256 private _assetCount;
+    using LibUniqueAddressList for LibUniqueAddressList.List;
+
+    LibUniqueAddressList.List private _assetList;
 
     function getAssetValue() public view returns (uint256 assetValue) {
         this;
         return 0;
     }
 
-    function getAssetList() public view returns (address[] memory assetList) {
-        assetList = new address[](_assetCount);
-        uint256 index = 0;
-        for (
-            address p = _successor[address(0)];
-            _successor[p] != address(0);
-            p = _successor[p]
-        ) {
-            assetList[0] = p;
-            index++;
-        }
+    function getAssetList() public view returns (address[] memory) {
+        return _assetList.get();
     }
 
     function getReserve() public view returns (uint256) {
@@ -33,34 +25,18 @@ abstract contract AssetModule is ModuleBase {
 
     function addAsset(address asset) public {
         // Should check asset value exists
-        if (_assetCount == 0) {
-            _predecessor[address(0)] = asset;
-            _successor[address(0)] = asset;
-        } else {
-            address tail = _predecessor[address(0)];
-            _successor[tail] = asset;
-            _predecessor[asset] = tail;
-            _predecessor[address(0)] = asset;
-        }
-        _assetCount++;
+        _assetList.pushBack(asset);
     }
 
     function removeAsset(address asset) public {
         // Should check asset value zero
-        if (_assetCount == 0) {
-            revert("List empty");
-        } else {
-            address succ = _successor[asset];
-            address pred = _predecessor[asset];
-            _successor[pred] = succ;
-            _assetCount--;
-        }
+        _assetList.remove(asset);
     }
 
     function close() public {
         require(
-            _assetCount == 1 &&
-                _predecessor[address(0)] == address(denomination),
+            _assetList.size() == 1 &&
+                _assetList.front() == address(denomination),
             "Different asset remaining"
         );
         _enterState(State.Closed);
