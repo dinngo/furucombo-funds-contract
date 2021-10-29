@@ -56,4 +56,13 @@ abstract contract AssetModule is ModuleBase {
             _assetCount--;
         }
     }
+
+    function close() public {
+        require(
+            _assetCount == 1 &&
+                _predecessor[address(0)] == address(denomination),
+            "Different asset remaining"
+        );
+        _enterState(State.Closed);
+    }
 }

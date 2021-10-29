@@ -22,17 +22,20 @@ abstract contract PoolState {
     IDSProxy public vault; // DSProxy
     State public state;
 
-    error InvalidState(State expect, State current);
-    error InvalidStates(State expect1, State expect2, State current);
+    error InvalidState(State current);
 
     modifier whenState(State expect) {
-        if (state != expect) revert InvalidState(expect, state);
+        if (state != expect) revert InvalidState(state);
         _;
     }
 
     modifier whenStates(State expect1, State expect2) {
-        if (state != expect1 && state != expect2)
-            revert InvalidStates(expect1, expect2, state);
+        if (state != expect1 && state != expect2) revert InvalidState(state);
+        _;
+    }
+
+    modifier whenNotState(State expectNot) {
+        if (state == expectNot) revert InvalidState(state);
         _;
     }
 

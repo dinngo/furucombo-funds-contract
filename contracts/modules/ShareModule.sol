@@ -23,7 +23,7 @@ abstract contract ShareModule is ModuleBase, AssetModule {
 
     function withdraw(uint256 share)
         external
-        whenStates(State.Executing, State.WithdrawalPending)
+        whenNotState(State.Liquidating)
         returns (uint256 balance)
     {
         if (state == State.Executing) {
