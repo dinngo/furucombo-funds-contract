@@ -53,33 +53,33 @@ library Whitelist {
     }
 
     function permit(
-        AssetWList storage awl,
+        AssetWList storage wl,
         uint256 _level,
         address _asset
     ) internal {
         bytes32 level = bytes32(_level);
         bytes32 asset = bytes32(bytes20(_asset));
-        awl.acl[level][asset] = true;
+        wl.acl[level][asset] = true;
     }
 
     function forbid(
-        AssetWList storage awl,
+        AssetWList storage wl,
         uint256 _level,
         address _asset
     ) internal {
         bytes32 level = bytes32(_level);
         bytes32 asset = bytes32(bytes20(_asset));
-        awl.acl[level][asset] = false;
+        wl.acl[level][asset] = false;
     }
 
     function canCall(
-        AssetWList storage awl,
+        AssetWList storage wl,
         uint256 _level,
         address _asset
     ) internal view returns (bool) {
         bytes32 level = bytes32(_level);
         bytes32 asset = bytes32(bytes20(_asset));
-        return awl.acl[level][asset] || awl.acl[ANY][asset];
+        return wl.acl[level][asset] || wl.acl[ANY][asset];
     }
 
     // Manager white list
@@ -87,22 +87,22 @@ library Whitelist {
         mapping(bytes32 => bool) acl;
     }
 
-    function permit(ManagerWList storage mwl, address _manager) internal {
+    function permit(ManagerWList storage wl, address _manager) internal {
         bytes32 manager = bytes32(bytes20(_manager));
-        mwl.acl[manager] = true;
+        wl.acl[manager] = true;
     }
 
-    function forbid(ManagerWList storage mwl, address _manager) internal {
+    function forbid(ManagerWList storage wl, address _manager) internal {
         bytes32 manager = bytes32(bytes20(_manager));
-        mwl.acl[manager] = false;
+        wl.acl[manager] = false;
     }
 
-    function canCall(ManagerWList storage mwl, address _manager)
+    function canCall(ManagerWList storage wl, address _manager)
         internal
         view
         returns (bool)
     {
         bytes32 manager = bytes32(bytes20(_manager));
-        return mwl.acl[manager] || mwl.acl[ANY];
+        return wl.acl[manager] || wl.acl[ANY];
     }
 }
