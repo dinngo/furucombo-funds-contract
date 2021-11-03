@@ -24,35 +24,51 @@ contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
         return super.afterExecute();
     }
 
+    function initializeLevel(uint256 level_) public {
+        _setLevel(level_);
+    }
+
     function initializeOwnership(address newOwner) public {
         address owner = owner();
         require(owner == address(0), "Owner is initialized");
         _transferOwnership(newOwner);
     }
 
-    function initializeComptroller(IComptroller comptroller) public {
-        _setComptroller(comptroller);
+    function initializeComptroller(IComptroller comptroller_) public {
+        _setComptroller(comptroller_);
     }
 
-    function initializeDenomination(IERC20 denomination) public {
-        _setDenomination(denomination);
+    function initializeDenomination(IERC20 denomination_) public {
+        _setDenomination(denomination_);
     }
 
-    function initializeShare(IShareERC20 shareToken) public onlyOwner {
-        _setShare(shareToken);
+    function initializeShare(IShareERC20 shareToken_) public onlyOwner {
+        _setShare(shareToken_);
     }
 
     function initializeDSProxy() public {
-        address dsProxy = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy));
+        address dsProxy_ = dsProxyRegistry.build();
+        _setDSProxy(IDSProxy(dsProxy_));
     }
 
-    function initializeReserveExecution(uint256 reserveExecution) public {
-        _setReserveExecution(reserveExecution);
+    function initializeReserveExecution(uint256 reserveExecution_) public {
+        _setReserveExecution(reserveExecution_);
     }
 
     function permitAction(address to, bytes4 sig) public onlyOwner {
         _permitAction(to, sig);
+    }
+
+    function forbidAction(address to, bytes4 sig) public onlyOwner {
+        _forbidAction(to, sig);
+    }
+
+    function permitAllAction() public onlyOwner {
+        _permitAction(address(0), bytes4(0));
+    }
+
+    function cancelPermitAllAction() public onlyOwner {
+        _forbidAction(address(0), bytes4(0));
     }
 
     function isValidAction(address to, bytes4 sig) public view returns (bool) {
@@ -61,6 +77,18 @@ contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
 
     function permitAsset(address asset) public onlyOwner {
         _permitAsset(asset);
+    }
+
+    function forbidAsset(address asset) public onlyOwner {
+        _forbidAsset(asset);
+    }
+
+    function permitAllAsset() public onlyOwner {
+        _permitAsset(address(0));
+    }
+
+    function cancelPermitAllAsset() public onlyOwner {
+        _forbidAsset(address(0));
     }
 
     function isValidAsset(address asset) public view returns (bool) {

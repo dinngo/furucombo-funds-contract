@@ -20,6 +20,7 @@ abstract contract PoolState {
         Closed
     }
 
+    uint256 public level;
     State public state;
     IComptroller public comptroller;
     IERC20 public denomination;
@@ -71,6 +72,11 @@ abstract contract PoolState {
         state = state_;
     }
 
+    function _setLevel(uint256 level_) internal {
+        require(level == 0, "Level is set");
+        level = level_;
+    }
+
     function _setComptroller(IComptroller comptroller_) internal checkReady {
         require(
             address(comptroller) == address(0),
@@ -111,12 +117,21 @@ abstract contract PoolState {
         _actionWList.permit(0, to, sig);
     }
 
+    function _forbidAction(address to, bytes4 sig)
+        internal
+        whenStates(State.Initializing, State.Ready)
+    {
+        _actionWList.forbid(0, to, sig);
+    }
+
     function _isValidAction(address to, bytes4 sig)
         internal
         view
         returns (bool)
     {
-        return _actionWList.canCall(0, to, sig);
+        return
+            _actionWList.canCall(0, address(0), bytes4(0)) ||
+            _actionWList.canCall(0, to, sig);
     }
 
     function _permitAsset(address asset)
@@ -126,7 +141,15 @@ abstract contract PoolState {
         _assetWList.permit(0, asset);
     }
 
+    function _forbidAsset(address asset)
+        internal
+        whenStates(State.Initializing, State.Ready)
+    {
+        _assetWList.forbid(0, asset);
+    }
+
     function _isValidAsset(address asset) internal view returns (bool) {
-        return _assetWList.canCall(0, asset);
+        return
+            _assetWList.canCall(0, address(0)) || _assetWList.canCall(0, asset);
     }
 }
