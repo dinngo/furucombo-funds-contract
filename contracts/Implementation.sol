@@ -51,6 +51,22 @@ contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
         _setReserveExecution(reserveExecution);
     }
 
+    function permitAction(address to, bytes4 sig) public onlyOwner {
+        _permitAction(to, sig);
+    }
+
+    function isValidAction(address to, bytes4 sig) public view returns (bool) {
+        return _isValidAction(to, sig);
+    }
+
+    function permitAsset(address asset) public onlyOwner {
+        _permitAsset(asset);
+    }
+
+    function isValidAsset(address asset) public view returns (bool) {
+        return _isValidAsset(asset);
+    }
+
     function execute(bytes calldata data) public override onlyOwner {
         super.execute(data);
     }
