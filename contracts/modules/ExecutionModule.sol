@@ -13,8 +13,8 @@ contract ExecutionModule is ModuleBase {
     }
 
     function execute(bytes calldata data)
-        external
-        onlyOwner
+        public
+        virtual
         whenStates(State.Executing, State.WithdrawalPending)
     {
         beforeExecute();

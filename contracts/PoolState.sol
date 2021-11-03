@@ -16,11 +16,11 @@ abstract contract PoolState {
         Closed
     }
 
+    State public state;
     IComptroller public comptroller;
     IERC20 public denomination;
     IShareERC20 public shareToken;
     IDSProxy public vault; // DSProxy
-    State public state;
     uint256 public pendingStartTime;
     uint256 public reserveExecution;
 
@@ -44,17 +44,11 @@ abstract contract PoolState {
     modifier checkReady() {
         _;
         if (
+            state == State.Initializing &&
             address(comptroller) != address(0) &&
             address(denomination) != address(0) &&
             address(vault) != address(0)
         ) _enterState(State.Ready);
-    }
-
-    function setComptroller(IComptroller comptroller_)
-        public
-        whenState(State.Initializing)
-    {
-        comptroller = comptroller_;
     }
 
     function finalize() public whenState(State.Ready) {
@@ -68,5 +62,38 @@ abstract contract PoolState {
 
     function _enterState(State state_) internal {
         state = state_;
+    }
+
+    function _setComptroller(IComptroller comptroller_) internal {
+        require(
+            address(comptroller) == address(0),
+            "Comptroller is initialized"
+        );
+        comptroller = comptroller_;
+    }
+
+    function _setDenomination(IERC20 denomination_) internal {
+        require(
+            address(denomination) == address(0),
+            "Denomination is initialized"
+        );
+        denomination = denomination_;
+    }
+
+    function _setShare(IShareERC20 shareToken_) internal {
+        require(address(shareToken) == address(0), "Share is initialized");
+        shareToken = shareToken_;
+    }
+
+    function _setDSProxy(IDSProxy dsProxy) internal {
+        require(address(vault) == address(0), "Share is initialized");
+        vault = dsProxy;
+    }
+
+    function _setReserveExecution(uint256 reserveExecution_)
+        internal
+        whenStates(State.Initializing, State.Ready)
+    {
+        reserveExecution = reserveExecution_;
     }
 }

@@ -1,25 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {PoolState} from "./PoolState.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
+import {FeeModule} from "./modules/FeeModule.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareERC20} from "./interfaces/IShareERC20.sol";
 
-contract Implementation is Ownable, ShareModule, ExecutionModule {
+contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
     IDSProxyRegistry public immutable dsProxyRegistry;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
         dsProxyRegistry = dsProxyRegistry_;
     }
 
-    function initializeShare(IShareERC20 shareToken_) public {
-        require(address(shareToken) == address(0), "Share is initialized");
-        shareToken = shareToken_;
+    function afterExecute() public override returns (bool) {
+        require(getReserve() >= reserveExecution, "Insufficient reserve");
+        return super.afterExecute();
     }
 
     function initializeOwnership(address newOwner) public {
@@ -28,37 +30,28 @@ contract Implementation is Ownable, ShareModule, ExecutionModule {
         _transferOwnership(newOwner);
     }
 
-    function initializeComptroller(IComptroller comptroller_) public {
-        require(
-            address(comptroller) == address(0),
-            "Comptroller is initialized"
-        );
-        comptroller = comptroller_;
+    function initializeComptroller(IComptroller comptroller) public {
+        _setComptroller(comptroller);
     }
 
-    function initializeDenomination(IERC20 denomination) public pure {
-        require(
-            address(denomination) == address(0),
-            "Denomination is initialized"
-        );
-        denomination = denomination_;
+    function initializeDenomination(IERC20 denomination) public {
+        _setDenomination(denomination);
+    }
+
+    function initializeShare(IShareERC20 shareToken) public onlyOwner {
+        _setShare(shareToken);
     }
 
     function initializeDSProxy() public {
         address dsProxy = dsProxyRegistry.build();
-        vault = IDSProxy(dsProxy);
+        _setDSProxy(IDSProxy(dsProxy));
     }
 
-    function initializeReserveExecution(uint256 reserveExecution_)
-        public
-        whenStates(State.Initializing, State.Ready)
-        onlyOwner
-    {
-        reserveExecution = reserveExecution_;
+    function initializeReserveExecution(uint256 reserveExecution) public {
+        _setReserveExecution(reserveExecution);
     }
 
-    function afterExecute() public override returns (bool) {
-        require(getReserve() >= reserveExecution, "Insufficient reserve");
-        return super.afterExecute();
+    function execute(bytes calldata data) public override onlyOwner {
+        super.execute(data);
     }
 }
