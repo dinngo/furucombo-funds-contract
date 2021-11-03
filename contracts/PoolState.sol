@@ -22,6 +22,7 @@ abstract contract PoolState {
     IDSProxy public vault; // DSProxy
     State public state;
     uint256 public pendingStartTime;
+    uint256 public reserveExecution;
 
     error InvalidState(State current);
 

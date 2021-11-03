@@ -48,4 +48,17 @@ contract Implementation is Ownable, ShareModule, ExecutionModule {
         address dsProxy = dsProxyRegistry.build();
         vault = IDSProxy(dsProxy);
     }
+
+    function initializeReserveExecution(uint256 reserveExecution_)
+        public
+        whenStates(State.Initializing, State.Ready)
+        onlyOwner
+    {
+        reserveExecution = reserveExecution_;
+    }
+
+    function afterExecute() public override returns (bool) {
+        require(getReserve() >= reserveExecution, "Insufficient reserve");
+        return super.afterExecute();
+    }
 }
