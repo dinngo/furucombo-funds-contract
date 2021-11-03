@@ -45,6 +45,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
     ) external payable override delegateCallOnly {
         _chargeExecutionFee(tokensIn, amountsIn);
         _execs(tos, configs, datas);
+        Bucket.reset();
     }
 
     /**
@@ -267,22 +268,20 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
         uint256[] calldata amountsIn
     ) internal {
         uint256 feePercentage = comptroller.execFeePercentage();
-        address collector = comptroller.execFeeCollector();
+        address payable collector = payable(comptroller.execFeeCollector());
         for (uint256 i = 0; i < tokensIn.length; i++) {
-            if (address(tokensIn[i]) == ETHER) {} else {
-                // calc fee amount
-                uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;
+            require(tokensIn[i].get() == 0, "token bucket is not empty");
+            uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;
 
-                // send fee to collector
+            // send fee to collector
+            if (address(tokensIn[i]) == ETHER) {
+                collector.transfer(execFee);
+            } else {
                 IERC20(tokensIn[i]).safeTransfer(collector, execFee);
-
-                // update remaining amount to bucket
-                // tokensIn[i].set(amountsIn[i] - execFee);
-
-                // IERC20(grace).safeTransfer(collector, fee(amountGrace));
             }
+            tokensIn[i].set(amountsIn[i] - execFee);
         }
-
-        // return abi.decode(data, (uint256, bytes));
+        // TODO: Need to maintain list to record token need to reset to 0
+        // implement it in Bucket library
     }
 }
