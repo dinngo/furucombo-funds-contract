@@ -6,7 +6,7 @@ import {Whitelist} from "./libraries/Whitelist.sol";
 
 contract Comptroller is UpgradeableBeacon {
     // TODO: optimization data storage
-    using Whitelist for Whitelist.WList;
+    using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
     using Whitelist for Whitelist.ManagerWList;
 
@@ -14,6 +14,8 @@ contract Comptroller is UpgradeableBeacon {
     bool public fHalt;
     address public assetRouter;
     address public execAction;
+    address public execFeeCollector;
+    uint256 public execFeePercentage;
 
     // Map
     mapping(address => bool) public denomination;
@@ -23,9 +25,9 @@ contract Comptroller is UpgradeableBeacon {
     // ACL
     Whitelist.ManagerWList private managerACL;
     Whitelist.AssetWList private assetACL;
-    Whitelist.WList private delegateCallACL;
-    Whitelist.WList private contractCallACL;
-    Whitelist.WList private handlerCallACL;
+    Whitelist.ActionWList private delegateCallACL;
+    Whitelist.ActionWList private contractCallACL;
+    Whitelist.ActionWList private handlerCallACL;
 
     // Event
     event Halted();
