@@ -8,5 +8,5 @@ interface ITaskExecutor {
         address[] calldata tos,
         bytes32[] calldata configs,
         bytes[] memory datas
-    ) external payable;
+    ) external payable returns (address[] calldata);
 }

@@ -21,7 +21,6 @@ library StorageArray {
         uint256 s = uint256(keccak256(abi.encodePacked(uint256(slotIndex)))) +
             index;
         val = _getSlot(bytes32(s)).value;
-        // return address(uint160(uint256(_getSlot(bytes32(s)).value)));
     }
 
     function set(
@@ -32,7 +31,7 @@ library StorageArray {
         require(index < uint256(_getSlot(slotIndex).value), "invalid index");
         uint256 s = uint256(keccak256(abi.encodePacked(uint256(slotIndex)))) +
             index;
-        // uint256 _val = uint256(bytes32(bytes20(val)));
+
         bytes32 _val = bytes32(bytes20(val));
         _getSlot(bytes32(s)).value = _val;
     }

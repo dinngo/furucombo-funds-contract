@@ -9,14 +9,20 @@ import "./interfaces/IComptroller.sol";
 import "./interfaces/IPool.sol";
 import "./utils/DestructibleAction.sol";
 import "./utils/DelegateCallAction.sol";
+import "./utils/FundQuotaAction.sol";
+import "./utils/DealAssetAction.sol";
 import "./libraries/LibParam.sol";
-import "./libraries/Bucket.sol";
 
-contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
+contract TaskExecutor is
+    ITaskExecutor,
+    DestructibleAction,
+    DelegateCallAction,
+    FundQuotaAction,
+    DealAssetAction
+{
     using Address for address;
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
-    using Bucket for address;
 
     uint256 public constant PERCENTAGE_BASE = 1 ether;
     uint256 public constant FEE_BASE = 1e4;
@@ -42,10 +48,17 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
         address[] calldata tos,
         bytes32[] calldata configs,
         bytes[] memory datas
-    ) external payable override delegateCallOnly {
+    )
+        external
+        payable
+        override
+        delegateCallOnly
+        quotaCleanUp
+        assetCleanUp
+        returns (address[] memory)
+    {
         _chargeExecutionFee(tokensIn, amountsIn);
-        _execs(tos, configs, datas);
-        Bucket.reset();
+        return _execs(tos, configs, datas);
     }
 
     /**
@@ -58,7 +71,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
         address[] memory tos,
         bytes32[] memory configs,
         bytes[] memory datas
-    ) internal {
+    ) internal returns (address[] memory) {
         bytes32[256] memory localStack;
         uint256 index = 0;
 
@@ -71,9 +84,6 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
             "TaskExecutor: Tos and configs length inconsistent"
         );
 
-        // TODO: charge execution fee
-
-        // TODO: Get pool level
         uint256 level = IPool(msg.sender).getLevel();
 
         for (uint256 i = 0; i < tos.length; i++) {
@@ -81,8 +91,8 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
 
             if (config.isDelegateCall()) {
                 // Delegate call case
-                // TODO: check fund delegateCall
 
+                // TODO: check fund delegateCall
                 // TODO: check global delegateCall
                 require(
                     comptroller.canDelegateCall(
@@ -105,8 +115,6 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
                 // Store return data from action to local stack
                 index = _parseReturn(result, config, localStack, index);
             } else {
-                // Function Call case
-
                 // Decode eth value from data
                 (uint256 ethValue, bytes memory _data) = _decodeEthValue(
                     datas[i]
@@ -137,6 +145,11 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
                 index = _parseReturn(result, config, localStack, index);
             }
         }
+
+        // TODO: check token valid and process
+        address[] memory dealAssets = getDealAssets();
+        require(comptroller.validateAssets(level, dealAssets), "valid asset");
+        return dealAssets;
     }
 
     /**
@@ -270,7 +283,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
         uint256 feePercentage = comptroller.execFeePercentage();
         address payable collector = payable(comptroller.execFeeCollector());
         for (uint256 i = 0; i < tokensIn.length; i++) {
-            require(tokensIn[i].get() == 0, "token bucket is not empty");
+            require(isFundQuotaZero(tokensIn[i]), "token bucket is not empty");
             uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;
 
             // send fee to collector
@@ -279,9 +292,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction {
             } else {
                 IERC20(tokensIn[i]).safeTransfer(collector, execFee);
             }
-            tokensIn[i].set(amountsIn[i] - execFee);
+            setFundQuota(tokensIn[i], amountsIn[i] - execFee);
         }
-        // TODO: Need to maintain list to record token need to reset to 0
-        // implement it in Bucket library
     }
 }
