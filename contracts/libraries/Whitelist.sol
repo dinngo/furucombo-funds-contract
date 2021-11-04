@@ -14,7 +14,7 @@ library Whitelist {
         ActionWList storage wl,
         uint256 _level,
         address _to,
-        bytes4 sig
+        bytes32 sig
     ) internal view returns (bool) {
         bytes32 level = bytes32(_level);
         bytes32 to = bytes32(bytes20(_to));
@@ -29,7 +29,7 @@ library Whitelist {
         ActionWList storage wl,
         uint256 _level,
         address _to,
-        bytes4 sig
+        bytes32 sig
     ) internal {
         bytes32 level = bytes32(_level);
         bytes32 to = bytes32(bytes20(_to));
@@ -40,7 +40,7 @@ library Whitelist {
         ActionWList storage wl,
         uint256 _level,
         address _to,
-        bytes4 sig
+        bytes32 sig
     ) internal {
         bytes32 level = bytes32(_level);
         bytes32 to = bytes32(bytes20(_to));

@@ -43,12 +43,12 @@ contract Comptroller is UpgradeableBeacon {
     event ForbidManager(address indexed to);
     event PermitAsset(uint256 indexed level, address assets);
     event ForbidAsset(uint256 indexed level, address assets);
-    event PermitDelegateCall(uint256 indexed level, address to, bytes4 sig);
-    event ForbidDelegateCall(uint256 indexed level, address to, bytes4 sig);
-    event PermitContractCall(uint256 indexed level, address to, bytes4 sig);
-    event ForbidContractCall(uint256 indexed level, address to, bytes4 sig);
-    event PermitHandlerCall(uint256 indexed level, address to, bytes4 sig);
-    event ForbidHandlerCall(uint256 indexed level, address to, bytes4 sig);
+    event PermitDelegateCall(uint256 indexed level, address to, bytes32 sig);
+    event ForbidDelegateCall(uint256 indexed level, address to, bytes32 sig);
+    event PermitContractCall(uint256 indexed level, address to, bytes32 sig);
+    event ForbidContractCall(uint256 indexed level, address to, bytes32 sig);
+    event PermitHandlerCall(uint256 indexed level, address to, bytes32 sig);
+    event ForbidHandlerCall(uint256 indexed level, address to, bytes32 sig);
 
     // Modifier
     modifier onlyUnHalted() {
@@ -181,7 +181,7 @@ contract Comptroller is UpgradeableBeacon {
         }
     }
 
-    function validAsset(uint256 level, address asset)
+    function validateAsset(uint256 level, address asset)
         external
         view
         returns (bool)
@@ -189,11 +189,32 @@ contract Comptroller is UpgradeableBeacon {
         return assetACL.canCall(level, asset);
     }
 
+    function validateAssets(uint256 level, address[] calldata assets)
+        external
+        view
+        returns (bool)
+    {
+        for (uint256 i = 0; i < assets.length; i++) {
+            if (!assetACL.canCall(level, assets[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // DelegateCall whitelist function
+    function canDelegateCall(
+        uint256 level,
+        address _to,
+        bytes4 sig
+    ) external view returns (bool) {
+        return delegateCallACL.canCall(level, _to, sig);
+    }
+
     function permitDelegateCalls(
         uint256 level,
         address[] calldata tos,
-        bytes4[] calldata sigs
+        bytes32[] calldata sigs
     ) external onlyOwner {
         require(tos.length == sigs.length, "valid length");
         for (uint256 i = 0; i < tos.length; i++) {
@@ -205,7 +226,7 @@ contract Comptroller is UpgradeableBeacon {
     function forbidDelegateCalls(
         uint256 level,
         address[] calldata tos,
-        bytes4[] calldata sigs
+        bytes32[] calldata sigs
     ) external onlyOwner {
         require(tos.length == sigs.length, "valid length");
         for (uint256 i = 0; i < tos.length; i++) {
@@ -214,19 +235,11 @@ contract Comptroller is UpgradeableBeacon {
         }
     }
 
-    function canDelegateCall(
-        uint256 level,
-        address _to,
-        bytes4 sig
-    ) external view returns (bool) {
-        return delegateCallACL.canCall(level, _to, sig);
-    }
-
     // Contract call whitelist function
     function permitContractCalls(
         uint256 level,
         address[] calldata tos,
-        bytes4[] calldata sigs
+        bytes32[] calldata sigs
     ) external onlyOwner {
         require(tos.length == sigs.length, "valid length");
         for (uint256 i = 0; i < tos.length; i++) {
@@ -238,7 +251,7 @@ contract Comptroller is UpgradeableBeacon {
     function forbidContractCalls(
         uint256 level,
         address[] calldata tos,
-        bytes4[] calldata sigs
+        bytes32[] calldata sigs
     ) external onlyOwner {
         require(tos.length == sigs.length, "valid length");
         for (uint256 i = 0; i < tos.length; i++) {
@@ -259,7 +272,7 @@ contract Comptroller is UpgradeableBeacon {
     function permitHandlers(
         uint256 level,
         address[] calldata tos,
-        bytes4[] calldata sigs
+        bytes32[] calldata sigs
     ) external onlyOwner {
         require(tos.length == sigs.length, "valid length");
         for (uint256 i = 0; i < tos.length; i++) {
@@ -271,7 +284,7 @@ contract Comptroller is UpgradeableBeacon {
     function forbidHandlers(
         uint256 level,
         address[] calldata tos,
-        bytes4[] calldata sigs
+        bytes32[] calldata sigs
     ) external onlyOwner {
         require(tos.length == sigs.length, "valid length");
         for (uint256 i = 0; i < tos.length; i++) {
