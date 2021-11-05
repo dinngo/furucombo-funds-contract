@@ -10,7 +10,7 @@ import "./interfaces/IPool.sol";
 import "./utils/DestructibleAction.sol";
 import "./utils/DelegateCallAction.sol";
 import "./utils/FundQuotaAction.sol";
-import "./utils/DealAssetAction.sol";
+import "./utils/DealingAssetAction.sol";
 import "./libraries/LibParam.sol";
 
 contract TaskExecutor is
@@ -18,7 +18,7 @@ contract TaskExecutor is
     DestructibleAction,
     DelegateCallAction,
     FundQuotaAction,
-    DealAssetAction
+    DealingAssetAction
 {
     using Address for address;
     using SafeERC20 for IERC20;
@@ -147,9 +147,12 @@ contract TaskExecutor is
         }
 
         // TODO: check token valid and process
-        address[] memory dealAssets = getDealAssets();
-        require(comptroller.validateAssets(level, dealAssets), "valid asset");
-        return dealAssets;
+        address[] memory dealingAssets = getDealingAssets();
+        require(
+            comptroller.validateDealingAssets(level, dealingAssets),
+            "valid asset"
+        );
+        return dealingAssets;
     }
 
     /**
@@ -280,10 +283,16 @@ contract TaskExecutor is
         address[] calldata tokensIn,
         uint256[] calldata amountsIn
     ) internal {
+        // Check initial asset from white list
+        uint256 level = IPool(msg.sender).getLevel();
+        require(comptroller.validateInitialAssets(level, tokensIn));
+
+        // collect execution fee to collector
         uint256 feePercentage = comptroller.execFeePercentage();
         address payable collector = payable(comptroller.execFeeCollector());
+
         for (uint256 i = 0; i < tokensIn.length; i++) {
-            require(isFundQuotaZero(tokensIn[i]), "token bucket is not empty");
+            require(isFundQuotaZero(tokensIn[i]), "token quota is not zero");
             uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;
 
             // send fee to collector

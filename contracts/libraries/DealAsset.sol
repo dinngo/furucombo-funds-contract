@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "./StorageArray.sol";
 import "./StorageMap.sol";
 
-library DealAsset {
+library DealingAsset {
     // Data is stored in storage slot `uint256(keccak256('furucombo.poolcombo.asset.map')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
     bytes32 internal constant _ASSET_MAP_SLOT =
@@ -28,15 +28,14 @@ library DealAsset {
     function set(address _key, bool _val) internal {
         bytes32 key = bytes32(bytes20(_key));
         bytes32 oldVal = StorageMap.get(_ASSET_MAP_SLOT, key);
+        if (oldVal == _ASSET_FALSE_FLAG) {
+            StorageArray.push(_ASSET_ARR_SLOT, key);
+        }
 
         if (_val) {
             StorageMap.set(_ASSET_MAP_SLOT, key, _ASSET_TRUE_FLAG);
         } else {
             StorageMap.set(_ASSET_MAP_SLOT, key, _ASSET_FALSE_FLAG);
-        }
-
-        if (oldVal == _ASSET_FALSE_FLAG) {
-            StorageArray.push(_ASSET_ARR_SLOT, key);
         }
     }
 

@@ -26,7 +26,12 @@ interface IComptroller is IBeacon {
 
     function execFeeCollector() external view returns (address);
 
-    function validateAssets(uint256 level, address[] calldata assets)
+    function validateDealingAssets(uint256 level, address[] calldata assets)
+        external
+        view
+        returns (bool);
+
+    function validateInitialAssets(uint256 level, address[] calldata assets)
         external
         view
         returns (bool);

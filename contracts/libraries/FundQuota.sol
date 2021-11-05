@@ -23,11 +23,12 @@ library FundQuota {
     function set(address _key, uint256 _val) internal {
         bytes32 key = bytes32(bytes20(_key));
         uint256 oldVal = uint256(StorageMap.get(_QUOTA_MAP_SLOT, key));
-        bytes32 val = bytes32(_val);
-        StorageMap.set(_QUOTA_MAP_SLOT, key, val);
         if (oldVal == 0) {
             StorageArray.push(_QUOTA_ARR_SLOT, key);
         }
+
+        bytes32 val = bytes32(_val);
+        StorageMap.set(_QUOTA_MAP_SLOT, key, val);
     }
 
     function clean() internal {

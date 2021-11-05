@@ -24,7 +24,8 @@ contract Comptroller is UpgradeableBeacon {
 
     // ACL
     Whitelist.ManagerWList private managerACL;
-    Whitelist.AssetWList private assetACL;
+    Whitelist.AssetWList private dealingAssetACL;
+    Whitelist.AssetWList private initialAssetACL;
     Whitelist.ActionWList private delegateCallACL;
     Whitelist.ActionWList private contractCallACL;
     Whitelist.ActionWList private handlerCallACL;
@@ -161,41 +162,83 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Asset whitelist
-    function permitAssets(uint256 level, address[] calldata assets)
+    function permitDealingAssets(uint256 level, address[] calldata assets)
         external
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            assetACL.permit(level, assets[i]);
+            dealingAssetACL.permit(level, assets[i]);
             emit PermitAsset(level, assets[i]);
         }
     }
 
-    function forbidAssets(uint256 level, address[] calldata assets)
+    function forbidDealingAssets(uint256 level, address[] calldata assets)
         external
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            assetACL.forbid(level, assets[i]);
+            dealingAssetACL.forbid(level, assets[i]);
             emit ForbidAsset(level, assets[i]);
         }
     }
 
-    function validateAsset(uint256 level, address asset)
+    function validateDealingAsset(uint256 level, address asset)
         external
         view
         returns (bool)
     {
-        return assetACL.canCall(level, asset);
+        return dealingAssetACL.canCall(level, asset);
     }
 
-    function validateAssets(uint256 level, address[] calldata assets)
+    function validateDealingAssets(uint256 level, address[] calldata assets)
         external
         view
         returns (bool)
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (!assetACL.canCall(level, assets[i])) {
+            if (!dealingAssetACL.canCall(level, assets[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Asset whitelist
+    function permitInitialAssets(uint256 level, address[] calldata assets)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < assets.length; i++) {
+            initialAssetACL.permit(level, assets[i]);
+            emit PermitAsset(level, assets[i]);
+        }
+    }
+
+    function forbidInitialAssets(uint256 level, address[] calldata assets)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < assets.length; i++) {
+            initialAssetACL.forbid(level, assets[i]);
+            emit ForbidAsset(level, assets[i]);
+        }
+    }
+
+    function validateInitialAsset(uint256 level, address asset)
+        external
+        view
+        returns (bool)
+    {
+        return initialAssetACL.canCall(level, asset);
+    }
+
+    function validateInitialAssets(uint256 level, address[] calldata assets)
+        external
+        view
+        returns (bool)
+    {
+        for (uint256 i = 0; i < assets.length; i++) {
+            if (!initialAssetACL.canCall(level, assets[i])) {
                 return false;
             }
         }
