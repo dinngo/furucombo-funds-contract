@@ -54,15 +54,15 @@ library LibParam {
             refs[i] = uint256(conf & REFS_MASK);
             conf = conf >> 8;
         }
-        uint256 i = 0;
+        uint256 _i = 0;
         for (uint256 k = 0; k < PARAMS_SIZE_LIMIT; k++) {
             if (conf & PARAMS_MASK != 0) {
-                require(i < n, "Location count exceeds ref count");
-                params[i] = k * 32 + 4;
-                i++;
+                require(_i < n, "Location count exceeds ref count");
+                params[_i] = k * 32 + 4;
+                _i++;
             }
             conf = conf >> 1;
         }
-        require(i == n, "Location count less than ref count");
+        require(_i == n, "Location count less than ref count");
     }
 }

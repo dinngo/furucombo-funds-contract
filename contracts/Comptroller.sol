@@ -33,7 +33,7 @@ contract Comptroller is UpgradeableBeacon {
     // Event
     event Halted();
     event UnHalted();
-    event SetInputCheck(bool indexed check);
+    event SetInitialCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
     event PermitDenomination(address indexed denomination);
@@ -94,9 +94,9 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // input check
-    function setInputCheck(bool check) external onlyOwner {
+    function setInitialCheck(bool check) external onlyOwner {
         fInitialCheck = check;
-        emit SetInputCheck(check);
+        emit SetInitialCheck(check);
     }
 
     // Denomination whitelist

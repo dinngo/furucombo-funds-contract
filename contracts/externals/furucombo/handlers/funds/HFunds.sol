@@ -26,7 +26,7 @@ contract HFunds is HandlerBase {
             address token = tokens[i];
             if (token != address(0) && token != ETH_ADDRESS) {
                 // Update involved token
-                _updateToken(token);
+                _updateInitialToken(token);
             }
             balances[i] = _getBalance(token, type(uint256).max);
         }
@@ -49,7 +49,7 @@ contract HFunds is HandlerBase {
             );
 
             // Update involved token
-            _updateToken(tokens[i]);
+            _updateInitialToken(tokens[i]);
         }
         return amounts;
     }
@@ -110,31 +110,27 @@ contract HFunds is HandlerBase {
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] == address(0)) {
                 if (address(this).balance < amounts[i]) {
-                    string memory errMsg =
-                        string(
-                            abi.encodePacked(
-                                "error: ",
-                                _uint2String(i),
-                                "_",
-                                _uint2String(address(this).balance)
-                            )
-                        );
+                    string memory errMsg = string(
+                        abi.encodePacked(
+                            "error: ",
+                            _uint2String(i),
+                            "_",
+                            _uint2String(address(this).balance)
+                        )
+                    );
                     _revertMsg("checkSlippage", errMsg);
                 }
             } else if (
                 IERC20(tokens[i]).balanceOf(address(this)) < amounts[i]
             ) {
-                string memory errMsg =
-                    string(
-                        abi.encodePacked(
-                            "error: ",
-                            _uint2String(i),
-                            "_",
-                            _uint2String(
-                                IERC20(tokens[i]).balanceOf(address(this))
-                            )
-                        )
-                    );
+                string memory errMsg = string(
+                    abi.encodePacked(
+                        "error: ",
+                        _uint2String(i),
+                        "_",
+                        _uint2String(IERC20(tokens[i]).balanceOf(address(this)))
+                    )
+                );
 
                 _revertMsg("checkSlippage", errMsg);
             }

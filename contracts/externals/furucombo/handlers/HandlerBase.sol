@@ -31,6 +31,11 @@ abstract contract HandlerBase is Storage, Config {
         // stack.setHandlerType(uint256(HandlerType.Token));
     }
 
+    function _updateInitialToken(address token) internal {
+        stack.setAddress(token);
+        stack.setHandlerType(HandlerType.Initial);
+    }
+
     function _updatePostProcess(bytes32[] memory params) internal {
         for (uint256 i = params.length; i > 0; i--) {
             stack.set(params[i - 1]);

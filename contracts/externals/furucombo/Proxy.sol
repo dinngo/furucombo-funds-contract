@@ -319,16 +319,22 @@ contract Proxy is IProxy, Storage, Config {
             // Get handler type
             HandlerType handlerType = HandlerType(uint96(bytes12(top)));
             if (handlerType == HandlerType.Token) {
-                // TODO: 新增一個 handlerType for initialFunds。讓這個 fund 拿到後不會 update 到 dealAssets 中
                 address addr = address(uint160(uint256(top)));
                 uint256 tokenAmount = IERC20(addr).balanceOf(address(this));
                 if (tokenAmount > 0)
                     IERC20(addr).safeTransfer(msg.sender, tokenAmount);
                 assets[index++] = addr;
+            } else if (handlerType == HandlerType.Initial) {
+                // TODO: 新增一個 handlerType for initialFunds。讓這個 fund 拿到後不會 update 到 dealAssets 中
+                address addr = stack.getAddress();
+                uint256 tokenAmount = IERC20(addr).balanceOf(address(this));
+                if (tokenAmount > 0)
+                    IERC20(addr).safeTransfer(msg.sender, tokenAmount);
             } else if (handlerType == HandlerType.Custom) {
                 address addr = stack.getAddress();
                 _exec(addr, abi.encodeWithSelector(POSTPROCESS_SIG));
             } else if (handlerType == HandlerType.Others) {
+                // TODO: For specific asset like maker, aave.
                 address addr = stack.getAddress();
                 assets[index++] = addr;
             } else {

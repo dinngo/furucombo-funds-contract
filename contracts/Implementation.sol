@@ -9,7 +9,7 @@ import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 
-contract Implemetation is Ownable, ShareModule {
+contract Implementation is Ownable, ShareModule {
     IDSProxyRegistry public immutable dsProxyRegistry;
 
     constructor(
@@ -34,7 +34,7 @@ contract Implemetation is Ownable, ShareModule {
         comptroller = comptroller_;
     }
 
-    function initializeDenomination(IERC20 denomination_) public {
+    function initializeDenomination(IERC20 denomination) public pure {
         require(
             address(denomination) == address(0),
             "Denomination is initialized"

@@ -62,7 +62,7 @@ contract AFurucombo is
         ) {
             for (uint256 i = 0; i < dealAssets.length; i++) {
                 // Update dealing asset
-                addDealAsset(dealAssets[i]);
+                addDealingAsset(dealAssets[i]);
             }
         } catch Error(string memory reason) {
             _revertMsg("injectAndBatchExec", reason);
