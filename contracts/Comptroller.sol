@@ -12,6 +12,7 @@ contract Comptroller is UpgradeableBeacon {
 
     // Variable
     bool public fHalt;
+    bool public fInitialCheck;
     address public assetRouter;
     address public execAction;
     address public execFeeCollector;
@@ -24,8 +25,7 @@ contract Comptroller is UpgradeableBeacon {
 
     // ACL
     Whitelist.ManagerWList private managerACL;
-    Whitelist.AssetWList private dealingAssetACL;
-    Whitelist.AssetWList private initialAssetACL;
+    Whitelist.AssetWList private assetACL;
     Whitelist.ActionWList private delegateCallACL;
     Whitelist.ActionWList private contractCallACL;
     Whitelist.ActionWList private handlerCallACL;
@@ -33,6 +33,7 @@ contract Comptroller is UpgradeableBeacon {
     // Event
     event Halted();
     event UnHalted();
+    event SetInputCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
     event PermitDenomination(address indexed denomination);
@@ -90,6 +91,12 @@ contract Comptroller is UpgradeableBeacon {
     function unHalt() external onlyOwner {
         fHalt = false;
         emit UnHalted();
+    }
+
+    // input check
+    function setInputCheck(bool check) external onlyOwner {
+        fInitialCheck = check;
+        emit SetInputCheck(check);
     }
 
     // Denomination whitelist
@@ -167,7 +174,7 @@ contract Comptroller is UpgradeableBeacon {
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            dealingAssetACL.permit(level, assets[i]);
+            assetACL.permit(level, assets[i]);
             emit PermitAsset(level, assets[i]);
         }
     }
@@ -177,7 +184,7 @@ contract Comptroller is UpgradeableBeacon {
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            dealingAssetACL.forbid(level, assets[i]);
+            assetACL.forbid(level, assets[i]);
             emit ForbidAsset(level, assets[i]);
         }
     }
@@ -187,7 +194,7 @@ contract Comptroller is UpgradeableBeacon {
         view
         returns (bool)
     {
-        return dealingAssetACL.canCall(level, asset);
+        return assetACL.canCall(level, asset);
     }
 
     function validateDealingAssets(uint256 level, address[] calldata assets)
@@ -196,40 +203,23 @@ contract Comptroller is UpgradeableBeacon {
         returns (bool)
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (!dealingAssetACL.canCall(level, assets[i])) {
+            if (!assetACL.canCall(level, assets[i])) {
                 return false;
             }
         }
         return true;
     }
 
-    // Asset whitelist
-    function permitInitialAssets(uint256 level, address[] calldata assets)
-        external
-        onlyOwner
-    {
-        for (uint256 i = 0; i < assets.length; i++) {
-            initialAssetACL.permit(level, assets[i]);
-            emit PermitAsset(level, assets[i]);
-        }
-    }
-
-    function forbidInitialAssets(uint256 level, address[] calldata assets)
-        external
-        onlyOwner
-    {
-        for (uint256 i = 0; i < assets.length; i++) {
-            initialAssetACL.forbid(level, assets[i]);
-            emit ForbidAsset(level, assets[i]);
-        }
-    }
-
     function validateInitialAsset(uint256 level, address asset)
-        external
+        public
         view
         returns (bool)
     {
-        return initialAssetACL.canCall(level, asset);
+        // check if input check flag is true
+        if (fInitialCheck) {
+            return assetACL.canCall(level, asset);
+        }
+        return true;
     }
 
     function validateInitialAssets(uint256 level, address[] calldata assets)
@@ -238,7 +228,7 @@ contract Comptroller is UpgradeableBeacon {
         returns (bool)
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (!initialAssetACL.canCall(level, assets[i])) {
+            if (!validateInitialAsset(level, assets[i])) {
                 return false;
             }
         }
