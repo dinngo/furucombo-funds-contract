@@ -4,7 +4,7 @@
   "description": "Poolcombo contract implementation",
   "main": "hardhat.config.js",
   "scripts": {
-    "test": "yarn test",
+    "test": "scripts/test.sh",
     "build": "npx hardhat compile"
   },
   "repository": {
@@ -14,7 +14,9 @@
   "author": "DINNGO",
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "4.4.0-rc.0"
+    "@openzeppelin/contracts": "4.4.0-rc.0",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "hardhat-deploy": "^0.9.4"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
