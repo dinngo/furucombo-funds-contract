@@ -132,3 +132,6 @@ export const FURUCOMBO_HQUICKSWAP =
 /* Event Signature */
 export const RecordActionResultSig =
   '0x9e4cb38f3ff5e7d394a1d9c423dcc7585236195cf38029312540e27306c886f7';
+
+export const MAX_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
+export const MAX_FUNC_SIG = '0xffffffff';
