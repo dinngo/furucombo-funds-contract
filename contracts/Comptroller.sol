@@ -12,7 +12,7 @@ contract Comptroller is UpgradeableBeacon {
 
     // Variable
     bool public fHalt;
-    bool public fInitialCheck;
+    bool public fInitialAssetCheck;
     address public assetRouter;
     address public execAction;
     address public execFeeCollector;
@@ -33,7 +33,7 @@ contract Comptroller is UpgradeableBeacon {
     // Event
     event Halted();
     event UnHalted();
-    event SetInitialCheck(bool indexed check);
+    event SetInitialAssetCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
     event PermitDenomination(address indexed denomination);
@@ -94,9 +94,9 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // input check
-    function setInitialCheck(bool check) external onlyOwner {
-        fInitialCheck = check;
-        emit SetInitialCheck(check);
+    function setInitialAssetCheck(bool check) external onlyOwner {
+        fInitialAssetCheck = check;
+        emit SetInitialAssetCheck(check);
     }
 
     // Denomination whitelist
@@ -132,13 +132,14 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Stake tier amount
-    function setStakedTier(uint8 level, uint256 amount) external onlyOwner {
+    function setStakedTier(uint256 level, uint256 amount) external onlyOwner {
         stakedTier[level] = amount;
         emit SetStakedTier(level, amount);
     }
 
     // Asset Router
     function setAssetRouter(address _assetRouter) external onlyOwner {
+        // TODO: non 0x00000 and 0xeeee
         assetRouter = _assetRouter;
         emit SetAssetRouter(_assetRouter);
     }
@@ -169,7 +170,7 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Asset whitelist
-    function permitDealingAssets(uint256 level, address[] calldata assets)
+    function permitAssets(uint256 level, address[] calldata assets)
         external
         onlyOwner
     {
@@ -179,7 +180,7 @@ contract Comptroller is UpgradeableBeacon {
         }
     }
 
-    function forbidDealingAssets(uint256 level, address[] calldata assets)
+    function forbidAssets(uint256 level, address[] calldata assets)
         external
         onlyOwner
     {
@@ -216,7 +217,7 @@ contract Comptroller is UpgradeableBeacon {
         returns (bool)
     {
         // check if input check flag is true
-        if (fInitialCheck) {
+        if (fInitialAssetCheck) {
             return assetACL.canCall(level, asset);
         }
         return true;
