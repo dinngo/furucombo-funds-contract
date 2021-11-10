@@ -1,20 +1,17 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { constants, utils, Wallet } from 'ethers';
 import { expect } from 'chai';
-import { ethers, network, deployments, getNamedAccounts } from 'hardhat';
+import { deployments } from 'hardhat';
 import {
   Comptroller,
   Implementation,
   AssetRouter,
-  TaskExecutor,
-  AFurucombo,
   AMock,
   HMock,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
-  MAX_FUNC_SIG,
-  MAX_ADDRESS,
+  WL_ANY_SIG,
+  WL_ANY_ADDRESS,
 } from './utils/constants';
 
 describe('Comptroller_Whitelist', function () {
@@ -137,9 +134,9 @@ describe('Comptroller_Whitelist', function () {
       ).to.be.equal(false);
 
       // permit managers
-      await expect(comptroller.permitManagers([MAX_ADDRESS]))
+      await expect(comptroller.permitManagers([WL_ANY_ADDRESS]))
         .to.emit(comptroller, 'PermitManager')
-        .withArgs(MAX_ADDRESS);
+        .withArgs(WL_ANY_ADDRESS);
 
       // check managers
       expect(
@@ -302,11 +299,11 @@ describe('Comptroller_Whitelist', function () {
           comptroller.permitDelegateCalls(
             level,
             [actionMockA.address],
-            [MAX_FUNC_SIG]
+            [WL_ANY_SIG]
           )
         )
           .to.emit(comptroller, 'PermitDelegateCall')
-          .withArgs(level, actionMockA.address, MAX_FUNC_SIG);
+          .withArgs(level, actionMockA.address, WL_ANY_SIG);
 
         // check delegate calls
         expect(
@@ -538,11 +535,11 @@ describe('Comptroller_Whitelist', function () {
           comptroller.permitContractCalls(
             level,
             [actionMockA.address],
-            [MAX_FUNC_SIG]
+            [WL_ANY_SIG]
           )
         )
           .to.emit(comptroller, 'PermitContractCall')
-          .withArgs(level, actionMockA.address, MAX_FUNC_SIG);
+          .withArgs(level, actionMockA.address, WL_ANY_SIG);
 
         // check contract calls
         expect(
@@ -773,11 +770,11 @@ describe('Comptroller_Whitelist', function () {
           comptroller.permitHandlers(
             level,
             [handlerMockA.address],
-            [MAX_FUNC_SIG]
+            [WL_ANY_SIG]
           )
         )
           .to.emit(comptroller, 'PermitHandler')
-          .withArgs(level, handlerMockA.address, MAX_FUNC_SIG);
+          .withArgs(level, handlerMockA.address, WL_ANY_SIG);
 
         // check handler calls
         expect(

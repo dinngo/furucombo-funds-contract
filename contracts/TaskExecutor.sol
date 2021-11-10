@@ -55,7 +55,7 @@ contract TaskExecutor is
         delegateCallOnly
         quotaCleanUp
         assetCleanUp
-        returns (address[] memory)
+        returns (address[] memory a)
     {
         _chargeExecutionFee(tokensIn, amountsIn);
         return _execs(tos, configs, datas);
@@ -100,7 +100,7 @@ contract TaskExecutor is
                         tos[i],
                         bytes4(datas[i])
                     ),
-                    "valid delegate call"
+                    "invalid delegate call"
                 );
 
                 // Trim params from local stack depend on config
