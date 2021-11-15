@@ -5,24 +5,66 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {PoolState} from "./PoolState.sol";
+import {AssetModule} from "./modules/AssetModule.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
-import {FeeModule} from "./modules/FeeModule.sol";
-import {ShareModule} from "./modules/ShareModule.sol";
+import {FeeModule, ManagementFee, PerformanceFee} from "./modules/FeeModule.sol";
+import {AssetModule, ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareERC20} from "./interfaces/IShareERC20.sol";
 
-contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
+contract Implemetation is
+    Ownable,
+    AssetModule,
+    ShareModule,
+    ExecutionModule,
+    FeeModule
+{
     IDSProxyRegistry public immutable dsProxyRegistry;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
         dsProxyRegistry = dsProxyRegistry_;
     }
 
-    function afterExecute() public override returns (bool) {
-        require(getReserve() >= reserveExecution, "Insufficient reserve");
-        return super.afterExecute();
+    // Asset module
+
+    // Share module
+    function getAssetValue()
+        public
+        view
+        override(FeeModule, ShareModule)
+        returns (uint256)
+    {
+        return 0;
     }
+
+    function _callBeforePurchase() internal override {
+        _mintManagementFee();
+        updatePerformanceShare();
+        return;
+    }
+
+    function _callBeforeRedeem() internal override {
+        _mintManagementFee();
+        updatePerformanceShare();
+        return;
+    }
+
+    function getReserve() public view override returns (uint256) {
+        return _getReserve();
+    }
+
+    // Execute module
+    function execute(bytes calldata data) public override onlyOwner {
+        super.execute(data);
+    }
+
+    function _afterExecute() internal override returns (bool) {
+        require(getReserve() >= reserveExecution, "Insufficient reserve");
+        return super._afterExecute();
+    }
+
+    // Initiators
 
     function initializeLevel(uint256 level_) public {
         _setLevel(level_);
@@ -55,6 +97,7 @@ contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
         _setReserveExecution(reserveExecution_);
     }
 
+    // Action management
     function permitAction(address to, bytes4 sig) public onlyOwner {
         _permitAction(to, sig);
     }
@@ -75,6 +118,7 @@ contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
         return _isValidAction(to, sig);
     }
 
+    // Asset management
     function permitAsset(address asset) public onlyOwner {
         _permitAsset(asset);
     }
@@ -95,7 +139,7 @@ contract Implemetation is Ownable, ShareModule, ExecutionModule, FeeModule {
         return _isValidAsset(asset);
     }
 
-    function execute(bytes calldata data) public override onlyOwner {
-        super.execute(data);
+    function getManager() public view override returns (address) {
+        return owner();
     }
 }

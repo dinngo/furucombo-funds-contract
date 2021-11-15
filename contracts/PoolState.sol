@@ -5,17 +5,13 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy} from "./interfaces/IDSProxy.sol";
 import {IShareERC20} from "./interfaces/IShareERC20.sol";
-import {Whitelist} from "./libraries/Whitelist.sol";
 
 abstract contract PoolState {
-    using Whitelist for Whitelist.ActionWList;
-    using Whitelist for Whitelist.AssetWList;
-
     enum State {
         Initializing,
         Ready,
         Executing,
-        WithdrawalPending,
+        RedemptionPending,
         Liquidating,
         Closed
     }
@@ -26,10 +22,7 @@ abstract contract PoolState {
     IERC20 public denomination;
     IShareERC20 public shareToken;
     IDSProxy public vault; // DSProxy
-    uint256 public pendingStartTime;
     uint256 public reserveExecution;
-    Whitelist.ActionWList private _actionWList;
-    Whitelist.AssetWList private _assetWList;
 
     error InvalidState(State current);
 
@@ -63,7 +56,7 @@ abstract contract PoolState {
         _enterState(State.Executing);
     }
 
-    function liquidate() public whenState(State.WithdrawalPending) {
+    function liquidate() public whenState(State.RedemptionPending) {
         _enterState(State.Liquidating);
         // Transfer the ownership to proceed liquidation
     }
@@ -108,48 +101,5 @@ abstract contract PoolState {
         whenStates(State.Initializing, State.Ready)
     {
         reserveExecution = reserveExecution_;
-    }
-
-    function _permitAction(address to, bytes4 sig)
-        internal
-        whenStates(State.Initializing, State.Ready)
-    {
-        _actionWList.permit(0, to, sig);
-    }
-
-    function _forbidAction(address to, bytes4 sig)
-        internal
-        whenStates(State.Initializing, State.Ready)
-    {
-        _actionWList.forbid(0, to, sig);
-    }
-
-    function _isValidAction(address to, bytes4 sig)
-        internal
-        view
-        returns (bool)
-    {
-        return
-            _actionWList.canCall(0, address(0), bytes4(0)) ||
-            _actionWList.canCall(0, to, sig);
-    }
-
-    function _permitAsset(address asset)
-        internal
-        whenStates(State.Initializing, State.Ready)
-    {
-        _assetWList.permit(0, asset);
-    }
-
-    function _forbidAsset(address asset)
-        internal
-        whenStates(State.Initializing, State.Ready)
-    {
-        _assetWList.forbid(0, asset);
-    }
-
-    function _isValidAsset(address asset) internal view returns (bool) {
-        return
-            _assetWList.canCall(0, address(0)) || _assetWList.canCall(0, asset);
     }
 }

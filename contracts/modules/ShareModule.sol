@@ -5,31 +5,32 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {AssetModule} from "./AssetModule.sol";
 import {ModuleBase} from "./ModuleBase.sol";
 
-abstract contract ShareModule is ModuleBase, AssetModule {
+abstract contract ShareModule is ModuleBase {
     using SafeERC20 for IERC20;
 
     mapping(address => uint256) public pendingShares;
     address[] public pendingAccountList;
-    mapping(address => uint256) public pendingWithdrawals;
+    mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
+    uint256 public pendingStartTime;
 
-    function deposit(uint256 balance)
+    function purchase(uint256 balance)
         external
-        whenStates(State.Executing, State.WithdrawalPending)
+        whenStates(State.Executing, State.RedemptionPending)
         returns (uint256 share)
     {
-        return _deposit(msg.sender, balance);
+        share = _purchase(msg.sender, balance);
     }
 
-    function withdraw(uint256 share)
+    function redeem(uint256 share)
         external
         whenNotState(State.Liquidating)
         returns (uint256 balance)
     {
         if (state == State.Executing) {
-            return _withdraw(msg.sender, share);
+            balance = _redeem(msg.sender, share);
         } else {
-            return _withdrawPending(msg.sender, share);
+            balance = _redeemPending(msg.sender, share);
         }
     }
 
@@ -58,14 +59,14 @@ abstract contract ShareModule is ModuleBase, AssetModule {
         balance = (share * assetValue) / shareAmount;
     }
 
-    function settlePendingWithdrawal() external returns (bool) {
-        // Might lead to gas insufficient if pending list to long
-        uint256 totalWithdrawal = _withdraw(address(this), totalPendingShare);
+    function settlePendingRedemption() external returns (bool) {
+        // Might lead to gas insufficient if pending list too long
+        uint256 totalRedemption = _redeem(address(this), totalPendingShare);
         while (pendingAccountList.length > 0) {
             address user = pendingAccountList[pendingAccountList.length - 1];
             uint256 share = pendingShares[user];
-            uint256 withdrawal = (totalWithdrawal * share) / totalPendingShare;
-            pendingWithdrawals[user] += withdrawal;
+            uint256 redemption = (totalRedemption * share) / totalPendingShare;
+            pendingRedemptions[user] += redemption;
             pendingAccountList.pop();
         }
 
@@ -76,32 +77,40 @@ abstract contract ShareModule is ModuleBase, AssetModule {
         return true;
     }
 
-    function claimPendingWithdrawal() external returns (uint256 balance) {
-        balance = pendingWithdrawals[msg.sender];
+    function claimPendingRedemption() external returns (uint256 balance) {
+        balance = pendingRedemptions[msg.sender];
         denomination.safeTransfer(msg.sender, balance);
     }
 
-    function _deposit(address user, uint256 balance)
+    function getAssetValue() public view virtual returns (uint256);
+
+    function getReserve() public view virtual returns (uint256);
+
+    function _purchase(address user, uint256 balance)
         internal
         returns (uint256 share)
     {
+        _callBeforePurchase();
         share = _addShare(user, balance);
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
+        _callAfterPurchase();
     }
 
-    function _withdraw(address user, uint256 share) internal returns (uint256) {
+    function _redeem(address user, uint256 share) internal returns (uint256) {
+        _callBeforeRedeem();
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
         denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
-            _enterState(State.WithdrawalPending);
+            _enterState(State.RedemptionPending);
             pendingStartTime = block.timestamp;
-            _withdrawPending(user, shareLeft);
+            _redeemPending(user, shareLeft);
         }
+        _callAfterRedeem();
 
         return balance;
     }
 
-    function _withdrawPending(address user, uint256 share)
+    function _redeemPending(address user, uint256 share)
         internal
         returns (uint256)
     {
@@ -136,5 +145,21 @@ abstract contract ShareModule is ModuleBase, AssetModule {
             shareLeft = 0;
             shareToken.burn(user, share);
         }
+    }
+
+    function _callBeforePurchase() internal virtual {
+        return;
+    }
+
+    function _callAfterPurchase() internal virtual {
+        return;
+    }
+
+    function _callBeforeRedeem() internal virtual {
+        return;
+    }
+
+    function _callAfterRedeem() internal virtual {
+        return;
     }
 }
