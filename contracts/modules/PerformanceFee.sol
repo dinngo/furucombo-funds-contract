@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
+import {LibFee} from "../libs/LibFee.sol";
 import {IShareERC20} from "../interfaces/IShareERC20.sol";
 
 abstract contract PerformanceFee {
@@ -24,17 +25,18 @@ abstract contract PerformanceFee {
         uint256 grossAssetValue = __getNetAssetValue();
         uint256 totalShare = shareToken.totalSupply();
         int128 grossSharePrice64x64 = grossAssetValue.divu(totalShare);
-        int256 wealth = _max64x64(_hwm64x64, grossSharePrice64x64)
-            .sub(_max64x64(_hwm64x64, _lastGrossSharePrice64x64))
+        int256 wealth = LibFee
+            ._max64x64(_hwm64x64, grossSharePrice64x64)
+            .sub(LibFee._max64x64(_hwm64x64, _lastGrossSharePrice64x64))
             .muli(int256(totalShare));
         int256 fee = _feeRate64x64.muli(wealth);
-        _feeSum = uint256(_max(0, int256(_feeSum) + fee));
+        _feeSum = uint256(LibFee._max(0, int256(_feeSum) + fee));
         uint256 netAssetValue = grossAssetValue - _feeSum;
         uint256 outstandingShare = (totalShare * _feeSum) / netAssetValue;
         if (outstandingShare > _lastOutstandingShare) {
-            __mintOutstandingShare(outstandingShare - _lastOutstandingShare);
+            _mintOutstandingShare(outstandingShare - _lastOutstandingShare);
         } else {
-            __burnOutstandingShare(_lastOutstandingShare - outstandingShare);
+            _burnOutstandingShare(_lastOutstandingShare - outstandingShare);
         }
         _lastOutstandingShare = outstandingShare;
     }
@@ -49,35 +51,17 @@ abstract contract PerformanceFee {
         return _feeRate64x64;
     }
 
-    function __mintOutstandingShare(uint256 amount) internal virtual;
+    function _mintOutstandingShare(uint256 amount) internal {
+        IShareERC20 shareToken = __getShareToken();
+        shareToken.mint(address(0), amount);
+    }
 
-    function __burnOutstandingShare(uint256 amount) internal virtual;
+    function _burnOutstandingShare(uint256 amount) internal {
+        IShareERC20 shareToken = __getShareToken();
+        shareToken.burn(address(0), amount);
+    }
 
     function __getShareToken() internal view virtual returns (IShareERC20);
-
-    function _max64x64(int128 a, int128 b) internal pure returns (int128) {
-        if (a > b) {
-            return a;
-        } else {
-            return b;
-        }
-    }
-
-    function _max(int256 a, int256 b) internal pure returns (int256) {
-        if (a > b) {
-            return a;
-        } else {
-            return b;
-        }
-    }
-
-    function _max(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a > b) {
-            return a;
-        } else {
-            return b;
-        }
-    }
 
     function __getNetAssetValue() internal view virtual returns (uint256);
 

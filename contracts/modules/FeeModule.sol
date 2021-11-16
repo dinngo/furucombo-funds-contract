@@ -17,14 +17,6 @@ abstract contract FeeModule is ModuleBase, ManagementFee, PerformanceFee {
         return shareToken;
     }
 
-    function __mintOutstandingShare(uint256 amount) internal override {
-        shareToken.mint(address(0), amount);
-    }
-
-    function __burnOutstandingShare(uint256 amount) internal override {
-        shareToken.burn(address(0), amount);
-    }
-
     function __getGrossAssetValue()
         internal
         view
