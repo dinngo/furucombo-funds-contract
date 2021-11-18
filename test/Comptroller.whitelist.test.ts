@@ -1,4 +1,4 @@
-import { constants, utils, Wallet } from 'ethers';
+import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { deployments } from 'hardhat';
 import {
@@ -25,12 +25,12 @@ describe('Comptroller_Whitelist', function () {
 
   let owner: Wallet;
   let user: Wallet;
-  let someone: Wallet;
+  let collector: Wallet;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
+      [owner, user, collector] = await (ethers as any).getSigners();
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
@@ -44,7 +44,7 @@ describe('Comptroller_Whitelist', function () {
 
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
-      ).deploy(implementation.address, assetRouter.address);
+      ).deploy(implementation.address, assetRouter.address, collector.address);
       await comptroller.deployed();
 
       actionMockA = await (await ethers.getContractFactory('AMock')).deploy();
@@ -75,7 +75,7 @@ describe('Comptroller_Whitelist', function () {
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(false);
 
       // permit manager
@@ -88,7 +88,7 @@ describe('Comptroller_Whitelist', function () {
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(false);
     });
 
@@ -98,13 +98,13 @@ describe('Comptroller_Whitelist', function () {
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(false);
 
       // permit managers
       const receipt = await comptroller.permitManagers([
         user.address,
-        someone.address,
+        collector.address,
       ]);
 
       // check events
@@ -113,14 +113,14 @@ describe('Comptroller_Whitelist', function () {
         .withArgs(user.address);
       expect(receipt)
         .to.emit(comptroller, 'PermitManager')
-        .withArgs(someone.address);
+        .withArgs(collector.address);
 
       // check managers
       expect(
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(true);
     });
 
@@ -130,7 +130,7 @@ describe('Comptroller_Whitelist', function () {
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(false);
 
       // permit managers
@@ -143,13 +143,13 @@ describe('Comptroller_Whitelist', function () {
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(true);
     });
 
     it('forbid single manager', async function () {
       // check env before execution
-      await comptroller.permitManagers([user.address, someone.address]);
+      await comptroller.permitManagers([user.address, collector.address]);
       expect(
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(true);
@@ -167,13 +167,13 @@ describe('Comptroller_Whitelist', function () {
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(true);
     });
 
     it('forbid multiple managers', async function () {
       // check env before execution
-      await comptroller.permitManagers([user.address, someone.address]);
+      await comptroller.permitManagers([user.address, collector.address]);
       expect(
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(true);
@@ -184,7 +184,7 @@ describe('Comptroller_Whitelist', function () {
       // forbid managers
       const receipt = await comptroller.forbidManagers([
         user.address,
-        someone.address,
+        collector.address,
       ]);
 
       // check events
@@ -193,14 +193,14 @@ describe('Comptroller_Whitelist', function () {
         .withArgs(user.address);
       expect(receipt)
         .to.emit(comptroller, 'ForbidManager')
-        .withArgs(someone.address);
+        .withArgs(collector.address);
 
       // check managers
       expect(
         await comptroller.connect(user).validManager(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(someone.address)
+        await comptroller.connect(user).validManager(collector.address)
       ).to.be.equal(false);
     });
 

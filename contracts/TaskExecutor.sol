@@ -92,15 +92,17 @@ contract TaskExecutor is
             if (config.isDelegateCall()) {
                 // Delegate call case
 
-                // TODO: check fund delegateCall
-                // TODO: check global delegateCall
+                // check fund delegate call
+                bytes4 sig = bytes4(datas[i]);
                 require(
-                    comptroller.canDelegateCall(
-                        level,
-                        tos[i],
-                        bytes4(datas[i])
-                    ),
-                    "invalid delegate call"
+                    IPool(msg.sender).canDelegateCall(tos[i], sig),
+                    "invalid proxy delegate call"
+                );
+
+                // check comptroller delegate call
+                require(
+                    comptroller.canDelegateCall(level, tos[i], sig),
+                    "invalid comptroller delegate call"
                 );
 
                 // Trim params from local stack depend on config
@@ -120,15 +122,16 @@ contract TaskExecutor is
                     datas[i]
                 );
 
-                // TODO: check fund call
-                // TODO: check global call
+                // check fund contract call
                 require(
-                    comptroller.canContractCall(
-                        level,
-                        tos[i],
-                        bytes4(datas[i])
-                    ),
-                    "valid contract call"
+                    IPool(msg.sender).canContractCall(tos[i], bytes4(_data)),
+                    "invalid proxy contract call"
+                );
+
+                // check comptroller contract call
+                require(
+                    comptroller.canContractCall(level, tos[i], bytes4(_data)),
+                    "invalid comptroller contract call"
                 );
 
                 // Trim params from local stack depend on config
@@ -146,11 +149,11 @@ contract TaskExecutor is
             }
         }
 
-        // TODO: check token valid and process
+        // verify dealing assets
         address[] memory dealingAssets = getDealingAssets();
         require(
             comptroller.validateDealingAssets(level, dealingAssets),
-            "valid asset"
+            "invalid dealing asset"
         );
         return dealingAssets;
     }
@@ -285,17 +288,21 @@ contract TaskExecutor is
     ) internal {
         // Check initial asset from white list
         uint256 level = IPool(msg.sender).getLevel();
-        require(comptroller.validateInitialAssets(level, tokensIn));
+        require(
+            comptroller.validateInitialAssets(level, tokensIn),
+            "invalid initial asset"
+        );
 
         // collect execution fee to collector
         uint256 feePercentage = comptroller.execFeePercentage();
         address payable collector = payable(comptroller.execFeeCollector());
 
         for (uint256 i = 0; i < tokensIn.length; i++) {
-            require(isFundQuotaZero(tokensIn[i]), "token quota is not zero");
-            uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;
+            // make sure all quota should be zero at the begin
+            require(isFundQuotaZero(tokensIn[i]), "quota is not zero");
 
             // send fee to collector
+            uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;
             if (address(tokensIn[i]) == ETHER) {
                 collector.transfer(execFee);
             } else {

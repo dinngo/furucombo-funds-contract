@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "../actions/ActionBase.sol";
 import "./Foo.sol";
 
-contract FooAction {
+contract FooAction is ActionBase {
     event FooBytes32(bytes32 a);
     event FooUint256(uint256 b);
 
@@ -70,5 +71,29 @@ contract FooAction {
 
     function revertCall() external payable {
         revert("revertCall");
+    }
+
+    function addAssets(address[] calldata assets) external payable {
+        for (uint256 i = 0; i < assets.length; i++) {
+            addDealingAsset(assets[i]);
+        }
+    }
+
+    function decreaseQuota(
+        address[] calldata assets,
+        uint256[] calldata amounts
+    ) external payable {
+        for (uint256 i = 0; i < assets.length; i++) {
+            decreaseFundQuota(assets[i], amounts[i]);
+        }
+    }
+
+    function increaseQuota(
+        address[] calldata assets,
+        uint256[] calldata amounts
+    ) external payable {
+        for (uint256 i = 0; i < assets.length; i++) {
+            increaseFundQuota(assets[i], amounts[i]);
+        }
     }
 }

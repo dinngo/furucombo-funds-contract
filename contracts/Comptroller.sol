@@ -33,6 +33,8 @@ contract Comptroller is UpgradeableBeacon {
     // Event
     event Halted();
     event UnHalted();
+    event SetExecFeeCollector(address indexed collector);
+    event SetExecFeePercentage(uint256 indexed percentage);
     event SetInitialAssetCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
@@ -64,10 +66,14 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Public Function
-    constructor(address implementation_, address assetRouter_)
-        UpgradeableBeacon(implementation_)
-    {
+    constructor(
+        address implementation_,
+        address assetRouter_,
+        address execFeeCollector_
+    ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
+        execFeeCollector = execFeeCollector_;
+        fInitialAssetCheck = true;
         this;
     }
 
@@ -91,6 +97,17 @@ contract Comptroller is UpgradeableBeacon {
     function unHalt() external onlyOwner {
         fHalt = false;
         emit UnHalted();
+    }
+
+    // Fee
+    function setFeeCollector(address collector) external onlyOwner {
+        execFeeCollector = collector;
+        emit SetExecFeeCollector(collector);
+    }
+
+    function setExecFeePercentage(uint256 percentage) external onlyOwner {
+        execFeePercentage = percentage;
+        emit SetExecFeePercentage(execFeePercentage);
     }
 
     // input check
@@ -191,7 +208,7 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     function validateDealingAsset(uint256 level, address asset)
-        external
+        public
         view
         returns (bool)
     {
@@ -204,7 +221,7 @@ contract Comptroller is UpgradeableBeacon {
         returns (bool)
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (!assetACL.canCall(level, assets[i])) {
+            if (!validateDealingAsset(level, assets[i])) {
                 return false;
             }
         }

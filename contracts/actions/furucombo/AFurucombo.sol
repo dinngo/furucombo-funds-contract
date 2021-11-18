@@ -42,12 +42,6 @@ contract AFurucombo is
         bytes32[] calldata configs,
         bytes[] memory datas
     ) external payable delegateCallOnly returns (uint256[] memory) {
-        // TODO: 會用 tokensIn 是因為可以讓 Task chaininput 放入上一個 action 拿到的 token amount
-        //       所以才用直接 send token 的方式傳到 furucombo。 因為在組 combo 的時候並不會知道到時候
-        //       harvest 了多少。
-
-        // TODO: do we need to check output token? 他應該會在 deal asset 上面出現 or 值會等於 0
-
         // Snapshot output token amounts
         uint256[] memory amountsOut = new uint256[](tokensOut.length);
         for (uint256 i = 0; i < tokensOut.length; i++) {
@@ -104,10 +98,10 @@ contract AFurucombo is
         for (uint256 i = 0; i < tokensIn.length; i++) {
             uint256 amount = amountsIn[i];
 
-            // decrease fund quota
-            decreaseFundQuota(tokensIn[i], amount);
-
             if (amount > 0) {
+                // decrease fund quota
+                decreaseFundQuota(tokensIn[i], amount);
+
                 if (tokensIn[i] == NATIVE_TOKEN_ADDRESS) {
                     proxy.transfer(amount);
                 } else {

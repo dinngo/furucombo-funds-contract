@@ -6,55 +6,53 @@ library StorageArray {
         bytes32 value;
     }
 
-    function _getSlot(bytes32 slot_) internal pure returns (Slot storage ret) {
+    function _getSlot(bytes32 slot) private pure returns (Slot storage ret) {
         assembly {
-            ret.slot := slot_
+            ret.slot := slot
         }
     }
 
-    function get(bytes32 slotIndex, uint256 index)
-        public
+    function get(bytes32 slot, uint256 index)
+        internal
         view
         returns (bytes32 val)
     {
-        require(index < uint256(_getSlot(slotIndex).value), "invalid index");
-        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slotIndex)))) +
-            index;
+        require(index < uint256(_getSlot(slot).value), "get invalid index");
+        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slot)))) + index;
         val = _getSlot(bytes32(s)).value;
     }
 
     function set(
-        bytes32 slotIndex,
+        bytes32 slot,
         uint256 index,
         bytes32 val
-    ) public {
-        require(index < uint256(_getSlot(slotIndex).value), "invalid index");
-        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slotIndex)))) +
-            index;
+    ) internal {
+        require(index < uint256(_getSlot(slot).value), "set invalid index");
+        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slot)))) + index;
 
         bytes32 _val = bytes32(bytes20(val));
         _getSlot(bytes32(s)).value = _val;
     }
 
-    function push(bytes32 slotIndex, bytes32 val) public {
-        uint256 length = uint256(_getSlot(slotIndex).value);
-        set(slotIndex, length, val);
-        _getSlot(slotIndex).value = bytes32(++length);
+    function push(bytes32 slot, bytes32 val) internal {
+        uint256 length = uint256(_getSlot(slot).value);
+        _getSlot(slot).value = bytes32(length + 1);
+        set(slot, length, val);
     }
 
-    function pop(bytes32 slotIndex) public returns (bytes32 val) {
-        uint256 length = uint256(_getSlot(slotIndex).value);
+    function pop(bytes32 slot) internal returns (bytes32 val) {
+        uint256 length = uint256(_getSlot(slot).value);
         require(length > 0, "empty array");
 
-        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slotIndex)))) +
-            --length;
-
+        length -= 1;
+        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slot)))) +
+            length;
         val = _getSlot(bytes32(s)).value;
         _getSlot(bytes32(s)).value = 0;
-        _getSlot(slotIndex).value = bytes32(length);
+        _getSlot(slot).value = bytes32(length);
     }
 
-    function getLength(bytes32 slotIndex) public view returns (uint256) {
-        return uint256(_getSlot(slotIndex).value);
+    function getLength(bytes32 slot) internal view returns (uint256) {
+        return uint256(_getSlot(slot).value);
     }
 }

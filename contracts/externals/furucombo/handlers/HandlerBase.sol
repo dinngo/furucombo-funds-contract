@@ -12,6 +12,11 @@ abstract contract HandlerBase is Storage, Config {
     using SafeERC20 for IERC20;
     using LibStack for bytes32[];
 
+    address public constant NATIVE_TOKEN_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private constant MATIC_TOKEN =
+        0x0000000000000000000000000000000000001010;
+
     function postProcess() external payable virtual {
         revert("Invalid post process");
         /* Implementation template
@@ -26,12 +31,14 @@ abstract contract HandlerBase is Storage, Config {
     }
 
     function _updateToken(address token) internal {
+        _notMaticToken(token);
         stack.setAddress(token);
         // Ignore token type to fit old handlers
         // stack.setHandlerType(uint256(HandlerType.Token));
     }
 
     function _updateInitialToken(address token) internal {
+        _notMaticToken(token);
         stack.setAddress(token);
         stack.setHandlerType(HandlerType.Initial);
     }
@@ -48,13 +55,11 @@ abstract contract HandlerBase is Storage, Config {
 
     function _revertMsg(string memory functionName, string memory reason)
         internal
-        view
+        pure
     {
         revert(
             string(
                 abi.encodePacked(
-                    _uint2String(_getCubeCounter()),
-                    "_",
                     getContractName(),
                     "_",
                     functionName,
@@ -65,8 +70,16 @@ abstract contract HandlerBase is Storage, Config {
         );
     }
 
-    function _revertMsg(string memory functionName) internal view {
+    function _revertMsg(string memory functionName) internal pure {
         _revertMsg(functionName, "Unspecified");
+    }
+
+    function _requireMsg(
+        bool condition,
+        string memory functionName,
+        string memory reason
+    ) internal pure {
+        if (!condition) _revertMsg(functionName, reason);
     }
 
     function _uint2String(uint256 n) internal pure returns (string memory) {
@@ -96,10 +109,7 @@ abstract contract HandlerBase is Storage, Config {
         }
 
         // ETH case
-        if (
-            token == address(0) ||
-            token == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)
-        ) {
+        if (token == address(0) || token == NATIVE_TOKEN_ADDRESS) {
             return address(this).balance;
         }
         // ERC20 token case
@@ -114,6 +124,25 @@ abstract contract HandlerBase is Storage, Config {
         try IERC20Usdt(token).approve(spender, amount) {} catch {
             IERC20(token).safeApprove(spender, 0);
             IERC20(token).safeApprove(spender, amount);
+        }
+    }
+
+    function _tokenApproveZero(address token, address spender) internal {
+        if (IERC20Usdt(token).allowance(address(this), spender) > 0) {
+            try IERC20Usdt(token).approve(spender, 0) {} catch {
+                IERC20Usdt(token).approve(spender, 1);
+            }
+        }
+    }
+
+    // Do not support matic token (0x0000...1010)
+    function _notMaticToken(address token) internal pure {
+        require(token != MATIC_TOKEN, "Not support matic token");
+    }
+
+    function _notMaticToken(address[] memory tokens) internal pure {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            require(tokens[i] != MATIC_TOKEN, "Not support matic token");
         }
     }
 }

@@ -1,4 +1,4 @@
-import { constants, Wallet } from 'ethers';
+import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
@@ -17,12 +17,12 @@ describe('Comptroller', function () {
 
   let owner: Wallet;
   let user: Wallet;
-  let someone: Wallet;
+  let collector: Wallet;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
+      [owner, user, collector] = await (ethers as any).getSigners();
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
@@ -36,27 +36,11 @@ describe('Comptroller', function () {
 
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
-      ).deploy(implementation.address, assetRouter.address);
+      ).deploy(implementation.address, assetRouter.address, collector.address);
       await comptroller.deployed();
 
-      const storageArray = await (
-        await ethers.getContractFactory('StorageArray')
-      ).deploy();
-      await storageArray.deployed();
-
-      const storageMap = await (
-        await ethers.getContractFactory('StorageMap')
-      ).deploy();
-      await storageArray.deployed();
-
       taskExecutor = await (
-        await ethers.getContractFactory('TaskExecutor', {
-          libraries: {
-            'contracts/libraries/StorageArray.sol:StorageArray':
-              storageArray.address,
-            'contracts/libraries/StorageMap.sol:StorageMap': storageMap.address,
-          },
-        })
+        await ethers.getContractFactory('TaskExecutor')
       ).deploy(owner.address, comptroller.address);
       await taskExecutor.deployed();
     }
@@ -217,7 +201,6 @@ describe('Comptroller', function () {
           .to.emit(comptroller, 'PermitAsset')
           .withArgs(level, tokenB);
 
-        // check assets are permitted
         // check single asset
         expect(
           await comptroller.connect(user).validateDealingAsset(level, tokenA)
@@ -296,19 +279,24 @@ describe('Comptroller', function () {
         // check env before execution
         await comptroller.permitAssets(level, [tokenA]);
         expect(
-          await comptroller.connect(user).validateDealingAssets(level, [tokenA])
+          await comptroller.connect(user).validateInitialAssets(level, [tokenA])
         ).to.be.equal(true);
       });
 
       // validate initial asset
-      it('update initial check flag to true', async function () {
+      it('update initial check flag', async function () {
         // check env before execution
+        let check = false;
+        await expect(comptroller.setInitialAssetCheck(check))
+          .to.emit(comptroller, 'SetInitialAssetCheck')
+          .withArgs(check);
+
         expect(
           await comptroller.connect(user).fInitialAssetCheck()
-        ).to.be.equal(false);
+        ).to.be.equal(check);
 
         // set new implementation
-        const check = true;
+        check = true;
         await expect(comptroller.setInitialAssetCheck(check))
           .to.emit(comptroller, 'SetInitialAssetCheck')
           .withArgs(check);
@@ -319,28 +307,8 @@ describe('Comptroller', function () {
         ).to.be.equal(check);
       });
 
-      it('update initial check flag to false', async function () {
-        // check env before execution
-        await expect(comptroller.setInitialAssetCheck(true));
-        expect(
-          await comptroller.connect(user).fInitialAssetCheck()
-        ).to.be.equal(true);
-
-        // set new implementation
-        const check = false;
-        await expect(comptroller.setInitialAssetCheck(check))
-          .to.emit(comptroller, 'SetInitialAssetCheck')
-          .withArgs(check);
-
-        // check initialCheck
-        expect(
-          await comptroller.connect(user).fInitialAssetCheck()
-        ).to.be.equal(check);
-      });
-
-      it('use non-authority initial asset', async function () {
+      it('non-authority initial asset', async function () {
         // enable initial asset check
-        await comptroller.setInitialAssetCheck(true);
         expect(
           await comptroller.connect(user).validateInitialAsset(level, tokenA)
         ).to.be.equal(true);
@@ -356,9 +324,8 @@ describe('Comptroller', function () {
         ).to.be.equal(false);
       });
 
-      it('use authority initial asset', async function () {
+      it('authority initial asset', async function () {
         // enable initial asset check
-        await comptroller.setInitialAssetCheck(true);
         expect(
           await comptroller.connect(user).validateInitialAsset(level, tokenA)
         ).to.be.equal(true);
@@ -375,6 +342,7 @@ describe('Comptroller', function () {
       });
 
       it('always return true if initial check flag is false', async function () {
+        await comptroller.setInitialAssetCheck(false);
         // check single asset
         expect(
           await comptroller.connect(user).validateInitialAsset(level, tokenB)
@@ -439,6 +407,7 @@ describe('Comptroller', function () {
 
       // permit new denominations
       const receipt = await comptroller.forbidDenominations([tokenA, tokenB]);
+
       // check event
       expect(receipt)
         .to.emit(comptroller, 'ForbidDenomination')
@@ -532,6 +501,56 @@ describe('Comptroller', function () {
     });
   });
 
+  // asset router management
+  describe('fee', function () {
+    it('set fee collector', async function () {
+      // check env before execution
+      expect(await comptroller.connect(user).execFeeCollector()).to.be.equal(
+        collector.address
+      );
+
+      // set new asset router
+      await expect(comptroller.setFeeCollector(user.address))
+        .to.emit(comptroller, 'SetExecFeeCollector')
+        .withArgs(user.address);
+
+      // check new asset router
+      expect(await comptroller.connect(user).execFeeCollector()).to.be.equal(
+        user.address
+      );
+    });
+
+    it('should revert: set fee collector by non-owner', async function () {
+      await expect(
+        comptroller.connect(user).setFeeCollector(user.address)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('set fee percentage', async function () {
+      // check env before execution
+      expect(await comptroller.connect(user).execFeePercentage()).to.be.equal(
+        0
+      );
+
+      // set new asset router
+      const percentage = BigNumber.from('20');
+      await expect(comptroller.setExecFeePercentage(percentage))
+        .to.emit(comptroller, 'SetExecFeePercentage')
+        .withArgs(percentage);
+
+      // check new asset router
+      expect(await comptroller.connect(user).execFeePercentage()).to.be.equal(
+        percentage
+      );
+    });
+
+    it('should revert: set fee collector by non-owner', async function () {
+      await expect(
+        comptroller.connect(user).setExecFeePercentage(BigNumber.from('20'))
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+  });
+
   // Execution action management
   describe('execution action', function () {
     it('set execution action', async function () {
@@ -553,9 +572,9 @@ describe('Comptroller', function () {
 
     it('set execution action twice', async function () {
       // check env before execution
-      await comptroller.setExecAction(someone.address);
+      await comptroller.setExecAction(collector.address);
       expect(await comptroller.connect(user).execAction()).to.be.equal(
-        someone.address
+        collector.address
       );
 
       // set new execution action

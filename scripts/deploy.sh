@@ -17,17 +17,10 @@ hardhat_running() {
     nc -z localhost "$hardhat_port"
 }
 
-tests="$@"
-echo "running tests:"
-echo "$tests"
-
 start_hardhat() {
 
-    echo "RPC_NODE:" $RPC_NODE
-
-    npx hardhat node --fork $RPC_NODE --no-deploy >/dev/null &
-
-    echo "no deployment script will be executed"
+    npx hardhat node --fork $RPC_NODE &
+    echo "deployment script will be executed"
 
     hardhat_pid=$!
 }
@@ -36,20 +29,15 @@ wait_hardhat_ready() {
 
     while ! hardhat_running
     do
-        sleep 1
+        sleep 3
     done
 }
 
-if hardhat_running; then
-    echo "Using existing hardhat network instance"
-else
-    echo "Starting new hardhat network instance"
-    start_hardhat
-fi
+
+echo "Starting new hardhat network instance"
+start_hardhat
+
 
 wait_hardhat_ready
 
 npx hardhat --version
-
-# Execute rest test files with suffix `.test.js`
-npx hardhat --network localhost test $tests

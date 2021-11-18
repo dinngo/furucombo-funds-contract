@@ -13,22 +13,26 @@ abstract contract DealingAssetAction {
         cleanAssets();
     }
 
-    function getDealingAsset(address key) internal view returns (bool) {
-        return DealingAsset.get(key);
+    function getDealingAsset(address asset) internal view returns (bool) {
+        return DealingAsset.get(asset);
     }
 
-    function addDealingAsset(address key) internal {
-        if (!getDealingAsset(key)) {
-            DealingAsset.set(key, true);
+    function addDealingAsset(address asset) internal {
+        if (!getDealingAsset(asset)) {
+            DealingAsset.set(asset, true);
         }
     }
 
-    function removeDealingAsset(address key) internal {
-        DealingAsset.set(key, false);
+    function removeDealingAsset(address asset) internal {
+        DealingAsset.set(asset, false);
     }
 
     function getDealingAssets() internal view returns (address[] memory) {
         return DealingAsset.assets();
+    }
+
+    function getDealingAssetLength() internal view returns (uint256) {
+        return DealingAsset.getLength();
     }
 
     function cleanAssets() internal {

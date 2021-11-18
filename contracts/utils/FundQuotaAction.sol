@@ -13,26 +13,27 @@ abstract contract FundQuotaAction {
         cleanFundQuota();
     }
 
-    function getFundQuota(address key) internal view returns (uint256) {
-        return FundQuota.get(key);
+    function getFundQuota(address fund) internal view returns (uint256) {
+        return FundQuota.get(fund);
     }
 
-    function isFundQuotaZero(address key) internal view returns (bool) {
-        return getFundQuota(key) == 0;
+    function isFundQuotaZero(address fund) internal view returns (bool) {
+        return getFundQuota(fund) == 0;
     }
 
-    function setFundQuota(address key, uint256 val) internal {
-        FundQuota.set(key, val);
+    function setFundQuota(address fund, uint256 quota) internal {
+        FundQuota.set(fund, quota);
     }
 
-    function increaseFundQuota(address key, uint256 val) internal {
-        uint256 oldVal = FundQuota.get(key);
-        setFundQuota(key, oldVal + val);
+    function increaseFundQuota(address fund, uint256 quota) internal {
+        uint256 oldQuota = FundQuota.get(fund);
+        setFundQuota(fund, oldQuota + quota);
     }
 
-    function decreaseFundQuota(address key, uint256 val) internal {
-        uint256 oldVal = FundQuota.get(key);
-        setFundQuota(key, oldVal - val);
+    function decreaseFundQuota(address fund, uint256 quota) internal {
+        uint256 oldQuota = FundQuota.get(fund);
+        require(oldQuota >= quota, "insufficient quota");
+        setFundQuota(fund, oldQuota - quota);
     }
 
     function cleanFundQuota() internal {

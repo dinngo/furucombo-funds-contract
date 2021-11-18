@@ -14,7 +14,7 @@ import "./lib/LibParam.sol";
  * @title The entrance of Furucombo
  * @author Ben Huang
  */
-contract Proxy is IProxy, Storage, Config {
+contract FurucomboProxy is IProxy, Storage, Config {
     using Address for address;
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
@@ -252,7 +252,6 @@ contract Proxy is IProxy, Storage, Config {
         returns (bytes memory result)
     {
         require(_isValidHandler(_to), "Invalid handler");
-        _addCubeCounter();
         assembly {
             let succeeded := delegatecall(
                 sub(gas(), 5000),
@@ -300,7 +299,7 @@ contract Proxy is IProxy, Storage, Config {
     }
 
     /// @notice The pre-process phase.
-    function _preProcess() internal virtual isStackEmpty isCubeCounterZero {
+    function _preProcess() internal virtual isStackEmpty {
         // Set the sender.
         _setSender();
     }
@@ -310,31 +309,26 @@ contract Proxy is IProxy, Storage, Config {
         // Handler type will be parsed at the beginning. Will send the token back to
         // user if the handler type is "Token". Will get the handler address and
         // execute the customized post-process if handler type is "Custom".
-
         address[256] memory assets;
         uint8 index = 0;
-
         while (stack.length > 0) {
             bytes32 top = stack.get();
             // Get handler type
             HandlerType handlerType = HandlerType(uint96(bytes12(top)));
             if (handlerType == HandlerType.Token) {
                 address addr = address(uint160(uint256(top)));
-                uint256 tokenAmount = IERC20(addr).balanceOf(address(this));
-                if (tokenAmount > 0)
-                    IERC20(addr).safeTransfer(msg.sender, tokenAmount);
+                _tokenRefund(addr);
+
+                // Only dealing tokens need to return except initial funds
                 assets[index++] = addr;
             } else if (handlerType == HandlerType.Initial) {
-                // TODO: 新增一個 handlerType for initialFunds。讓這個 fund 拿到後不會 update 到 dealAssets 中
                 address addr = stack.getAddress();
-                uint256 tokenAmount = IERC20(addr).balanceOf(address(this));
-                if (tokenAmount > 0)
-                    IERC20(addr).safeTransfer(msg.sender, tokenAmount);
+                _tokenRefund(addr);
             } else if (handlerType == HandlerType.Custom) {
                 address addr = stack.getAddress();
                 _exec(addr, abi.encodeWithSelector(POSTPROCESS_SIG));
             } else if (handlerType == HandlerType.Others) {
-                // TODO: For specific asset like maker, aave.
+                // For specific asset like maker, aave.
                 address addr = stack.getAddress();
                 assets[index++] = addr;
             } else {
@@ -346,16 +340,20 @@ contract Proxy is IProxy, Storage, Config {
         uint256 amount = address(this).balance;
         if (amount > 0) payable(msg.sender).transfer(amount);
 
-        // Reset the msg.sender and cube counter
+        // Reset the msg.sender
         _resetSender();
-        _resetCubeCounter();
 
-        // return deal assets
+        // Return deal assets, convert fixed array to dynamic array
         address[] memory dealAssets = new address[](index);
         for (uint256 i = 0; i < index; i++) {
             dealAssets[i] = assets[i];
         }
         return dealAssets;
+    }
+
+    function _tokenRefund(address addr) internal {
+        uint256 tokenAmount = IERC20(addr).balanceOf(address(this));
+        if (tokenAmount > 0) IERC20(addr).safeTransfer(msg.sender, tokenAmount);
     }
 
     /// @notice Check if the handler is valid in registry.

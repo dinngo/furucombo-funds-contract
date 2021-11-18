@@ -1,260 +1,113 @@
 import { ethers } from 'hardhat';
-// const { BN, ether, ZERO_ADDRESS } = require('@openzeppelin/test-helpers');
-// const fetch = require('node-fetch');
-// const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-// const {
-//   UNISWAPV2_FACTORY,
-//   SUSHISWAP_FACTORY,
-//   CURVE_ADDRESS_PROVIDER,
-//   YEARN_CONTROLLER,
-//   WETH_TOKEN,
-//   USDC_TOKEN,
-//   RecordHandlerResultSig,
-// } = require('./constants');
+import { RecordActionResultSig, DeltaGasSig } from './constants';
+const hre = require('hardhat');
 
-// const { expect } = require('chai');
-
-// function profileGas(receipt) {
-//   receipt.logs.forEach((element) => {
-//     if (element.event === 'DeltaGas')
-//       console.log(
-//         web3.utils.hexToAscii(element.args.tag) +
-//           ': ' +
-//           element.args.gas.toString()
-//       );
-//   });
-// }
-
-// async function evmSnapshot(host = 'http://localhost:8545') {
-//   const body = { id: 1337, jsonrpc: '2.0', method: 'evm_snapshot', params: [] };
-//   const response = await fetch(host, {
-//     method: 'post',
-//     body: JSON.stringify(body),
-//     headers: { 'Content-Type': 'application/json' },
-//   });
-//   const data = await response.json();
-//   if (data != null && data.result != null) {
-//     // return the snapshot id
-//     return data.result;
-//   }
-//   // snapshot failed
-//   console.log(`evmSnapshot failed`);
-//   return -1;
-// }
-
-// async function evmRevert(id = 1, host = 'http://localhost:8545') {
-//   // ganache snapshot id must >= 1
-//   if (id < 1) {
-//     console.log(`evmRevert failed: unacceptable snapshot id`);
-//     return false;
-//   }
-//   const body = { id: 1337, jsonrpc: '2.0', method: 'evm_revert', params: [id] };
-//   const response = await fetch(host, {
-//     method: 'post',
-//     body: JSON.stringify(body),
-//     headers: { 'Content-Type': 'application/json' },
-//   });
-//   const data = await response.json();
-//   let result = false;
-//   if (data != null && data.result != null) {
-//     result = data.result;
-//   }
-//   if (!result) console.log(`evmRevert failed`);
-//   return result;
-// }
-
-// async function evmRevertAndSnapshot(id = 1, host = 'http://localhost:8545') {
-//   // ganache snapshot id must >= 1
-//   if (id < 1) {
-//     console.log(`evmRevertAndSnapshot failed: unacceptable snapshot id`);
-//     return -1;
-//   }
-//   const revertSuccess = await evmRevert(id, host);
-//   let new_id = -1;
-//   if (revertSuccess) {
-//     new_id = await evmSnapshot(host);
-//   }
-//   if (new_id == -1) console.log(`evmRevertAndSnapshot failed`);
-//   return new_id;
-// }
+export async function profileGas(receipt: any) {
+  const result = await receipt.wait();
+  result.events.forEach((element: any) => {
+    if (element.topics[0] === DeltaGasSig) {
+      const [tag, gas] = ethers.utils.defaultAbiCoder.decode(
+        ['bytes32', 'uint256'],
+        element.data
+      );
+      console.log(ethers.utils.toUtf8String(tag) + ': ' + gas.toString());
+    }
+  });
+}
 
 export function ether(num: any) {
   return ethers.utils.parseUnits(num, 'ether');
-  // return ethers.BigNumber.from(num).mul(ethers.constants.WeiPerEther);
 }
 
-// function mulPercent(num, percentage) {
-//   return new BN(num).mul(new BN(percentage)).div(new BN(100));
-// }
+export async function getTaskExecutorFundQuotas(
+  proxy: any,
+  taskExecutor: any,
+  tokensIn: string[]
+) {
+  const returnData = await proxy.callStatic.execute(
+    taskExecutor.address,
+    getCallData(taskExecutor, 'getFundQuotas', [tokensIn])
+  );
 
-// function cUnit(amount) {
-//   return new BN(amount).mul(new BN('100000000'));
-// }
+  const fundQuotas = ethers.utils.defaultAbiCoder.decode(
+    ['uint256[]'],
+    returnData
+  )[0];
+  return fundQuotas;
+}
 
-// function getHandlerReturn(receipt, dataTypes) {
-//   let handlerResult;
-//   receipt.receipt.rawLogs.forEach((element) => {
-//     if (element.topics[0] === RecordHandlerResultSig) {
-//       const bytesData = web3.eth.abi.decodeParameters(
-//         ['bytes'],
-//         element.data
-//       )[0];
-//       handlerResult = web3.eth.abi.decodeParameters(dataTypes, bytesData);
-//     }
-//   });
-//   return handlerResult;
-// }
+export async function getTaskExecutorDealingAssets(
+  proxy: any,
+  taskExecutor: any
+) {
+  const returnData = await proxy.callStatic.execute(
+    taskExecutor.address,
+    getCallData(taskExecutor, 'getDealingAssetList', [])
+  );
 
-// function errorCompare(a, b, e = new BN('1')) {
-//   expect(a.sub(b).abs()).to.be.bignumber.lte(e);
-// }
-
-// // Only works when one function name matches
-// function getAbi(artifact, name) {
-//   let abi;
-//   artifact.abi.forEach((element, i) => {
-//     if (element.name === name) {
-//       abi = element;
-//     }
-//   });
-//   return abi;
-// }
+  const assets = ethers.utils.defaultAbiCoder.decode(
+    ['address[]'],
+    returnData
+  )[0];
+  return assets;
+}
 
 export function getCallData(artifact: any, name: string, params: any) {
   return artifact.interface.encodeFunctionData(name, params);
 }
 
-// function decodeInputData(artifact, name, params) {
-//   return web3.eth.abi.decodeParameters(getAbi(artifact, name).inputs, params);
-// }
+export function getCallActionData(
+  ethValue: any,
+  artifact: any,
+  funcName: string,
+  params: any
+) {
+  return ethers.utils.defaultAbiCoder.encode(
+    ['uint256', 'bytes'],
+    [ethValue, getCallData(artifact, funcName, params)]
+  );
+}
 
-// function decodeOutputData(artifact, name, params) {
-//   return web3.eth.abi.decodeParameters(getAbi(artifact, name).outputs, params);
-// }
+export async function impersonateAndInjectEther(address: string) {
+  // Impersonate pair
+  await hre.network.provider.send('hardhat_impersonateAccount', [address]);
 
-// function getFuncSig(artifact, name) {
-//   return web3.eth.abi.encodeFunctionSignature(getAbi(artifact, name));
-// }
+  // Inject 1 ether
+  await hre.network.provider.send('hardhat_setBalance', [
+    address,
+    '0xde0b6b3a7640000',
+  ]);
+  return await (ethers as any).getSigner(address);
+}
 
-// function expectEqWithinBps(actual, expected, bps = 1) {
-//   const base = new BN('10000');
-//   const upper = new BN(expected).mul(base.add(new BN(bps))).div(base);
-//   const lower = new BN(expected).mul(base.sub(new BN(bps))).div(base);
-//   expect(actual).to.be.bignumber.lte(upper);
-//   expect(actual).to.be.bignumber.gte(lower);
-// }
+export function simpleEncode(_func: string, params: any) {
+  const func = 'function ' + _func;
+  const abi = [func];
+  const iface = new ethers.utils.Interface(abi);
+  const data = iface.encodeFunctionData(_func, params);
+  return data;
+}
 
-// async function etherProviderWeth() {
-//   // Impersonate weth
-//   await network.provider.send('hardhat_impersonateAccount', [WETH_TOKEN]);
+export async function getActionReturn(receipt: any, dataTypes: any) {
+  let actionResult: any;
+  const result = await receipt.wait();
 
-//   return WETH_TOKEN;
-// }
+  result.events.forEach((element: any) => {
+    if (element.topics[0] === RecordActionResultSig) {
+      const bytesData = ethers.utils.defaultAbiCoder.decode(
+        ['bytes'],
+        element.data
+      )[0];
 
-// async function tokenProviderUniV2(
-//   token0 = USDC_TOKEN,
-//   token1 = WETH_TOKEN,
-//   factoryAddress = UNISWAPV2_FACTORY
-// ) {
-//   if (token0 === WETH_TOKEN) {
-//     token1 = USDC_TOKEN;
-//   }
-//   return _tokenProviderUniLike(token0, token1, factoryAddress);
-// }
+      actionResult = ethers.utils.defaultAbiCoder.decode(
+        dataTypes,
+        bytesData
+      )[0];
+    }
+  });
+  return actionResult;
+}
 
-// async function tokenProviderSushi(
-//   token0 = USDC_TOKEN,
-//   token1 = WETH_TOKEN,
-//   factoryAddress = SUSHISWAP_FACTORY
-// ) {
-//   if (token0 === WETH_TOKEN) {
-//     token1 = USDC_TOKEN;
-//   }
-//   return _tokenProviderUniLike(token0, token1, factoryAddress);
-// }
-
-// async function _tokenProviderUniLike(token0, token1, factoryAddress) {
-//   const IUniswapV2Factory = artifacts.require('IUniswapV2Factory');
-//   const factory = await IUniswapV2Factory.at(factoryAddress);
-//   const pair = await factory.getPair.call(token0, token1);
-//   _impersonateAndInjectEther(pair);
-
-//   return pair;
-// }
-
-// async function tokenProviderCurveGauge(lpToken) {
-//   // Get curve registry
-//   const addressProvider = await ethers.getContractAt(
-//     ['function get_registry() view returns (address)'],
-//     CURVE_ADDRESS_PROVIDER
-//   );
-//   const registryAddress = await addressProvider.get_registry();
-
-//   // Get curve gauge
-//   const registry = await ethers.getContractAt(
-//     [
-//       'function get_pool_from_lp_token(address) view returns (address)',
-//       'function get_gauges(address) view returns (address[10], int128[10])',
-//     ],
-//     registryAddress
-//   );
-//   const poolAddress = await registry.get_pool_from_lp_token(lpToken);
-//   const gauges = await registry.get_gauges(poolAddress);
-
-//   // Return non-zero gauge
-//   let gauge;
-//   for (const element of gauges[0]) {
-//     if (element != ZERO_ADDRESS) {
-//       gauge = element;
-//       break;
-//     }
-//   }
-//   _impersonateAndInjectEther(gauge);
-
-//   return gauge;
-// }
-
-// async function tokenProviderYearn(token) {
-//   // Get yearn vault
-//   const controller = await ethers.getContractAt(
-//     ['function vaults(address) view returns (address)'],
-//     YEARN_CONTROLLER
-//   );
-//   const vault = await controller.vaults(token);
-//   _impersonateAndInjectEther(vault);
-
-//   return vault;
-// }
-
-// async function _impersonateAndInjectEther(address) {
-//   // Impersonate pair
-//   await network.provider.send('hardhat_impersonateAccount', [address]);
-
-//   // Inject 1 ether
-//   await network.provider.send('hardhat_setBalance', [
-//     address,
-//     '0xde0b6b3a7640000',
-//   ]);
-// }
-
-// module.exports = {
-//   profileGas,
-//   evmSnapshot,
-//   evmRevert,
-//   evmRevertAndSnapshot,
-//   mulPercent,
-//   cUnit,
-//   getHandlerReturn,
-//   errorCompare,
-//   getAbi,
-//   getCallData,
-//   decodeInputData,
-//   decodeOutputData,
-//   getFuncSig,
-//   expectEqWithinBps,
-//   etherProviderWeth,
-//   tokenProviderUniV2,
-//   tokenProviderSushi,
-//   tokenProviderCurveGauge,
-//   tokenProviderYearn,
-// };
+export function stringToHex(s: string) {
+  return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(s));
+}

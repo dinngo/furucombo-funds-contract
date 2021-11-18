@@ -133,6 +133,9 @@ export const FURUCOMBO_HQUICKSWAP =
 export const RecordActionResultSig =
   '0x9e4cb38f3ff5e7d394a1d9c423dcc7585236195cf38029312540e27306c886f7';
 
+export const DeltaGasSig =
+  '0xaf6ae684695362675b87dad33f48929dfb2daf9ddeda7c0bc0297cb70d1aeae7';
+
 /* whitelist */
 export const WL_ANY_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 export const WL_ANY_SIG = '0xffffffff';

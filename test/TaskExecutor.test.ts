@@ -1,4 +1,4 @@
-import { constants, Wallet, BigNumber } from 'ethers';
+import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
@@ -9,39 +9,55 @@ import {
   IDSProxyRegistry,
   FooAction,
   Foo,
-  ProxyMock,
+  PoolProxyMock,
+  IERC20,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
   DAI_TOKEN,
-  WBTC_TOKEN,
+  DAI_PROVIDER,
+  WETH_TOKEN,
+  WETH_PROVIDER,
   WL_ANY_SIG,
+  NATIVE_TOKEN,
 } from './utils/constants';
-import { getCallData, ether } from './utils/utils';
+import {
+  getCallData,
+  getCallActionData,
+  ether,
+  impersonateAndInjectEther,
+} from './utils/utils';
 
-describe('Comptroller', function () {
+describe('Task Executor', function () {
   let comptroller: Comptroller;
   let implementation: Implementation;
   let assetRouter: AssetRouter;
   let taskExecutor: TaskExecutor;
   let dsProxyRegistry: IDSProxyRegistry;
-  // let userProxy: IDSProxy;
-  let proxy: ProxyMock;
+  let proxy: PoolProxyMock;
 
   let owner: Wallet;
   let user: Wallet;
-  let someone: Wallet;
+  let collector: Wallet;
 
   let foo: Foo;
   let fooAction: FooAction;
 
+  let tokenA: IERC20;
+  let tokenB: IERC20;
+  let tokenAProvider: Signer;
+  let tokenBProvider: Signer;
+
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
-      console.log('user', user.address);
-      console.log('owner', owner.address);
-      console.log('someone', someone.address);
+      [owner, user, collector] = await (ethers as any).getSigners();
+
+      // setup token and unlock provider
+      tokenAProvider = await impersonateAndInjectEther(DAI_PROVIDER);
+      tokenBProvider = await impersonateAndInjectEther(WETH_PROVIDER);
+      tokenA = await ethers.getContractAt('IERC20', DAI_TOKEN);
+      tokenB = await ethers.getContractAt('IERC20', WETH_TOKEN);
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
@@ -55,27 +71,11 @@ describe('Comptroller', function () {
 
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
-      ).deploy(implementation.address, assetRouter.address);
+      ).deploy(implementation.address, assetRouter.address, collector.address);
       await comptroller.deployed();
 
-      const storageArray = await (
-        await ethers.getContractFactory('StorageArray')
-      ).deploy();
-      await storageArray.deployed();
-
-      const storageMap = await (
-        await ethers.getContractFactory('StorageMap')
-      ).deploy();
-      await storageArray.deployed();
-
       taskExecutor = await (
-        await ethers.getContractFactory('TaskExecutor', {
-          libraries: {
-            'contracts/libraries/StorageArray.sol:StorageArray':
-              storageArray.address,
-            'contracts/libraries/StorageMap.sol:StorageMap': storageMap.address,
-          },
-        })
+        await ethers.getContractFactory('TaskExecutor')
       ).deploy(owner.address, comptroller.address);
       await taskExecutor.deployed();
       await comptroller.setExecAction(taskExecutor.address);
@@ -91,16 +91,21 @@ describe('Comptroller', function () {
         DS_PROXY_REGISTRY
       );
 
-      proxy = await (await ethers.getContractFactory('ProxyMock'))
+      proxy = await (await ethers.getContractFactory('PoolProxyMock'))
         .connect(user)
-        .deploy(dsProxyRegistry.address, 'ProxyMock', 'PMT');
+        .deploy(dsProxyRegistry.address, 'PoolProxyMock', 'PMT');
       await proxy.deployed();
 
       // Permit delegate calls
-      // const level = await proxy.getLevel();
       comptroller.permitDelegateCalls(
         await proxy.getLevel(),
         [fooAction.address],
+        [WL_ANY_SIG]
+      );
+
+      comptroller.permitContractCalls(
+        await proxy.getLevel(),
+        [foo.address],
         [WL_ANY_SIG]
       );
     }
@@ -113,495 +118,995 @@ describe('Comptroller', function () {
     await setupTest();
   });
 
-  // TODO: test fund quota
-  // TODO: test return assets
-  // TODO: test delegate call validation
-  // TODO: test contract call validation
+  describe('execute by delegate call', function () {
+    it('single action', async function () {
+      // Prepare action data
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint1', [
+        foo.address,
+        expectNValue,
+      ]);
 
-  describe('execute', function () {
-    describe('execute by delegate call', function () {
-      it('single action', async function () {
-        // Prepare action data
-        const expectNValue = BigNumber.from('101');
-        const actionData = getCallData(fooAction, 'barUint1', [
-          foo.address,
-          expectNValue,
-        ]);
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
 
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [fooAction.address],
-          [constants.HashZero],
-          [actionData],
-        ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: ether('0.01'),
+      });
 
-        const target = taskExecutor.address;
-        await proxy.connect(user).execute(target, data, {
+      // Verify
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+    });
+
+    it('multiple actions', async function () {
+      // Prepare action data
+      const expectNValue = BigNumber.from('101');
+      const actionAData = getCallData(fooAction, 'barUint1', [
+        foo.address,
+        expectNValue,
+      ]);
+
+      const expectBValue =
+        '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionBData = getCallData(fooAction, 'bar1', [
+        foo.address,
+        expectBValue,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address, fooAction.address],
+        [constants.HashZero, constants.HashZero],
+        [actionAData, actionBData],
+      ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: ether('0.01'),
+      });
+
+      // Verify
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+      expect(await foo.bValue()).to.be.eq(expectBValue);
+    });
+
+    it('payable action', async function () {
+      // const balanceFoo = await ethers.provider.getBalance(foo.address);
+      const balanceFoo = await ethers.provider.getBalance(foo.address);
+
+      // Prepare action data
+      const value = ether('1');
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint2', [
+        foo.address,
+        expectNValue,
+        value,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: value,
+      });
+
+      // Verify
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+      expect(
+        (await ethers.provider.getBalance(foo.address)).sub(balanceFoo)
+      ).to.be.eq(value);
+    });
+
+    it('should revert: no contract code', async function () {
+      comptroller.permitDelegateCalls(
+        await proxy.getLevel(),
+        [collector.address],
+        [WL_ANY_SIG]
+      );
+
+      // Prepare action data
+      const value = ether('1');
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint2', [
+        foo.address,
+        expectNValue,
+        value,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [collector.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('Address: delegate call to non-contract');
+    });
+
+    it('should revert: action revert', async function () {
+      // Prepare action data
+      const actionData = getCallData(fooAction, 'revertCall', []);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('revertCall');
+    });
+
+    it('should revert: non existed function', async function () {
+      comptroller.permitDelegateCalls(
+        await proxy.getLevel(),
+        [fooAction.address],
+        [WL_ANY_SIG]
+      );
+
+      // Prepare action data
+      const actionData = ethers.utils
+        .keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'"))
+        .substr(0, 10);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('TaskExecutor: low-level delegate call failed');
+    });
+
+    it('should revert: delegate call only', async function () {
+      await expect(
+        taskExecutor.batchExec([], [], [], [], [], {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('Delegate call only');
+    });
+
+    it('should revert: tos and datas length are inconsistent', async function () {
+      // Prepare action data
+      const value = ether('1');
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint2', [
+        foo.address,
+        expectNValue,
+        value,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [constants.AddressZero, constants.AddressZero],
+        [constants.HashZero, constants.HashZero],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('TaskExecutor: Tos and datas length inconsistent');
+    });
+
+    it('should revert: tos and configs length are inconsistent', async function () {
+      // Prepare action data
+      const value = ether('1');
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint2', [
+        foo.address,
+        expectNValue,
+        value,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [constants.AddressZero, constants.AddressZero],
+        [constants.HashZero],
+        [actionData, actionData],
+      ]);
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('TaskExecutor: Tos and configs length inconsistent');
+    });
+
+    it('should revert: invalid comptroller delegate call', async function () {
+      await comptroller.canDelegateCall(
+        await proxy.getLevel(),
+        collector.address,
+        WL_ANY_SIG
+      );
+
+      // Prepare action data
+      const value = ether('1');
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint2', [
+        foo.address,
+        expectNValue,
+        value,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [collector.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('invalid comptroller delegate call');
+    });
+
+    it('should revert: invalid proxy delegate call', async function () {
+      // Prepare task data and execute
+      const actionData = '0x11111111';
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [NATIVE_TOKEN],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('invalid proxy delegate call');
+    });
+  });
+
+  describe('execute by call', function () {
+    it('single action', async function () {
+      // Prepare action data
+      const actionEthValue = ether('0');
+      const expectNValue = BigNumber.from('111');
+      const actionData = getCallActionData(actionEthValue, foo, 'barUint1', [
+        expectNValue,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [foo.address],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000'],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: ether('0.01'),
+      });
+
+      // Verify
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+    });
+
+    it('multiple actions', async function () {
+      // Prepare action data
+      const actionAEthValue = ether('0');
+      const expectNValue = BigNumber.from('111');
+      const actionAData = getCallActionData(actionAEthValue, foo, 'barUint1', [
+        expectNValue,
+      ]);
+
+      const actionBEthValue = ether('0');
+      const expectBValue =
+        '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [
+        expectBValue,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [foo.address, foo.address],
+        [
+          '0x0200000000000000000000000000000000000000000000000000000000000000',
+          '0x0200000000000000000000000000000000000000000000000000000000000000',
+        ],
+        [actionAData, actionBData],
+      ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: ether('0.01'),
+      });
+
+      // Verify
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+      expect(await foo.bValue()).to.be.eq(expectBValue);
+    });
+
+    it('payable action', async function () {
+      const balanceFoo = await ethers.provider.getBalance(foo.address);
+
+      // const balanceFoo = await ethers.provider.getBalance(foo.address);
+
+      // Prepare action data
+      const actionEthValue = ether('5');
+      const expectNValue = BigNumber.from('111');
+      const actionData = getCallActionData(actionEthValue, foo, 'barUint2', [
+        expectNValue,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [foo.address],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000'],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: actionEthValue,
+      });
+
+      // Verify
+      const balanceFooEnd = await ethers.provider.getBalance(foo.address);
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+      expect(await balanceFooEnd.sub(balanceFoo)).to.be.eq(actionEthValue);
+    });
+
+    it('should revert: send token', async function () {
+      await comptroller.permitContractCalls(
+        await proxy.getLevel(),
+        [collector.address],
+        [WL_ANY_SIG]
+      );
+
+      // Prepare action data
+      const actionEthValue = ether('5');
+      // actionData = getCallActionData();
+      // const actionData = web3.eth.abi.encodeParameters(
+      //   ['uint256', 'bytes'],
+      //   [actionEthValue, '0x']
+      // );
+
+      const actionData = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'bytes'],
+        [actionEthValue, '0x']
+      );
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [collector.address],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000'],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: actionEthValue,
+        })
+      ).to.be.revertedWith('Address: call to non-contract');
+
+      // await expectRevert(
+      //   proxy.connect(user).execute(target, data, {
+      //     value: actionEthValue,
+      //   }),
+      //   'Address: call to non-contract'
+      // );
+    });
+
+    it('should revert: call contract revert', async function () {
+      // Prepare action data
+      const actionEthValue = ether('0');
+      const actionData = getCallActionData(
+        actionEthValue,
+        foo,
+        'revertCall',
+        []
+      );
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [foo.address],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000'],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('revertCall');
+    });
+
+    it('should revert: non existed function', async function () {
+      // Prepare action data
+      const ethValue = ether('0');
+      // const actionData = ethers.utils.defaultAbiCoder.encode(
+      //   ['uint256', 'bytes'],
+      //   [actionEthValue, '0x']
+      // );
+
+      const actionData = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'bytes'],
+        [
+          ethValue,
+          ethers.utils
+            .keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'"))
+            .substr(0, 10),
+        ]
+      );
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [foo.address],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000'],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('TaskExecutor: low-level call with value failed');
+
+      // await expectRevert(
+      //   proxy.connect(user).execute(target, data, {
+      //     value: ether('0.01'),
+      //   }),
+      //   'TaskExecutor: low-level call with value failed'
+      // );
+    });
+
+    it('should revert: invalid comptroller contract call', async function () {
+      // Prepare action data
+      const actionEthValue = ether('5');
+
+      const actionData = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'bytes'],
+        [actionEthValue, '0x']
+      );
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [collector.address],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000'],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: actionEthValue,
+        })
+      ).to.be.revertedWith('invalid comptroller contract call');
+    });
+
+    it('should revert: invalid proxy contract call', async function () {
+      // Prepare action data
+      const actionEthValue = ether('5');
+      const actionData = ethers.utils.defaultAbiCoder.encode(
+        ['uint256', 'bytes'],
+        [actionEthValue, '0x11111111']
+      );
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [NATIVE_TOKEN],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000'],
+        [actionData],
+      ]);
+      const target = taskExecutor.address;
+
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: actionEthValue,
+        })
+      ).to.be.revertedWith('invalid proxy contract call');
+    });
+  });
+
+  describe('execute by mix calls', function () {
+    it('delegate call + call', async function () {
+      // Prepare action data
+      const expectNValue = BigNumber.from('101');
+      const actionAData = getCallData(fooAction, 'barUint1', [
+        foo.address,
+        expectNValue,
+      ]);
+
+      const actionBEthValue = ether('0');
+      const expectBValue =
+        '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [
+        expectBValue,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address, foo.address],
+        [
+          constants.HashZero,
+          '0x0200000000000000000000000000000000000000000000000000000000000000',
+        ],
+        [actionAData, actionBData],
+      ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: ether('0.01'),
+      });
+
+      // Verify
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+      expect(await foo.bValue()).to.be.eq(expectBValue);
+    });
+
+    it('call + delegate call', async function () {
+      // Prepare action data
+      const actionAEthValue = ether('0');
+      const expectBValue =
+        '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionAData = getCallActionData(actionAEthValue, foo, 'bar1', [
+        expectBValue,
+      ]);
+
+      const expectNValue = BigNumber.from('101');
+      const actionBData = getCallData(fooAction, 'barUint1', [
+        foo.address,
+        expectNValue,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [foo.address, fooAction.address],
+        [
+          '0x0200000000000000000000000000000000000000000000000000000000000000',
+          constants.HashZero,
+        ],
+        [actionAData, actionBData],
+      ]);
+      const target = taskExecutor.address;
+      await proxy.connect(user).execute(target, data, {
+        value: ether('0.01'),
+      });
+
+      // Verify
+      expect(await foo.nValue()).to.be.eq(expectNValue);
+      expect(await foo.bValue()).to.be.eq(expectBValue);
+    });
+  });
+
+  describe('return assets', function () {
+    // const tokenA = DAI_TOKEN;
+    // const tokenB = WETH_TOKEN;
+
+    beforeEach(async function () {
+      await comptroller.permitAssets(await proxy.getLevel(), [tokenA.address]);
+      expect(
+        await comptroller.validateDealingAsset(
+          await proxy.getLevel(),
+          tokenA.address
+        )
+      ).to.be.eq(true);
+    });
+
+    it('single asset', async function () {
+      // Prepare action data
+      const expectedDealingAssets = [tokenA.address];
+      await comptroller.permitAssets(
+        await proxy.getLevel(),
+        expectedDealingAssets
+      );
+
+      const actionData = getCallData(fooAction, 'addAssets', [
+        expectedDealingAssets,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      const target = taskExecutor.address;
+      const returnData = await proxy
+        .connect(user)
+        .callStatic.execute(target, data, {
           value: ether('0.01'),
         });
 
-        // Verify
-        expect(await foo.nValue()).to.be.eq(expectNValue);
-      });
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
+        ['address[]'],
+        returnData
+      )[0];
 
-      it('multiple actions', async function () {
-        // Prepare action data
-        const expectNValue = BigNumber.from('101');
-        const actionAData = getCallData(fooAction, 'barUint1', [
-          foo.address,
-          expectNValue,
-        ]);
+      // Verify
+      expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
+      for (let i = 0; i < dealingAssets.length; i++) {
+        expect(dealingAssets[i]).to.be.eq(expectedDealingAssets[i]);
+      }
+    });
 
-        const expectBValue =
-          '0x00000000000000000000000000000000000000000000000000000000000000ff';
-        const actionBData = getCallData(fooAction, 'bar1', [
-          foo.address,
-          expectBValue,
-        ]);
+    it('multiple assets', async function () {
+      // Prepare action data
+      const expectedDealingAssets = [tokenA.address, tokenB.address];
+      await comptroller.permitAssets(
+        await proxy.getLevel(),
+        expectedDealingAssets
+      );
 
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [fooAction.address, fooAction.address],
-          [constants.HashZero, constants.HashZero],
-          [actionAData, actionBData],
-        ]);
-        const target = taskExecutor.address;
-        await proxy.connect(user).execute(target, data, {
+      const actionData = getCallData(fooAction, 'addAssets', [
+        expectedDealingAssets,
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      const target = taskExecutor.address;
+      const returnData = await proxy
+        .connect(user)
+        .callStatic.execute(target, data, {
           value: ether('0.01'),
         });
 
-        // Verify
-        expect(await foo.nValue()).to.be.eq(expectNValue);
-        expect(await foo.bValue()).to.be.eq(expectBValue);
-      });
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
+        ['address[]'],
+        returnData
+      )[0];
 
-      it('payable action', async function () {
-        // const balanceFoo = await tracker(foo.address);
-        const balanceFoo = await ethers.provider.getBalance(foo.address);
+      // Verify
+      expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
+      for (let i = 0; i < dealingAssets.length; i++) {
+        expect(dealingAssets[i]).to.be.eq(expectedDealingAssets[i]);
+      }
+    });
 
-        // Prepare action data
-        const value = ether('1');
-        const expectNValue = BigNumber.from('101');
-        const actionData = getCallData(fooAction, 'barUint2', [
-          foo.address,
-          expectNValue,
-          value,
-        ]);
+    it('multiple actions', async function () {
+      // Prepare action data
+      const expectedDealingAssets = [tokenA.address, tokenB.address];
+      await comptroller.permitAssets(
+        await proxy.getLevel(),
+        expectedDealingAssets
+      );
 
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [fooAction.address],
-          [constants.HashZero],
-          [actionData],
-        ]);
-        const target = taskExecutor.address;
-        await proxy.connect(user).execute(target, data, {
-          value: value,
+      const actionData1 = getCallData(fooAction, 'addAssets', [
+        [tokenA.address],
+      ]);
+      const actionData2 = getCallData(fooAction, 'addAssets', [
+        [tokenB.address],
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address, fooAction.address],
+        [constants.HashZero, constants.HashZero],
+        [actionData1, actionData2],
+      ]);
+
+      const target = taskExecutor.address;
+      const returnData = await proxy
+        .connect(user)
+        .callStatic.execute(target, data, {
+          value: ether('0.01'),
         });
 
-        // Verify
-        expect(await foo.nValue()).to.be.eq(expectNValue);
-        expect(
-          (await ethers.provider.getBalance(foo.address)).sub(balanceFoo)
-        ).to.be.eq(value);
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
+        ['address[]'],
+        returnData
+      )[0];
+
+      // Verify
+      expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
+      for (let i = 0; i < dealingAssets.length; i++) {
+        expect(dealingAssets[i]).to.be.eq(expectedDealingAssets[i]);
+      }
+    });
+
+    it('repeat assets', async function () {
+      // Prepare action data
+      const expectedDealingAssets = [tokenA.address, tokenB.address];
+      await comptroller.permitAssets(
+        await proxy.getLevel(),
+        expectedDealingAssets
+      );
+
+      const actionData1 = getCallData(fooAction, 'addAssets', [
+        [tokenA.address],
+      ]);
+      const actionData2 = getCallData(fooAction, 'addAssets', [
+        [tokenA.address, tokenB.address],
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address, fooAction.address],
+        [constants.HashZero, constants.HashZero],
+        [actionData1, actionData2],
+      ]);
+
+      const target = taskExecutor.address;
+      const returnData = await proxy
+        .connect(user)
+        .callStatic.execute(target, data, {
+          value: ether('0.01'),
+        });
+
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
+        ['address[]'],
+        returnData
+      )[0];
+
+      // Verify
+      expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
+      for (let i = 0; i < dealingAssets.length; i++) {
+        expect(dealingAssets[i]).to.be.eq(expectedDealingAssets[i]);
+      }
+    });
+
+    it('should revert: invalid assets', async function () {
+      // Prepare action data
+      const expectedDealingAssets = [tokenA.address];
+      await comptroller.permitAssets(
+        await proxy.getLevel(),
+        expectedDealingAssets
+      );
+
+      const actionData = getCallData(fooAction, 'addAssets', [
+        [tokenB.address],
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('invalid dealing asset');
+    });
+  });
+
+  describe('fund quota', function () {
+    const quota = ether('10');
+
+    beforeEach(async function () {
+      await comptroller.permitAssets(await proxy.getLevel(), [tokenA.address]);
+      await tokenA.connect(tokenAProvider).transfer(await proxy.vault(), quota);
+      await tokenB.connect(tokenBProvider).transfer(await proxy.vault(), quota);
+    });
+
+    it('charge execution fee', async function () {
+      // setup  env before execution
+      await comptroller.setInitialAssetCheck(false);
+      const collector = await comptroller.execFeeCollector();
+      const feePercentage = await comptroller.execFeePercentage();
+      const feeBase = await taskExecutor.FEE_BASE();
+      const expectExecutionFee = quota.mul(feePercentage).div(feeBase);
+      const consumeQuota = quota.sub(expectExecutionFee);
+      const collectorTokenABalance = await tokenA.balanceOf(collector);
+      const collectorTokenBBalance = await tokenB.balanceOf(collector);
+      const collectorBalance = await ethers.provider.getBalance(collector);
+
+      // Prepare action data
+      const actionData = getCallData(fooAction, 'decreaseQuota', [
+        [tokenA.address, tokenB.address, NATIVE_TOKEN],
+        [consumeQuota, consumeQuota.sub(BigNumber.from('100')), consumeQuota],
+      ]);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [tokenA.address, tokenB.address, NATIVE_TOKEN],
+        [quota, quota, quota],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      // Execution
+      const target = taskExecutor.address;
+      await proxy.connect(user).callStatic.execute(target, data, {
+        value: quota,
       });
 
-      it('should revert: no contract code', async function () {
-        comptroller.permitDelegateCalls(
-          await proxy.getLevel(),
-          [someone.address],
-          [WL_ANY_SIG]
-        );
+      // Verify
+      expect(
+        (await tokenA.balanceOf(collector)).sub(collectorTokenABalance)
+      ).to.be.eq(expectExecutionFee);
+      expect(
+        (await tokenB.balanceOf(collector)).sub(collectorTokenBBalance)
+      ).to.be.eq(expectExecutionFee);
 
-        // Prepare action data
-        const value = ether('1');
-        const expectNValue = BigNumber.from('101');
-        const actionData = getCallData(fooAction, 'barUint2', [
-          foo.address,
-          expectNValue,
-          value,
-        ]);
+      expect(
+        (await ethers.provider.getBalance(collector)).sub(collectorBalance)
+      ).to.be.eq(expectExecutionFee);
+    });
 
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [someone.address],
-          [constants.HashZero],
-          [actionData],
-        ]);
-        const target = taskExecutor.address;
+    it('execution twice for checking fund quota will be reset', async function () {
+      await comptroller.setInitialAssetCheck(false);
+      const actionData = getCallData(fooAction, 'decreaseQuota', [
+        [tokenA.address],
+        [BigNumber.from('1')],
+      ]);
 
-        await expect(
-          proxy.connect(user).execute(target, data, {
-            value: ether('0.01'),
-          })
-        ).to.be.revertedWith('Address: delegate call to non-contract');
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [tokenA.address],
+        [quota],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      const target = taskExecutor.address;
+      // 1st execution
+      await proxy.connect(user).callStatic.execute(target, data, {
+        value: ether('0.01'),
       });
 
-      it('should revert: action revert', async function () {
-        // Prepare action data
-        const actionData = getCallData(fooAction, 'revertCall', []);
-
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [fooAction.address],
-          [constants.HashZero],
-          [actionData],
-        ]);
-        const target = taskExecutor.address;
-        await expect(
-          proxy.connect(user).execute(target, data, {
-            value: ether('0.01'),
-          })
-        ).to.be.revertedWith('revertCall');
-      });
-
-      it('should revert: non existed function', async function () {
-        comptroller.permitDelegateCalls(
-          await proxy.getLevel(),
-          [fooAction.address],
-          [WL_ANY_SIG]
-        );
-
-        // Prepare action data
-        const actionData = ethers.utils
-          .keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'"))
-          .substr(0, 10);
-        console.log('actionData', actionData.toString());
-
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [fooAction.address],
-          [constants.HashZero],
-          [actionData],
-        ]);
-        const target = taskExecutor.address;
-        await expect(
-          proxy.connect(user).execute(target, data, {
-            value: ether('0.01'),
-          })
-        ).to.be.revertedWith('TaskExecutor: low-level delegate call failed');
-      });
-
-      it('should revert: delegate call only', async function () {
-        await expect(
-          taskExecutor.batchExec([], [], [], [], [], {
-            value: ether('0.01'),
-          })
-        ).to.be.revertedWith('Delegate call only');
-      });
-
-      it('should revert: tos and datas length are inconsistent', async function () {
-        // Prepare action data
-        const value = ether('1');
-        const expectNValue = BigNumber.from('101');
-        const actionData = getCallData(fooAction, 'barUint2', [
-          foo.address,
-          expectNValue,
-          value,
-        ]);
-
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [constants.AddressZero, constants.AddressZero],
-          [constants.HashZero, constants.HashZero],
-          [actionData],
-        ]);
-        const target = taskExecutor.address;
-        await expect(
-          proxy.connect(user).execute(target, data, {
-            value: ether('0.01'),
-          })
-        ).to.be.revertedWith('TaskExecutor: Tos and datas length inconsistent');
-      });
-
-      it('should revert: tos and configs length are inconsistent', async function () {
-        // Prepare action data
-        const value = ether('1');
-        const expectNValue = BigNumber.from('101');
-        const actionData = getCallData(fooAction, 'barUint2', [
-          foo.address,
-          expectNValue,
-          value,
-        ]);
-
-        // Prepare task data and execute
-        const data = getCallData(taskExecutor, 'batchExec', [
-          [],
-          [],
-          [constants.AddressZero, constants.AddressZero],
-          [constants.HashZero],
-          [actionData, actionData],
-        ]);
-        const target = taskExecutor.address;
-        await expect(
-          proxy.connect(user).execute(target, data, {
-            value: ether('0.01'),
-          })
-        ).to.be.revertedWith(
-          'TaskExecutor: Tos and configs length inconsistent'
-        );
+      // 2nd execution
+      await proxy.connect(user).callStatic.execute(target, data, {
+        value: ether('0.01'),
       });
     });
 
-    // describe('execute by call', function () {
-    //   it('single action', async function () {
-    //     // Prepare action data
-    //     const actionEthValue = ether('0');
-    //     const expectNValue = BigNumber.from('111);
-    //     const actionData = getCallActionData(actionEthValue, Foo, 'barUint1', [
-    //       expectNValue,
-    //     ]);
+    it('should revert: invalid asset', async function () {
+      const consumeQuota = quota.div(BigNumber.from('2'));
+      const actionData = getCallData(fooAction, 'decreaseQuota', [
+        [tokenB.address],
+        [consumeQuota],
+      ]);
 
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [foo.address],
-    //       [
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //       ],
-    //       [actionData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await proxy.connect(user).execute(target, data, {
-    //
-    //       value: ether('0.01'),
-    //     });
+      expect(
+        await comptroller.validateInitialAsset(
+          await proxy.getLevel(),
+          tokenB.address
+        )
+      ).to.be.eq(false);
 
-    //     // Verify
-    //     expect(await foo.nValue()).to.be.eq(expectNValue);
-    //   });
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [tokenB.address],
+        [quota],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
 
-    //   it('multiple actions', async function () {
-    //     // Prepare action data
-    //     const actionAEthValue = ether('0');
-    //     const expectNValue = BigNumber.from('111);
-    //     const actionAData = getCallActionData(
-    //       actionAEthValue,
-    //       Foo,
-    //       'barUint1',
-    //       [expectNValue]
-    //     );
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).callStatic.execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('invalid initial asset');
+    });
 
-    //     const actionBEthValue = ether('0');
-    //     const expectBValue =
-    //       '0x00000000000000000000000000000000000000000000000000000000000000ff';
-    //     const actionBData = getCallActionData(actionBEthValue, Foo, 'bar1', [
-    //       expectBValue,
-    //     ]);
+    it('should revert: insufficient quota', async function () {
+      const consumeQuota = quota.add(BigNumber.from('10'));
 
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [foo.address, foo.address],
-    //       [
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //       ],
-    //       [actionAData, actionBData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await proxy.connect(user).execute(target, data, {
-    //
-    //       value: ether('0.01'),
-    //     });
+      const actionData = getCallData(fooAction, 'decreaseQuota', [
+        [tokenA.address],
+        [consumeQuota],
+      ]);
 
-    //     // Verify
-    //     expect(await foo.nValue()).to.be.eq(expectNValue);
-    //     expect(await foo.bValue()).to.be.eq(expectBValue);
-    //   });
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [tokenA.address],
+        [quota],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
 
-    //   it('payable action', async function () {
-    //     const balanceFoo = await tracker(foo.address);
+      const target = taskExecutor.address;
 
-    //     // Prepare action data
-    //     const actionEthValue = ether('5');
-    //     const expectNValue = BigNumber.from('111);
-    //     const actionData = getCallActionData(actionEthValue, Foo, 'barUint2', [
-    //       expectNValue,
-    //     ]);
+      await expect(
+        proxy.connect(user).callStatic.execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('insufficient quota');
+    });
 
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [foo.address],
-    //       [
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //       ],
-    //       [actionData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await proxy.connect(user).execute(target, data, {
-    //
-    //       value: actionEthValue,
-    //     });
+    it('should revert: repeat assets', async function () {
+      const consumeQuota = quota.div(BigNumber.from('2'));
+      const actionData = getCallData(fooAction, 'decreaseQuota', [
+        [tokenA.address, tokenA.address],
+        [consumeQuota, consumeQuota],
+      ]);
 
-    //     // Verify
-    //     expect(await foo.nValue()).to.be.eq(expectNValue);
-    //     expect(await balanceFoo.delta()).to.be.eq(actionEthValue);
-    //   });
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [tokenA.address, tokenA.address],
+        [quota, quota],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
 
-    //   it('should revert: send token', async function () {
-    //     // Prepare action data
-    //     const actionEthValue = ether('5');
-    //     const actionData = web3.eth.abi.encodeParameters(
-    //       ['uint256', 'bytes'],
-    //       [actionEthValue, '0x']
-    //     );
-
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [someone],
-    //       [
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //       ],
-    //       [actionData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await expectRevert(
-    //       proxy.connect(user).execute(target, data, {
-    //
-    //         value: actionEthValue,
-    //       }),
-    //       'Address: call to non-contract'
-    //     );
-    //   });
-
-    //   it('should revert: call contract revert', async function () {
-    //     // Prepare action data
-    //     const actionEthValue = ether('0');
-    //     const actionData = getCallActionData(
-    //       actionEthValue,
-    //       Foo,
-    //       'revertCall',
-    //       []
-    //     );
-
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [foo.address],
-    //       [
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //       ],
-    //       [actionData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await expectRevert(
-    //       proxy.connect(user).execute(target, data, {
-    //
-    //         value: ether('0.01'),
-    //       }),
-    //       'revertCall'
-    //     );
-    //   });
-
-    //   it('should revert: non existed function', async function () {
-    //     // Prepare action data
-    //     const ethValue = ether('0');
-    //     const actionData = web3.eth.abi.encodeParameters(
-    //       ['uint256', 'bytes'],
-    //       [ethValue, web3.eth.abi.encodeFunctionSignature('noExistedfunc()')]
-    //     );
-
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [foo.address],
-    //       [
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //       ],
-    //       [actionData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await expectRevert(
-    //       proxy.connect(user).execute(target, data, {
-    //
-    //         value: ether('0.01'),
-    //       }),
-    //       'TaskExecutor: low-level call with value failed'
-    //     );
-    //   });
-    // });
-
-    // describe('execute by mix calls', function () {
-    //   it('delegate call + call', async function () {
-    //     // Prepare action data
-    //     const expectNValue = BigNumber.from('101);
-    //     const actionAData = getCallData(fooAction, 'barUint1', [
-    //       foo.address,
-    //       expectNValue,
-    //     ]);
-
-    //     const actionBEthValue = ether('0');
-    //     const expectBValue =
-    //       '0x00000000000000000000000000000000000000000000000000000000000000ff';
-    //     const actionBData = getCallActionData(actionBEthValue, Foo, 'bar1', [
-    //       expectBValue,
-    //     ]);
-
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [fooAction.address, foo.address],
-    //       [
-    //         constants.HashZero,
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //       ],
-    //       [actionAData, actionBData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await proxy.connect(user).execute(target, data, {
-    //
-    //       value: ether('0.01'),
-    //     });
-
-    //     // Verify
-    //     expect(await foo.nValue()).to.be.eq(expectNValue);
-    //     expect(await foo.bValue()).to.be.eq(expectBValue);
-    //   });
-
-    //   it('call + delegate call', async function () {
-    //     // Prepare action data
-    //     const actionAEthValue = ether('0');
-    //     const expectBValue =
-    //       '0x00000000000000000000000000000000000000000000000000000000000000ff';
-    //     const actionAData = getCallActionData(actionAEthValue, Foo, 'bar1', [
-    //       expectBValue,
-    //     ]);
-
-    //     const expectNValue = BigNumber.from('101);
-    //     const actionBData = getCallData(fooAction, 'barUint1', [
-    //       foo.address,
-    //       expectNValue,
-    //     ]);
-
-    //     // Prepare task data and execute
-    //     const data = getCallData(taskExecutor, 'batchExec', [
-    //       [foo.address, fooAction.address],
-    //       [
-    //         '0x0200000000000000000000000000000000000000000000000000000000000000',
-    //         constants.HashZero,
-    //       ],
-    //       [actionAData, actionBData],
-    //     ]);
-    //     const target = taskExecutor.address;
-    //     await proxy.connect(user).execute(target, data, {
-    //
-    //       value: ether('0.01'),
-    //     });
-
-    //     // Verify
-    //     expect(await foo.nValue()).to.be.eq(expectNValue);
-    //     expect(await foo.bValue()).to.be.eq(expectBValue);
-    //   });
-    // });
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).callStatic.execute(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('quota is not zero');
+    });
   });
 });
