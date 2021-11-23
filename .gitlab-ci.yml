@@ -6,7 +6,7 @@ cache: &global_cache
     - node_modules/
 
 before_script:
-  - npm install
+  - yarn
   - RUNNER_COUNT=4
   - FILES=( $(find -H -L ./test/* -regex "^.*.test.js") )
   - len=${#FILES[@]}

@@ -5,7 +5,12 @@
   "main": "hardhat.config.js",
   "scripts": {
     "test": "scripts/test.sh",
-    "build": "npx hardhat compile"
+    "build": "scripts/build.sh",
+    "check": "scripts/check.sh",
+    "compile": "npx hardhat compile",
+    "lint:solhint": "solhint \"contracts/**/*.sol\"",
+    "lint:prettier": "scripts/prettier.sh",
+    "deploy": "scripts/deploy.sh"
   },
   "repository": {
     "type": "git",
