@@ -4,6 +4,7 @@ cache: &global_cache
   key: ${CI_PROJECT_PATH_SLUG}
   paths:
     - node_modules/
+    - typechain/
 
 before_script:
   - yarn
