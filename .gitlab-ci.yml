@@ -76,33 +76,21 @@ build:
     - npm run check
 
 test_0:
-  # stage: test
-  # tags:
-  #   - docker
   <<: *test-configuration
   script:
     - npm run test ${UNITTEST_FILES[0]}
 
 test_1:
-  # stage: test
-  # tags:
-  #   - docker
   <<: *test-configuration
   script:
     - npm run test ${UNITTEST_FILES[1]}
 
 test_2:
-  # stage: test
-  # tags:
-  #   - docker
   <<: *test-configuration
   script:
     - npm run test ${UNITTEST_FILES[2]}
 
 test_3:
-  # stage: test
-  # tags:
-  #   - docker
   <<: *test-configuration
   script:
     - npm run test ${UNITTEST_FILES[3]}
@@ -112,6 +100,7 @@ deploy:
   tags:
     - docker
   script:
+    - apt-get update && apt-get install -y netcat
     - npm run deploy
   dependencies:
     - build
