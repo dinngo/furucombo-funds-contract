@@ -38,15 +38,27 @@ contract Implemetation is
         return 0;
     }
 
-    function _callBeforePurchase() internal override {
+    /// @notice The management fee should be updated.
+    function _callBeforePurchase(uint256) internal override {
         _mintManagementFee();
-        updatePerformanceShare();
+        _updatePerformanceShare();
         return;
     }
 
-    function _callBeforeRedeem() internal override {
+    function _callAfterPurchase(uint256) internal override {
+        _updateGrossSharePrice();
+        return;
+    }
+
+    function _callBeforeRedeem(uint256) internal override {
         _mintManagementFee();
-        updatePerformanceShare();
+        _updatePerformanceShare();
+        return;
+    }
+
+    function _callAfterRedeem(uint256 amount) internal override {
+        _redemptionPayout(amount);
+        _updateGrossSharePrice();
         return;
     }
 

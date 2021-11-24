@@ -12,18 +12,21 @@ abstract contract PerformanceFee {
 
     int128 private _feeRate64x64;
     uint256 private constant FEE_BASE = 10000;
-    uint256 private constant FEE_PERIOD = 365 days;
+    int128 private constant FEE_BASE64x64 = 0x100000000;
+    uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 private constant FEE_DENOMINATOR = FEE_BASE * FEE_PERIOD;
     int128 private _hwm64x64; // should be a float point number
     int128 private _lastGrossSharePrice64x64;
     uint256 private _feeSum;
     uint256 private _lastOutstandingShare;
+    uint256 private _crystallizationPeriod;
+    uint256 private _lastCrystallization;
 
-    function updatePerformanceShare() public {
+    function _updatePerformanceShare() internal {
         IShareERC20 shareToken = __getShareToken();
         // Get accumulated wealth
-        uint256 grossAssetValue = __getNetAssetValue();
-        uint256 totalShare = shareToken.totalSupply();
+        uint256 grossAssetValue = __getGrossAssetValue();
+        uint256 totalShare = shareToken.grossTotalShare();
         int128 grossSharePrice64x64 = grossAssetValue.divu(totalShare);
         int256 wealth = LibFee
             ._max64x64(_hwm64x64, grossSharePrice64x64)
@@ -39,16 +42,28 @@ abstract contract PerformanceFee {
             _burnOutstandingShare(_lastOutstandingShare - outstandingShare);
         }
         _lastOutstandingShare = outstandingShare;
+        _lastGrossSharePrice64x64 = grossAssetValue.divu(
+            totalShare + outstandingShare
+        );
     }
 
-    function setPerformanceFeeRate(uint256 feeRate)
-        public
-        virtual
-        returns (int128)
-    {
-        _feeRate64x64 = feeRate.fromUInt();
+    function setPerformanceFeeRate(uint256 feeRate) public returns (int128) {
+        _feeRate64x64 = feeRate.divu(FEE_BASE);
 
         return _feeRate64x64;
+    }
+
+    function setPerformanceFeeRate(int128 feeRate64x64)
+        public
+        returns (int128)
+    {
+        _feeRate64x64 = feeRate64x64;
+
+        return _feeRate64x64;
+    }
+
+    function setCrystallizationPeriod(uint256 period) public {
+        _crystallizationPeriod = period;
     }
 
     function _mintOutstandingShare(uint256 amount) internal {
@@ -61,9 +76,40 @@ abstract contract PerformanceFee {
         shareToken.burn(address(0), amount);
     }
 
+    function _updateGrossSharePrice() internal {
+        IShareERC20 shareToken = __getShareToken();
+        uint256 grossAssetValue = __getGrossAssetValue();
+        uint256 totalShare = shareToken.grossTotalShare();
+        _lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+    }
+
+    function _redemptionPayout(uint256 amount) internal {
+        IShareERC20 shareToken = __getShareToken();
+        address manager = __getManager();
+        uint256 totalShare = shareToken.grossTotalShare();
+        uint256 payout = (_lastOutstandingShare * amount) / totalShare;
+        uint256 fee = (_feeSum * amount) / totalShare;
+        shareToken.move(address(0), manager, payout);
+        _lastOutstandingShare -= payout;
+        _feeSum -= fee;
+    }
+
+    function crystallization() public {
+        require(
+            block.timestamp > _lastCrystallization + _crystallizationPeriod,
+            "Not yet"
+        );
+        IShareERC20 shareToken = __getShareToken();
+        address manager = __getManager();
+        shareToken.move(address(0), manager, _lastOutstandingShare);
+        _lastOutstandingShare = 0;
+        _feeSum = 0;
+        _lastCrystallization = block.timestamp;
+    }
+
     function __getShareToken() internal view virtual returns (IShareERC20);
 
-    function __getNetAssetValue() internal view virtual returns (uint256);
-
     function __getGrossAssetValue() internal view virtual returns (uint256);
+
+    function __getManager() internal virtual returns (address);
 }

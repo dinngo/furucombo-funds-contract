@@ -25,4 +25,12 @@ contract ShareERC20 is ERC20Permit, Ownable {
     ) external onlyOwner {
         _transfer(sender, recipient, amount);
     }
+
+    function netTotalShare() external view returns (uint256) {
+        return totalSupply();
+    }
+
+    function grossTotalShare() external view returns (uint256) {
+        return totalSupply() - balanceOf(address(0));
+    }
 }

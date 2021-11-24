@@ -39,7 +39,7 @@ abstract contract ShareModule is ModuleBase {
         view
         returns (uint256 share)
     {
-        uint256 shareAmount = shareToken.totalSupply();
+        uint256 shareAmount = shareToken.grossTotalShare();
         if (shareAmount == 0) {
             // Handler initial minting
             share = balance;
@@ -90,14 +90,14 @@ abstract contract ShareModule is ModuleBase {
         internal
         returns (uint256 share)
     {
-        _callBeforePurchase();
+        _callBeforePurchase(0);
         share = _addShare(user, balance);
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
-        _callAfterPurchase();
+        _callAfterPurchase(share);
     }
 
     function _redeem(address user, uint256 share) internal returns (uint256) {
-        _callBeforeRedeem();
+        _callBeforeRedeem(share);
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
         denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
@@ -105,7 +105,7 @@ abstract contract ShareModule is ModuleBase {
             pendingStartTime = block.timestamp;
             _redeemPending(user, shareLeft);
         }
-        _callAfterRedeem();
+        _callAfterRedeem(share);
 
         return balance;
     }
@@ -147,19 +147,23 @@ abstract contract ShareModule is ModuleBase {
         }
     }
 
-    function _callBeforePurchase() internal virtual {
+    function _callBeforePurchase(uint256 amount) internal virtual {
+        amount;
         return;
     }
 
-    function _callAfterPurchase() internal virtual {
+    function _callAfterPurchase(uint256 amount) internal virtual {
+        amount;
         return;
     }
 
-    function _callBeforeRedeem() internal virtual {
+    function _callBeforeRedeem(uint256 amount) internal virtual {
+        amount;
         return;
     }
 
-    function _callAfterRedeem() internal virtual {
+    function _callAfterRedeem(uint256 amount) internal virtual {
+        amount;
         return;
     }
 }

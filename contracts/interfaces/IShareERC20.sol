@@ -14,4 +14,8 @@ interface IShareERC20 is IERC20, IERC20Permit {
         address recipient,
         uint256 amount
     ) external;
+
+    function netTotalShare() external view returns (uint256);
+
+    function grossTotalShare() external view returns (uint256);
 }

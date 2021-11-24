@@ -17,30 +17,16 @@ abstract contract FeeModule is ModuleBase, ManagementFee, PerformanceFee {
         return shareToken;
     }
 
-    function __getGrossAssetValue()
-        internal
-        view
-        override(ManagementFee, PerformanceFee)
-        returns (uint256)
-    {
-        return getAssetValue();
-    }
-
-    function __getNetAssetValue()
-        internal
-        view
-        override(ManagementFee, PerformanceFee)
-        returns (uint256)
-    {
-        return getAssetValue();
-    }
-
     function getAssetValue() public view virtual returns (uint256);
+
+    function __getGrossAssetValue() internal view override returns (uint256) {
+        return getAssetValue();
+    }
 
     function __getManager()
         internal
         view
-        override(ManagementFee)
+        override(ManagementFee, PerformanceFee)
         returns (address)
     {
         return getManager();

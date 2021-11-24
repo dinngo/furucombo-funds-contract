@@ -9,7 +9,8 @@ abstract contract ManagementFee {
     using ABDKMath64x64 for uint256;
 
     int128 private _feeRate64x64;
-    int128 private constant FEE_BASE = 0x100000000;
+    uint256 private constant FEE_BASE = 10000;
+    int128 private constant FEE_BASE64x64 = 0x100000000;
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     //uint256 private constant FEE_DENOMINATOR = FEE_BASE * FEE_PERIOD;
     uint256 private _lastMFeeClaimTime;
@@ -24,7 +25,16 @@ abstract contract ManagementFee {
     }
 
     function setManagementFeeRate(uint256 feeRate) public returns (int128) {
-        _feeRate64x64 = _getExpectFeeRate(feeRate);
+        return setManagementFeeRate(feeRate.divu(FEE_BASE));
+    }
+
+    function setManagementFeeRate(int128 feeRate64x64) public returns (int128) {
+        int128 k = (uint256(1).fromUInt().sub(feeRate64x64))
+            .ln()
+            .neg()
+            .div(FEE_PERIOD.fromUInt())
+            .exp();
+        _feeRate64x64 = k;
 
         return _feeRate64x64;
     }
@@ -44,9 +54,11 @@ abstract contract ManagementFee {
     function _mintManagementFee() internal returns (uint256) {
         IShareERC20 shareToken = __getShareToken();
         uint256 currentTime = block.timestamp;
-        uint256 totalShare = shareToken.totalSupply();
+        uint256 totalShare = shareToken.grossTotalShare();
         uint256 sharesDue = (
-            _feeRate64x64.pow(currentTime - _lastMFeeClaimTime).sub(FEE_BASE)
+            _feeRate64x64.pow(currentTime - _lastMFeeClaimTime).sub(
+                FEE_BASE64x64
+            )
         ).mulu(totalShare);
 
         address receiver = __getManager();
@@ -59,8 +71,4 @@ abstract contract ManagementFee {
     function __getShareToken() internal view virtual returns (IShareERC20);
 
     function __getManager() internal virtual returns (address);
-
-    function __getNetAssetValue() internal view virtual returns (uint256);
-
-    function __getGrossAssetValue() internal view virtual returns (uint256);
 }
