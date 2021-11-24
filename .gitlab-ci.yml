@@ -68,7 +68,6 @@ build:
     - npm run compile
     - npm run build
     - npm run check
-
   cache:
     <<: *global_cache
 
@@ -80,8 +79,8 @@ test_0:
     - ls typechain/
     - apt-get update && apt-get install -y netcat
     - npm run test ${UNITTEST_FILES[0]}
-  cache:
-    <<: *global_cache
+  # cache:
+  #   <<: *global_cache
 
 test_1:
   stage: test
@@ -91,8 +90,8 @@ test_1:
     - ls typechain/
     - apt-get update && apt-get install -y netcat
     - npm run test ${UNITTEST_FILES[1]}
-  cache:
-    <<: *global_cache
+  # cache:
+  #   <<: *global_cache
 
 test_2:
   stage: test
@@ -102,8 +101,8 @@ test_2:
     - ls typechain/
     - apt-get update && apt-get install -y netcat
     - npm run test ${UNITTEST_FILES[2]}
-  cache:
-    <<: *global_cache
+  # cache:
+  #   <<: *global_cache
 
 test_3:
   stage: test
@@ -113,8 +112,8 @@ test_3:
     - ls typechain/
     - apt-get update && apt-get install -y netcat
     - npm run test ${UNITTEST_FILES[3]}
-  cache:
-    <<: *global_cache
+  # cache:
+  #   <<: *global_cache
 
 deploy:
   stage: deploy
@@ -123,5 +122,5 @@ deploy:
   script:
     - apt-get update && apt-get install -y netcat
     - npm run deploy
-  cache:
-    <<: *global_cache
+  # cache:
+  #   <<: *global_cache
