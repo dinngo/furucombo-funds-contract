@@ -9,7 +9,7 @@ cache: &global_cache
 before_script:
   - yarn
   - RUNNER_COUNT=4
-  - FILES=( $(find -H -L ./test/* -regex "^.*.test.js") )
+  - FILES=( $(find -H -L ./test/* -regex "^.*.test.ts") )
   - len=${#FILES[@]}
   - >
     for (( i=0; i<${RUNNER_COUNT}; i+=1 )); do
