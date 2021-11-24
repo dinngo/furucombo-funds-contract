@@ -12,6 +12,7 @@ cache: &global_cache
     - docker
   before_script:
     - apt-get update && apt-get install -y netcat
+    - npm config set user 0
     - RUNNER_COUNT=4
     - FILES=( $(find -H -L ./test/* -regex "^.*.test.ts") )
     - len=${#FILES[@]}
