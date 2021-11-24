@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 
-interface IShareERC20 is IERC20, IERC20Permit {
+interface IShareToken is IERC20, IERC20Permit {
     function mint(address account, uint256 amount) external;
 
     function burn(address account, uint256 amount) external;

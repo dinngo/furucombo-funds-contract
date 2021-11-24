@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy} from "./interfaces/IDSProxy.sol";
-import {IShareERC20} from "./interfaces/IShareERC20.sol";
+import {IShareToken} from "./interfaces/IShareToken.sol";
 
 abstract contract PoolState {
     enum State {
@@ -20,7 +20,7 @@ abstract contract PoolState {
     State public state;
     IComptroller public comptroller;
     IERC20 public denomination;
-    IShareERC20 public shareToken;
+    IShareToken public shareToken;
     IDSProxy public vault; // DSProxy
     uint256 public reserveExecution;
 
@@ -86,7 +86,7 @@ abstract contract PoolState {
         denomination = denomination_;
     }
 
-    function _setShare(IShareERC20 shareToken_) internal checkReady {
+    function _setShare(IShareToken shareToken_) internal checkReady {
         require(address(shareToken) == address(0), "Share is initialized");
         shareToken = shareToken_;
     }

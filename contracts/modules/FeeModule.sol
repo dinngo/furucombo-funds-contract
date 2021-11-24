@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IShareERC20} from "../interfaces/IShareERC20.sol";
+import {IShareToken} from "../interfaces/IShareToken.sol";
 import {ModuleBase} from "./ModuleBase.sol";
 import {ManagementFee} from "./ManagementFee.sol";
 import {PerformanceFee} from "./PerformanceFee.sol";
@@ -12,7 +12,7 @@ abstract contract FeeModule is ModuleBase, ManagementFee, PerformanceFee {
         internal
         view
         override(ManagementFee, PerformanceFee)
-        returns (IShareERC20)
+        returns (IShareToken)
     {
         return shareToken;
     }

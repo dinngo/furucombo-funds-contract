@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {LibFee} from "../libs/LibFee.sol";
-import {IShareERC20} from "../interfaces/IShareERC20.sol";
+import {IShareToken} from "../interfaces/IShareToken.sol";
 
 abstract contract PerformanceFee {
     using ABDKMath64x64 for int128;
@@ -23,7 +23,7 @@ abstract contract PerformanceFee {
     uint256 private _lastCrystallization;
 
     function _updatePerformanceShare() internal {
-        IShareERC20 shareToken = __getShareToken();
+        IShareToken shareToken = __getShareToken();
         // Get accumulated wealth
         uint256 grossAssetValue = __getGrossAssetValue();
         uint256 totalShare = shareToken.grossTotalShare();
@@ -67,24 +67,24 @@ abstract contract PerformanceFee {
     }
 
     function _mintOutstandingShare(uint256 amount) internal {
-        IShareERC20 shareToken = __getShareToken();
+        IShareToken shareToken = __getShareToken();
         shareToken.mint(address(0), amount);
     }
 
     function _burnOutstandingShare(uint256 amount) internal {
-        IShareERC20 shareToken = __getShareToken();
+        IShareToken shareToken = __getShareToken();
         shareToken.burn(address(0), amount);
     }
 
     function _updateGrossSharePrice() internal {
-        IShareERC20 shareToken = __getShareToken();
+        IShareToken shareToken = __getShareToken();
         uint256 grossAssetValue = __getGrossAssetValue();
         uint256 totalShare = shareToken.grossTotalShare();
         _lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
     }
 
     function _redemptionPayout(uint256 amount) internal {
-        IShareERC20 shareToken = __getShareToken();
+        IShareToken shareToken = __getShareToken();
         address manager = __getManager();
         uint256 totalShare = shareToken.grossTotalShare();
         uint256 payout = (_lastOutstandingShare * amount) / totalShare;
@@ -99,7 +99,7 @@ abstract contract PerformanceFee {
             block.timestamp > _lastCrystallization + _crystallizationPeriod,
             "Not yet"
         );
-        IShareERC20 shareToken = __getShareToken();
+        IShareToken shareToken = __getShareToken();
         address manager = __getManager();
         shareToken.move(address(0), manager, _lastOutstandingShare);
         _lastOutstandingShare = 0;
@@ -107,7 +107,7 @@ abstract contract PerformanceFee {
         _lastCrystallization = block.timestamp;
     }
 
-    function __getShareToken() internal view virtual returns (IShareERC20);
+    function __getShareToken() internal view virtual returns (IShareToken);
 
     function __getGrossAssetValue() internal view virtual returns (uint256);
 

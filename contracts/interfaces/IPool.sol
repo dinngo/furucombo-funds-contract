@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IShareERC20} from "./IShareERC20.sol";
+import {IShareToken} from "./IShareToken.sol";
 
 interface IPool {
     function initializeOwnership(address newOwner) external;

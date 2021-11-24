@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
-import {IShareERC20} from "../interfaces/IShareERC20.sol";
+import {IShareToken} from "../interfaces/IShareToken.sol";
 
 abstract contract ManagementFee {
     using ABDKMath64x64 for int128;
@@ -52,7 +52,7 @@ abstract contract ManagementFee {
     }
 
     function _mintManagementFee() internal returns (uint256) {
-        IShareERC20 shareToken = __getShareToken();
+        IShareToken shareToken = __getShareToken();
         uint256 currentTime = block.timestamp;
         uint256 totalShare = shareToken.grossTotalShare();
         uint256 sharesDue = (
@@ -68,7 +68,7 @@ abstract contract ManagementFee {
         return sharesDue;
     }
 
-    function __getShareToken() internal view virtual returns (IShareERC20);
+    function __getShareToken() internal view virtual returns (IShareToken);
 
     function __getManager() internal virtual returns (address);
 }

@@ -11,7 +11,7 @@ import {FeeModule, ManagementFee, PerformanceFee} from "./modules/FeeModule.sol"
 import {AssetModule, ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
-import {IShareERC20} from "./interfaces/IShareERC20.sol";
+import {IShareToken} from "./interfaces/IShareToken.sol";
 
 contract Implemetation is
     Ownable,
@@ -96,7 +96,7 @@ contract Implemetation is
         _setDenomination(denomination_);
     }
 
-    function initializeShare(IShareERC20 shareToken_) public onlyOwner {
+    function initializeShare(IShareToken shareToken_) public onlyOwner {
         _setShare(shareToken_);
     }
 
