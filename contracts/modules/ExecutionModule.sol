@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ModuleBase} from "./ModuleBase.sol";
+import {PoolState} from "../PoolState.sol";
 import {Whitelist} from "../libraries/Whitelist.sol";
 
-contract ExecutionModule is ModuleBase {
+contract ExecutionModule is PoolState {
     using Whitelist for Whitelist.ActionWList;
 
     Whitelist.ActionWList private _actionWList;

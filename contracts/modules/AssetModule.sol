@@ -3,10 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LibUniqueAddressList} from "../libs/LibUniqueAddressList.sol";
-import {ModuleBase} from "./ModuleBase.sol";
+import {PoolState} from "../PoolState.sol";
 import {Whitelist} from "../libraries/Whitelist.sol";
 
-abstract contract AssetModule is ModuleBase {
+abstract contract AssetModule is PoolState {
     using LibUniqueAddressList for LibUniqueAddressList.List;
     using Whitelist for Whitelist.AssetWList;
 

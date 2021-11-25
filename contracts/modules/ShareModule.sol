@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AssetModule} from "./AssetModule.sol";
-import {ModuleBase} from "./ModuleBase.sol";
+import {PoolState} from "../PoolState.sol";
 
-abstract contract ShareModule is ModuleBase {
+abstract contract ShareModule is PoolState {
     using SafeERC20 for IERC20;
 
     mapping(address => uint256) public pendingShares;

@@ -2,11 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {IShareToken} from "../interfaces/IShareToken.sol";
-import {ModuleBase} from "./ModuleBase.sol";
+import {PoolState} from "../PoolState.sol";
 import {ManagementFee} from "./ManagementFee.sol";
 import {PerformanceFee} from "./PerformanceFee.sol";
 
-abstract contract FeeModule is ModuleBase, ManagementFee, PerformanceFee {
+abstract contract FeeModule is PoolState, ManagementFee, PerformanceFee {
     // Implementations
     function __getShareToken()
         internal
