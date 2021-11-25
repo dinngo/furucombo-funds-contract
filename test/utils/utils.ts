@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { ethers } from 'hardhat';
 import { RecordActionResultSig, DeltaGasSig } from './constants';
 const hre = require('hardhat');
@@ -85,6 +86,7 @@ export function simpleEncode(_func: string, params: any) {
   const abi = [func];
   const iface = new ethers.utils.Interface(abi);
   const data = iface.encodeFunctionData(_func, params);
+
   return data;
 }
 
@@ -108,6 +110,20 @@ export async function getActionReturn(receipt: any, dataTypes: any) {
   return actionResult;
 }
 
-export function stringToHex(s: string) {
-  return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(s));
+export function asciiToHex32(s: string) {
+  // Right Pad
+  return ethers.utils.formatBytes32String(s);
+}
+
+export async function balanceDelta(addr: string, b: BigNumber) {
+  return (await ethers.provider.getBalance(addr)).sub(b);
+}
+
+export async function getGasConsumption(receipt: any) {
+  const result = await receipt.wait();
+  return result.gasUsed.mul(receipt.gasPrice);
+}
+
+export function getFuncSig(artifact: any, name: string) {
+  return artifact.interface.getSighash(name);
 }

@@ -194,10 +194,10 @@ describe('Comptroller', function () {
         const receipt = await comptroller.permitAssets(level, [tokenA, tokenB]);
 
         // check events
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitAsset')
           .withArgs(level, tokenA);
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitAsset')
           .withArgs(level, tokenB);
 
@@ -379,10 +379,10 @@ describe('Comptroller', function () {
 
       // permit new denominations
       const receipt = await comptroller.permitDenominations([tokenA, tokenB]);
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'PermitDenomination')
         .withArgs(tokenA);
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'PermitDenomination')
         .withArgs(tokenB);
 
@@ -409,10 +409,10 @@ describe('Comptroller', function () {
       const receipt = await comptroller.forbidDenominations([tokenA, tokenB]);
 
       // check event
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'ForbidDenomination')
         .withArgs(tokenA);
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'ForbidDenomination')
         .withArgs(tokenB);
 

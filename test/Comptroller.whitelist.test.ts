@@ -108,10 +108,10 @@ describe('Comptroller_Whitelist', function () {
       ]);
 
       // check events
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'PermitManager')
         .withArgs(user.address);
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'PermitManager')
         .withArgs(collector.address);
 
@@ -188,10 +188,10 @@ describe('Comptroller_Whitelist', function () {
       ]);
 
       // check events
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'ForbidManager')
         .withArgs(user.address);
-      expect(receipt)
+      await expect(receipt)
         .to.emit(comptroller, 'ForbidManager')
         .withArgs(collector.address);
 
@@ -250,10 +250,10 @@ describe('Comptroller_Whitelist', function () {
         );
 
         // check event
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitDelegateCall')
           .withArgs(level, actionMockA.address, sigA);
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitDelegateCall')
           .withArgs(level, actionMockB.address, sigB);
 
@@ -417,11 +417,11 @@ describe('Comptroller_Whitelist', function () {
         );
 
         // check event
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'ForbidDelegateCall')
           .withArgs(level, actionMockA.address, sigA);
 
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'ForbidDelegateCall')
           .withArgs(level, actionMockB.address, sigB);
 
@@ -486,10 +486,10 @@ describe('Comptroller_Whitelist', function () {
         );
 
         // check event
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitContractCall')
           .withArgs(level, actionMockA.address, sigA);
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitContractCall')
           .withArgs(level, actionMockB.address, sigB);
 
@@ -652,11 +652,11 @@ describe('Comptroller_Whitelist', function () {
         );
 
         // check event
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'ForbidContractCall')
           .withArgs(level, actionMockA.address, sigA);
 
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'ForbidContractCall')
           .withArgs(level, actionMockB.address, sigB);
 
@@ -721,10 +721,10 @@ describe('Comptroller_Whitelist', function () {
         );
 
         // check event
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitHandler')
           .withArgs(level, handlerMockA.address, sigA);
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'PermitHandler')
           .withArgs(level, handlerMockB.address, sigB);
 
@@ -892,11 +892,11 @@ describe('Comptroller_Whitelist', function () {
         );
 
         // check event
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'ForbidHandler')
           .withArgs(level, handlerMockA.address, sigA);
 
-        expect(receipt)
+        await expect(receipt)
           .to.emit(comptroller, 'ForbidHandler')
           .withArgs(level, handlerMockB.address, sigB);
 

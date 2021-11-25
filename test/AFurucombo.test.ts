@@ -31,7 +31,7 @@ import {
   ether,
   impersonateAndInjectEther,
   simpleEncode,
-  stringToHex,
+  asciiToHex32,
   getTaskExecutorFundQuotas,
   getTaskExecutorDealingAssets,
   profileGas,
@@ -112,12 +112,12 @@ describe('AFurucombo', function () {
 
       await furuRegistry.register(
         hFunds.address,
-        ethers.utils.hexZeroPad(stringToHex('HFunds'), 32)
+        ethers.utils.hexZeroPad(asciiToHex32('HFunds'), 32)
       );
 
       await furuRegistry.register(
         FURUCOMBO_HQUICKSWAP,
-        ethers.utils.hexZeroPad(stringToHex('FURUCOMBO_HQUICKSWAP'), 32)
+        ethers.utils.hexZeroPad(asciiToHex32('FURUCOMBO_HQUICKSWAP'), 32)
       );
 
       // Setup PoolProxy

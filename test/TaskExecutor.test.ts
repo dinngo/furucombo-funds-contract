@@ -7,8 +7,8 @@ import {
   AssetRouter,
   TaskExecutor,
   IDSProxyRegistry,
-  FooAction,
-  Foo,
+  PoolFooAction,
+  PoolFoo,
   PoolProxyMock,
   IERC20,
 } from '../typechain';
@@ -40,8 +40,8 @@ describe('Task Executor', function () {
   let user: Wallet;
   let collector: Wallet;
 
-  let foo: Foo;
-  let fooAction: FooAction;
+  let foo: PoolFoo;
+  let fooAction: PoolFooAction;
 
   let tokenA: IERC20;
   let tokenB: IERC20;
@@ -80,10 +80,12 @@ describe('Task Executor', function () {
       await taskExecutor.deployed();
       await comptroller.setExecAction(taskExecutor.address);
 
-      foo = await (await ethers.getContractFactory('Foo')).deploy();
+      foo = await (await ethers.getContractFactory('PoolFoo')).deploy();
       await foo.deployed();
 
-      fooAction = await (await ethers.getContractFactory('FooAction')).deploy();
+      fooAction = await (
+        await ethers.getContractFactory('PoolFooAction')
+      ).deploy();
       await fooAction.deployed();
 
       dsProxyRegistry = await ethers.getContractAt(
@@ -179,8 +181,8 @@ describe('Task Executor', function () {
     });
 
     it('payable action', async function () {
-      // const balanceFoo = await ethers.provider.getBalance(foo.address);
-      const balanceFoo = await ethers.provider.getBalance(foo.address);
+      // const balancePoolFoo = await ethers.provider.getBalance(foo.address);
+      const balancePoolFoo = await ethers.provider.getBalance(foo.address);
 
       // Prepare action data
       const value = ether('1');
@@ -207,7 +209,7 @@ describe('Task Executor', function () {
       // Verify
       expect(await foo.nValue()).to.be.eq(expectNValue);
       expect(
-        (await ethers.provider.getBalance(foo.address)).sub(balanceFoo)
+        (await ethers.provider.getBalance(foo.address)).sub(balancePoolFoo)
       ).to.be.eq(value);
     });
 
@@ -468,9 +470,9 @@ describe('Task Executor', function () {
     });
 
     it('payable action', async function () {
-      const balanceFoo = await ethers.provider.getBalance(foo.address);
+      const balancePoolFoo = await ethers.provider.getBalance(foo.address);
 
-      // const balanceFoo = await ethers.provider.getBalance(foo.address);
+      // const balancePoolFoo = await ethers.provider.getBalance(foo.address);
 
       // Prepare action data
       const actionEthValue = ether('5');
@@ -493,9 +495,11 @@ describe('Task Executor', function () {
       });
 
       // Verify
-      const balanceFooEnd = await ethers.provider.getBalance(foo.address);
+      const balancePoolFooEnd = await ethers.provider.getBalance(foo.address);
       expect(await foo.nValue()).to.be.eq(expectNValue);
-      expect(await balanceFooEnd.sub(balanceFoo)).to.be.eq(actionEthValue);
+      expect(await balancePoolFooEnd.sub(balancePoolFoo)).to.be.eq(
+        actionEthValue
+      );
     });
 
     it('should revert: send token', async function () {

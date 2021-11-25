@@ -4,7 +4,7 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../externals/furucombo/handlers/HandlerBase.sol";
+import "../furucombo/handlers/HandlerBase.sol";
 
 contract HMock is HandlerBase {
     using SafeERC20 for IERC20;
