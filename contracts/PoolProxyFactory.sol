@@ -10,15 +10,22 @@ import {IPool} from "./interfaces/IPool.sol";
 contract PoolProxyFactory {
     IComptroller public comptroller;
 
-    function createPool(IERC20 denomination) public returns (address) {
+    function createPool(
+        IERC20 denomination,
+        uint256 level,
+        uint256 reserveExecution
+    ) public returns (address) {
         IPool pool = IPool(address(new PoolProxy(address(comptroller), "")));
         ShareToken share = new ShareToken("TEST", "TST");
-        pool.initializeShare(address(share));
-        pool.initializeComptroller(address(comptroller));
-        pool.initializeDenomination(address(denomination));
-        pool.initializeDSProxy();
+        // Query comptroller for staking amount
+        pool.initialize(
+            level,
+            address(share),
+            address(comptroller),
+            address(denomination),
+            reserveExecution
+        );
         pool.initializeOwnership(msg.sender);
-
         return address(pool);
     }
 }

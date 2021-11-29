@@ -4,11 +4,10 @@ pragma solidity ^0.8.0;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import {PoolState} from "./PoolState.sol";
 import {AssetModule} from "./modules/AssetModule.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
 import {FeeModule, ManagementFee, PerformanceFee} from "./modules/FeeModule.sol";
-import {AssetModule, ShareModule} from "./modules/ShareModule.sol";
+import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
@@ -26,8 +25,6 @@ contract Implemetation is
         dsProxyRegistry = dsProxyRegistry_;
     }
 
-    // Asset module
-
     // Share module
     function getAssetValue()
         public
@@ -38,75 +35,47 @@ contract Implemetation is
         return 0;
     }
 
-    /// @notice The management fee should be updated.
-    function _callBeforePurchase(uint256) internal override {
-        _mintManagementFee();
-        _updatePerformanceShare();
-        return;
-    }
-
-    function _callAfterPurchase(uint256) internal override {
-        _updateGrossSharePrice();
-        return;
-    }
-
-    function _callBeforeRedeem(uint256) internal override {
-        _mintManagementFee();
-        _updatePerformanceShare();
-        return;
-    }
-
-    function _callAfterRedeem(uint256 amount) internal override {
-        _redemptionPayout(amount);
-        _updateGrossSharePrice();
-        return;
-    }
-
     function getReserve() public view override returns (uint256) {
         return _getReserve();
     }
 
-    // Execute module
     function execute(bytes calldata data) public override onlyOwner {
         super.execute(data);
     }
 
-    function _afterExecute() internal override returns (bool) {
-        require(getReserve() >= reserveExecution, "Insufficient reserve");
-        return super._afterExecute();
+    function finalize() public {
+        _finalize();
+    }
+
+    function liquidate() public {
+        _liquidate();
+    }
+
+    function close() public override {
+        super.close();
     }
 
     // Initiators
-
-    function initializeLevel(uint256 level_) public {
+    function initialize(
+        uint256 level_,
+        IComptroller comptroller_,
+        IERC20 denomination_,
+        IShareToken shareToken_,
+        uint256 reserveExecution_
+    ) public {
         _setLevel(level_);
+        _setComptroller(comptroller_);
+        _setDenomination(denomination_);
+        _setShare(shareToken_);
+        address dsProxy_ = dsProxyRegistry.build();
+        _setDSProxy(IDSProxy(dsProxy_));
+        _setReserveExecution(reserveExecution_);
     }
 
     function initializeOwnership(address newOwner) public {
         address owner = owner();
         require(owner == address(0), "Owner is initialized");
         _transferOwnership(newOwner);
-    }
-
-    function initializeComptroller(IComptroller comptroller_) public {
-        _setComptroller(comptroller_);
-    }
-
-    function initializeDenomination(IERC20 denomination_) public {
-        _setDenomination(denomination_);
-    }
-
-    function initializeShare(IShareToken shareToken_) public onlyOwner {
-        _setShare(shareToken_);
-    }
-
-    function initializeDSProxy() public {
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
-    }
-
-    function initializeReserveExecution(uint256 reserveExecution_) public {
-        _setReserveExecution(reserveExecution_);
     }
 
     // Action management
@@ -153,5 +122,33 @@ contract Implemetation is
 
     function getManager() public view override returns (address) {
         return owner();
+    }
+
+    function _afterExecute() internal override returns (bool) {
+        require(getReserve() >= reserveExecution, "Insufficient reserve");
+        return super._afterExecute();
+    }
+
+    function _callBeforePurchase(uint256) internal override {
+        _mintManagementFee();
+        _updatePerformanceShare();
+        return;
+    }
+
+    function _callAfterPurchase(uint256) internal override {
+        _updateGrossSharePrice();
+        return;
+    }
+
+    function _callBeforeRedeem(uint256) internal override {
+        _mintManagementFee();
+        _updatePerformanceShare();
+        return;
+    }
+
+    function _callAfterRedeem(uint256 amount) internal override {
+        _redemptionPayout(amount);
+        _updateGrossSharePrice();
+        return;
     }
 }

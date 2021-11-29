@@ -52,13 +52,17 @@ abstract contract PoolState {
         ) _enterState(State.Ready);
     }
 
-    function finalize() public whenState(State.Ready) {
+    function _finalize() internal whenState(State.Ready) {
         _enterState(State.Executing);
     }
 
-    function liquidate() public whenState(State.RedemptionPending) {
+    function _liquidate() internal whenState(State.RedemptionPending) {
         _enterState(State.Liquidating);
         // Transfer the ownership to proceed liquidation
+    }
+
+    function _close() internal whenStates(State.Executing, State.Liquidating) {
+        _enterState(State.Closed);
     }
 
     function _enterState(State state_) internal {

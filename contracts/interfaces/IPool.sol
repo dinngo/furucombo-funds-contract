@@ -18,11 +18,11 @@ interface IPool {
         pure
         returns (bool);
 
-    function initializeShare(address share) external;
-
-    function initializeComptroller(address comptroller) external;
-
-    function initializeDenomination(address denomination) external;
-
-    function initializeDSProxy() external;
+    function initialize(
+        uint256 level,
+        address comptroller,
+        address denomination,
+        address shareToken,
+        uint256 reserveExecution
+    ) external;
 }

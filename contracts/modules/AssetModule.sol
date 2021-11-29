@@ -23,13 +23,13 @@ abstract contract AssetModule is PoolState {
         _assetList.remove(asset);
     }
 
-    function close() public {
+    function close() public virtual {
         require(
             _assetList.size() == 1 &&
                 _assetList.front() == address(denomination),
             "Different asset remaining"
         );
-        _enterState(State.Closed);
+        _close();
     }
 
     function _permitAsset(address asset)
