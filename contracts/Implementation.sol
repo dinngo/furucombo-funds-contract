@@ -12,7 +12,7 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 
-contract Implemetation is
+contract Implementation is
     Ownable,
     AssetModule,
     ShareModule,

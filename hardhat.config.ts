@@ -24,11 +24,8 @@ task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
-<<<<<<< HEAD
-  solidity: '0.8.9',
-=======
   solidity: {
-    version: "0.8.9",
+    version: '0.8.9',
     settings: {
       optimizer: {
         enabled: true,
@@ -36,7 +33,6 @@ const config: HardhatUserConfig = {
       },
     },
   },
->>>>>>> 5f6cb51 (Refactor function scopes)
   networks: {
     beta: {
       url: process.env.BETA_URL || '',

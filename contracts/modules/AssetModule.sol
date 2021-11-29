@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {LibUniqueAddressList} from "../libs/LibUniqueAddressList.sol";
+import {LibUniqueAddressList} from "../libraries/LibUniqueAddressList.sol";
 import {PoolState} from "../PoolState.sol";
 import {Whitelist} from "../libraries/Whitelist.sol";
 
