@@ -14,18 +14,19 @@ contract PoolProxyFactory {
         IERC20 denomination,
         uint256 level,
         uint256 reserveExecution
-    ) public returns (address) {
-        IPool pool = IPool(address(new PoolProxy(address(comptroller), "")));
+    ) external returns (address) {
         ShareToken share = new ShareToken("TEST", "TST");
-        // Query comptroller for staking amount
-        pool.initialize(
+        bytes memory data = abi.encodeWithSignature(
+            "initialize(uint256,address,address,address,uint256,address)",
             level,
             address(share),
             address(comptroller),
             address(denomination),
-            reserveExecution
+            reserveExecution,
+            msg.sender
         );
-        pool.initializeOwnership(msg.sender);
+        IPool pool = IPool(address(new PoolProxy(address(comptroller), data)));
+        share.transferOwnership(address(pool));
         return address(pool);
     }
 }
