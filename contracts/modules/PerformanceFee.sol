@@ -22,7 +22,34 @@ abstract contract PerformanceFee {
     uint256 private _crystallizationPeriod;
     uint256 private _lastCrystallization;
 
-    function _updatePerformanceShare() internal {
+    function _setPerformanceFeeRate(uint256 feeRate)
+        internal
+        virtual
+        returns (int128)
+    {
+        _feeRate64x64 = feeRate.divu(FEE_BASE);
+
+        return _feeRate64x64;
+    }
+
+    function _setCrystallizationPeriod(uint256 period) internal virtual {
+        _crystallizationPeriod = period;
+    }
+
+    function crystallize() public virtual {
+        require(
+            block.timestamp > _lastCrystallization + _crystallizationPeriod,
+            "Not yet"
+        );
+        IShareToken shareToken = __getShareToken();
+        address manager = __getManager();
+        shareToken.move(address(0), manager, _lastOutstandingShare);
+        _lastOutstandingShare = 0;
+        _feeSum = 0;
+        _lastCrystallization = block.timestamp;
+    }
+
+    function _updatePerformanceFee() internal virtual {
         IShareToken shareToken = __getShareToken();
         // Get accumulated wealth
         uint256 grossAssetValue = __getGrossAssetValue();
@@ -37,9 +64,15 @@ abstract contract PerformanceFee {
         uint256 netAssetValue = grossAssetValue - _feeSum;
         uint256 outstandingShare = (totalShare * _feeSum) / netAssetValue;
         if (outstandingShare > _lastOutstandingShare) {
-            _mintOutstandingShare(outstandingShare - _lastOutstandingShare);
+            shareToken.mint(
+                address(0),
+                outstandingShare - _lastOutstandingShare
+            );
         } else {
-            _burnOutstandingShare(_lastOutstandingShare - outstandingShare);
+            shareToken.burn(
+                address(0),
+                _lastOutstandingShare - outstandingShare
+            );
         }
         _lastOutstandingShare = outstandingShare;
         _lastGrossSharePrice64x64 = grossAssetValue.divu(
@@ -47,43 +80,14 @@ abstract contract PerformanceFee {
         );
     }
 
-    function setPerformanceFeeRate(uint256 feeRate) public returns (int128) {
-        _feeRate64x64 = feeRate.divu(FEE_BASE);
-
-        return _feeRate64x64;
-    }
-
-    function setPerformanceFeeRate(int128 feeRate64x64)
-        public
-        returns (int128)
-    {
-        _feeRate64x64 = feeRate64x64;
-
-        return _feeRate64x64;
-    }
-
-    function setCrystallizationPeriod(uint256 period) public {
-        _crystallizationPeriod = period;
-    }
-
-    function _mintOutstandingShare(uint256 amount) internal {
-        IShareToken shareToken = __getShareToken();
-        shareToken.mint(address(0), amount);
-    }
-
-    function _burnOutstandingShare(uint256 amount) internal {
-        IShareToken shareToken = __getShareToken();
-        shareToken.burn(address(0), amount);
-    }
-
-    function _updateGrossSharePrice() internal {
+    function _updateGrossSharePrice() internal virtual {
         IShareToken shareToken = __getShareToken();
         uint256 grossAssetValue = __getGrossAssetValue();
         uint256 totalShare = shareToken.grossTotalShare();
         _lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
     }
 
-    function _redemptionPayout(uint256 amount) internal {
+    function _redemptionPayout(uint256 amount) internal virtual {
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
         uint256 totalShare = shareToken.grossTotalShare();
@@ -92,19 +96,6 @@ abstract contract PerformanceFee {
         shareToken.move(address(0), manager, payout);
         _lastOutstandingShare -= payout;
         _feeSum -= fee;
-    }
-
-    function crystallization() public {
-        require(
-            block.timestamp > _lastCrystallization + _crystallizationPeriod,
-            "Not yet"
-        );
-        IShareToken shareToken = __getShareToken();
-        address manager = __getManager();
-        shareToken.move(address(0), manager, _lastOutstandingShare);
-        _lastOutstandingShare = 0;
-        _feeSum = 0;
-        _lastCrystallization = block.timestamp;
     }
 
     function __getShareToken() internal view virtual returns (IShareToken);

@@ -7,7 +7,7 @@ import {ManagementFee} from "./ManagementFee.sol";
 import {PerformanceFee} from "./PerformanceFee.sol";
 
 abstract contract FeeModule is PoolState, ManagementFee, PerformanceFee {
-    // Implementations
+    // General
     function __getShareToken()
         internal
         view
@@ -17,10 +17,10 @@ abstract contract FeeModule is PoolState, ManagementFee, PerformanceFee {
         return shareToken;
     }
 
-    function getAssetValue() public view virtual returns (uint256);
+    function __getTotalAssetValue() internal view virtual returns (uint256);
 
     function __getGrossAssetValue() internal view override returns (uint256) {
-        return getAssetValue();
+        return __getTotalAssetValue();
     }
 
     function __getManager()
@@ -33,4 +33,14 @@ abstract contract FeeModule is PoolState, ManagementFee, PerformanceFee {
     }
 
     function getManager() public view virtual returns (address);
+
+    // Management fee
+    function _updateManagementFee() internal override returns (uint256) {
+        if (state == State.Executing) {
+            return super._updateManagementFee();
+        } else {
+            lastMFeeClaimTime = block.timestamp;
+            return 0;
+        }
+    }
 }

@@ -25,22 +25,34 @@ contract Implementation is
         dsProxyRegistry = dsProxyRegistry_;
     }
 
-    // Share module
-    function getAssetValue()
-        public
-        view
-        override(FeeModule, ShareModule)
-        returns (uint256)
-    {
-        return 0;
+    // Initiators
+    function initialize(
+        uint256 level_,
+        IComptroller comptroller_,
+        IERC20 denomination_,
+        IShareToken shareToken_,
+        uint256 mFeeRate_,
+        uint256 pFeeRate_,
+        uint256 crystallizationPeriod_,
+        uint256 reserveExecution_,
+        address newOwner
+    ) external {
+        _setLevel(level_);
+        _setComptroller(comptroller_);
+        _setDenomination(denomination_);
+        _setShare(shareToken_);
+        _setManagementFeeRate(mFeeRate_);
+        _setPerformanceFeeRate(pFeeRate_);
+        _setCrystallizationPeriod(crystallizationPeriod_);
+        _setReserveExecution(reserveExecution_);
+        address dsProxy_ = dsProxyRegistry.build();
+        _setDSProxy(IDSProxy(dsProxy_));
+        _transferOwnership(newOwner);
     }
 
-    function getReserve() public view override returns (uint256) {
-        return _getReserve();
-    }
-
-    function execute(bytes calldata data) public override onlyOwner {
-        super.execute(data);
+    // General
+    function getManager() public view override returns (address) {
+        return owner();
     }
 
     function finalize() public {
@@ -51,87 +63,85 @@ contract Implementation is
         _liquidate();
     }
 
-    function close() public override {
-        super.close();
+    function __getReserve() internal view override returns (uint256) {
+        return getReserve();
     }
 
-    // Initiators
-    function initialize(
-        uint256 level_,
-        IComptroller comptroller_,
-        IERC20 denomination_,
-        IShareToken shareToken_,
-        uint256 reserveExecution_
-    ) public {
-        _setLevel(level_);
-        _setComptroller(comptroller_);
-        _setDenomination(denomination_);
-        _setShare(shareToken_);
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
-        _setReserveExecution(reserveExecution_);
+    function __getTotalAssetValue()
+        internal
+        view
+        override(FeeModule, ShareModule)
+        returns (uint256)
+    {
+        return 0;
     }
 
-    function initializeOwnership(address newOwner) public {
-        address owner = owner();
-        require(owner == address(0), "Owner is initialized");
-        _transferOwnership(newOwner);
+    // Asset Module
+    function addAsset(address asset) public override {
+        uint256 value = getAssetValue(asset);
+        require(value > 0, "No such asset");
+        super.addAsset(asset);
     }
 
-    // Action management
-    function permitAction(address to, bytes4 sig) public onlyOwner {
-        _permitAction(to, sig);
+    function removeAsset(address asset) public override {
+        uint256 value = getAssetValue(asset);
+        // Should be less than dust
+        require(value == 0, "Remain asset");
+        super.removeAsset(asset);
     }
 
-    function forbidAction(address to, bytes4 sig) public onlyOwner {
-        _forbidAction(to, sig);
+    function getAssetValue(address asset) public view returns (uint256) {
+        // Should query asset value as denomination asset
+        asset;
+        return 0;
     }
 
-    function permitAllAction() public onlyOwner {
-        _permitAction(address(0), bytes4(0));
+    function permitAsset(address asset) public override onlyOwner {
+        super.permitAsset(asset);
     }
 
-    function cancelPermitAllAction() public onlyOwner {
-        _forbidAction(address(0), bytes4(0));
+    function forbidAsset(address asset) public override onlyOwner {
+        super.forbidAsset(asset);
     }
 
-    function isValidAction(address to, bytes4 sig) public view returns (bool) {
-        return _isValidAction(to, sig);
+    function permitAllAsset() public override onlyOwner {
+        super.permitAllAsset();
     }
 
-    // Asset management
-    function permitAsset(address asset) public onlyOwner {
-        _permitAsset(asset);
+    function cancelPermitAllAsset() public override onlyOwner {
+        super.cancelPermitAllAsset();
     }
 
-    function forbidAsset(address asset) public onlyOwner {
-        _forbidAsset(asset);
+    // Execution module
+    function execute(bytes calldata data) public override onlyOwner {
+        super.execute(data);
     }
 
-    function permitAllAsset() public onlyOwner {
-        _permitAsset(address(0));
+    function permitAction(address to, bytes4 sig) public override onlyOwner {
+        super.permitAction(to, sig);
     }
 
-    function cancelPermitAllAsset() public onlyOwner {
-        _forbidAsset(address(0));
+    function forbidAction(address to, bytes4 sig) public override onlyOwner {
+        super.forbidAction(to, sig);
     }
 
-    function isValidAsset(address asset) public view returns (bool) {
-        return _isValidAsset(asset);
+    function permitAllAction() public override onlyOwner {
+        super.permitAllAction();
     }
 
-    function getManager() public view override returns (address) {
-        return owner();
+    function cancelPermitAllAction() public override onlyOwner {
+        super.cancelPermitAllAction();
     }
 
     function _afterExecute() internal override returns (bool) {
-        require(getReserve() >= reserveExecution, "Insufficient reserve");
+        require(__getReserve() >= reserveExecution, "Insufficient reserve");
         return super._afterExecute();
     }
 
+    // Share module
     function _callBeforePurchase(uint256) internal override {
-        _mintManagementFee();
-        _updatePerformanceShare();
+        _updateManagementFee();
+        _updatePerformanceFee();
         return;
     }
 
@@ -141,8 +151,8 @@ contract Implementation is
     }
 
     function _callBeforeRedeem(uint256) internal override {
-        _mintManagementFee();
-        _updatePerformanceShare();
+        _updateManagementFee();
+        _updatePerformanceFee();
         return;
     }
 

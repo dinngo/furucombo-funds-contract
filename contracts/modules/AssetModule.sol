@@ -13,13 +13,11 @@ abstract contract AssetModule is PoolState {
     LibUniqueAddressList.List private _assetList;
     Whitelist.AssetWList private _assetWList;
 
-    function addAsset(address asset) public {
-        // Should check asset value exists
+    function addAsset(address asset) public virtual {
         _assetList.pushBack(asset);
     }
 
-    function removeAsset(address asset) public {
-        // Should check asset value zero
+    function removeAsset(address asset) public virtual {
         _assetList.remove(asset);
     }
 
@@ -32,8 +30,38 @@ abstract contract AssetModule is PoolState {
         _close();
     }
 
+    function permitAsset(address asset) public virtual {
+        _permitAsset(asset);
+    }
+
+    function permitAllAsset() public virtual {
+        _permitAsset(address(0));
+    }
+
+    function forbidAsset(address asset) public virtual {
+        _forbidAsset(asset);
+    }
+
+    function cancelPermitAllAsset() public virtual {
+        _forbidAsset(address(0));
+    }
+
+    function isValidAsset(address asset) public view virtual returns (bool) {
+        return
+            _assetWList.canCall(0, address(0)) || _assetWList.canCall(0, asset);
+    }
+
+    function getAssetList() public view returns (address[] memory) {
+        return _assetList.get();
+    }
+
+    function getReserve() public view returns (uint256) {
+        return denomination.balanceOf(address(vault));
+    }
+
     function _permitAsset(address asset)
         internal
+        virtual
         whenStates(State.Initializing, State.Ready)
     {
         _assetWList.permit(0, asset);
@@ -41,21 +69,9 @@ abstract contract AssetModule is PoolState {
 
     function _forbidAsset(address asset)
         internal
+        virtual
         whenStates(State.Initializing, State.Ready)
     {
         _assetWList.forbid(0, asset);
-    }
-
-    function _isValidAsset(address asset) internal view returns (bool) {
-        return
-            _assetWList.canCall(0, address(0)) || _assetWList.canCall(0, asset);
-    }
-
-    function _getAssetList() internal view returns (address[] memory) {
-        return _assetList.get();
-    }
-
-    function _getReserve() internal view returns (uint256) {
-        return denomination.balanceOf(address(vault));
     }
 }

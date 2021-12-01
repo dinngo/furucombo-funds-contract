@@ -15,7 +15,8 @@ abstract contract ShareModule is PoolState {
     uint256 public pendingStartTime;
 
     function purchase(uint256 balance)
-        external
+        public
+        virtual
         whenStates(State.Executing, State.RedemptionPending)
         returns (uint256 share)
     {
@@ -23,7 +24,8 @@ abstract contract ShareModule is PoolState {
     }
 
     function redeem(uint256 share)
-        external
+        public
+        virtual
         whenNotState(State.Liquidating)
         returns (uint256 balance)
     {
@@ -37,6 +39,7 @@ abstract contract ShareModule is PoolState {
     function calculateShare(uint256 balance)
         public
         view
+        virtual
         returns (uint256 share)
     {
         uint256 shareAmount = shareToken.grossTotalShare();
@@ -44,7 +47,7 @@ abstract contract ShareModule is PoolState {
             // Handler initial minting
             share = balance;
         } else {
-            uint256 assetValue = getAssetValue();
+            uint256 assetValue = __getTotalAssetValue();
             share = (shareAmount * balance) / assetValue;
         }
     }
@@ -52,14 +55,15 @@ abstract contract ShareModule is PoolState {
     function calculateBalance(uint256 share)
         public
         view
+        virtual
         returns (uint256 balance)
     {
-        uint256 assetValue = getAssetValue();
+        uint256 assetValue = __getTotalAssetValue();
         uint256 shareAmount = shareToken.totalSupply();
         balance = (share * assetValue) / shareAmount;
     }
 
-    function settlePendingRedemption() external returns (bool) {
+    function settlePendingRedemption() public virtual returns (bool) {
         // Might lead to gas insufficient if pending list too long
         uint256 totalRedemption = _redeem(address(this), totalPendingShare);
         while (pendingAccountList.length > 0) {
@@ -77,17 +81,14 @@ abstract contract ShareModule is PoolState {
         return true;
     }
 
-    function claimPendingRedemption() external returns (uint256 balance) {
+    function claimPendingRedemption() public virtual returns (uint256 balance) {
         balance = pendingRedemptions[msg.sender];
         denomination.safeTransfer(msg.sender, balance);
     }
 
-    function getAssetValue() public view virtual returns (uint256);
-
-    function getReserve() public view virtual returns (uint256);
-
     function _purchase(address user, uint256 balance)
         internal
+        virtual
         returns (uint256 share)
     {
         _callBeforePurchase(0);
@@ -96,7 +97,11 @@ abstract contract ShareModule is PoolState {
         _callAfterPurchase(share);
     }
 
-    function _redeem(address user, uint256 share) internal returns (uint256) {
+    function _redeem(address user, uint256 share)
+        internal
+        virtual
+        returns (uint256)
+    {
         _callBeforeRedeem(share);
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
         denomination.safeTransferFrom(address(vault), user, balance);
@@ -112,6 +117,7 @@ abstract contract ShareModule is PoolState {
 
     function _redeemPending(address user, uint256 share)
         internal
+        virtual
         returns (uint256)
     {
         if (pendingShares[user] == 0) pendingAccountList.push(user);
@@ -124,6 +130,7 @@ abstract contract ShareModule is PoolState {
 
     function _addShare(address user, uint256 balance)
         internal
+        virtual
         returns (uint256 share)
     {
         share = calculateShare(balance);
@@ -132,10 +139,11 @@ abstract contract ShareModule is PoolState {
 
     function _removeShare(address user, uint256 share)
         internal
+        virtual
         returns (uint256 shareLeft, uint256 balance)
     {
         balance = calculateBalance(share);
-        uint256 reserve = getReserve();
+        uint256 reserve = __getReserve();
         if (balance > reserve) {
             uint256 shareToBurn = calculateShare(reserve);
             shareLeft = share - shareToBurn;
@@ -166,4 +174,8 @@ abstract contract ShareModule is PoolState {
         amount;
         return;
     }
+
+    function __getTotalAssetValue() internal view virtual returns (uint256);
+
+    function __getReserve() internal view virtual returns (uint256);
 }

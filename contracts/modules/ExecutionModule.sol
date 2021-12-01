@@ -9,14 +9,6 @@ contract ExecutionModule is PoolState {
 
     Whitelist.ActionWList private _actionWList;
 
-    function _beforeExecute() internal virtual returns (bool) {
-        return true;
-    }
-
-    function _afterExecute() internal virtual returns (bool) {
-        return true;
-    }
-
     function execute(bytes calldata data)
         public
         virtual
@@ -28,6 +20,41 @@ contract ExecutionModule is PoolState {
         vault.execute(action, data);
 
         _afterExecute();
+    }
+
+    function permitAction(address to, bytes4 sig) public virtual {
+        _permitAction(to, sig);
+    }
+
+    function forbidAction(address to, bytes4 sig) public virtual {
+        _forbidAction(to, sig);
+    }
+
+    function permitAllAction() public virtual {
+        _permitAction(address(0), bytes4(0));
+    }
+
+    function cancelPermitAllAction() public virtual {
+        _forbidAction(address(0), bytes4(0));
+    }
+
+    function isValidAction(address to, bytes4 sig)
+        public
+        view
+        virtual
+        returns (bool)
+    {
+        return
+            _actionWList.canCall(0, address(0), bytes4(0)) ||
+            _actionWList.canCall(0, to, sig);
+    }
+
+    function _beforeExecute() internal virtual returns (bool) {
+        return true;
+    }
+
+    function _afterExecute() internal virtual returns (bool) {
+        return true;
     }
 
     function _permitAction(address to, bytes4 sig)
@@ -42,15 +69,5 @@ contract ExecutionModule is PoolState {
         whenStates(State.Initializing, State.Ready)
     {
         _actionWList.forbid(0, to, sig);
-    }
-
-    function _isValidAction(address to, bytes4 sig)
-        internal
-        view
-        returns (bool)
-    {
-        return
-            _actionWList.canCall(0, address(0), bytes4(0)) ||
-            _actionWList.canCall(0, to, sig);
     }
 }

@@ -13,15 +13,21 @@ contract PoolProxyFactory {
     function createPool(
         IERC20 denomination,
         uint256 level,
+        uint256 mFeeRate,
+        uint256 pFeeRate,
+        uint256 crystallizationPeriod,
         uint256 reserveExecution
     ) external returns (address) {
         ShareToken share = new ShareToken("TEST", "TST");
         bytes memory data = abi.encodeWithSignature(
-            "initialize(uint256,address,address,address,uint256,address)",
+            "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
             level,
             address(share),
             address(comptroller),
             address(denomination),
+            mFeeRate,
+            pFeeRate,
+            crystallizationPeriod,
             reserveExecution,
             msg.sender
         );

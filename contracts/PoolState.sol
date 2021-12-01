@@ -74,7 +74,7 @@ abstract contract PoolState {
         level = level_;
     }
 
-    function _setComptroller(IComptroller comptroller_) internal checkReady {
+    function _setComptroller(IComptroller comptroller_) internal {
         require(
             address(comptroller) == address(0),
             "Comptroller is initialized"
@@ -82,7 +82,7 @@ abstract contract PoolState {
         comptroller = comptroller_;
     }
 
-    function _setDenomination(IERC20 denomination_) internal checkReady {
+    function _setDenomination(IERC20 denomination_) internal {
         require(
             address(denomination) == address(0),
             "Denomination is initialized"
@@ -90,12 +90,12 @@ abstract contract PoolState {
         denomination = denomination_;
     }
 
-    function _setShare(IShareToken shareToken_) internal checkReady {
+    function _setShare(IShareToken shareToken_) internal {
         require(address(shareToken) == address(0), "Share is initialized");
         shareToken = shareToken_;
     }
 
-    function _setDSProxy(IDSProxy dsProxy) internal checkReady {
+    function _setDSProxy(IDSProxy dsProxy) internal {
         require(address(vault) == address(0), "Share is initialized");
         vault = dsProxy;
     }
