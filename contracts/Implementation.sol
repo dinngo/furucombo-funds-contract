@@ -95,6 +95,7 @@ contract Implementation is
         override(FeeModule, ShareModule)
         returns (uint256)
     {
+        this;
         return 0;
     }
 
@@ -123,6 +124,7 @@ contract Implementation is
     function getAssetValue(address asset) public view returns (uint256) {
         // Should query asset value as denomination asset
         asset;
+        this;
         return 0;
     }
 
