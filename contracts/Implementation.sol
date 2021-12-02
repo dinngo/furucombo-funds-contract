@@ -12,6 +12,9 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 
+/// @title The implementation contract for pool.
+/// @notice The functions that requires ownership, interaction between
+/// different modules should be override and implemented here.
 contract Implementation is
     Ownable,
     AssetModule,
@@ -25,7 +28,16 @@ contract Implementation is
         dsProxyRegistry = dsProxyRegistry_;
     }
 
-    // Initiators
+    /// @notice Initializer.
+    /// @param level_ The tier of the pool.
+    /// @param comptroller_ The comptroller address.
+    /// @param denomination_ The denomination asset.
+    /// @param shareToken_ The share token address.
+    /// @param mFeeRate_ The management fee rate.
+    /// @param pFeeRate_ The performance fee rate.
+    /// @param crystallizationPeriod_ The crystallization period.
+    /// @param reserveExecution_ The reserve amount during execution.
+    /// @param newOwner The owner to be assigned to the pool.
     function initialize(
         uint256 level_,
         IComptroller comptroller_,
@@ -50,23 +62,33 @@ contract Implementation is
         _transferOwnership(newOwner);
     }
 
+    /////////////////////////////////////////////////////
     // General
+    /////////////////////////////////////////////////////
+    /// @notice Return the manager address.
+    /// @return Manager address.
     function getManager() public view override returns (address) {
         return owner();
     }
 
-    function finalize() public {
+    /// @notice Finalize the initialization of the pool.
+    function finalize() public onlyOwner {
         _finalize();
     }
 
-    function liquidate() public {
+    /// @notice Liquidate the pool.
+    function liquidate() public onlyOwner {
         _liquidate();
     }
 
+    /// @notice Get the current reserve amount of the pool.
+    /// @return The reserve amount.
     function __getReserve() internal view override returns (uint256) {
         return getReserve();
     }
 
+    /// @notice Get the total asset value of the pool.
+    /// @return The value of asset.
     function __getTotalAssetValue()
         internal
         view
@@ -76,13 +98,19 @@ contract Implementation is
         return 0;
     }
 
+    /////////////////////////////////////////////////////
     // Asset Module
+    /////////////////////////////////////////////////////
+    /// @notice Add the asset to the tracking list.
+    /// @param asset The asset to be added.
     function addAsset(address asset) public override {
         uint256 value = getAssetValue(asset);
         require(value > 0, "No such asset");
         super.addAsset(asset);
     }
 
+    /// @notice Remove the asset from the tracking list.
+    /// @param asset The asset to be removed.
     function removeAsset(address asset) public override {
         uint256 value = getAssetValue(asset);
         // Should be less than dust
@@ -90,72 +118,102 @@ contract Implementation is
         super.removeAsset(asset);
     }
 
+    /// @notice Get the value of a give asset.
+    /// @param asset The asset to be queried.
     function getAssetValue(address asset) public view returns (uint256) {
         // Should query asset value as denomination asset
         asset;
         return 0;
     }
 
+    /// @notice Permit an asset of the pool execution.
+    /// @param asset The asset to be permitted.
     function permitAsset(address asset) public override onlyOwner {
         super.permitAsset(asset);
     }
 
+    /// @notice Forbid an asset of the pool execution.
+    /// @param asset The asset to be forbidden.
     function forbidAsset(address asset) public override onlyOwner {
         super.forbidAsset(asset);
     }
 
+    /// @notice Permit all the asset of the pool execution.
     function permitAllAsset() public override onlyOwner {
         super.permitAllAsset();
     }
 
+    /// @notice Remove the permission of all the asset of the pool execution.
     function cancelPermitAllAsset() public override onlyOwner {
         super.cancelPermitAllAsset();
     }
 
+    /////////////////////////////////////////////////////
     // Execution module
+    /////////////////////////////////////////////////////
+    /// @notice Execute an action on the pool's behalf.
+    /// @param data The execution data to be applied.
     function execute(bytes calldata data) public override onlyOwner {
         super.execute(data);
     }
 
+    /// @notice Permit the action base on the action contract and function.
+    /// @param to The action contract to be permitted.
+    /// @param sig The function signature to be permitted.
     function permitAction(address to, bytes4 sig) public override onlyOwner {
         super.permitAction(to, sig);
     }
 
+    /// @notice Forbid the action base on the action contract and function.
+    /// @param to The action contract to be forbidden.
+    /// @param sig The function signature to be forbidden.
     function forbidAction(address to, bytes4 sig) public override onlyOwner {
         super.forbidAction(to, sig);
     }
 
+    /// @notice Permit all action to be applied when execution.
     function permitAllAction() public override onlyOwner {
         super.permitAllAction();
     }
 
+    /// @notice Cancel the all action permission.
     function cancelPermitAllAction() public override onlyOwner {
         super.cancelPermitAllAction();
     }
 
+    /// @notice Check the reserve after the execution.
     function _afterExecute() internal override returns (bool) {
         require(__getReserve() >= reserveExecution, "Insufficient reserve");
         return super._afterExecute();
     }
 
+    /////////////////////////////////////////////////////
     // Share module
+    /////////////////////////////////////////////////////
+    /// @notice Update the management fee and performance fee before purchase
+    /// to get the lastest share price.
     function _callBeforePurchase(uint256) internal override {
         _updateManagementFee();
         _updatePerformanceFee();
         return;
     }
 
+    /// @notice Update the gross share price after the purchase.
     function _callAfterPurchase(uint256) internal override {
         _updateGrossSharePrice();
         return;
     }
 
+    /// @notice Update the management fee and performance fee before redeem
+    /// to get the latest share price.
     function _callBeforeRedeem(uint256) internal override {
         _updateManagementFee();
         _updatePerformanceFee();
         return;
     }
 
+    /// @notice Payout the performance fee for the redempt portion and update
+    /// the gross share price.
     function _callAfterRedeem(uint256 amount) internal override {
         _redemptionPayout(amount);
         _updateGrossSharePrice();
