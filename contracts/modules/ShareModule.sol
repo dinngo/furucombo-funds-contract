@@ -5,6 +5,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {AssetModule} from "./AssetModule.sol";
 import {PoolState} from "../PoolState.sol";
 
+/// @title Share module
 abstract contract ShareModule is PoolState {
     using SafeERC20 for IERC20;
 
@@ -14,6 +15,8 @@ abstract contract ShareModule is PoolState {
     uint256 public totalPendingShare;
     uint256 public pendingStartTime;
 
+    /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
+    /// @return share The share amount being purchased.
     function purchase(uint256 balance)
         public
         virtual
@@ -23,19 +26,24 @@ abstract contract ShareModule is PoolState {
         share = _purchase(msg.sender, balance);
     }
 
+    /// @notice Redeem with the given share amount. Can only redeem when pool
+    /// is not under liquidation.
     function redeem(uint256 share)
         public
         virtual
         whenNotState(State.Liquidating)
         returns (uint256 balance)
     {
-        if (state == State.Executing) {
-            balance = _redeem(msg.sender, share);
-        } else {
+        if (state == State.RedemptionPending) {
             balance = _redeemPending(msg.sender, share);
+        } else {
+            balance = _redeem(msg.sender, share);
         }
     }
 
+    /// @notice Calculate the share amount corresponding to the given balance.
+    /// @param balance The balance to be queried.
+    /// @return share The share amount.
     function calculateShare(uint256 balance)
         public
         view
@@ -52,6 +60,10 @@ abstract contract ShareModule is PoolState {
         }
     }
 
+    /// @notice Calculate the balance amount corresponding to the given share
+    /// amount.
+    /// @param share The share amount to be queried.
+    /// @return balance The balance.
     function calculateBalance(uint256 share)
         public
         view
@@ -63,6 +75,8 @@ abstract contract ShareModule is PoolState {
         balance = (share * assetValue) / shareAmount;
     }
 
+    /// @notice Settle the pending redemption and assign the proper balance to
+    /// each user.
     function settlePendingRedemption() public virtual returns (bool) {
         // Might lead to gas insufficient if pending list too long
         uint256 totalRedemption = _redeem(address(this), totalPendingShare);
@@ -81,6 +95,8 @@ abstract contract ShareModule is PoolState {
         return true;
     }
 
+    /// @notice Claim the settled pending redemption.
+    /// @return balance The balance being claimed.
     function claimPendingRedemption() public virtual returns (uint256 balance) {
         balance = pendingRedemptions[msg.sender];
         denomination.safeTransfer(msg.sender, balance);
