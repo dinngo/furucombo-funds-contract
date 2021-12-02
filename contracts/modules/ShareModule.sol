@@ -1,134 +1,197 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AssetModule} from "./AssetModule.sol";
-import {ModuleBase} from "./ModuleBase.sol";
+import {PoolState} from "../PoolState.sol";
 
-abstract contract ShareModule is ModuleBase, AssetModule, ERC20Permit {
+/// @title Share module
+abstract contract ShareModule is PoolState {
     using SafeERC20 for IERC20;
 
     mapping(address => uint256) public pendingShares;
     address[] public pendingAccountList;
-    mapping(address => uint256) public pendingWithdrawals;
+    mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
+    uint256 public pendingStartTime;
 
-    function deposit(uint256 balance)
-        external
-        whenStates(State.Executing, State.WithdrawalPending)
+    /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
+    /// @return share The share amount being purchased.
+    function purchase(uint256 balance)
+        public
+        virtual
+        whenStates(State.Executing, State.RedemptionPending)
         returns (uint256 share)
     {
-        return _deposit(msg.sender, balance);
+        share = _purchase(msg.sender, balance);
     }
 
-    function withdraw(uint256 share)
-        external
-        whenStates(State.Executing, State.WithdrawalPending)
+    /// @notice Redeem with the given share amount. Can only redeem when pool
+    /// is not under liquidation.
+    function redeem(uint256 share)
+        public
+        virtual
+        whenNotState(State.Liquidating)
         returns (uint256 balance)
     {
-        if (state == State.Executing) {
-            return _withdraw(msg.sender, share);
+        if (state == State.RedemptionPending) {
+            balance = _redeemPending(msg.sender, share);
         } else {
-            return _withdrawPending(msg.sender, share);
+            balance = _redeem(msg.sender, share);
         }
     }
 
+    /// @notice Calculate the share amount corresponding to the given balance.
+    /// @param balance The balance to be queried.
+    /// @return share The share amount.
     function calculateShare(uint256 balance)
         public
         view
+        virtual
         returns (uint256 share)
     {
-        uint256 assetValue = getAssetValue();
-        uint256 shareAmount = totalSupply();
-        share = (shareAmount * balance) / assetValue;
+        uint256 shareAmount = shareToken.grossTotalShare();
+        if (shareAmount == 0) {
+            // Handler initial minting
+            share = balance;
+        } else {
+            uint256 assetValue = __getTotalAssetValue();
+            share = (shareAmount * balance) / assetValue;
+        }
     }
 
+    /// @notice Calculate the balance amount corresponding to the given share
+    /// amount.
+    /// @param share The share amount to be queried.
+    /// @return balance The balance.
     function calculateBalance(uint256 share)
         public
         view
+        virtual
         returns (uint256 balance)
     {
-        uint256 assetValue = getAssetValue();
-        uint256 shareAmount = totalSupply();
+        uint256 assetValue = __getTotalAssetValue();
+        uint256 shareAmount = shareToken.totalSupply();
         balance = (share * assetValue) / shareAmount;
     }
 
-    function settlePendingWithdrawal() external returns (bool) {
-        // Might lead to gas insufficient if pending list to long
-        uint256 totalWithdrawal = _withdraw(address(this), totalPendingShare);
+    /// @notice Settle the pending redemption and assign the proper balance to
+    /// each user.
+    function settlePendingRedemption() public virtual returns (bool) {
+        // Might lead to gas insufficient if pending list too long
+        uint256 totalRedemption = _redeem(address(this), totalPendingShare);
         while (pendingAccountList.length > 0) {
             address user = pendingAccountList[pendingAccountList.length - 1];
             uint256 share = pendingShares[user];
-            uint256 withdrawal = (totalWithdrawal * share) / totalPendingShare;
-            pendingWithdrawals[user] += withdrawal;
+            uint256 redemption = (totalRedemption * share) / totalPendingShare;
+            pendingRedemptions[user] += redemption;
             pendingAccountList.pop();
         }
 
         totalPendingShare = 0;
         _enterState(State.Executing);
+        pendingStartTime = 0;
 
         return true;
     }
 
-    function claimPendingWithdrawal() external returns (uint256 balance) {
-        balance = pendingWithdrawals[msg.sender];
+    /// @notice Claim the settled pending redemption.
+    /// @return balance The balance being claimed.
+    function claimPendingRedemption() public virtual returns (uint256 balance) {
+        balance = pendingRedemptions[msg.sender];
         denomination.safeTransfer(msg.sender, balance);
     }
 
-    function _deposit(address user, uint256 balance)
+    function _purchase(address user, uint256 balance)
         internal
+        virtual
         returns (uint256 share)
     {
+        _callBeforePurchase(0);
         share = _addShare(user, balance);
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
+        _callAfterPurchase(share);
     }
 
-    function _withdraw(address user, uint256 share) internal returns (uint256) {
+    function _redeem(address user, uint256 share)
+        internal
+        virtual
+        returns (uint256)
+    {
+        _callBeforeRedeem(share);
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
         denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
-            _enterState(State.WithdrawalPending);
-            _withdrawPending(user, shareLeft);
+            _enterState(State.RedemptionPending);
+            pendingStartTime = block.timestamp;
+            _redeemPending(user, shareLeft);
         }
+        _callAfterRedeem(share);
 
         return balance;
     }
 
-    function _withdrawPending(address user, uint256 share)
+    function _redeemPending(address user, uint256 share)
         internal
+        virtual
         returns (uint256)
     {
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += share;
         totalPendingShare += share;
-        _transfer(user, address(this), share);
+        shareToken.move(user, address(this), share);
 
         return 0;
     }
 
     function _addShare(address user, uint256 balance)
         internal
+        virtual
         returns (uint256 share)
     {
         share = calculateShare(balance);
-        _mint(user, share);
+        shareToken.mint(user, share);
     }
 
     function _removeShare(address user, uint256 share)
         internal
+        virtual
         returns (uint256 shareLeft, uint256 balance)
     {
         balance = calculateBalance(share);
-        uint256 reserve = getReserve();
+        uint256 reserve = __getReserve();
         if (balance > reserve) {
             uint256 shareToBurn = calculateShare(reserve);
             shareLeft = share - shareToBurn;
             balance = reserve;
-            _burn(user, shareToBurn);
+            shareToken.burn(user, shareToBurn);
         } else {
             shareLeft = 0;
-            _burn(user, share);
+            shareToken.burn(user, share);
         }
     }
+
+    function _callBeforePurchase(uint256 amount) internal virtual {
+        amount;
+        return;
+    }
+
+    function _callAfterPurchase(uint256 amount) internal virtual {
+        amount;
+        return;
+    }
+
+    function _callBeforeRedeem(uint256 amount) internal virtual {
+        amount;
+        return;
+    }
+
+    function _callAfterRedeem(uint256 amount) internal virtual {
+        amount;
+        return;
+    }
+
+    function __getTotalAssetValue() internal view virtual returns (uint256);
+
+    function __getReserve() internal view virtual returns (uint256);
 }

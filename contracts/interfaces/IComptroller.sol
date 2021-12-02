@@ -35,4 +35,6 @@ interface IComptroller is IBeacon {
         external
         view
         returns (bool);
+
+    function execAction() external view returns (address);
 }

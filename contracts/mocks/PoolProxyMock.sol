@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../Implementation.sol";
+import {IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
+import {Implementation} from "../Implementation.sol";
 
 contract PoolProxyMock is Implementation {
-    constructor(
-        IDSProxyRegistry dsProxyRegistry_,
-        string memory name_,
-        string memory symbol_
-    ) Implementation(dsProxyRegistry_, name_, symbol_) {
-        initializeDSProxy();
-    }
+    constructor(IDSProxyRegistry dsProxyRegistry_)
+        Implementation(dsProxyRegistry_)
+    {}
 
     function getLevel() external pure returns (uint256) {
         return 1;

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {IShareToken} from "./IShareToken.sol";
+
 interface IPool {
     function initializeOwnership(address newOwner) external;
 
@@ -15,4 +17,12 @@ interface IPool {
         external
         pure
         returns (bool);
+
+    function initialize(
+        uint256 level,
+        address comptroller,
+        address denomination,
+        address shareToken,
+        uint256 reserveExecution
+    ) external;
 }
