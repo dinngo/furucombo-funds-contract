@@ -86,6 +86,10 @@ export const SUSHI_TOKEN = '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a';
 export const SUSHI_PROVIDER = '0x5A0F9B3324646d60890c71Ff487d527c6313ad02';
 export const SUSHI_SYMBOL = 'SUSHI';
 
+/* LINK */
+export const LINK_TOKEN = '0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39';
+export const LINK_SYMBOL = 'LINK';
+
 /* AAVE Interest Rate Mode */
 export const AAVE_RATEMODE = {
   NODEBT: 0,
@@ -94,10 +98,13 @@ export const AAVE_RATEMODE = {
 };
 
 /* Services */
+
 export const AAVEPROTOCOL_V2_PROVIDER =
   '0xd05e3E715d945B59290df0ae8eF85c1BdB684744';
 export const SUSHISWAP_ROUTER = '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506';
+export const SUSHISWAP_FACTORY = '0xc35DADB65012eC5796536bD9864eD8773aBc74C4';
 export const QUICKSWAP_ROUTER = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff';
+export const QUICKSWAP_FACTORY = '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32';
 export const CURVE_AAVECRV = '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171';
 export const CURVE_AAVECRV_PROVIDER =
   '0xA1C4Aac752043258c1971463390013e6082C106f';
@@ -139,3 +146,7 @@ export const DeltaGasSig =
 /* whitelist */
 export const WL_ANY_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 export const WL_ANY_SIG = '0xffffffff';
+
+/* Event Signature */
+export const RecordHandlerResultSig =
+  '0x90c726ff5efa7268723ee48df835144384bc0f012e89750782886764b5e54f16';
