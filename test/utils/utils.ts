@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import { BigNumber, Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import {
@@ -24,6 +25,18 @@ export async function profileGas(receipt: any) {
       console.log(ethers.utils.toUtf8String(tag) + ': ' + gas.toString());
     }
   });
+}
+
+export function expectEqWithinBps(
+  actual: BigNumber,
+  expected: BigNumber,
+  bps: number = 1
+) {
+  const base = BigNumber.from('10000');
+  const upper = expected.mul(base.add(BigNumber.from(bps))).div(base);
+  const lower = expected.mul(base.sub(BigNumber.from(bps))).div(base);
+  expect(actual).to.be.lte(upper);
+  expect(actual).to.be.gte(lower);
 }
 
 export function ether(num: any) {
