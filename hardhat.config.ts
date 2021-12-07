@@ -33,6 +33,11 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+  },
   networks: {
     beta: {
       url: process.env.BETA_URL || '',
