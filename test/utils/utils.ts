@@ -35,7 +35,7 @@ export async function getTaskExecutorFundQuotas(
   taskExecutor: any,
   tokensIn: string[]
 ) {
-  const returnData = await proxy.callStatic.execute(
+  const returnData = await proxy.callStatic.executeMock(
     taskExecutor.address,
     getCallData(taskExecutor, 'getFundQuotas', [tokensIn])
   );
@@ -51,7 +51,7 @@ export async function getTaskExecutorDealingAssets(
   proxy: any,
   taskExecutor: any
 ) {
-  const returnData = await proxy.callStatic.execute(
+  const returnData = await proxy.callStatic.executeMock(
     taskExecutor.address,
     getCallData(taskExecutor, 'getDealingAssetList', [])
   );

@@ -71,7 +71,7 @@ describe('AFurucombo', function () {
       // Setup contracts
       implementation = await (
         await ethers.getContractFactory('Implementation')
-      ).deploy(DS_PROXY_REGISTRY, 'PoolToken', 'PCT');
+      ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
       assetRouter = await (
@@ -128,7 +128,7 @@ describe('AFurucombo', function () {
 
       proxy = await (await ethers.getContractFactory('PoolProxyMock'))
         .connect(user)
-        .deploy(dsProxyRegistry.address, 'PoolProxyMock', 'PMT');
+        .deploy(dsProxyRegistry.address);
       await proxy.deployed();
 
       // Permit delegate calls
@@ -158,6 +158,7 @@ describe('AFurucombo', function () {
   // setupTest will use the evm_snapshot to reset environment to speed up testing
   beforeEach(async function () {
     await setupTest();
+    await proxy.setDSProxy();
   });
 
   describe('inject and batchExec', function () {
@@ -209,7 +210,7 @@ describe('AFurucombo', function () {
       // Execute
       const receipt = await proxy
         .connect(user)
-        .execute(taskExecutor.address, data, {
+        .executeMock(taskExecutor.address, data, {
           value: amountsIn[0],
         });
 
@@ -310,7 +311,7 @@ describe('AFurucombo', function () {
       // Execute
       const receipt = await proxy
         .connect(user)
-        .execute(taskExecutor.address, data);
+        .executeMock(taskExecutor.address, data);
 
       // Get fundQuotas and dealing asset
       const fundQuotas = await getTaskExecutorFundQuotas(
@@ -392,7 +393,7 @@ describe('AFurucombo', function () {
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
       // Execute
-      await proxy.connect(user).execute(taskExecutor.address, data);
+      await proxy.connect(user).executeMock(taskExecutor.address, data);
 
       const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
       // Verify furucombo proxy
@@ -423,7 +424,7 @@ describe('AFurucombo', function () {
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
       await expect(
-        proxy.connect(user).execute(taskExecutor.address, data)
+        proxy.connect(user).executeMock(taskExecutor.address, data)
       ).to.be.revertedWith(
         '_inject: Input tokens and amounts length inconsistent'
       );
@@ -453,7 +454,7 @@ describe('AFurucombo', function () {
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
       await expect(
-        proxy.connect(user).execute(taskExecutor.address, data)
+        proxy.connect(user).executeMock(taskExecutor.address, data)
       ).to.be.revertedWith(
         'injectAndBatchExec: Furucombo has remaining tokens'
       );

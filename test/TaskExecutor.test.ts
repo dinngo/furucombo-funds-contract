@@ -61,7 +61,7 @@ describe('Task Executor', function () {
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
-      ).deploy(DS_PROXY_REGISTRY, 'PoolToken', 'PCT');
+      ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
       assetRouter = await (
@@ -95,7 +95,7 @@ describe('Task Executor', function () {
 
       proxy = await (await ethers.getContractFactory('PoolProxyMock'))
         .connect(user)
-        .deploy(dsProxyRegistry.address, 'PoolProxyMock', 'PMT');
+        .deploy(dsProxyRegistry.address);
       await proxy.deployed();
 
       // Permit delegate calls
@@ -118,6 +118,7 @@ describe('Task Executor', function () {
   beforeEach(async function () {
     // setupTest will use the evm_snapshot to reset environment for speed up testing
     await setupTest();
+    await proxy.setDSProxy();
   });
 
   describe('execute by delegate call', function () {
@@ -139,7 +140,7 @@ describe('Task Executor', function () {
       ]);
 
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
@@ -171,7 +172,7 @@ describe('Task Executor', function () {
         [actionAData, actionBData],
       ]);
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
@@ -202,7 +203,7 @@ describe('Task Executor', function () {
         [actionData],
       ]);
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: value,
       });
 
@@ -240,7 +241,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('Address: delegate call to non-contract');
@@ -260,7 +261,7 @@ describe('Task Executor', function () {
       ]);
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('revertCall');
@@ -288,7 +289,7 @@ describe('Task Executor', function () {
       ]);
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('TaskExecutor: low-level delegate call failed');
@@ -322,7 +323,7 @@ describe('Task Executor', function () {
       ]);
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('TaskExecutor: Tos and datas length inconsistent');
@@ -348,7 +349,7 @@ describe('Task Executor', function () {
       ]);
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('TaskExecutor: Tos and configs length inconsistent');
@@ -381,7 +382,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('invalid comptroller delegate call');
@@ -400,7 +401,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('invalid proxy delegate call');
@@ -425,7 +426,7 @@ describe('Task Executor', function () {
         [actionData],
       ]);
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
@@ -460,7 +461,7 @@ describe('Task Executor', function () {
         [actionAData, actionBData],
       ]);
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
@@ -490,7 +491,7 @@ describe('Task Executor', function () {
         [actionData],
       ]);
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: actionEthValue,
       });
 
@@ -533,13 +534,13 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
       ).to.be.revertedWith('Address: call to non-contract');
 
       // await expectRevert(
-      //   proxy.connect(user).execute(target, data, {
+      //   proxy.connect(user).executeMock(target, data, {
       //     value: actionEthValue,
       //   }),
       //   'Address: call to non-contract'
@@ -566,7 +567,7 @@ describe('Task Executor', function () {
       ]);
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('revertCall');
@@ -600,13 +601,13 @@ describe('Task Executor', function () {
       ]);
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('TaskExecutor: low-level call with value failed');
 
       // await expectRevert(
-      //   proxy.connect(user).execute(target, data, {
+      //   proxy.connect(user).executeMock(target, data, {
       //     value: ether('0.01'),
       //   }),
       //   'TaskExecutor: low-level call with value failed'
@@ -633,7 +634,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
       ).to.be.revertedWith('invalid comptroller contract call');
@@ -658,7 +659,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
       ).to.be.revertedWith('invalid proxy contract call');
@@ -693,7 +694,7 @@ describe('Task Executor', function () {
         [actionAData, actionBData],
       ]);
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
@@ -729,7 +730,7 @@ describe('Task Executor', function () {
         [actionAData, actionBData],
       ]);
       const target = taskExecutor.address;
-      await proxy.connect(user).execute(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
@@ -777,7 +778,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
       const returnData = await proxy
         .connect(user)
-        .callStatic.execute(target, data, {
+        .callStatic.executeMock(target, data, {
           value: ether('0.01'),
         });
 
@@ -817,7 +818,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
       const returnData = await proxy
         .connect(user)
-        .callStatic.execute(target, data, {
+        .callStatic.executeMock(target, data, {
           value: ether('0.01'),
         });
 
@@ -860,7 +861,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
       const returnData = await proxy
         .connect(user)
-        .callStatic.execute(target, data, {
+        .callStatic.executeMock(target, data, {
           value: ether('0.01'),
         });
 
@@ -903,7 +904,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
       const returnData = await proxy
         .connect(user)
-        .callStatic.execute(target, data, {
+        .callStatic.executeMock(target, data, {
           value: ether('0.01'),
         });
 
@@ -942,7 +943,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).execute(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('invalid dealing asset');
@@ -987,7 +988,7 @@ describe('Task Executor', function () {
 
       // Execution
       const target = taskExecutor.address;
-      await proxy.connect(user).callStatic.execute(target, data, {
+      await proxy.connect(user).callStatic.executeMock(target, data, {
         value: quota,
       });
 
@@ -1022,12 +1023,12 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       // 1st execution
-      await proxy.connect(user).callStatic.execute(target, data, {
+      await proxy.connect(user).callStatic.executeMock(target, data, {
         value: ether('0.01'),
       });
 
       // 2nd execution
-      await proxy.connect(user).callStatic.execute(target, data, {
+      await proxy.connect(user).callStatic.executeMock(target, data, {
         value: ether('0.01'),
       });
     });
@@ -1057,7 +1058,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.execute(target, data, {
+        proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('invalid initial asset');
@@ -1083,7 +1084,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).callStatic.execute(target, data, {
+        proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('insufficient quota');
@@ -1107,7 +1108,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.execute(target, data, {
+        proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('quota is not zero');

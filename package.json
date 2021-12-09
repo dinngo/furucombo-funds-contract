@@ -4,7 +4,7 @@
   "description": "Poolcombo contract implementation",
   "main": "hardhat.config.js",
   "scripts": {
-    "test": "scripts/test.sh",
+    "test": "yarn build && scripts/test.sh",
     "build": "scripts/build.sh",
     "check": "scripts/check.sh",
     "compile": "npx hardhat compile",

@@ -34,7 +34,7 @@ describe('Comptroller_Whitelist', function () {
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
-      ).deploy(DS_PROXY_REGISTRY, 'PoolToken', 'PCT');
+      ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
       assetRouter = await (
