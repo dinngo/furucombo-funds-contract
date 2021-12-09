@@ -3,14 +3,14 @@ image: node:14-buster
 cache: &global_cache
   key: ${CI_PROJECT_PATH_SLUG}
   paths:
-    - node_modules/
-    - typechain/
 
 .job_template: &test-configuration
   stage: test
   tags:
     - docker
   before_script:
+    - yarn
+    - yarn build
     - apt-get update && apt-get install -y netcat
     - npm config set user 0
     - RUNNER_COUNT=4
@@ -101,6 +101,8 @@ deploy:
   tags:
     - docker
   script:
+    - yarn
+    - yarn build
     - apt-get update && apt-get install -y netcat
     - yarn deploy
   dependencies:
