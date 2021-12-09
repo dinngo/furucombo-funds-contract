@@ -128,12 +128,13 @@ describe('AssetRouter', function () {
     });
 
     it('calculate single assets with MAX amount', async function () {
-      const amount = ether('1');
+      let amount = ether('1');
       const assets = [tokenA.address];
       const amounts = [constants.MaxUint256];
       const quote = quoteAddress;
 
       await tokenA.connect(tokenAProvider).transfer(user.address, amount);
+      amount = await tokenA.balanceOf(user.address);
       const assetValue = await router
         .connect(user)
         .callStatic.calcAssetsTotalValue(assets, amounts, quote);
@@ -168,13 +169,13 @@ describe('AssetRouter', function () {
 
       const expectValue = amounts[0]
         .mul(BigNumber.from('2'))
-        .sub(amounts[1].div(BigNumber.from('2')));
+        .sub(amounts[1].mul(BigNumber.from('2')));
       expect(assetValue).to.be.eq(expectValue);
     });
 
     it('zero value', async function () {
       const assets = [tokenA.address, tokenC.address];
-      const amounts = [ether('1'), ether('4')];
+      const amounts = [ether('1'), ether('1')];
       const quote = quoteAddress;
       const assetValue = await router.callStatic.calcAssetsTotalValue(
         assets,
@@ -192,6 +193,22 @@ describe('AssetRouter', function () {
         quote
       );
       expect(assetValue).to.be.eq(0);
+    });
+
+    it('int256 max amount', async function () {
+      const assets = [tokenA.address];
+      const amounts = [constants.MaxInt256.div(2)];
+
+      const quote = quoteAddress;
+      const assetValue = await router.callStatic.calcAssetsTotalValue(
+        assets,
+        amounts,
+        quote
+      );
+
+      expect(assetValue).to.be.eq(
+        await oracle.calcConversionAmount(assets[0], amounts[0], quote)
+      );
     });
 
     it('should revert: negative value', async function () {
@@ -228,6 +245,18 @@ describe('AssetRouter', function () {
           .connect(user)
           .callStatic.calcAssetsTotalValue(assets, amounts, quote)
       ).to.be.revertedWith('unregistered');
+    });
+
+    it('should revert: asset vale overflow', async function () {
+      const assets = [tokenA.address];
+      const amounts = [constants.MaxUint256.div(2)];
+      const quote = quoteAddress;
+
+      await expect(
+        router
+          .connect(user)
+          .callStatic.calcAssetsTotalValue(assets, amounts, quote)
+      ).to.be.revertedWith("SafeCast: value doesn't fit in an int256");
     });
   });
 });
