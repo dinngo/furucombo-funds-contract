@@ -7,4 +7,4 @@ rm -rf artifacts
 rm -rf cache
 
 # Compile everything else.
-npm run compile
+yarn compile

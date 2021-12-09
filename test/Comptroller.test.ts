@@ -26,7 +26,7 @@ describe('Comptroller', function () {
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
-      ).deploy(DS_PROXY_REGISTRY, 'PoolToken', 'PCT');
+      ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
       assetRouter = await (
@@ -153,7 +153,7 @@ describe('Comptroller', function () {
       // deploy new implementation
       const newImpl = await (
         await ethers.getContractFactory('Implementation')
-      ).deploy(DS_PROXY_REGISTRY, 'PoolToken2', 'PCT2');
+      ).deploy(DS_PROXY_REGISTRY);
       await newImpl.deployed();
 
       // set new implementation

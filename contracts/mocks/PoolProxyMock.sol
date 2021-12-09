@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import {IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
+import {IDSProxy, IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
 import {Implementation} from "../Implementation.sol";
 
 contract PoolProxyMock is Implementation {
@@ -41,12 +41,17 @@ contract PoolProxyMock is Implementation {
         return true;
     }
 
-    function execute(address _target, bytes calldata _data)
+    function executeMock(address _target, bytes calldata _data)
         external
         payable
         onlyOwner
         returns (bytes memory)
     {
         return vault.execute{value: msg.value}(_target, _data);
+    }
+
+    function setDSProxy() external {
+        address dsProxy = dsProxyRegistry.build();
+        _setDSProxy(IDSProxy(dsProxy));
     }
 }

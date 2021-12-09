@@ -3,14 +3,14 @@ image: node:14-buster
 cache: &global_cache
   key: ${CI_PROJECT_PATH_SLUG}
   paths:
-    - node_modules/
-    - typechain/
 
 .job_template: &test-configuration
   stage: test
   tags:
     - docker
   before_script:
+    - yarn
+    - yarn build
     - apt-get update && apt-get install -y netcat
     - npm config set user 0
     - RUNNER_COUNT=4
@@ -73,35 +73,37 @@ build:
     - docker
   script:
     - yarn
-    - npm run build
-    - npm run check
+    - yarn build
+    - yarn check-compile
 
 test_0:
   <<: *test-configuration
   script:
-    - npm run test ${UNITTEST_FILES[0]}
+    - yarn test ${UNITTEST_FILES[0]}
 
 test_1:
   <<: *test-configuration
   script:
-    - npm run test ${UNITTEST_FILES[1]}
+    - yarn test ${UNITTEST_FILES[1]}
 
 test_2:
   <<: *test-configuration
   script:
-    - npm run test ${UNITTEST_FILES[2]}
+    - yarn test ${UNITTEST_FILES[2]}
 
 test_3:
   <<: *test-configuration
   script:
-    - npm run test ${UNITTEST_FILES[3]}
+    - yarn test ${UNITTEST_FILES[3]}
 
 deploy:
   stage: deploy
   tags:
     - docker
   script:
+    - yarn
+    - yarn build
     - apt-get update && apt-get install -y netcat
-    - npm run deploy
+    - yarn deploy
   dependencies:
     - build

@@ -746,9 +746,8 @@ describe('Proxy', function () {
         simpleEncode('dealing(address[])', [dealingTokens]),
       ];
 
-      await expect(
-        proxy.connect(user).batchExec(tos, configs, datas)
-      ).to.be.revertedWith('function call to a non-contract account');
+      await expect(proxy.connect(user).batchExec(tos, configs, datas)).to.be
+        .reverted;
     });
 
     it('should revert: native token cant update to return tokens', async function () {
@@ -763,9 +762,8 @@ describe('Proxy', function () {
       ];
 
       // Execution
-      await expect(
-        proxy.connect(user).batchExec(tos, configs, datas)
-      ).to.be.revertedWith('function call to a non-contract account');
+      await expect(proxy.connect(user).batchExec(tos, configs, datas)).to.be
+        .reverted;
     });
   });
 });
