@@ -48,7 +48,12 @@ contract AssetRouter is IAssetRouter, Ownable {
         address quote
     ) internal view returns (int256) {
         IAssetResolver resolver = IAssetResolver(registry.resolvers(asset));
-        return resolver.calcValue(asset, _getAssetAmount(asset, amount), quote);
+        return
+            resolver.calcAssetValue(
+                asset,
+                _getAssetAmount(asset, amount),
+                quote
+            );
     }
 
     function _getAssetAmount(address asset, uint256 amount)

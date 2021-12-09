@@ -94,8 +94,6 @@ contract AssetRegistry is IAssetRegistry, Ownable {
         isNotHalted
         returns (address)
     {
-        // require(asset != address(0), "zero address");
-
         address resolver = _resolvers[asset];
         require(resolver != address(0), "unregistered");
         require(!bannedResolvers[resolver], "resolver is banned");

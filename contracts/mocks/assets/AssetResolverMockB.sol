@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "../../assets/interfaces/IAssetResolver.sol";
 
 contract AssetResolverMockB is IAssetResolver {
-    function calcValue(
+    using SafeCast for uint256;
+
+    function calcAssetValue(
         address asset,
         uint256 amount,
         address quote
     ) external pure override returns (int256) {
         asset;
         quote;
-        return int256(amount / 2) * -1;
+        return (amount * 2).toInt256() * -1;
     }
 }
