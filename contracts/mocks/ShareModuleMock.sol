@@ -9,6 +9,11 @@ contract ShareModuleMock is ShareModule, BaseMock {
     uint256 public reserveMock;
     uint256 public totalAssetValueMock;
 
+    event BeforePurchaseCalled();
+    event AfterPurchaseCalled();
+    event BeforeRedeemCalled();
+    event AfterRedeemCalled();
+
     constructor(IDSProxyRegistry dsProxyRegistry_) BaseMock(dsProxyRegistry_) {}
 
     function setReserve(uint256 amount) external {
@@ -17,6 +22,22 @@ contract ShareModuleMock is ShareModule, BaseMock {
 
     function setTotalAssetValue(uint256 amount) external {
         totalAssetValueMock = amount;
+    }
+
+    function _callBeforePurchase(uint256) internal override {
+        emit BeforePurchaseCalled();
+    }
+
+    function _callAfterPurchase(uint256) internal override {
+        emit AfterPurchaseCalled();
+    }
+
+    function _callBeforeRedeem(uint256) internal override {
+        emit BeforeRedeemCalled();
+    }
+
+    function _callAfterRedeem(uint256) internal override {
+        emit AfterRedeemCalled();
     }
 
     function __getReserve() internal view override returns (uint256) {

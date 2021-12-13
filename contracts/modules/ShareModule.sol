@@ -15,6 +15,11 @@ abstract contract ShareModule is PoolState {
     uint256 public totalPendingShare;
     uint256 public pendingStartTime;
 
+    event Purchased(uint256 assetAmount, uint256 shareAmount);
+    event Redeemed(uint256 assetAmount, uint256 shareAmount);
+    event RedemptionPended(uint256 shareAmount);
+    event RedemptionClaimed(uint256 assetAmount);
+
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
     /// @return share The share amount being purchased.
     function purchase(uint256 balance)
@@ -100,6 +105,7 @@ abstract contract ShareModule is PoolState {
     function claimPendingRedemption() public virtual returns (uint256 balance) {
         balance = pendingRedemptions[msg.sender];
         denomination.safeTransfer(msg.sender, balance);
+        emit RedemptionClaimed(balance);
     }
 
     function _purchase(address user, uint256 balance)
@@ -111,6 +117,7 @@ abstract contract ShareModule is PoolState {
         share = _addShare(user, balance);
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
         _callAfterPurchase(share);
+        emit Purchased(balance, share);
     }
 
     function _redeem(address user, uint256 share)
@@ -122,11 +129,14 @@ abstract contract ShareModule is PoolState {
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
         denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
+            require(state == State.Executing, "Can only left while Executing");
             _enterState(State.RedemptionPending);
             pendingStartTime = block.timestamp;
             _redeemPending(user, shareLeft);
         }
-        _callAfterRedeem(share);
+        uint256 shareRedeemed = share - shareLeft;
+        _callAfterRedeem(shareRedeemed);
+        emit Redeemed(balance, shareRedeemed);
 
         return balance;
     }
@@ -140,6 +150,7 @@ abstract contract ShareModule is PoolState {
         pendingShares[user] += share;
         totalPendingShare += share;
         shareToken.move(user, address(this), share);
+        emit RedemptionPended(share);
 
         return 0;
     }
