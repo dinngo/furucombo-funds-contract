@@ -7,6 +7,7 @@ import {IComptroller} from "../interfaces/IComptroller.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 import {PoolState} from "../PoolState.sol";
 import {ShareToken} from "../ShareToken.sol";
+import {SetupAction} from "../actions/SetupAction.sol";
 
 contract BaseMock is PoolState {
     IDSProxyRegistry public immutable dsProxyRegistry;
@@ -40,6 +41,12 @@ contract BaseMock is PoolState {
     function setDSProxy() external {
         address dsProxy_ = dsProxyRegistry.build();
         _setDSProxy(IDSProxy(dsProxy_));
+        SetupAction action = new SetupAction();
+        bytes memory data = abi.encodeWithSignature(
+            "maxApprove(address)",
+            denomination
+        );
+        vault.execute(address(action), data);
     }
 
     function setReserveExecution(uint256 reserve_) external {
