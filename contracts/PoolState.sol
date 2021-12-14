@@ -100,6 +100,18 @@ abstract contract PoolState {
         vault = dsProxy;
     }
 
+    function _setApproval() internal {
+        require(address(vault) != address(0), "Share is initialized");
+        require(address(comptroller) != address(0), "Comptroller not set");
+        require(address(denomination) != address(0), "Denomination not set");
+        address action = comptroller.setupAction();
+        bytes memory data = abi.encodeWithSignature(
+            "maxApprove(address)",
+            denomination
+        );
+        vault.execute(action, data);
+    }
+
     function _setReserveExecution(uint256 reserveExecution_)
         internal
         whenStates(State.Initializing, State.Ready)
