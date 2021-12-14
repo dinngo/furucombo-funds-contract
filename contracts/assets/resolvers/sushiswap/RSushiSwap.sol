@@ -8,7 +8,8 @@ import "../../interfaces/IAssetResolver.sol";
 import "../../interfaces/IAssetOracle.sol";
 import "../../interfaces/IUniswapV2Pair.sol";
 
-contract RQuickSwap is IAssetResolver {
+
+contract RSushiSwap is IAssetResolver {
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
 

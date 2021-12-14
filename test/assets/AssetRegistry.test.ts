@@ -1,7 +1,7 @@
 import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { deployments } from 'hardhat';
-import { AssetRegistry, AssetResolverMock } from '../../typechain';
+import { AssetRegistry, AssetResolverMockA } from '../../typechain';
 
 import { DAI_TOKEN, LINK_TOKEN } from '../utils/constants';
 
@@ -13,7 +13,7 @@ describe('AssetRegistry', function () {
   let user: Wallet;
 
   let registry: AssetRegistry;
-  let resolver: AssetResolverMock;
+  let resolver: AssetResolverMockA;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -26,7 +26,7 @@ describe('AssetRegistry', function () {
       await registry.deployed();
 
       resolver = await (
-        await ethers.getContractFactory('AssetResolverMock')
+        await ethers.getContractFactory('AssetResolverMockA')
       ).deploy();
       await resolver.deployed();
     }
