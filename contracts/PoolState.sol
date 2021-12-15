@@ -24,6 +24,8 @@ abstract contract PoolState {
     IDSProxy public vault; // DSProxy
     uint256 public reserveExecution;
 
+    event StateTransited(State to);
+
     error InvalidState(State current);
 
     modifier whenState(State expect) {
@@ -67,6 +69,7 @@ abstract contract PoolState {
 
     function _enterState(State state_) internal {
         state = state_;
+        emit StateTransited(state_);
     }
 
     function _setLevel(uint256 level_) internal {
