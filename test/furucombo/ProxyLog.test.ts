@@ -147,7 +147,7 @@ describe('ProxyLog', function () {
     });
   });
 
-  describe.only('dynamic parameter', function () {
+  describe('dynamic parameter', function () {
     let foo: Foo4;
     let fooHandler: Foo4Handler;
     beforeEach(async function () {

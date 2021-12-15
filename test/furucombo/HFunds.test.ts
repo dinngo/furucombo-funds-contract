@@ -427,7 +427,7 @@ describe('Funds', function () {
     });
   });
 
-  describe.only('send', function () {
+  describe('send', function () {
     let usdt: IERC20Usdt;
     let token: IERC20;
     beforeEach(async function () {
