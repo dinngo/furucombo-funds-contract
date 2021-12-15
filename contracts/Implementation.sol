@@ -128,28 +128,6 @@ contract Implementation is
         return 0;
     }
 
-    /// @notice Permit an asset of the pool execution.
-    /// @param asset The asset to be permitted.
-    function permitAsset(address asset) public override onlyOwner {
-        super.permitAsset(asset);
-    }
-
-    /// @notice Forbid an asset of the pool execution.
-    /// @param asset The asset to be forbidden.
-    function forbidAsset(address asset) public override onlyOwner {
-        super.forbidAsset(asset);
-    }
-
-    /// @notice Permit all the asset of the pool execution.
-    function permitAllAsset() public override onlyOwner {
-        super.permitAllAsset();
-    }
-
-    /// @notice Remove the permission of all the asset of the pool execution.
-    function cancelPermitAllAsset() public override onlyOwner {
-        super.cancelPermitAllAsset();
-    }
-
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
