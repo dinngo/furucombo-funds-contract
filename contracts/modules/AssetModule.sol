@@ -12,15 +12,20 @@ abstract contract AssetModule is PoolState {
 
     LibUniqueAddressList.List private _assetList;
 
+    event AssetAdded(address asset);
+    event AssetRemoved(address asset);
+
     /// @notice Add asset to the asset tracking list.
     /// @param asset The asset to be tracked.
     function addAsset(address asset) public virtual {
-        _assetList.pushBack(asset);
+        require(_assetList.pushBack(asset), "Asset existed");
+        emit AssetAdded(asset);
     }
 
     /// @notice Remove the asset from the asset tracking list.
     function removeAsset(address asset) public virtual {
-        _assetList.remove(asset);
+        require(_assetList.remove(asset), "Asset not existed");
+        emit AssetRemoved(asset);
     }
 
     /// @notice Check the remaining asset should be only the denomination asset
