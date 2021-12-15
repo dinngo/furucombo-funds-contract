@@ -20,15 +20,15 @@ library LibUniqueAddressList {
         view
         returns (address[] memory list)
     {
-        list = new address[](self.sz);
-        uint256 index = 0;
-        for (
-            address p = self.successor[_HEAD];
-            self.successor[p] != _NULL;
-            p = self.successor[p]
-        ) {
-            list[index] = p;
-            index++;
+        if (self.empty()) {
+            return list;
+        } else {
+            list = new address[](self.sz);
+            uint256 index = 0;
+            for (address p = self.front(); p != _TAIL; p = self.next(p)) {
+                list[index] = p;
+                index++;
+            }
         }
     }
 
@@ -61,7 +61,8 @@ library LibUniqueAddressList {
         view
         returns (address)
     {
-        return self.successor[node];
+        address n = self.successor[node];
+        return node == n ? _TAIL : n;
     }
 
     function prev(List storage self, address node)
@@ -69,30 +70,36 @@ library LibUniqueAddressList {
         view
         returns (address)
     {
-        return self.predecessor[node];
+        address p = self.predecessor[node];
+        return node == p ? _HEAD : p;
     }
 
     // Modifiers
-
     function pushFront(List storage self, address node)
         internal
         returns (bool)
     {
-        address f = self.front();
-        self.successor[_HEAD] = node;
-        _connect(self, node, f);
-        self.predecessor[node] = node;
-        self.sz++;
-        return true;
+        if (self.exist(node)) {
+            return false;
+        } else {
+            address f = self.front();
+            _connect(self, _HEAD, node);
+            _connect(self, node, f);
+            self.sz++;
+            return true;
+        }
     }
 
     function pushBack(List storage self, address node) internal returns (bool) {
-        address b = self.back();
-        self.predecessor[_TAIL] = node;
-        _connect(self, b, node);
-        self.successor[node] = node;
-        self.sz++;
-        return true;
+        if (self.exist(node)) {
+            return false;
+        } else {
+            address b = self.back();
+            _connect(self, b, node);
+            _connect(self, node, _TAIL);
+            self.sz++;
+            return true;
+        }
     }
 
     function popFront(List storage self) internal returns (bool) {
@@ -101,9 +108,8 @@ library LibUniqueAddressList {
         } else {
             address f = self.front();
             address newFront = self.next(f);
+            _connect(self, _HEAD, newFront);
             _delete(self, f);
-            self.successor[_HEAD] = newFront;
-            self.predecessor[newFront] = newFront;
             return true;
         }
     }
@@ -114,9 +120,8 @@ library LibUniqueAddressList {
         } else {
             address b = self.back();
             address newBack = self.prev(b);
+            _connect(self, newBack, _TAIL);
             _delete(self, b);
-            self.predecessor[_TAIL] = newBack;
-            self.successor[newBack] = newBack;
             return true;
         }
     }
@@ -160,8 +165,8 @@ library LibUniqueAddressList {
         address node1,
         address node2
     ) private {
-        self.successor[node1] = node2;
-        self.predecessor[node2] = node1;
+        self.successor[node1] = node2 == _TAIL ? node1 : node2;
+        self.predecessor[node2] = node1 == _HEAD ? node2 : node1;
     }
 
     function _delete(List storage self, address node) private {
