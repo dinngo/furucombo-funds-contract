@@ -137,30 +137,6 @@ contract Implementation is
         super.execute(data);
     }
 
-    /// @notice Permit the action base on the action contract and function.
-    /// @param to The action contract to be permitted.
-    /// @param sig The function signature to be permitted.
-    function permitAction(address to, bytes4 sig) public override onlyOwner {
-        super.permitAction(to, sig);
-    }
-
-    /// @notice Forbid the action base on the action contract and function.
-    /// @param to The action contract to be forbidden.
-    /// @param sig The function signature to be forbidden.
-    function forbidAction(address to, bytes4 sig) public override onlyOwner {
-        super.forbidAction(to, sig);
-    }
-
-    /// @notice Permit all action to be applied when execution.
-    function permitAllAction() public override onlyOwner {
-        super.permitAllAction();
-    }
-
-    /// @notice Cancel the all action permission.
-    function cancelPermitAllAction() public override onlyOwner {
-        super.cancelPermitAllAction();
-    }
-
     /// @notice Check the reserve after the execution.
     function _afterExecute() internal override returns (bool) {
         require(__getReserve() >= reserveExecution, "Insufficient reserve");
