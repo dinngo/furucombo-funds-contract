@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../interfaces/IAssetRouter.sol";
 import "../../interfaces/IAssetResolver.sol";
-import "../../interfaces/IAssetOracle.sol";
 import "../../interfaces/IUniswapV2Pair.sol";
+import "../../AssetResolverBase.sol";
 
-
-contract RSushiSwap is IAssetResolver {
-    using SafeCast for uint256;
+contract RSushiSwap is IAssetResolver, AssetResolverBase {
     using SafeERC20 for IERC20;
 
     function calcAssetValue(
@@ -18,7 +15,6 @@ contract RSushiSwap is IAssetResolver {
         uint256 amount,
         address quote
     ) external view override returns (int256) {
-        IAssetOracle oracle = IAssetOracle(IAssetRouter(msg.sender).oracle());
         IUniswapV2Pair pair = IUniswapV2Pair(asset);
 
         IERC20 token0 = IERC20(pair.token0());
@@ -31,24 +27,9 @@ contract RSushiSwap is IAssetResolver {
             amount
         );
 
-        // TODO: should we block it if amount = 0?
-        // require(
-        //     amount0 > 0 && amount1 > 0,
-        //     "QuickSwap: INSUFFICIENT_LIQUIDITY_BURNED"
-        // );
-
-        uint256 value0 = oracle.calcConversionAmount(
-            pair.token0(),
-            amount0,
-            quote
-        );
-        uint256 value1 = oracle.calcConversionAmount(
-            pair.token1(),
-            amount1,
-            quote
-        );
-
-        return (value0 + value1).toInt256();
+        int256 value0 = _calcAssetValue(pair.token0(), amount0, quote);
+        int256 value1 = _calcAssetValue(pair.token1(), amount1, quote);
+        return value0 + value1;
     }
 
     function _calcAmountOut(

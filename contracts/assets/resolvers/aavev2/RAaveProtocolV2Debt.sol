@@ -1,24 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "../../interfaces/IAssetRouter.sol";
+import "../../../interfaces/IATokenV2.sol";
 import "../../interfaces/IAssetResolver.sol";
-import "../../interfaces/IAssetOracle.sol";
-import "./IATokenV2.sol";
+import "../../AssetResolverBase.sol";
 
-contract RAaveProtocolV2Debt is IAssetResolver {
-    using SafeCast for uint256;
-
+contract RAaveProtocolV2Debt is IAssetResolver, AssetResolverBase {
     function calcAssetValue(
         address asset, // should be debtToken
         uint256 amount,
         address quote
     ) external view override returns (int256) {
         address underlying = IATokenV2(asset).UNDERLYING_ASSET_ADDRESS();
-        IAssetOracle oracle = IAssetOracle(IAssetRouter(msg.sender).oracle());
-        return (oracle
-            .calcConversionAmount(underlying, amount, quote)
-            .toInt256() * -1);
+        return _toNegativeValue(_calcAssetValue(underlying, amount, quote));
     }
 }

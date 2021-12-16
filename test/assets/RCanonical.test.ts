@@ -4,36 +4,36 @@ import { deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,
-  AssetOracleMock,
+  Chainlink,
   IERC20,
   RCanonical,
 } from '../../typechain';
 
 import {
   DAI_TOKEN,
-  LINK_TOKEN,
-  CRV_TOKEN,
   USDC_TOKEN,
+  CHAINLINK_DAI_USD,
+  CHAINLINK_USDC_USD,
 } from '../utils/constants';
 
 import { ether, tokenProviderQuick } from '../utils/utils';
 
 describe('RCanonical', function () {
   const tokenAAddress = DAI_TOKEN;
-  const tokenBAddress = LINK_TOKEN;
   const quoteAddress = USDC_TOKEN;
+  const aggregatorA = CHAINLINK_DAI_USD;
+  const aggregatorB = CHAINLINK_USDC_USD;
 
   let owner: Wallet;
   let user: Wallet;
 
   let tokenA: IERC20;
-  let tokenB: IERC20;
   let tokenAProvider: Signer;
 
   let registry: AssetRegistry;
   let resolver: RCanonical;
   let router: AssetRouter;
-  let oracle: AssetOracleMock;
+  let oracle: Chainlink;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -43,7 +43,6 @@ describe('RCanonical', function () {
       // Setup token and unlock provider
       tokenAProvider = await tokenProviderQuick(tokenAAddress);
       tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
-      tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
 
       resolver = await (await ethers.getContractFactory('RCanonical')).deploy();
       await resolver.deployed();
@@ -53,12 +52,12 @@ describe('RCanonical', function () {
       ).deploy();
       await registry.deployed();
       await registry.register(tokenA.address, resolver.address);
-      await registry.register(tokenB.address, resolver.address);
 
-      oracle = await (
-        await ethers.getContractFactory('AssetOracleMock')
-      ).deploy();
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
       await oracle.deployed();
+      await oracle
+        .connect(owner)
+        .addAssets([tokenA.address, quoteAddress], [aggregatorA, aggregatorB]);
 
       router = await (
         await ethers.getContractFactory('AssetRouter')
