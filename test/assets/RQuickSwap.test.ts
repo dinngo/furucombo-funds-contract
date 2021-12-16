@@ -58,7 +58,6 @@ describe('RQuickSwap', function () {
 
       resolver = await (await ethers.getContractFactory('RQuickSwap')).deploy();
       await resolver.deployed();
-
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
       ).deploy();
