@@ -38,18 +38,18 @@ contract AssetRouter is IAssetRouter, Ownable {
 
         int256 totalValue;
         for (uint256 i = 0; i < assets.length; ++i) {
-            totalValue += _calcAssetValue(assets[i], amounts[i], quote);
+            totalValue += calcAssetValue(assets[i], amounts[i], quote);
         }
 
         require(totalValue >= 0, "negative value");
         return uint256(totalValue);
     }
 
-    function _calcAssetValue(
+    function calcAssetValue(
         address asset,
         uint256 amount,
         address quote
-    ) internal view returns (int256) {
+    ) public view returns (int256) {
         IAssetResolver resolver = IAssetResolver(registry.resolvers(asset));
         return
             resolver.calcAssetValue(
