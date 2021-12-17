@@ -6,11 +6,11 @@ import "../../assets/interfaces/IAssetOracle.sol";
 contract AssetOracleMock is IAssetOracle {
     function calcConversionAmount(
         address base,
-        uint256 amount,
+        uint256 baseAmount,
         address quote
     ) external pure override returns (uint256) {
         base;
         quote;
-        return amount * 2;
+        return baseAmount * 2;
     }
 }
