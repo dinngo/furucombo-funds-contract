@@ -291,3 +291,16 @@ export async function sendEther(sender: Signer, to: string, value: BigNumber) {
     value: value,
   });
 }
+
+export function mulPercent(num: any, percentage: any) {
+  return BigNumber.from(num)
+    .mul(BigNumber.from(percentage))
+    .div(BigNumber.from(100));
+}
+
+export function padRightZero(s: string, length: any) {
+  for (let i = 0; i < length; i++) {
+    s = s + '0';
+  }
+  return s;
+}
