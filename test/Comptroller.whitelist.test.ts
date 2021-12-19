@@ -6,7 +6,7 @@ import {
   Implementation,
   AssetRouter,
   AMock,
-  HMock,
+  HandlerMock,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -20,8 +20,8 @@ describe('Comptroller_Whitelist', function () {
   let assetRouter: AssetRouter;
   let actionMockA: AMock;
   let actionMockB: AMock;
-  let handlerMockA: HMock;
-  let handlerMockB: HMock;
+  let handlerMockA: HandlerMock;
+  let handlerMockB: HandlerMock;
 
   let owner: Wallet;
   let user: Wallet;
@@ -53,10 +53,14 @@ describe('Comptroller_Whitelist', function () {
       actionMockB = await (await ethers.getContractFactory('AMock')).deploy();
       await actionMockB.deployed();
 
-      handlerMockA = await (await ethers.getContractFactory('HMock')).deploy();
+      handlerMockA = await (
+        await ethers.getContractFactory('HandlerMock')
+      ).deploy();
       await handlerMockA.deployed();
 
-      handlerMockB = await (await ethers.getContractFactory('HMock')).deploy();
+      handlerMockB = await (
+        await ethers.getContractFactory('HandlerMock')
+      ).deploy();
       await handlerMockB.deployed();
     }
   );
