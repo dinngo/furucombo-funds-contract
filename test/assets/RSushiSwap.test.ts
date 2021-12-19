@@ -4,7 +4,7 @@ import { ethers, deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,
-  AssetOracleMock,
+  Chainlink,
   IERC20,
   RSushiSwap,
   IUniswapV2Pair,
@@ -17,6 +17,9 @@ import {
   SUSHISWAP_WETH_DAI,
   SUSHISWAP_ROUTER,
   WETH_TOKEN,
+  CHAINLINK_ETH_USD,
+  CHAINLINK_DAI_USD,
+  CHAINLINK_USDC_USD,
 } from '../utils/constants';
 
 import { ether, tokenProviderQuick } from '../utils/utils';
@@ -26,6 +29,9 @@ describe('RSushiSwap', function () {
   const tokenBAddress = DAI_TOKEN;
   const quoteAddress = USDC_TOKEN;
   const lpTokenAddress = SUSHISWAP_WETH_DAI;
+  const aggregatorA = CHAINLINK_DAI_USD;
+  const aggregatorB = CHAINLINK_ETH_USD;
+  const aggregatorC = CHAINLINK_USDC_USD;
 
   let owner: Wallet;
   let user: Wallet;
@@ -39,7 +45,7 @@ describe('RSushiSwap', function () {
   let registry: AssetRegistry;
   let resolver: RSushiSwap;
   let router: AssetRouter;
-  let oracle: AssetOracleMock;
+  let oracle: Chainlink;
 
   let pair: IUniswapV2Pair;
   let sushiRouter: IUniswapV2Router02;
@@ -60,16 +66,27 @@ describe('RSushiSwap', function () {
       resolver = await (await ethers.getContractFactory('RSushiSwap')).deploy();
       await resolver.deployed();
 
+      const rCanonical = await (
+        await ethers.getContractFactory('RCanonical')
+      ).deploy();
+      await rCanonical.deployed();
+
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
       ).deploy();
       await registry.deployed();
       await registry.register(lpToken.address, resolver.address);
+      await registry.register(tokenA.address, rCanonical.address);
+      await registry.register(tokenB.address, rCanonical.address);
 
-      oracle = await (
-        await ethers.getContractFactory('AssetOracleMock')
-      ).deploy();
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
       await oracle.deployed();
+      await oracle
+        .connect(owner)
+        .addAssets(
+          [tokenA.address, tokenB.address, quoteAddress],
+          [aggregatorA, aggregatorB, aggregatorC]
+        );
 
       router = await (
         await ethers.getContractFactory('AssetRouter')
@@ -140,13 +157,13 @@ describe('RSushiSwap', function () {
         );
 
       const token0Value = await oracle.calcConversionAmount(
-        await pair.token0(),
+        tokenA.address,
         (await tokenA.balanceOf(user.address)).sub(tokenAUserBefore),
         quote
       );
 
       const token1Value = await oracle.calcConversionAmount(
-        await pair.token1(),
+        tokenB.address,
         (await tokenB.balanceOf(user.address)).sub(tokenBUserBefore),
         quote
       );
@@ -183,13 +200,13 @@ describe('RSushiSwap', function () {
         );
 
       const token0Value = await oracle.calcConversionAmount(
-        await pair.token0(),
+        tokenA.address,
         (await tokenA.balanceOf(user.address)).sub(tokenAUserBefore),
         quote
       );
 
       const token1Value = await oracle.calcConversionAmount(
-        await pair.token1(),
+        tokenB.address,
         (await tokenB.balanceOf(user.address)).sub(tokenBUserBefore),
         quote
       );

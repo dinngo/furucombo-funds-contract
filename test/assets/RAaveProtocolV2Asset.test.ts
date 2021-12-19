@@ -3,36 +3,39 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   AssetRegistry,
-  AssetRouterMock,
-  AssetOracleMock,
+  AssetRouter,
+  Chainlink,
   RAaveProtocolV2Asset,
   IATokenV2,
 } from '../../typechain';
 
 import {
   USDC_TOKEN,
-  DAI_TOKEN,
   ADAI_V2_TOKEN,
   ADAI_V2_PROVIDER,
+  CHAINLINK_DAI_USD,
+  CHAINLINK_USDC_USD,
 } from '../utils/constants';
 
 import { ether, impersonateAndInjectEther } from '../utils/utils';
 
 describe('RAaveProtocolV2Asset', function () {
-  const tokenAAddress = ADAI_V2_TOKEN;
-  const tokenAProviderAddress = ADAI_V2_PROVIDER;
+  const aTokenAddress = ADAI_V2_TOKEN;
+  const aTokenProviderAddress = ADAI_V2_PROVIDER;
   const quoteAddress = USDC_TOKEN;
+  const aggregatorA = CHAINLINK_DAI_USD;
+  const aggregatorB = CHAINLINK_USDC_USD;
 
   let owner: Wallet;
   let user: Wallet;
 
-  let tokenA: IATokenV2;
-  let tokenAProvider: Signer;
+  let aToken: IATokenV2;
+  let aTokenProvider: Signer;
 
   let registry: AssetRegistry;
   let resolver: RAaveProtocolV2Asset;
-  let router: AssetRouterMock;
-  let oracle: AssetOracleMock;
+  let router: AssetRouter;
+  let oracle: Chainlink;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -40,27 +43,39 @@ describe('RAaveProtocolV2Asset', function () {
       [owner, user] = await (ethers as any).getSigners();
 
       // Setup token and unlock provider
-      tokenA = await ethers.getContractAt('IATokenV2', tokenAAddress);
-      tokenAProvider = await impersonateAndInjectEther(tokenAProviderAddress);
+      aToken = await ethers.getContractAt('IATokenV2', aTokenAddress);
+      aTokenProvider = await impersonateAndInjectEther(aTokenProviderAddress);
 
       resolver = await (
         await ethers.getContractFactory('RAaveProtocolV2Asset')
       ).deploy();
       await resolver.deployed();
+      const rCanonical = await (
+        await ethers.getContractFactory('RCanonical')
+      ).deploy();
+      await rCanonical.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
       ).deploy();
       await registry.deployed();
-      await registry.register(tokenA.address, resolver.address);
+      await registry.register(aToken.address, resolver.address);
+      await registry.register(
+        await aToken.UNDERLYING_ASSET_ADDRESS(),
+        rCanonical.address
+      );
 
-      oracle = await (
-        await ethers.getContractFactory('AssetOracleMock')
-      ).deploy();
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
       await oracle.deployed();
+      await oracle
+        .connect(owner)
+        .addAssets(
+          [await aToken.UNDERLYING_ASSET_ADDRESS(), quoteAddress],
+          [aggregatorA, aggregatorB]
+        );
 
       router = await (
-        await ethers.getContractFactory('AssetRouterMock')
+        await ethers.getContractFactory('AssetRouter')
       ).deploy(oracle.address, registry.address);
       await router.deployed();
       expect(await router.oracle()).to.be.eq(oracle.address);
@@ -73,7 +88,7 @@ describe('RAaveProtocolV2Asset', function () {
 
   describe('calculate asset value ', function () {
     it('normal', async function () {
-      const asset = tokenA.address;
+      const asset = aToken.address;
       const amount = ether('1');
       const quote = quoteAddress;
 
@@ -81,7 +96,7 @@ describe('RAaveProtocolV2Asset', function () {
       const assetValue = await router
         .connect(user)
         .callStatic.calcAssetValue(asset, amount, quote);
-      const underlyingTokenAddress = await tokenA.UNDERLYING_ASSET_ADDRESS();
+      const underlyingTokenAddress = await aToken.UNDERLYING_ASSET_ADDRESS();
       const tokenValue = await oracle.calcConversionAmount(
         underlyingTokenAddress,
         amount,
@@ -93,17 +108,17 @@ describe('RAaveProtocolV2Asset', function () {
     });
 
     it('max amount', async function () {
-      const asset = tokenA.address;
+      const asset = aToken.address;
       const amount = ether('1.12');
       const quote = quoteAddress;
 
       // get asset value by asset resolver
-      await tokenA.connect(tokenAProvider).transfer(user.address, amount);
+      await aToken.connect(aTokenProvider).transfer(user.address, amount);
       const assetValue = await router
         .connect(user)
         .callStatic.calcAssetValue(asset, constants.MaxUint256, quote);
 
-      const underlyingTokenAddress = await tokenA.UNDERLYING_ASSET_ADDRESS();
+      const underlyingTokenAddress = await aToken.UNDERLYING_ASSET_ADDRESS();
       const tokenValue = await oracle.calcConversionAmount(
         underlyingTokenAddress,
         amount,

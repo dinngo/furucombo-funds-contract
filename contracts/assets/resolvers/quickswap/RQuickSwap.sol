@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../interfaces/IAssetRouter.sol";
 import "../../interfaces/IAssetResolver.sol";
-import "../../interfaces/IAssetOracle.sol";
 import "../../interfaces/IUniswapV2Pair.sol";
+import "../../interfaces/IAssetOracle.sol";
+import "../../AssetResolverBase.sol";
+import "hardhat/console.sol";
 
-contract RQuickSwap is IAssetResolver {
-    using SafeCast for uint256;
+contract RQuickSwap is IAssetResolver, AssetResolverBase {
     using SafeERC20 for IERC20;
 
     function calcAssetValue(
@@ -17,7 +17,6 @@ contract RQuickSwap is IAssetResolver {
         uint256 amount,
         address quote
     ) external view override returns (int256) {
-        IAssetOracle oracle = IAssetOracle(IAssetRouter(msg.sender).oracle());
         IUniswapV2Pair pair = IUniswapV2Pair(asset);
 
         IERC20 token0 = IERC20(pair.token0());
@@ -29,25 +28,18 @@ contract RQuickSwap is IAssetResolver {
             token1,
             amount
         );
+        console.log("token0", address(token0));
+        console.log("token1", address(token1));
 
-        // TODO: should we block it if amount = 0?
-        // require(
-        //     amount0 > 0 && amount1 > 0,
-        //     "QuickSwap: INSUFFICIENT_LIQUIDITY_BURNED"
-        // );
+        console.log("amount0", amount0);
+        console.log("amount1", amount1);
+        int256 value0 = _calcAssetValue(address(token0), amount0, quote);
+        int256 value1 = _calcAssetValue(address(token1), amount1, quote);
 
-        uint256 value0 = oracle.calcConversionAmount(
-            pair.token0(),
-            amount0,
-            quote
-        );
-        uint256 value1 = oracle.calcConversionAmount(
-            pair.token1(),
-            amount1,
-            quote
-        );
+        console.log("value0", uint256(value0));
 
-        return (value0 + value1).toInt256();
+        console.log("value1", uint256(value1));
+        return value0 + value1;
     }
 
     function _calcAmountOut(

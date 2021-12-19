@@ -4,9 +4,10 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/IAssetRouter.sol";
 import "../../interfaces/IAssetResolver.sol";
+import "../../AssetResolverBase.sol";
 import "./ICurveLiquidityPool.sol";
 
-contract RCurveStable is IAssetResolver, Ownable {
+contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     event PoolInfoSet(
         address indexed asset,
         address indexed pool,
@@ -57,7 +58,7 @@ contract RCurveStable is IAssetResolver, Ownable {
     ) external view override returns (int256) {
         // Get pool info
         PoolInfo memory info = assetToPoolInfo[asset];
-        require(info.pool != address(0), "no relative pool info ");
+        require(info.pool != address(0), "no relative pool info");
 
         // Calculate value
         uint256 underlyingAmount;
@@ -73,11 +74,6 @@ contract RCurveStable is IAssetResolver, Ownable {
         }
 
         // Calculate underlying value
-        return
-            IAssetRouter(msg.sender).calcAssetValue(
-                info.valuedAsset,
-                underlyingAmount,
-                quote
-            );
+        return _calcAssetValue(info.valuedAsset, underlyingAmount, quote);
     }
 }

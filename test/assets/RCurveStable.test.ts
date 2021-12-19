@@ -4,7 +4,7 @@ import { ethers, deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,
-  AssetOracleMock,
+  Chainlink,
   ERC20,
   RCurveStable,
   ICurveLiquidityPool,
@@ -14,20 +14,27 @@ import {
 import {
   USDC_TOKEN,
   DAI_TOKEN,
+  USDT_TOKEN,
   CURVE_AAVECRV,
   CURVE_AAVECRV_PROVIDER,
   CURVE_AAVE_SWAP,
+  CHAINLINK_DAI_USD,
+  CHAINLINK_USDC_USD,
+  CHAINLINK_USDT_USD,
 } from '../utils/constants';
 
 import { ether, impersonateAndInjectEther } from '../utils/utils';
 
 describe('RCurveStable', function () {
   const tokenAAddress = DAI_TOKEN;
-  const tokenBAddress = USDC_TOKEN;
+  const tokenBAddress = USDT_TOKEN;
   const quoteAddress = USDC_TOKEN;
   const lpTokenAddress = CURVE_AAVECRV;
   const lpTokenProviderAddress = CURVE_AAVECRV_PROVIDER;
   const lpTokenSwapAddress = CURVE_AAVE_SWAP;
+  const aggregatorA = CHAINLINK_DAI_USD;
+  const aggregatorB = CHAINLINK_USDT_USD;
+  const aggregatorC = CHAINLINK_USDC_USD;
   const virutalPriceUnit = ether('1');
 
   let owner: Wallet;
@@ -42,7 +49,7 @@ describe('RCurveStable', function () {
   let resolver: RCurveStable;
   let canonicalResolver: RCanonical;
   let router: AssetRouter;
-  let oracle: AssetOracleMock;
+  let oracle: Chainlink;
 
   // external service
   let liquidityPool: ICurveLiquidityPool;
@@ -72,10 +79,14 @@ describe('RCurveStable', function () {
       await registry.deployed();
       await registry.register(lpToken.address, resolver.address);
 
-      oracle = await (
-        await ethers.getContractFactory('AssetOracleMock')
-      ).deploy();
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
       await oracle.deployed();
+      await oracle
+        .connect(owner)
+        .addAssets(
+          [tokenAAddress, tokenBAddress, quoteAddress],
+          [aggregatorA, aggregatorB, aggregatorC]
+        );
 
       router = await (
         await ethers.getContractFactory('AssetRouter')

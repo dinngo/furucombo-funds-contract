@@ -1,10 +1,10 @@
-import { constants, Wallet, Signer } from 'ethers';
+import { constants, Wallet, Signer, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,
-  AssetOracleMock,
+  Chainlink,
   IERC20,
   RQuickSwap,
   IUniswapV2Pair,
@@ -13,21 +13,25 @@ import {
 
 import {
   USDC_TOKEN,
-  QUICKSWAP_WMATIC_WETH,
+  QUICKSWAP_DAI_WETH,
   QUICKSWAP_ROUTER,
-  QUICKSWAP_DAI_WETH_PROVER,
-  WMATIC_TOKEN,
+  DAI_TOKEN,
   WETH_TOKEN,
+  CHAINLINK_ETH_USD,
+  CHAINLINK_DAI_USD,
+  CHAINLINK_USDC_USD,
 } from '../utils/constants';
 
-import { ether, impersonateAndInjectEther } from '../utils/utils';
+import { ether, tokenProviderSushi } from '../utils/utils';
 
 describe('RQuickSwap', function () {
-  const tokenAAddress = WETH_TOKEN;
-  const tokenBAddress = WMATIC_TOKEN;
+  const tokenAAddress = DAI_TOKEN;
+  const tokenBAddress = WETH_TOKEN;
   const quoteAddress = USDC_TOKEN;
-  const lpTokenAddress = QUICKSWAP_WMATIC_WETH;
-  const lpTokenProviderAddress = QUICKSWAP_DAI_WETH_PROVER;
+  const lpTokenAddress = QUICKSWAP_DAI_WETH;
+  const aggregatorA = CHAINLINK_DAI_USD;
+  const aggregatorB = CHAINLINK_ETH_USD;
+  const aggregatorC = CHAINLINK_USDC_USD;
 
   let owner: Wallet;
   let user: Wallet;
@@ -35,15 +39,17 @@ describe('RQuickSwap', function () {
   let tokenA: IERC20;
   let tokenB: IERC20;
   let lpToken: IERC20;
-  let lpTokenProvider: Signer;
+  let tokenAProvider: Signer;
+  let tokenBProvider: Signer;
 
   let registry: AssetRegistry;
   let resolver: RQuickSwap;
   let router: AssetRouter;
-  let oracle: AssetOracleMock;
+  let oracle: Chainlink;
 
   let pair: IUniswapV2Pair;
   let quickRouter: IUniswapV2Router02;
+  let lpAmount: BigNumber;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -51,23 +57,36 @@ describe('RQuickSwap', function () {
       [owner, user] = await (ethers as any).getSigners();
 
       // Setup token and unlock provider
-      lpTokenProvider = await impersonateAndInjectEther(lpTokenProviderAddress);
+      tokenAProvider = await tokenProviderSushi(tokenAAddress);
+      tokenBProvider = await tokenProviderSushi(tokenBAddress);
       tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
       tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
       lpToken = await ethers.getContractAt('IERC20', lpTokenAddress);
 
       resolver = await (await ethers.getContractFactory('RQuickSwap')).deploy();
       await resolver.deployed();
+
+      const rCanonical = await (
+        await ethers.getContractFactory('RCanonical')
+      ).deploy();
+      await rCanonical.deployed();
+
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
       ).deploy();
       await registry.deployed();
       await registry.register(lpToken.address, resolver.address);
+      await registry.register(tokenA.address, rCanonical.address);
+      await registry.register(tokenB.address, rCanonical.address);
 
-      oracle = await (
-        await ethers.getContractFactory('AssetOracleMock')
-      ).deploy();
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
       await oracle.deployed();
+      await oracle
+        .connect(owner)
+        .addAssets(
+          [tokenA.address, tokenB.address, quoteAddress],
+          [aggregatorA, aggregatorB, aggregatorC]
+        );
 
       router = await (
         await ethers.getContractFactory('AssetRouter')
@@ -80,6 +99,27 @@ describe('RQuickSwap', function () {
         'IUniswapV2Router02',
         QUICKSWAP_ROUTER
       );
+
+      // Deposit to get lp token
+      const amount = ether('50');
+      await tokenA.connect(tokenAProvider).transfer(user.address, amount);
+      await tokenA.connect(user).approve(quickRouter.address, amount);
+      await tokenB.connect(tokenBProvider).transfer(user.address, amount);
+      await tokenB.connect(user).approve(quickRouter.address, amount);
+
+      await quickRouter
+        .connect(user)
+        .addLiquidity(
+          tokenA.address,
+          tokenB.address,
+          ether('1'),
+          ether('1'),
+          1,
+          1,
+          user.address,
+          (await ethers.provider.getBlock('latest')).timestamp + 100
+        );
+      lpAmount = await pair.balanceOf(user.address);
     }
   );
 
@@ -90,15 +130,23 @@ describe('RQuickSwap', function () {
   describe('calculate asset value ', function () {
     it('normal', async function () {
       const assets = [lpToken.address];
-      const amounts = [ether('1.12')];
+      const amounts = [lpAmount];
       const quote = quoteAddress;
 
       // calculate expected value
-      await lpToken.connect(lpTokenProvider).transfer(user.address, amounts[0]);
       await lpToken.connect(user).approve(quickRouter.address, amounts[0]);
-      const tokenOuts = await quickRouter
+
+      // get asset value by asset resolver
+      const assetValue = await router
         .connect(user)
-        .callStatic.removeLiquidity(
+        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
+
+      // execute remove liquidity to get return amount to calculate
+      const tokenAUserBefore = await tokenA.balanceOf(user.address);
+      const tokenBUserBefore = await tokenB.balanceOf(user.address);
+      await quickRouter
+        .connect(user)
+        .removeLiquidity(
           tokenA.address,
           tokenB.address,
           amounts[0],
@@ -108,38 +156,40 @@ describe('RQuickSwap', function () {
           (await ethers.provider.getBlock('latest')).timestamp + 100
         );
 
-      const token0Value = await oracle.calcConversionAmount(
-        await pair.token0(),
-        tokenOuts[0],
+      const tokenAValue = await oracle.calcConversionAmount(
+        tokenA.address,
+        (await tokenA.balanceOf(user.address)).sub(tokenAUserBefore),
         quote
       );
 
-      const token1Value = await oracle.calcConversionAmount(
-        await pair.token1(),
-        tokenOuts[1],
+      const tokenBValue = await oracle.calcConversionAmount(
+        tokenB.address,
+        (await tokenB.balanceOf(user.address)).sub(tokenBUserBefore),
         quote
       );
 
-      // Execution
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
-
-      // Verify
-      expect(assetValue).to.be.eq(token0Value.add(token1Value));
+      // Verify;
+      expect(assetValue).to.be.eq(tokenAValue.add(tokenBValue));
     });
 
     it('max amount', async function () {
       const assets = [lpToken.address];
-      const amount = ether('1.12');
+      const amount = lpAmount;
       const amounts = [constants.MaxUint256];
       const quote = quoteAddress;
 
-      await lpToken.connect(lpTokenProvider).transfer(user.address, amount);
+      // Execution
       await lpToken.connect(user).approve(quickRouter.address, amount);
-      const tokenOuts = await quickRouter
+      const assetValue = await router
         .connect(user)
-        .callStatic.removeLiquidity(
+        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
+
+      // execute remove liquidity to get return amount to calculate
+      const tokenAUserBefore = await tokenA.balanceOf(user.address);
+      const tokenBUserBefore = await tokenB.balanceOf(user.address);
+      await quickRouter
+        .connect(user)
+        .removeLiquidity(
           tokenA.address,
           tokenB.address,
           amount,
@@ -149,24 +199,20 @@ describe('RQuickSwap', function () {
           (await ethers.provider.getBlock('latest')).timestamp + 100
         );
 
-      const token0Value = await oracle.calcConversionAmount(
-        await pair.token0(),
-        tokenOuts[0],
-        quote
-      );
-      const token1Value = await oracle.calcConversionAmount(
-        await pair.token1(),
-        tokenOuts[1],
+      const tokenAValue = await oracle.calcConversionAmount(
+        tokenA.address,
+        (await tokenA.balanceOf(user.address)).sub(tokenAUserBefore),
         quote
       );
 
-      // Execution
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const tokenBValue = await oracle.calcConversionAmount(
+        tokenB.address,
+        (await tokenB.balanceOf(user.address)).sub(tokenBUserBefore),
+        quote
+      );
 
-      // Verify
-      expect(assetValue).to.be.eq(token0Value.add(token1Value));
+      // Verify;
+      expect(assetValue).to.be.eq(tokenAValue.add(tokenBValue));
     });
   });
 });

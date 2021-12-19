@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -7,9 +8,12 @@ contract Faucet {
 
     fallback() external payable {}
 
+    receive() external payable {}
+
     function drain() external payable {
         uint256 give = msg.value * 2;
-        msg.sender.call{value: give}("");
+        (bool result, ) = msg.sender.call{value: give}(new bytes(0));
+        result;
     }
 
     function drainToken(address token, uint256 amount) external {
