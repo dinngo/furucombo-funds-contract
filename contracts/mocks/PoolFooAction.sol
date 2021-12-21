@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../actions/ActionBase.sol";
-import "./PoolFoo.sol";
+import {ActionBase} from "../actions/ActionBase.sol";
+import {PoolFoo} from "./PoolFoo.sol";
 
 contract PoolFooAction is ActionBase {
     event FooBytes32(bytes32 a);

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../../interfaces/IAssetRouter.sol";
-import "../../interfaces/IAssetResolver.sol";
-import "../../interfaces/IUniswapV2Pair.sol";
-import "../../interfaces/IAssetOracle.sol";
-import "../../AssetResolverBase.sol";
-import "hardhat/console.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IAssetRouter} from "../../interfaces/IAssetRouter.sol";
+import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
+import {IUniswapV2Pair} from "../../interfaces/IUniswapV2Pair.sol";
+import {IAssetOracle} from "../../interfaces/IAssetOracle.sol";
+import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RQuickSwap is IAssetResolver, AssetResolverBase {
     using SafeERC20 for IERC20;
@@ -28,17 +27,10 @@ contract RQuickSwap is IAssetResolver, AssetResolverBase {
             token1,
             amount
         );
-        console.log("token0", address(token0));
-        console.log("token1", address(token1));
 
-        console.log("amount0", amount0);
-        console.log("amount1", amount1);
         int256 value0 = _calcAssetValue(address(token0), amount0, quote);
         int256 value1 = _calcAssetValue(address(token1), amount1, quote);
 
-        console.log("value0", uint256(value0));
-
-        console.log("value1", uint256(value1));
         return value0 + value1;
     }
 

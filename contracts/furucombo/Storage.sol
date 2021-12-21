@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "./lib/LibCache.sol";
-import "./lib/LibStack.sol";
+import {LibCache} from "./lib/LibCache.sol";
+import {LibStack} from "./lib/LibStack.sol";
 
 /// @notice A cache structure composed by a bytes32 array
 contract Storage {

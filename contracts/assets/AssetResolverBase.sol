@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "./interfaces/IAssetRouter.sol";
-import "./interfaces/IAssetOracle.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {IAssetRouter} from "./interfaces/IAssetRouter.sol";
+import {IAssetOracle} from "./interfaces/IAssetOracle.sol";
 
 contract AssetResolverBase {
     using SafeCast for uint256;
@@ -13,7 +13,7 @@ contract AssetResolverBase {
     }
 
     function _toNegativeValue(int256 amount) internal pure returns (int256) {
-        require(amount >= 0, "amount < 0");
+        require(amount >= 0, "AssetResolverBase: amount < 0");
         return amount * -1;
     }
 

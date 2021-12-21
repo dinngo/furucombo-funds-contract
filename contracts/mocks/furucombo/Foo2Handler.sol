@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../../furucombo/handlers/HandlerBase.sol";
+import {HandlerBase} from "../../furucombo/handlers/HandlerBase.sol";
 
 interface IFoo2 {
     function bar() external payable returns (uint256 result);

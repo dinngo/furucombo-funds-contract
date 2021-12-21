@@ -13,6 +13,8 @@ import {
   Registry,
   HFunds,
   PoolProxyMock,
+  Chainlink,
+  AssetRegistry,
 } from '../typechain';
 
 import {
@@ -58,6 +60,9 @@ describe('AFurucombo', function () {
   let tokenOut: IERC20;
   let tokenProvider: Signer;
 
+  let oracle: Chainlink;
+  let registry: AssetRegistry;
+
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
@@ -74,9 +79,17 @@ describe('AFurucombo', function () {
       ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
+      registry = await (
+        await ethers.getContractFactory('AssetRegistry')
+      ).deploy();
+      await registry.deployed();
+
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+      await oracle.deployed();
+
       assetRouter = await (
         await ethers.getContractFactory('AssetRouter')
-      ).deploy();
+      ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
       comptroller = await (

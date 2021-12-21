@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "../../interfaces/IAssetResolver.sol";
-import "../../AssetResolverBase.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
+import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RCanonical is IAssetResolver, AssetResolverBase {
     using SafeCast for uint256;

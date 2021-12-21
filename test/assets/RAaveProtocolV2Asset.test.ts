@@ -1,6 +1,6 @@
-import { constants, Wallet, Signer, BigNumber } from 'ethers';
+import { constants, Wallet, Signer } from 'ethers';
 import { expect } from 'chai';
-import { ethers, deployments } from 'hardhat';
+import { deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,

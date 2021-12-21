@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-
-import "./IAssetRegistry.sol";
-import "./IAssetOracle.sol";
-
 pragma solidity ^0.8.0;
+
+import {IAssetRegistry} from "./IAssetRegistry.sol";
+import {IAssetOracle} from "./IAssetOracle.sol";
 
 interface IAssetRouter {
     function oracle() external view returns (IAssetOracle);

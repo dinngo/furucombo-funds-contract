@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../../furucombo/handlers/HandlerBase.sol";
+import {HandlerBase} from "../../furucombo/handlers/HandlerBase.sol";
 
 contract DynamicHandler is HandlerBase {
     event FooBytes32(bytes32 a);

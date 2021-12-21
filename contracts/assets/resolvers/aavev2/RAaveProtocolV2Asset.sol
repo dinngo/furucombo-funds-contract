@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../../../interfaces/IATokenV2.sol";
-import "../../interfaces/IAssetResolver.sol";
-import "../../AssetResolverBase.sol";
+import {IATokenV2} from "../../../interfaces/IATokenV2.sol";
+import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
+import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RAaveProtocolV2Asset is IAssetResolver, AssetResolverBase {
     function calcAssetValue(

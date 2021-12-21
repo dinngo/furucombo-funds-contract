@@ -58,12 +58,12 @@ contract Comptroller is UpgradeableBeacon {
 
     // Modifier
     modifier onlyUnHalted() {
-        require(!fHalt, "Halted");
+        require(!fHalt, "Comptroller: Halted");
         _;
     }
 
     modifier onlyUnbannedProxy() {
-        require(!bannedProxy[msg.sender], "Banned");
+        require(!bannedProxy[msg.sender], "Comptroller: Banned");
         _;
     }
 
@@ -274,7 +274,7 @@ contract Comptroller is UpgradeableBeacon {
         address[] calldata tos,
         bytes4[] calldata sigs
     ) external onlyOwner {
-        require(tos.length == sigs.length, "valid length");
+        require(tos.length == sigs.length, "Comptroller: valid length");
         for (uint256 i = 0; i < tos.length; i++) {
             delegateCallACL.permit(level, tos[i], sigs[i]);
             emit PermitDelegateCall(level, tos[i], sigs[i]);
@@ -286,7 +286,7 @@ contract Comptroller is UpgradeableBeacon {
         address[] calldata tos,
         bytes4[] calldata sigs
     ) external onlyOwner {
-        require(tos.length == sigs.length, "valid length");
+        require(tos.length == sigs.length, "Comptroller: valid length");
         for (uint256 i = 0; i < tos.length; i++) {
             delegateCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidDelegateCall(level, tos[i], sigs[i]);
@@ -299,7 +299,7 @@ contract Comptroller is UpgradeableBeacon {
         address[] calldata tos,
         bytes4[] calldata sigs
     ) external onlyOwner {
-        require(tos.length == sigs.length, "valid length");
+        require(tos.length == sigs.length, "Comptroller: valid length");
         for (uint256 i = 0; i < tos.length; i++) {
             contractCallACL.permit(level, tos[i], sigs[i]);
             emit PermitContractCall(level, tos[i], sigs[i]);
@@ -311,7 +311,7 @@ contract Comptroller is UpgradeableBeacon {
         address[] calldata tos,
         bytes4[] calldata sigs
     ) external onlyOwner {
-        require(tos.length == sigs.length, "valid length");
+        require(tos.length == sigs.length, "Comptroller: valid length");
         for (uint256 i = 0; i < tos.length; i++) {
             contractCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidContractCall(level, tos[i], sigs[i]);
@@ -332,7 +332,7 @@ contract Comptroller is UpgradeableBeacon {
         address[] calldata tos,
         bytes4[] calldata sigs
     ) external onlyOwner {
-        require(tos.length == sigs.length, "valid length");
+        require(tos.length == sigs.length, "Comptroller: valid length");
         for (uint256 i = 0; i < tos.length; i++) {
             handlerCallACL.permit(level, tos[i], sigs[i]);
             emit PermitHandler(level, tos[i], sigs[i]);
@@ -344,7 +344,7 @@ contract Comptroller is UpgradeableBeacon {
         address[] calldata tos,
         bytes4[] calldata sigs
     ) external onlyOwner {
-        require(tos.length == sigs.length, "valid length");
+        require(tos.length == sigs.length, "Comptroller: valid length");
         for (uint256 i = 0; i < tos.length; i++) {
             handlerCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidHandler(level, tos[i], sigs[i]);

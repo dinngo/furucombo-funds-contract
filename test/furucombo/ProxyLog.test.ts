@@ -72,21 +72,6 @@ describe('ProxyLog', function () {
       ).deploy(fooFactory.address);
       await fooHandler.deployed();
       await registry.register(fooHandler.address, asciiToHex32('foo'));
-
-      // fooFactory = await FooFactory.new({ from: deployer });
-      // expect(fooFactory.address).to.be.eq(
-      //   '0xFdd454EA7BF7ca88C1B7a824c3FB0951Fb8a1318'
-      // );
-      // await fooFactory.createFoo();
-      // await fooFactory.createFoo();
-      // foo0 = await Foo.at(await fooFactory.addressOf(0));
-      // foo1 = await Foo.at(await fooFactory.addressOf(1));
-      // foo2 = await Foo.at(await fooFactory.addressOf(2));
-      // fooHandler = await FooHandler.new();
-      // await registry.register(
-      //   fooHandler.address,
-      //   utils.asciiToHex('foo')
-      // );
     });
 
     it('multiple', async function () {

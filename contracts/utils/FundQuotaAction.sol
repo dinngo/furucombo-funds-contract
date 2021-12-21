@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../libraries/FundQuota.sol";
+import {FundQuota} from "../libraries/FundQuota.sol";
 
 /**
  * @dev Create immutable owner for action contract
@@ -32,7 +32,7 @@ abstract contract FundQuotaAction {
 
     function decreaseFundQuota(address fund, uint256 quota) internal {
         uint256 oldQuota = FundQuota.get(fund);
-        require(oldQuota >= quota, "insufficient quota");
+        require(oldQuota >= quota, "FundQuotaAction: insufficient quota");
         setFundQuota(fund, oldQuota - quota);
     }
 

@@ -46,7 +46,6 @@ describe('Aave V2', function () {
 
   let owner: Wallet;
   let user: Wallet;
-  let someone: Wallet;
 
   let token: IERC20;
   let wmatic: IERC20;
@@ -68,7 +67,7 @@ describe('Aave V2', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
+      [owner, user] = await (ethers as any).getSigners();
 
       // Setup token and unlock provider
       providerAddress = await tokenProviderQuick(tokenAddress);

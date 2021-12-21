@@ -2,16 +2,16 @@
 pragma solidity ^0.8.9;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "./interfaces/ITaskExecutor.sol";
-import "./interfaces/IComptroller.sol";
-import "./interfaces/IPool.sol";
-import "./utils/DestructibleAction.sol";
-import "./utils/DelegateCallAction.sol";
-import "./utils/FundQuotaAction.sol";
-import "./utils/DealingAssetAction.sol";
-import "./libraries/LibParam.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ITaskExecutor} from "./interfaces/ITaskExecutor.sol";
+import {IComptroller} from "./interfaces/IComptroller.sol";
+import {IPool} from "./interfaces/IPool.sol";
+import {DestructibleAction} from "./utils/DestructibleAction.sol";
+import {DelegateCallAction} from "./utils/DelegateCallAction.sol";
+import {FundQuotaAction} from "./utils/FundQuotaAction.sol";
+import {DealingAssetAction} from "./utils/DealingAssetAction.sol";
+import {LibParam} from "./libraries/LibParam.sol";
 
 contract TaskExecutor is
     ITaskExecutor,
@@ -24,9 +24,10 @@ contract TaskExecutor is
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
 
+    // prettier-ignore
+    address public constant ETHER = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 public constant PERCENTAGE_BASE = 1 ether;
     uint256 public constant FEE_BASE = 1e4;
-    address public constant ETHER = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IComptroller public immutable comptroller;
 
     constructor(address payable _owner, address _comptroller)
@@ -96,13 +97,13 @@ contract TaskExecutor is
                 bytes4 sig = bytes4(datas[i]);
                 require(
                     IPool(msg.sender).canDelegateCall(tos[i], sig),
-                    "invalid proxy delegate call"
+                    "TaskExecutor: invalid proxy delegate call"
                 );
 
                 // check comptroller delegate call
                 require(
                     comptroller.canDelegateCall(level, tos[i], sig),
-                    "invalid comptroller delegate call"
+                    "TaskExecutor: invalid comptroller delegate call"
                 );
 
                 // Trim params from local stack depend on config
@@ -111,7 +112,7 @@ contract TaskExecutor is
                 // Execute action by delegate call
                 bytes memory result = tos[i].functionDelegateCall(
                     datas[i],
-                    "TaskExecutor: low-level delegate call failed"
+                    "TaskExecutor: TaskExecutor: low-level delegate call failed"
                 );
 
                 // Store return data from action to local stack
@@ -125,13 +126,13 @@ contract TaskExecutor is
                 // check fund contract call
                 require(
                     IPool(msg.sender).canContractCall(tos[i], bytes4(_data)),
-                    "invalid proxy contract call"
+                    "TaskExecutor: invalid proxy contract call"
                 );
 
                 // check comptroller contract call
                 require(
                     comptroller.canContractCall(level, tos[i], bytes4(_data)),
-                    "invalid comptroller contract call"
+                    "TaskExecutor: invalid comptroller contract call"
                 );
 
                 // Trim params from local stack depend on config
@@ -153,7 +154,7 @@ contract TaskExecutor is
         address[] memory dealingAssets = getDealingAssets();
         require(
             comptroller.validateDealingAssets(level, dealingAssets),
-            "invalid dealing asset"
+            "TaskExecutor: invalid dealing asset"
         );
         return dealingAssets;
     }
@@ -290,7 +291,7 @@ contract TaskExecutor is
         uint256 level = IPool(msg.sender).getLevel();
         require(
             comptroller.validateInitialAssets(level, tokensIn),
-            "invalid initial asset"
+            "TaskExecutor: invalid initial asset"
         );
 
         // collect execution fee to collector
@@ -299,7 +300,10 @@ contract TaskExecutor is
 
         for (uint256 i = 0; i < tokensIn.length; i++) {
             // make sure all quota should be zero at the begin
-            require(isFundQuotaZero(tokensIn[i]), "quota is not zero");
+            require(
+                isFundQuotaZero(tokensIn[i]),
+                "TaskExecutor: quota is not zero"
+            );
 
             // send fee to collector
             uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;

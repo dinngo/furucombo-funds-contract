@@ -7,6 +7,8 @@ import {
   AssetRouter,
   AMock,
   HandlerMock,
+  Chainlink,
+  AssetRegistry,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -27,6 +29,9 @@ describe('Comptroller_Whitelist', function () {
   let user: Wallet;
   let collector: Wallet;
 
+  let oracle: Chainlink;
+  let registry: AssetRegistry;
+
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
@@ -37,9 +42,17 @@ describe('Comptroller_Whitelist', function () {
       ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
+      registry = await (
+        await ethers.getContractFactory('AssetRegistry')
+      ).deploy();
+      await registry.deployed();
+
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+      await oracle.deployed();
+
       assetRouter = await (
         await ethers.getContractFactory('AssetRouter')
-      ).deploy();
+      ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
       comptroller = await (

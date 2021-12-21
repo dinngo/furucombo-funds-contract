@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./OwnableAction.sol";
+import {OwnableAction} from "./OwnableAction.sol";
 
 /**
  * @dev Can only be destroyed by owner. All funds are sent to the owner.

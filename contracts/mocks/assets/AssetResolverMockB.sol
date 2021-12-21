@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "../../assets/interfaces/IAssetResolver.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {IAssetResolver} from "../../assets/interfaces/IAssetResolver.sol";
 
 contract AssetResolverMockB is IAssetResolver {
     using SafeCast for uint256;

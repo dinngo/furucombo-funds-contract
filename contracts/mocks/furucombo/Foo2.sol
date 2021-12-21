@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity 0.8.9;
 
-import "../SimpleToken.sol";
+import {SimpleToken} from "../SimpleToken.sol";
 
 contract Foo2 is SimpleToken {
     // Swap half of the incoming ether to token

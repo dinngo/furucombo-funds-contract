@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../../interfaces/IAssetRouter.sol";
-import "../../interfaces/IAssetResolver.sol";
-import "../../interfaces/IUniswapV2Pair.sol";
-import "../../AssetResolverBase.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IAssetRouter} from "../../interfaces/IAssetRouter.sol";
+import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
+import {IUniswapV2Pair} from "../../interfaces/IUniswapV2Pair.sol";
+import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RSushiSwap is IAssetResolver, AssetResolverBase {
     using SafeERC20 for IERC20;

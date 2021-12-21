@@ -11,6 +11,8 @@ import {
   PoolFoo,
   PoolProxyMock,
   IERC20,
+  AssetRegistry,
+  Chainlink,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -48,6 +50,9 @@ describe('Task Executor', function () {
   let tokenAProvider: Signer;
   let tokenBProvider: Signer;
 
+  let oracle: Chainlink;
+  let registry: AssetRegistry;
+
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
@@ -64,9 +69,17 @@ describe('Task Executor', function () {
       ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
+      registry = await (
+        await ethers.getContractFactory('AssetRegistry')
+      ).deploy();
+      await registry.deployed();
+
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+      await oracle.deployed();
+
       assetRouter = await (
         await ethers.getContractFactory('AssetRouter')
-      ).deploy();
+      ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
       comptroller = await (
@@ -182,7 +195,6 @@ describe('Task Executor', function () {
     });
 
     it('payable action', async function () {
-      // const balancePoolFoo = await ethers.provider.getBalance(foo.address);
       const balancePoolFoo = await ethers.provider.getBalance(foo.address);
 
       // Prepare action data
@@ -473,8 +485,6 @@ describe('Task Executor', function () {
     it('payable action', async function () {
       const balancePoolFoo = await ethers.provider.getBalance(foo.address);
 
-      // const balancePoolFoo = await ethers.provider.getBalance(foo.address);
-
       // Prepare action data
       const actionEthValue = ether('5');
       const expectNValue = BigNumber.from('111');
@@ -512,12 +522,6 @@ describe('Task Executor', function () {
 
       // Prepare action data
       const actionEthValue = ether('5');
-      // actionData = getCallActionData();
-      // const actionData = web3.eth.abi.encodeParameters(
-      //   ['uint256', 'bytes'],
-      //   [actionEthValue, '0x']
-      // );
-
       const actionData = ethers.utils.defaultAbiCoder.encode(
         ['uint256', 'bytes'],
         [actionEthValue, '0x']
@@ -538,13 +542,6 @@ describe('Task Executor', function () {
           value: actionEthValue,
         })
       ).to.be.revertedWith('Address: call to non-contract');
-
-      // await expectRevert(
-      //   proxy.connect(user).executeMock(target, data, {
-      //     value: actionEthValue,
-      //   }),
-      //   'Address: call to non-contract'
-      // );
     });
 
     it('should revert: call contract revert', async function () {
@@ -576,10 +573,6 @@ describe('Task Executor', function () {
     it('should revert: non existed function', async function () {
       // Prepare action data
       const ethValue = ether('0');
-      // const actionData = ethers.utils.defaultAbiCoder.encode(
-      //   ['uint256', 'bytes'],
-      //   [actionEthValue, '0x']
-      // );
 
       const actionData = ethers.utils.defaultAbiCoder.encode(
         ['uint256', 'bytes'],
@@ -605,13 +598,6 @@ describe('Task Executor', function () {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('TaskExecutor: low-level call with value failed');
-
-      // await expectRevert(
-      //   proxy.connect(user).executeMock(target, data, {
-      //     value: ether('0.01'),
-      //   }),
-      //   'TaskExecutor: low-level call with value failed'
-      // );
     });
 
     it('should revert: invalid comptroller contract call', async function () {
@@ -637,7 +623,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
-      ).to.be.revertedWith('invalid comptroller contract call');
+      ).to.be.revertedWith('TaskExecutor: invalid comptroller contract call');
     });
 
     it('should revert: invalid proxy contract call', async function () {
@@ -662,7 +648,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
-      ).to.be.revertedWith('invalid proxy contract call');
+      ).to.be.revertedWith('TaskExecutor: invalid proxy contract call');
     });
   });
 
@@ -741,9 +727,6 @@ describe('Task Executor', function () {
   });
 
   describe('return assets', function () {
-    // const tokenA = DAI_TOKEN;
-    // const tokenB = WETH_TOKEN;
-
     beforeEach(async function () {
       await comptroller.permitAssets(await proxy.getLevel(), [tokenA.address]);
       expect(
@@ -946,7 +929,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('invalid dealing asset');
+      ).to.be.revertedWith('TaskExecutor: invalid dealing asset');
     });
   });
 
@@ -1061,7 +1044,7 @@ describe('Task Executor', function () {
         proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('invalid initial asset');
+      ).to.be.revertedWith('TaskExecutor: invalid initial asset');
     });
 
     it('should revert: insufficient quota', async function () {
@@ -1087,7 +1070,7 @@ describe('Task Executor', function () {
         proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('insufficient quota');
+      ).to.be.revertedWith('FundQuotaAction: insufficient quota');
     });
 
     it('should revert: repeat assets', async function () {
@@ -1111,7 +1094,7 @@ describe('Task Executor', function () {
         proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('quota is not zero');
+      ).to.be.revertedWith('TaskExecutor: quota is not zero');
     });
   });
 });

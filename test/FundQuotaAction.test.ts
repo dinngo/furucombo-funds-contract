@@ -1,6 +1,6 @@
-import { constants, Wallet, BigNumber } from 'ethers';
+import { Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
-import { ethers, deployments } from 'hardhat';
+import { deployments } from 'hardhat';
 import { AMock } from '../typechain';
 import { DAI_TOKEN, NATIVE_TOKEN, WBTC_TOKEN } from './utils/constants';
 import { ether } from './utils/utils';
@@ -8,13 +8,12 @@ import { ether } from './utils/utils';
 describe('FundQuotaAction', function () {
   let owner: Wallet;
   let user: Wallet;
-  let someone: Wallet;
   let action: AMock;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
+      [owner, user] = await (ethers as any).getSigners();
 
       action = await (await ethers.getContractFactory('AMock')).deploy();
       await action.deployed();

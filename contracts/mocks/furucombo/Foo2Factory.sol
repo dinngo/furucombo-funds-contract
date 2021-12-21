@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.9;
-import "./Foo2.sol";
+import {Foo2} from "./Foo2.sol";
 
 contract Foo2Factory {
     mapping(uint256 => address) private _foos;

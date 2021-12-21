@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interface/IRegistry.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IRegistry} from "./interface/IRegistry.sol";
 
 /// @notice The registry database for Furucombo
 contract Registry is IRegistry, Ownable {

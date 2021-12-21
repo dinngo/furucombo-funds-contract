@@ -56,7 +56,6 @@ describe('Aave V2 Borrow', function () {
   let lendingPool: ILendingPoolV2;
 
   let userBalance: BigNumber;
-  let proxyBalance: BigNumber;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
