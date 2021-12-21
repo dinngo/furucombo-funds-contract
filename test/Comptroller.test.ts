@@ -516,6 +516,12 @@ describe('Comptroller', function () {
         comptroller.connect(user).setAssetRouter(assetRouter.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
+
+    it('should revert: set zero asset router', async function () {
+      await expect(
+        comptroller.connect(owner).setAssetRouter(constants.AddressZero)
+      ).to.be.revertedWith('Comptroller: router zero address');
+    });
   });
 
   // asset router management

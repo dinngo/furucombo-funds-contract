@@ -5,7 +5,6 @@ import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/Upgradeabl
 import {Whitelist} from "./libraries/Whitelist.sol";
 
 contract Comptroller is UpgradeableBeacon {
-    // TODO: optimization data storage
     using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
     using Whitelist for Whitelist.ManagerWList;
@@ -158,7 +157,7 @@ contract Comptroller is UpgradeableBeacon {
 
     // Asset Router
     function setAssetRouter(address _assetRouter) external onlyOwner {
-        // TODO: non 0x00000 and 0xeeee
+        require(_assetRouter != address(0), "Comptroller: router zero address");
         assetRouter = _assetRouter;
         emit SetAssetRouter(_assetRouter);
     }
