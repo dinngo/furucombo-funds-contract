@@ -29,6 +29,7 @@ describe('Share module', function () {
       await shareModule.setDenomination(tokenD.address);
       await shareModule.setShare();
       await shareModule.setDSProxy();
+      await shareModule.setDSProxyApproval(tokenD.address);
       const token = await shareModule.callStatic.shareToken();
       shareToken = await (
         await ethers.getContractFactory('ShareToken')

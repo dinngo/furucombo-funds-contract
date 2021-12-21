@@ -41,10 +41,13 @@ contract BaseMock is PoolState {
     function setDSProxy() external {
         address dsProxy_ = dsProxyRegistry.build();
         _setDSProxy(IDSProxy(dsProxy_));
+    }
+
+    function setDSProxyApproval(address token) external {
         SetupAction action = new SetupAction();
         bytes memory data = abi.encodeWithSignature(
             "maxApprove(address)",
-            denomination
+            token
         );
         vault.execute(address(action), data);
     }
