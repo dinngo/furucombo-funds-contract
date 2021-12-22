@@ -7,14 +7,13 @@ import { DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 describe('DealingAssetAction', function () {
   let owner: Wallet;
   let user: Wallet;
-  let someone: Wallet;
 
   let action: AMock;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
+      [owner, user] = await (ethers as any).getSigners();
 
       action = await (await ethers.getContractFactory('AMock')).deploy();
       await action.deployed();

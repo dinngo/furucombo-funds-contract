@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../Config.sol";
+import {Config} from "../Config.sol";
 
 library LibStack {
     function setAddress(bytes32[] storage _stack, address _input) internal {

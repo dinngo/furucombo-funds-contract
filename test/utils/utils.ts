@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import { BigNumber, Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import {
@@ -24,6 +25,18 @@ export async function profileGas(receipt: any) {
       console.log(ethers.utils.toUtf8String(tag) + ': ' + gas.toString());
     }
   });
+}
+
+export function expectEqWithinBps(
+  actual: BigNumber,
+  expected: BigNumber,
+  bps: number = 1
+) {
+  const base = BigNumber.from('10000');
+  const upper = expected.mul(base.add(BigNumber.from(bps))).div(base);
+  const lower = expected.mul(base.sub(BigNumber.from(bps))).div(base);
+  expect(actual).to.be.lte(upper);
+  expect(actual).to.be.gte(lower);
 }
 
 export function ether(num: any) {
@@ -138,18 +151,6 @@ export async function getHandlerReturn(receipt: any, dataTypes: any) {
     }
   });
   return actionResult;
-
-  // let handlerResult;
-  // receipt.receipt.rawLogs.forEach((element) => {
-  //   if (element.topics[0] === RecordHandlerResultSig) {
-  //     const bytesData = web3.eth.abi.decodeParameters(
-  //       ['bytes'],
-  //       element.data
-  //     )[0];
-  //     handlerResult = web3.eth.abi.decodeParameters(dataTypes, bytesData);
-  //   }
-  // });
-  // return handlerResult;
 }
 
 export function asciiToHex32(s: string) {
@@ -200,17 +201,6 @@ export async function tokenProviderSushi(
   return _tokenProviderUniLike(token0, token1, factoryAddress);
 }
 
-// export async function tokenProviderDyfn(
-//   token0 = USDC_TOKEN,
-//   token1 = WETH_TOKEN,
-//   factoryAddress = DYFNSWAP_FACTORY
-// ) {
-//   if (token0 === WETH_TOKEN) {
-//     token1 = USDC_TOKEN;
-//   }
-//   return _tokenProviderUniLike(token0, token1, factoryAddress);
-// }
-
 export async function _tokenProviderUniLike(
   token0: string,
   token1: string,
@@ -221,45 +211,11 @@ export async function _tokenProviderUniLike(
     'IUniswapV2Factory',
     factoryAddress
   );
-  // const IUniswapV2Factory = artifacts.require('IUniswapV2Factory');
-  // const factory = await IUniswapV2Factory.at(factoryAddress);
+
   const pair = await factory.callStatic.getPair(token0, token1);
   _impersonateAndInjectEther(pair);
   return await (ethers as any).getSigner(pair);
-  // return pair;
 }
-
-// export async function tokenProviderCurveGauge(lpToken) {
-//   // Get curve registry
-//   const addressProvider = await ethers.getContractAt(
-//     ['function get_registry() view returns (address)'],
-//     CURVE_ADDRESS_PROVIDER
-//   );
-//   const registryAddress = await addressProvider.get_registry();
-
-//   // Get curve gauge
-//   const registry = await ethers.getContractAt(
-//     [
-//       'function get_pool_from_lp_token(address) view returns (address)',
-//       'function get_gauges(address) view returns (address[10], int128[10])',
-//     ],
-//     registryAddress
-//   );
-//   const poolAddress = await registry.get_pool_from_lp_token(lpToken);
-//   const gauges = await registry.get_gauges(poolAddress);
-
-//   // Return non-zero gauge
-//   let gauge;
-//   for (const element of gauges[0]) {
-//     if (element != ZERO_ADDRESS) {
-//       gauge = element;
-//       break;
-//     }
-//   }
-//   _impersonateAndInjectEther(gauge);
-
-//   return gauge;
-// }
 
 export async function _impersonateAndInjectEther(address: string) {
   // Impersonate pair
@@ -277,4 +233,17 @@ export async function sendEther(sender: Signer, to: string, value: BigNumber) {
     to: to,
     value: value,
   });
+}
+
+export function mulPercent(num: any, percentage: any) {
+  return BigNumber.from(num)
+    .mul(BigNumber.from(percentage))
+    .div(BigNumber.from(100));
+}
+
+export function padRightZero(s: string, length: any) {
+  for (let i = 0; i < length; i++) {
+    s = s + '0';
+  }
+  return s;
 }

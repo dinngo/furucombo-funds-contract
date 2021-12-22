@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../interfaces/IERC20Usdt.sol";
-import "../utils/FundQuotaAction.sol";
-import "../utils/DealingAssetAction.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20Usdt} from "../interfaces/IERC20Usdt.sol";
+import {FundQuotaAction} from "../utils/FundQuotaAction.sol";
+import {DealingAssetAction} from "../utils/DealingAssetAction.sol";
 
 abstract contract ActionBase is FundQuotaAction, DealingAssetAction {
     using SafeERC20 for IERC20;

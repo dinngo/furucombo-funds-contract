@@ -2,9 +2,8 @@
 
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "../HandlerBase.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {HandlerBase} from "../HandlerBase.sol";
 
 contract HFunds is HandlerBase {
     using SafeERC20 for IERC20;
@@ -117,31 +116,27 @@ contract HFunds is HandlerBase {
 
             if (tokens[i] == address(0)) {
                 if (address(this).balance < amounts[i]) {
-                    string memory errMsg =
-                        string(
-                            abi.encodePacked(
-                                "error: ",
-                                _uint2String(i),
-                                "_",
-                                _uint2String(address(this).balance)
-                            )
-                        );
+                    string memory errMsg = string(
+                        abi.encodePacked(
+                            "error: ",
+                            _uint2String(i),
+                            "_",
+                            _uint2String(address(this).balance)
+                        )
+                    );
                     _revertMsg("checkSlippage", errMsg);
                 }
             } else if (
                 IERC20(tokens[i]).balanceOf(address(this)) < amounts[i]
             ) {
-                string memory errMsg =
-                    string(
-                        abi.encodePacked(
-                            "error: ",
-                            _uint2String(i),
-                            "_",
-                            _uint2String(
-                                IERC20(tokens[i]).balanceOf(address(this))
-                            )
-                        )
-                    );
+                string memory errMsg = string(
+                    abi.encodePacked(
+                        "error: ",
+                        _uint2String(i),
+                        "_",
+                        _uint2String(IERC20(tokens[i]).balanceOf(address(this)))
+                    )
+                );
 
                 _revertMsg("checkSlippage", errMsg);
             }

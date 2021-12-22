@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../actions/ActionBase.sol";
+import {ActionBase} from "../actions/ActionBase.sol";
 
 contract AMock is ActionBase {
     function doUint(uint256 _u) external payable returns (uint256) {

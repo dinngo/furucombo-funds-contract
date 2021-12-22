@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.9;
 
-import "../../furucombo/handlers/HandlerBase.sol";
+import {HandlerBase, LibStack} from "../../furucombo/handlers/HandlerBase.sol";
 
 interface IFoo3 {
     function bar1() external;

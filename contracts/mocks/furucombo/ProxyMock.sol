@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity 0.8.9;
 
-import "../../furucombo/Proxy.sol";
-import "../debug/GasProfiler.sol";
+import {FurucomboProxy, LibStack} from "../../furucombo/Proxy.sol";
+import {GasProfiler} from "../debug/GasProfiler.sol";
 
 contract FurucomboProxyMock is FurucomboProxy, GasProfiler {
     using LibStack for bytes32[];

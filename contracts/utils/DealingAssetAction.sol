@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../libraries/DealAsset.sol";
+import {DealingAsset} from "../libraries/DealingAsset.sol";
 
 /**
  * @dev Create immutable owner for action contract

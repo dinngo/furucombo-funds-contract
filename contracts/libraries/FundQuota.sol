@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./StorageArray.sol";
-import "./StorageMap.sol";
+import {StorageArray} from "./StorageArray.sol";
+import {StorageMap} from "./StorageMap.sol";
 
 library FundQuota {
     using StorageArray for bytes32;

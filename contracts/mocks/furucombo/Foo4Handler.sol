@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.9;
 
-import "./Foo4.sol";
-import "../../furucombo/handlers/HandlerBase.sol";
+import {Foo4} from "./Foo4.sol";
+import {HandlerBase} from "../../furucombo/handlers/HandlerBase.sol";
 
 contract Foo4Handler is HandlerBase {
     event FooBytes32(bytes32 a);

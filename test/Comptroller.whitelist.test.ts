@@ -6,7 +6,9 @@ import {
   Implementation,
   AssetRouter,
   AMock,
-  HMock,
+  HandlerMock,
+  Chainlink,
+  AssetRegistry,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -20,12 +22,15 @@ describe('Comptroller_Whitelist', function () {
   let assetRouter: AssetRouter;
   let actionMockA: AMock;
   let actionMockB: AMock;
-  let handlerMockA: HMock;
-  let handlerMockB: HMock;
+  let handlerMockA: HandlerMock;
+  let handlerMockB: HandlerMock;
 
   let owner: Wallet;
   let user: Wallet;
   let collector: Wallet;
+
+  let oracle: Chainlink;
+  let registry: AssetRegistry;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -37,9 +42,17 @@ describe('Comptroller_Whitelist', function () {
       ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
+      registry = await (
+        await ethers.getContractFactory('AssetRegistry')
+      ).deploy();
+      await registry.deployed();
+
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+      await oracle.deployed();
+
       assetRouter = await (
         await ethers.getContractFactory('AssetRouter')
-      ).deploy();
+      ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
       comptroller = await (
@@ -53,10 +66,14 @@ describe('Comptroller_Whitelist', function () {
       actionMockB = await (await ethers.getContractFactory('AMock')).deploy();
       await actionMockB.deployed();
 
-      handlerMockA = await (await ethers.getContractFactory('HMock')).deploy();
+      handlerMockA = await (
+        await ethers.getContractFactory('HandlerMock')
+      ).deploy();
       await handlerMockA.deployed();
 
-      handlerMockB = await (await ethers.getContractFactory('HMock')).deploy();
+      handlerMockB = await (
+        await ethers.getContractFactory('HandlerMock')
+      ).deploy();
       await handlerMockB.deployed();
     }
   );

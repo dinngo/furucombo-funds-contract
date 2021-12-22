@@ -6,6 +6,8 @@ import {
   Implementation,
   AssetRouter,
   TaskExecutor,
+  Chainlink,
+  AssetRegistry,
 } from '../typechain';
 import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 
@@ -19,6 +21,9 @@ describe('Comptroller', function () {
   let user: Wallet;
   let collector: Wallet;
 
+  let oracle: Chainlink;
+  let registry: AssetRegistry;
+
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
@@ -29,9 +34,17 @@ describe('Comptroller', function () {
       ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
+      registry = await (
+        await ethers.getContractFactory('AssetRegistry')
+      ).deploy();
+      await registry.deployed();
+
+      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+      await oracle.deployed();
+
       assetRouter = await (
         await ethers.getContractFactory('AssetRouter')
-      ).deploy();
+      ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
       comptroller = await (
@@ -64,14 +77,18 @@ describe('Comptroller', function () {
       // halt
       await expect(comptroller.halt()).to.emit(comptroller, 'Halted');
       expect(await comptroller.fHalt()).to.equal(true);
-      await expect(comptroller.implementation()).to.be.revertedWith('Halted');
+      await expect(comptroller.implementation()).to.be.revertedWith(
+        'Comptroller: Halted'
+      );
     });
 
     it('unHalt ', async function () {
       // check env before execution
       await comptroller.halt();
       expect(await comptroller.fHalt()).to.equal(true);
-      await expect(comptroller.implementation()).to.be.revertedWith('Halted');
+      await expect(comptroller.implementation()).to.be.revertedWith(
+        'Comptroller: Halted'
+      );
 
       // unHalt
       await expect(comptroller.unHalt()).to.emit(comptroller, 'UnHalted');
@@ -109,7 +126,7 @@ describe('Comptroller', function () {
       expect(await comptroller.bannedProxy(user.address)).to.equal(true);
       await expect(
         comptroller.connect(user).implementation()
-      ).to.be.revertedWith('Banned');
+      ).to.be.revertedWith('Comptroller: Banned');
     });
 
     it('unBan ', async function () {
@@ -480,7 +497,7 @@ describe('Comptroller', function () {
       // deploy new asset router
       const newAssetRouter = await (
         await ethers.getContractFactory('AssetRouter')
-      ).deploy();
+      ).deploy(oracle.address, registry.address);
       await newAssetRouter.deployed();
 
       // set new asset router
@@ -498,6 +515,12 @@ describe('Comptroller', function () {
       await expect(
         comptroller.connect(user).setAssetRouter(assetRouter.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('should revert: set zero asset router', async function () {
+      await expect(
+        comptroller.connect(owner).setAssetRouter(constants.AddressZero)
+      ).to.be.revertedWith('Comptroller: router zero address');
     });
   });
 

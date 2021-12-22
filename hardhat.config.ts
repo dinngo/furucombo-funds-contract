@@ -33,6 +33,11 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+  },
   networks: {
     beta: {
       url: process.env.BETA_URL || '',
@@ -51,6 +56,9 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  mocha: {
+    timeout: 900000,
   },
 };
 
