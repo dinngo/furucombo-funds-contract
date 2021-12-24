@@ -10,9 +10,9 @@ abstract contract ManagementFee {
     using ABDKMath64x64 for uint256;
 
     int128 private _feeRate64x64;
-    uint256 private constant FEE_BASE = 1e4;
-    int128 private constant FEE_BASE64x64 = 0x100000000;
-    uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
+    uint256 public constant FEE_BASE = 1e4;
+    int128 public constant FEE_BASE64x64 = 1 << 64;
+    uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 public lastMFeeClaimTime;
 
     /// @notice Set the management fee in a yearly basis.
@@ -31,7 +31,9 @@ abstract contract ManagementFee {
         private
         returns (int128)
     {
-        _feeRate64x64 = (uint256(1).fromUInt().sub(feeRate64x64))
+        _feeRate64x64 = uint256(1)
+            .fromUInt()
+            .sub(feeRate64x64)
             .ln()
             .neg()
             .div(FEE_PERIOD.fromUInt())
@@ -47,8 +49,8 @@ abstract contract ManagementFee {
     }
 
     /// @notice Get the calculated effective fee rate.
-    function getManagementFeeRate() public view returns (uint256 feeRate) {
-        return _feeRate64x64.toUInt();
+    function getManagementFeeRate() public view returns (int128 feeRate) {
+        return _feeRate64x64;
     }
 
     /// @notice Update the current management fee and mint to the manager right
