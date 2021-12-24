@@ -6,7 +6,10 @@ import { DS_PROXY_REGISTRY } from './utils/constants';
 
 async function increaseNextBlockTimeBy(interval: number) {
   const blockNumber = await ethers.provider.getBlockNumber();
-  const block = await ethers.provider.getBlock(blockNumber);
+  let block = null;
+  for (let i = 0; block == null; i++) {
+    block = await ethers.provider.getBlock(blockNumber - i);
+  }
   const jsonRpc = new ethers.providers.JsonRpcProvider();
   await jsonRpc.send('evm_setNextBlockTimestamp', [block.timestamp + interval]);
 }
