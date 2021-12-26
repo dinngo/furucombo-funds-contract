@@ -5,6 +5,8 @@ import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {LibFee} from "../libraries/LibFee.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 
+import "hardhat/console.sol";
+
 /// @title Performance fee implementation
 abstract contract PerformanceFee {
     using ABDKMath64x64 for int128;
@@ -13,7 +15,7 @@ abstract contract PerformanceFee {
 
     int128 private _feeRate64x64;
     uint256 private constant FEE_BASE = 1e4;
-    int128 private constant FEE_BASE64x64 = 0x100000000;
+    int128 private constant FEE_BASE64x64 = 1 << 64;
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 private constant FEE_DENOMINATOR = FEE_BASE * FEE_PERIOD;
     int128 private _hwm64x64; // should be a float point number
@@ -22,6 +24,15 @@ abstract contract PerformanceFee {
     uint256 private _lastOutstandingShare;
     uint256 private _crystallizationPeriod;
     uint256 private _lastCrystallization;
+    address private constant _OUTSTANDING_ACCOUNT = address(1);
+
+    function getFeeRate() public view returns (int128) {
+        return _feeRate64x64;
+    }
+
+    function getCrystallizationPeriod() public view returns (uint256) {
+        return _crystallizationPeriod;
+    }
 
     /// @notice Set the performance fee rate.
     /// @param feeRate The fee rate on a 1e4 basis.
@@ -30,6 +41,7 @@ abstract contract PerformanceFee {
         virtual
         returns (int128)
     {
+        require(feeRate < FEE_BASE, "rate should be less than 100%");
         _feeRate64x64 = feeRate.divu(FEE_BASE);
 
         return _feeRate64x64;
@@ -48,13 +60,17 @@ abstract contract PerformanceFee {
             block.timestamp > _lastCrystallization + _crystallizationPeriod,
             "Not yet"
         );
+        _updatePerformanceFee();
+        require(_feeSum > 0, "No fee to crystallize");
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
-        shareToken.move(address(0), manager, _lastOutstandingShare);
+        shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
+        _updateGrossSharePrice();
         uint256 result = _lastOutstandingShare;
         _lastOutstandingShare = 0;
         _feeSum = 0;
         _lastCrystallization = block.timestamp;
+        _hwm64x64 = _lastGrossSharePrice64x64;
         return result;
     }
 
@@ -65,6 +81,9 @@ abstract contract PerformanceFee {
         // Get accumulated wealth
         uint256 grossAssetValue = __getGrossAssetValue();
         uint256 totalShare = shareToken.grossTotalShare();
+        if (totalShare == 0) {
+            return;
+        }
         int128 grossSharePrice64x64 = grossAssetValue.divu(totalShare);
         int256 wealth = LibFee
             ._max64x64(_hwm64x64, grossSharePrice64x64)
@@ -76,12 +95,12 @@ abstract contract PerformanceFee {
         uint256 outstandingShare = (totalShare * _feeSum) / netAssetValue;
         if (outstandingShare > _lastOutstandingShare) {
             shareToken.mint(
-                address(0),
+                _OUTSTANDING_ACCOUNT,
                 outstandingShare - _lastOutstandingShare
             );
         } else {
             shareToken.burn(
-                address(0),
+                _OUTSTANDING_ACCOUNT,
                 _lastOutstandingShare - outstandingShare
             );
         }
@@ -89,6 +108,8 @@ abstract contract PerformanceFee {
         _lastGrossSharePrice64x64 = grossAssetValue.divu(
             totalShare + outstandingShare
         );
+        console.log("Price is");
+        console.logInt(_lastGrossSharePrice64x64);
     }
 
     /// @notice Update the gross share price as the basis for estimating the
@@ -98,6 +119,9 @@ abstract contract PerformanceFee {
         uint256 grossAssetValue = __getGrossAssetValue();
         uint256 totalShare = shareToken.grossTotalShare();
         _lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+        console.log("Price is");
+        console.logInt(_lastGrossSharePrice64x64);
+        if (_hwm64x64 == 0) _hwm64x64 = _lastGrossSharePrice64x64;
     }
 
     /// @notice Payout a portion of performance fee without the limitation of
@@ -106,10 +130,13 @@ abstract contract PerformanceFee {
     function _redemptionPayout(uint256 amount) internal virtual {
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
-        uint256 totalShare = shareToken.grossTotalShare();
+        uint256 totalShare = shareToken.netTotalShare();
+        console.log("totalShare is %s, amount is %s", totalShare, amount);
         uint256 payout = (_lastOutstandingShare * amount) / totalShare;
+        console.log("payout is %s", payout);
         uint256 fee = (_feeSum * amount) / totalShare;
-        shareToken.move(address(0), manager, payout);
+        console.log("fee is %s", fee);
+        shareToken.move(_OUTSTANDING_ACCOUNT, manager, payout);
         _lastOutstandingShare -= payout;
         _feeSum -= fee;
     }
