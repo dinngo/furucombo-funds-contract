@@ -1,55 +1,56 @@
-import { constants, Wallet, Signer, BigNumber } from 'ethers';
+import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,
   Chainlink,
-  IERC20,
-  RSushiSwap,
+  RUniSwapV2Like,
   IUniswapV2Pair,
-  IUniswapV2Router02,
 } from '../../typechain';
 
 import {
   USDC_TOKEN,
   DAI_TOKEN,
-  SUSHISWAP_WETH_DAI,
-  SUSHISWAP_ROUTER,
   WETH_TOKEN,
+  USDT_TOKEN,
+  WMATIC_TOKEN,
+  SUSHISWAP_USDC_WETH,
+  SUSHISWAP_USDC_USDT,
+  SUSHISWAP_WMATIC_WETH,
   CHAINLINK_ETH_USD,
   CHAINLINK_DAI_USD,
   CHAINLINK_USDC_USD,
+  CHAINLINK_USDT_USD,
+  CHAINLINK_MATIC_USD,
 } from '../utils/constants';
 
-import { ether, tokenProviderQuick } from '../utils/utils';
+import { ether, calcSqrt, expectEqWithinBps } from '../utils/utils';
 
 describe('RSushiSwap', function () {
-  const tokenAAddress = WETH_TOKEN;
-  const tokenBAddress = DAI_TOKEN;
-  const quoteAddress = USDC_TOKEN;
-  const lpTokenAddress = SUSHISWAP_WETH_DAI;
-  const aggregatorA = CHAINLINK_DAI_USD;
-  const aggregatorB = CHAINLINK_ETH_USD;
-  const aggregatorC = CHAINLINK_USDC_USD;
+  const tokenAAddress = USDT_TOKEN;
+  const tokenBAddress = WETH_TOKEN;
+  const tokenCAddress = WMATIC_TOKEN;
+  const quoteEq18Address = DAI_TOKEN;
+  const quoteLt18Address = USDC_TOKEN;
+
+  const lpTokenBoth18Address = SUSHISWAP_WMATIC_WETH;
+  const lpTokenBoth8Address = SUSHISWAP_USDC_USDT;
+  const lpTokenHalf8Address = SUSHISWAP_USDC_WETH;
+
+  const tokenAAggregator = CHAINLINK_USDT_USD;
+  const tokenBAggregator = CHAINLINK_ETH_USD;
+  const tokenCAggregator = CHAINLINK_MATIC_USD;
+  const quoteEq18Aggregator = CHAINLINK_DAI_USD;
+  const quoteLt18Aggregator = CHAINLINK_USDC_USD;
 
   let owner: Wallet;
   let user: Wallet;
 
-  let tokenA: IERC20;
-  let tokenB: IERC20;
-  let lpToken: IERC20;
-  let tokenAProvider: Signer;
-  let tokenBProvider: Signer;
-
   let registry: AssetRegistry;
-  let resolver: RSushiSwap;
+  let resolver: RUniSwapV2Like;
   let router: AssetRouter;
   let oracle: Chainlink;
-
-  let pair: IUniswapV2Pair;
-  let sushiRouter: IUniswapV2Router02;
-  let lpAmount: BigNumber;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -57,13 +58,9 @@ describe('RSushiSwap', function () {
       [owner, user] = await (ethers as any).getSigners();
 
       // Setup token and unlock provider
-      tokenAProvider = await tokenProviderQuick(tokenAAddress);
-      tokenBProvider = await tokenProviderQuick(tokenBAddress);
-      tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
-      tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
-      lpToken = await ethers.getContractAt('IERC20', lpTokenAddress);
-
-      resolver = await (await ethers.getContractFactory('RSushiSwap')).deploy();
+      resolver = await (
+        await ethers.getContractFactory('RUniSwapV2Like')
+      ).deploy();
       await resolver.deployed();
 
       const rCanonical = await (
@@ -75,17 +72,34 @@ describe('RSushiSwap', function () {
         await ethers.getContractFactory('AssetRegistry')
       ).deploy();
       await registry.deployed();
-      await registry.register(lpToken.address, resolver.address);
-      await registry.register(tokenA.address, rCanonical.address);
-      await registry.register(tokenB.address, rCanonical.address);
+      await registry.register(lpTokenBoth18Address, resolver.address);
+      await registry.register(lpTokenBoth8Address, resolver.address);
+      await registry.register(lpTokenHalf8Address, resolver.address);
+      await registry.register(tokenAAddress, rCanonical.address);
+      await registry.register(tokenBAddress, rCanonical.address);
+      await registry.register(tokenCAddress, rCanonical.address);
+      await registry.register(quoteEq18Address, rCanonical.address);
+      await registry.register(quoteLt18Address, rCanonical.address);
 
       oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
       await oracle.deployed();
       await oracle
         .connect(owner)
         .addAssets(
-          [tokenA.address, tokenB.address, quoteAddress],
-          [aggregatorA, aggregatorB, aggregatorC]
+          [
+            tokenAAddress,
+            tokenBAddress,
+            tokenCAddress,
+            quoteEq18Address,
+            quoteLt18Address,
+          ],
+          [
+            tokenAAggregator,
+            tokenBAggregator,
+            tokenCAggregator,
+            quoteEq18Aggregator,
+            quoteLt18Aggregator,
+          ]
         );
 
       router = await (
@@ -93,33 +107,6 @@ describe('RSushiSwap', function () {
       ).deploy(oracle.address, registry.address);
       await router.deployed();
       expect(await router.oracle()).to.be.eq(oracle.address);
-
-      pair = await ethers.getContractAt('IUniswapV2Pair', lpTokenAddress);
-      sushiRouter = await ethers.getContractAt(
-        'IUniswapV2Router02',
-        SUSHISWAP_ROUTER
-      );
-
-      // Deposit to get lp token
-      const amount = ether('50');
-      await tokenA.connect(tokenAProvider).transfer(user.address, amount);
-      await tokenA.connect(user).approve(sushiRouter.address, amount);
-      await tokenB.connect(tokenBProvider).transfer(user.address, amount);
-      await tokenB.connect(user).approve(sushiRouter.address, amount);
-
-      await sushiRouter
-        .connect(user)
-        .addLiquidity(
-          tokenA.address,
-          tokenB.address,
-          ether('1'),
-          ether('1'),
-          1,
-          1,
-          user.address,
-          (await ethers.provider.getBlock('latest')).timestamp + 100
-        );
-      lpAmount = await pair.balanceOf(user.address);
     }
   );
 
@@ -128,91 +115,228 @@ describe('RSushiSwap', function () {
   });
 
   describe('calculate asset value ', function () {
-    it('normal', async function () {
-      const assets = [lpToken.address];
-      const amounts = [lpAmount];
-      const quote = quoteAddress;
+    it('normal: two tokens(=18 decimal) with quote(= 18 decimal)', async function () {
+      const asset = lpTokenBoth18Address;
+      const amount = ether('1.12');
+      const quote = quoteEq18Address;
 
-      // calculate expected value
-      await lpToken.connect(user).approve(sushiRouter.address, amounts[0]);
+      // Calculate expect value
+      const pair = await ethers.getContractAt('IUniswapV2Pair', asset);
+      const weightedGeometricMeanValue = await _getWeightedGeometricMean(
+        pair,
+        amount,
+        quote
+      );
+      const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
-      // get asset value by asset resolver
+      // Get asset value by asset resolver
       const assetValue = await router
         .connect(user)
-        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
+        .callStatic.calcAssetValue(asset, amount, quote);
 
-      // execute remove liquidity to get return amount to calculate
-      const tokenAUserBefore = await tokenA.balanceOf(user.address);
-      const tokenBUserBefore = await tokenB.balanceOf(user.address);
-      await sushiRouter
-        .connect(user)
-        .removeLiquidity(
-          tokenA.address,
-          tokenB.address,
-          amounts[0],
-          1,
-          1,
-          user.address,
-          (await ethers.provider.getBlock('latest')).timestamp + 100
-        );
-
-      const token0Value = await oracle.calcConversionAmount(
-        tokenA.address,
-        (await tokenA.balanceOf(user.address)).sub(tokenAUserBefore),
-        quote
-      );
-
-      const token1Value = await oracle.calcConversionAmount(
-        tokenB.address,
-        (await tokenB.balanceOf(user.address)).sub(tokenBUserBefore),
-        quote
-      );
-
-      // Verify;
-      expect(assetValue).to.be.eq(token0Value.add(token1Value));
+      // Verify
+      expect(assetValue).to.be.eq(weightedGeometricMeanValue);
+      expectEqWithinBps(assetValue, arithmeticMeanValue, 1);
     });
 
-    it('max amount', async function () {
-      const assets = [lpToken.address];
-      const amount = lpAmount;
-      const amounts = [constants.MaxUint256];
-      const quote = quoteAddress;
+    it('normal: two tokens(=18 decimal) with quote(< 18 decimal)', async function () {
+      const asset = lpTokenBoth18Address;
+      const amount = ether('1.12');
+      const quote = quoteLt18Address;
 
-      // Execution
-      await lpToken.connect(user).approve(sushiRouter.address, amount);
+      // Calculate expect value
+      const pair = await ethers.getContractAt('IUniswapV2Pair', asset);
+      const weightedGeometricMeanValue = await _getWeightedGeometricMean(
+        pair,
+        amount,
+        quote
+      );
+      const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
+
+      // Get asset value by asset resolver
       const assetValue = await router
         .connect(user)
-        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
+        .callStatic.calcAssetValue(asset, amount, quote);
 
-      // execute remove liquidity to get return amount to calculate
-      const tokenAUserBefore = await tokenA.balanceOf(user.address);
-      const tokenBUserBefore = await tokenB.balanceOf(user.address);
-      await sushiRouter
+      expect(assetValue).to.be.eq(weightedGeometricMeanValue);
+      expectEqWithinBps(assetValue, arithmeticMeanValue, 1);
+    });
+
+    it('normal: one (<18 decimal) of tokens with quote(= 18 decimal)', async function () {
+      const asset = lpTokenHalf8Address;
+      const amount = ether('1.12');
+      const quote = quoteEq18Address;
+
+      // Calculate expect value
+      const pair = await ethers.getContractAt('IUniswapV2Pair', asset);
+      const weightedGeometricMeanValue = await _getWeightedGeometricMean(
+        pair,
+        amount,
+        quote
+      );
+      const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
+
+      // Get asset value by asset resolver
+      const assetValue = await router
         .connect(user)
-        .removeLiquidity(
-          tokenA.address,
-          tokenB.address,
-          amount,
-          1,
-          1,
-          user.address,
-          (await ethers.provider.getBlock('latest')).timestamp + 100
-        );
+        .callStatic.calcAssetValue(asset, amount, quote);
 
-      const token0Value = await oracle.calcConversionAmount(
-        tokenA.address,
-        (await tokenA.balanceOf(user.address)).sub(tokenAUserBefore),
+      // Verify
+      expect(assetValue).to.be.eq(weightedGeometricMeanValue);
+      expectEqWithinBps(assetValue, arithmeticMeanValue, 1);
+    });
+
+    it('normal: one (<18 decimal) of tokens with quote(< 18 decimal)', async function () {
+      const asset = lpTokenHalf8Address;
+      const amount = ether('1.12');
+      const quote = quoteLt18Address;
+
+      // Calculate expect value
+      const pair = await ethers.getContractAt('IUniswapV2Pair', asset);
+      const weightedGeometricMeanValue = await _getWeightedGeometricMean(
+        pair,
+        amount,
         quote
       );
+      const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
-      const token1Value = await oracle.calcConversionAmount(
-        tokenB.address,
-        (await tokenB.balanceOf(user.address)).sub(tokenBUserBefore),
+      // Get asset value by asset resolver
+      const assetValue = await router
+        .connect(user)
+        .callStatic.calcAssetValue(asset, amount, quote);
+
+      // Verify
+      expect(assetValue).to.be.eq(weightedGeometricMeanValue);
+      expectEqWithinBps(assetValue, arithmeticMeanValue, 1);
+    });
+
+    it('normal: two tokens(<18 decimal) with quote(= 18 decimal)', async function () {
+      const asset = lpTokenBoth8Address;
+      const amount = ether('1.12');
+      const quote = quoteEq18Address;
+
+      // Calculate expect value
+      const pair = await ethers.getContractAt('IUniswapV2Pair', asset);
+      const weightedGeometricMeanValue = await _getWeightedGeometricMean(
+        pair,
+        amount,
         quote
       );
+      const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
-      // Verify;
-      expect(assetValue).to.be.eq(token0Value.add(token1Value));
+      // Get asset value by asset resolver
+      const assetValue = await router
+        .connect(user)
+        .callStatic.calcAssetValue(asset, amount, quote);
+
+      // Verify
+      expect(assetValue).to.be.eq(weightedGeometricMeanValue);
+      expectEqWithinBps(assetValue, arithmeticMeanValue, 1);
+    });
+
+    it('normal: two tokens(<18 decimal) with quote(< 18 decimal)', async function () {
+      const asset = lpTokenBoth8Address;
+      const amount = ether('1.12');
+      const quote = quoteLt18Address;
+
+      // Calculate expect value
+      const pair = await ethers.getContractAt('IUniswapV2Pair', asset);
+      const weightedGeometricMeanValue = await _getWeightedGeometricMean(
+        pair,
+        amount,
+        quote
+      );
+      const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
+
+      // Get asset value by asset resolver
+      const assetValue = await router
+        .connect(user)
+        .callStatic.calcAssetValue(asset, amount, quote);
+
+      // Verify
+      expect(assetValue).to.be.eq(weightedGeometricMeanValue);
+      expectEqWithinBps(assetValue, arithmeticMeanValue, 1);
     });
   });
+
+  async function _getArithmeticMean(
+    pair: IUniswapV2Pair,
+    amount: BigNumber,
+    quote: string
+  ) {
+    const Bone = ether('1');
+    const totalSupply = await _getTotalSupplyAtWithdrawal(pair);
+    const [reserve0, reserve1] = await pair.getReserves();
+    const reserve0Value = await oracle.calcConversionAmount(
+      await pair.token0(),
+      reserve0,
+      quote
+    );
+
+    const reserve1Value = await oracle.calcConversionAmount(
+      await pair.token1(),
+      reserve1,
+      quote
+    );
+
+    const expectValue = reserve0Value
+      .add(reserve1Value)
+      .mul(amount)
+      .mul(Bone)
+      .div(totalSupply)
+      .div(Bone);
+    return expectValue;
+  }
+
+  async function _getWeightedGeometricMean(
+    pair: IUniswapV2Pair,
+    amount: BigNumber,
+    quote: string
+  ) {
+    const Bone = ether('1');
+    const [reserve0, reserve1] = await pair.getReserves();
+    const reserve0Value = await oracle.calcConversionAmount(
+      await pair.token0(),
+      reserve0,
+      quote
+    );
+    const reserve1Value = await oracle.calcConversionAmount(
+      await pair.token1(),
+      reserve1,
+      quote
+    );
+    const square = calcSqrt(reserve0Value.mul(reserve1Value));
+    const totalSupply = await _getTotalSupplyAtWithdrawal(pair);
+    const totalValueQuote = BigNumber.from('2')
+      .mul(square)
+      .mul(amount)
+      .mul(Bone);
+    const expectValue = totalValueQuote.div(totalSupply).div(Bone);
+    return expectValue;
+  }
+
+  async function _getTotalSupplyAtWithdrawal(pair: IUniswapV2Pair) {
+    let totalSupply = await pair.totalSupply();
+    const factory = await ethers.getContractAt(
+      'IUniswapV2Factory',
+      await pair.factory()
+    );
+    const feeTo = await factory.feeTo();
+
+    if (feeTo !== constants.AddressZero) {
+      const kLast = await pair.kLast();
+      if (kLast.gt(0)) {
+        const [reserve0, reserve1] = await pair.getReserves();
+        const rootK = calcSqrt(reserve0.mul(reserve1));
+        const rootKLast = calcSqrt(kLast);
+        if (rootK.gt(rootKLast)) {
+          const numerator = totalSupply.mul(rootK.sub(rootKLast));
+          const denominator = rootK.mul(BigNumber.from(5)).add(rootKLast);
+          const liquidity = numerator.div(denominator);
+          totalSupply = totalSupply.add(liquidity);
+        }
+      }
+    }
+    return totalSupply;
+  }
 });

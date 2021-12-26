@@ -247,3 +247,19 @@ export function padRightZero(s: string, length: any) {
   }
   return s;
 }
+
+export function calcSqrt(y: BigNumber) {
+  let z = BigNumber.from(0);
+  if (y.gt(3)) {
+    z = y;
+    let x = y.div(BigNumber.from(2)).add(BigNumber.from(1));
+    while (x.lt(z)) {
+      z = x;
+      x = y.div(x).add(x).div(BigNumber.from(2));
+    }
+  } else if (!y.eq(0)) {
+    z = BigNumber.from(1);
+  }
+
+  return z;
+}
