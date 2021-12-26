@@ -27,10 +27,23 @@ contract ShareToken is ERC20Permit, Ownable {
     }
 
     function netTotalShare() external view returns (uint256) {
-        return totalSupply();
+        return totalSupply() - balanceOf(address(1));
     }
 
     function grossTotalShare() external view returns (uint256) {
-        return totalSupply() - balanceOf(address(0));
+        return totalSupply();
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        if (to == address(1)) {
+            if (from != address(0)) {
+                revert("invalid to");
+            }
+        }
+        super._beforeTokenTransfer(from, to, amount);
     }
 }
