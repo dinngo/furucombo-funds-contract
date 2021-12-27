@@ -18,18 +18,18 @@ abstract contract PerformanceFee {
     int128 private constant FEE_BASE64x64 = 1 << 64;
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 private constant FEE_DENOMINATOR = FEE_BASE * FEE_PERIOD;
-    int128 private _hwm64x64; // should be a float point number
-    int128 private _lastGrossSharePrice64x64;
+    int128 public hwm64x64; // should be a float point number
+    int128 public lastGrossSharePrice64x64;
     uint256 private _feeSum;
     uint256 private _lastOutstandingShare;
     uint256 private _crystallizationPeriod;
-    uint256 private _lastCrystallization;
+    uint256 private lastCrystallization;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
 
     function initializePerformanceFee() public virtual {
-        _lastGrossSharePrice64x64 = 1 << 64;
-        _hwm64x64 = _lastGrossSharePrice64x64;
-        _lastCrystallization = block.timestamp;
+        lastGrossSharePrice64x64 = 1 << 64;
+        hwm64x64 = lastGrossSharePrice64x64;
+        lastCrystallization = block.timestamp;
     }
 
     function getFeeRate() public view returns (int128) {
@@ -63,7 +63,7 @@ abstract contract PerformanceFee {
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
         require(
-            block.timestamp > _lastCrystallization + _crystallizationPeriod,
+            block.timestamp > lastCrystallization + _crystallizationPeriod,
             "Not yet"
         );
         _updatePerformanceFee();
@@ -75,8 +75,8 @@ abstract contract PerformanceFee {
         uint256 result = _lastOutstandingShare;
         _lastOutstandingShare = 0;
         _feeSum = 0;
-        _lastCrystallization = block.timestamp;
-        _hwm64x64 = _lastGrossSharePrice64x64;
+        lastCrystallization = block.timestamp;
+        hwm64x64 = lastGrossSharePrice64x64;
         return result;
     }
 
@@ -92,8 +92,8 @@ abstract contract PerformanceFee {
         }
         int128 grossSharePrice64x64 = grossAssetValue.divu(totalShare);
         int256 wealth = LibFee
-            ._max64x64(_hwm64x64, grossSharePrice64x64)
-            .sub(LibFee._max64x64(_hwm64x64, _lastGrossSharePrice64x64))
+            ._max64x64(hwm64x64, grossSharePrice64x64)
+            .sub(LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64))
             .muli(int256(totalShare));
         int256 fee = _feeRate64x64.muli(wealth);
         _feeSum = uint256(LibFee._max(0, int256(_feeSum) + fee));
@@ -111,11 +111,11 @@ abstract contract PerformanceFee {
             );
         }
         _lastOutstandingShare = outstandingShare;
-        _lastGrossSharePrice64x64 = grossAssetValue.divu(
+        lastGrossSharePrice64x64 = grossAssetValue.divu(
             totalShare + outstandingShare
         );
         console.log("Price is");
-        console.logInt(_lastGrossSharePrice64x64);
+        console.logInt(lastGrossSharePrice64x64);
     }
 
     /// @notice Update the gross share price as the basis for estimating the
@@ -124,9 +124,9 @@ abstract contract PerformanceFee {
         IShareToken shareToken = __getShareToken();
         uint256 grossAssetValue = __getGrossAssetValue();
         uint256 totalShare = shareToken.grossTotalShare();
-        _lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+        lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
         console.log("Price is");
-        console.logInt(_lastGrossSharePrice64x64);
+        console.logInt(lastGrossSharePrice64x64);
     }
 
     /// @notice Payout a portion of performance fee without the limitation of
