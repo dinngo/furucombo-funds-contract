@@ -26,6 +26,12 @@ abstract contract PerformanceFee {
     uint256 private _lastCrystallization;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
 
+    function initializePerformanceFee() public virtual {
+        _lastGrossSharePrice64x64 = 1 << 64;
+        _hwm64x64 = _lastGrossSharePrice64x64;
+        _lastCrystallization = block.timestamp;
+    }
+
     function getFeeRate() public view returns (int128) {
         return _feeRate64x64;
     }
@@ -121,7 +127,6 @@ abstract contract PerformanceFee {
         _lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
         console.log("Price is");
         console.logInt(_lastGrossSharePrice64x64);
-        if (_hwm64x64 == 0) _hwm64x64 = _lastGrossSharePrice64x64;
     }
 
     /// @notice Payout a portion of performance fee without the limitation of
