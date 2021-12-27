@@ -152,6 +152,7 @@ describe('Performance fee', function () {
           expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
         });
 
+        // Might be wrong on calculation
         it('should get fee when user redeem separately', async function () {
           const redeemShare = totalShare.div(2);
           await performanceFee.redemptionPayout(redeemShare);

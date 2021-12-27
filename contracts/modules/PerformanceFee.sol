@@ -5,8 +5,6 @@ import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {LibFee} from "../libraries/LibFee.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 
-import "hardhat/console.sol";
-
 /// @title Performance fee implementation
 abstract contract PerformanceFee {
     using ABDKMath64x64 for int128;
@@ -111,11 +109,8 @@ abstract contract PerformanceFee {
             );
         }
         _lastOutstandingShare = outstandingShare;
-        lastGrossSharePrice64x64 = grossAssetValue.divu(
-            totalShare + outstandingShare
-        );
-        console.log("Price is");
-        console.logInt(lastGrossSharePrice64x64);
+        totalShare = shareToken.grossTotalShare();
+        lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
     }
 
     /// @notice Update the gross share price as the basis for estimating the
@@ -125,8 +120,6 @@ abstract contract PerformanceFee {
         uint256 grossAssetValue = __getGrossAssetValue();
         uint256 totalShare = shareToken.grossTotalShare();
         lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
-        console.log("Price is");
-        console.logInt(lastGrossSharePrice64x64);
     }
 
     /// @notice Payout a portion of performance fee without the limitation of
@@ -136,11 +129,8 @@ abstract contract PerformanceFee {
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
         uint256 totalShare = shareToken.netTotalShare();
-        console.log("totalShare is %s, amount is %s", totalShare, amount);
         uint256 payout = (_lastOutstandingShare * amount) / totalShare;
-        console.log("payout is %s", payout);
         uint256 fee = (_feeSum * amount) / totalShare;
-        console.log("fee is %s", fee);
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, payout);
         _lastOutstandingShare -= payout;
         _feeSum -= fee;

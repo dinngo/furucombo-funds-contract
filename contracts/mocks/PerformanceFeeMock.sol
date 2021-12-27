@@ -6,8 +6,6 @@ import {LibFee} from "../libraries/LibFee.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 import {PerformanceFee} from "../modules/PerformanceFee.sol";
 
-import "hardhat/console.sol";
-
 contract PerformanceFeeMock is PerformanceFee {
     using ABDKMath64x64 for uint256;
 
