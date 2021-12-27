@@ -33,7 +33,7 @@ contract ManagementFeeMock is ManagementFee {
     }
 
     function getFeeBase() public pure returns (uint256) {
-        return FEE_BASE;
+        return 1e4;
     }
 
     function getRateBase() public pure returns (int128) {
@@ -41,7 +41,7 @@ contract ManagementFeeMock is ManagementFee {
     }
 
     function getFeePeriod() public pure returns (uint256) {
-        return FEE_PERIOD;
+        return 31557600;
     }
 
     function mintShareToken(address user, uint256 share) public {
