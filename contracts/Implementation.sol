@@ -11,6 +11,7 @@ import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
+import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
@@ -95,8 +96,19 @@ contract Implementation is
         override(FeeModule, ShareModule)
         returns (uint256)
     {
-        this;
-        return 0;
+        address[] memory assets = getAssetList();
+        uint256 length = assets.length;
+        uint256[] memory amounts = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            amounts[i] = IERC20(assets[i]).balanceOf(address(vault));
+        }
+
+        return
+            IAssetRouter(comptroller.assetRouter()).calcAssetsTotalValue(
+                assets,
+                amounts,
+                address(denomination)
+            );
     }
 
     /////////////////////////////////////////////////////
@@ -105,27 +117,37 @@ contract Implementation is
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function addAsset(address asset) public override {
-        uint256 value = getAssetValue(asset);
-        require(value > 0, "No such asset");
+        require(
+            comptroller.validateDealingAsset(level, asset),
+            "Invalid asset"
+        );
+        int256 value = getAssetValue(asset);
+        // FIXME: positive value should be more than dust
+        require(value != 0, "No such asset");
         super.addAsset(asset);
     }
 
     /// @notice Remove the asset from the tracking list.
     /// @param asset The asset to be removed.
     function removeAsset(address asset) public override {
-        uint256 value = getAssetValue(asset);
-        // Should be less than dust
-        require(value == 0, "Remain asset");
+        int256 value = getAssetValue(asset);
+        // FIXME: positive value should be less than dust
+        require(value == 0, "Remaining asset");
         super.removeAsset(asset);
     }
 
     /// @notice Get the value of a give asset.
     /// @param asset The asset to be queried.
-    function getAssetValue(address asset) public view returns (uint256) {
-        // Should query asset value as denomination asset
-        asset;
-        this;
-        return 0;
+    function getAssetValue(address asset) public view returns (int256) {
+        uint256 balance = IERC20(asset).balanceOf(address(vault));
+        if (balance == 0) return 0;
+
+        return
+            IAssetRouter(comptroller.assetRouter()).calcAssetValue(
+                asset,
+                balance,
+                address(denomination)
+            );
     }
 
     /////////////////////////////////////////////////////

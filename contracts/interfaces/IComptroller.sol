@@ -26,6 +26,11 @@ interface IComptroller is IBeacon {
 
     function execFeeCollector() external view returns (address);
 
+    function validateDealingAsset(uint256 level, address asset)
+        external
+        view
+        returns (bool);
+
     function validateDealingAssets(uint256 level, address[] calldata assets)
         external
         view
@@ -35,6 +40,8 @@ interface IComptroller is IBeacon {
         external
         view
         returns (bool);
+
+    function assetRouter() external view returns (address);
 
     function execAction() external view returns (address);
 

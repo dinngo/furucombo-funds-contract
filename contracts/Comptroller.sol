@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {Whitelist} from "./libraries/Whitelist.sol";
+import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 
 contract Comptroller is UpgradeableBeacon {
     using Whitelist for Whitelist.ActionWList;
@@ -12,11 +13,11 @@ contract Comptroller is UpgradeableBeacon {
     // Variable
     bool public fHalt;
     bool public fInitialAssetCheck;
-    address public assetRouter;
     address public execAction;
     address public setupAction;
     address public execFeeCollector;
     uint256 public execFeePercentage;
+    IAssetRouter public assetRouter;
 
     // Map
     mapping(address => bool) public denomination;
@@ -69,7 +70,7 @@ contract Comptroller is UpgradeableBeacon {
     // Public Function
     constructor(
         address implementation_,
-        address assetRouter_,
+        IAssetRouter assetRouter_,
         address execFeeCollector_
     ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
@@ -156,10 +157,13 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Asset Router
-    function setAssetRouter(address _assetRouter) external onlyOwner {
-        require(_assetRouter != address(0), "Comptroller: router zero address");
+    function setAssetRouter(IAssetRouter _assetRouter) external onlyOwner {
+        require(
+            address(_assetRouter) != address(0),
+            "Comptroller: router zero address"
+        );
         assetRouter = _assetRouter;
-        emit SetAssetRouter(_assetRouter);
+        emit SetAssetRouter(address(_assetRouter));
     }
 
     // Action
