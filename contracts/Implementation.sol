@@ -11,6 +11,7 @@ import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
+import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
@@ -103,7 +104,7 @@ contract Implementation is
         }
 
         return
-            comptroller.assetRouter().calcAssetsTotalValue(
+            IAssetRouter(comptroller.assetRouter()).calcAssetsTotalValue(
                 assets,
                 amounts,
                 address(denomination)
@@ -121,8 +122,10 @@ contract Implementation is
             "Invalid asset"
         );
         int256 value = getAssetValue(asset);
+
         int256 dust = int256(comptroller.getDenominationDust(asset));
         require(value > dust || value < 0, "No such asset");
+
         super.addAsset(asset);
     }
 

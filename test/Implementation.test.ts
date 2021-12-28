@@ -23,7 +23,10 @@ import { simpleEncode, tokenProviderQuick } from './utils/utils';
 describe('Implementation', function () {
   const denominationAddress = USDC_TOKEN;
   const denominationAggregator = CHAINLINK_USDC_USD;
+<<<<<<< HEAD
   const denominationDust = ethers.utils.parseUnits('0.1', 6);
+=======
+>>>>>>> Integrate asset router to Implementation contract
   const tokenAAddress = WETH_TOKEN;
   const tokenBAddress = WBTC_TOKEN;
   const aggregatorA = CHAINLINK_ETH_USD;
@@ -91,10 +94,13 @@ describe('Implementation', function () {
 
       // Initialization
       await implementation.setComptroller(comptroller.address);
+<<<<<<< HEAD
       await comptroller.permitDenominations(
         [denomination.address],
         [denominationDust]
       );
+=======
+>>>>>>> Integrate asset router to Implementation contract
       await implementation.setDenomination(denomination.address);
       await implementation.setDSProxy();
       vault = await ethers.getContractAt(
@@ -138,6 +144,7 @@ describe('Implementation', function () {
           implementation.addAsset(tokenA.address)
         ).to.be.revertedWith('No such asset');
       });
+<<<<<<< HEAD
 
       it('should revert: dust balance of asset', async function () {
         await comptroller.permitAssets(level, [tokenA.address]);
@@ -148,6 +155,8 @@ describe('Implementation', function () {
           implementation.addAsset(tokenA.address)
         ).to.be.revertedWith('No such asset');
       });
+=======
+>>>>>>> Integrate asset router to Implementation contract
     });
 
     describe('remove asset', function () {
@@ -175,6 +184,7 @@ describe('Implementation', function () {
         expect(await implementation.getAssetList()).to.be.deep.eq([]);
       });
 
+<<<<<<< HEAD
       it('dust balance of asset', async function () {
         // Drain vault by sending token back to owner
         const data = simpleEncode('transfer(address,uint256)', [
@@ -186,6 +196,8 @@ describe('Implementation', function () {
         expect(await implementation.getAssetList()).to.be.deep.eq([]);
       });
 
+=======
+>>>>>>> Integrate asset router to Implementation contract
       it('should revert: non-zero balance of asset', async function () {
         await expect(
           implementation.removeAsset(tokenA.address)
