@@ -51,13 +51,13 @@ contract AssetRouter is IAssetRouter, Ownable {
         uint256 amount,
         address quote
     ) public view returns (int256) {
+        uint256 assetAmount = _getAssetAmount(asset, amount);
+        if (assetAmount == 0) {
+            return 0;
+        }
+
         IAssetResolver resolver = IAssetResolver(registry.resolvers(asset));
-        return
-            resolver.calcAssetValue(
-                asset,
-                _getAssetAmount(asset, amount),
-                quote
-            );
+        return resolver.calcAssetValue(asset, assetAmount, quote);
     }
 
     function _getAssetAmount(address asset, uint256 amount)

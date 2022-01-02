@@ -18,7 +18,7 @@ contract AssetResolverBase {
     }
 
     function _getAssetOracle() internal view returns (IAssetOracle) {
-        return IAssetOracle(IAssetRouter(msg.sender).oracle());
+        return IAssetRouter(msg.sender).oracle();
     }
 
     function _calcAssetValue(

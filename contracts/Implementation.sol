@@ -48,7 +48,7 @@ contract Implementation is
         uint256 crystallizationPeriod_,
         uint256 reserveExecution_,
         address newOwner
-    ) external {
+    ) external checkReady {
         _setLevel(level_);
         _setComptroller(comptroller_);
         _setDenomination(denomination_);

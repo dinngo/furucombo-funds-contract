@@ -78,10 +78,12 @@ contract Comptroller is UpgradeableBeacon {
     constructor(
         address implementation_,
         IAssetRouter assetRouter_,
-        address execFeeCollector_
+        address execFeeCollector_,
+        uint256 execFeePercentage_
     ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
         execFeeCollector = execFeeCollector_;
+        execFeePercentage = execFeePercentage_;
         fInitialAssetCheck = true;
         this;
     }
