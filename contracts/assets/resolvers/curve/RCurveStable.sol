@@ -2,7 +2,6 @@
 pragma solidity 0.8.9;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IAssetRouter} from "../../interfaces/IAssetRouter.sol";
 import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
 import {ICurveLiquidityPool} from "./ICurveLiquidityPool.sol";

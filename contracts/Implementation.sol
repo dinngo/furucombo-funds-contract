@@ -11,7 +11,6 @@ import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
-import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
@@ -104,7 +103,7 @@ contract Implementation is
         }
 
         return
-            IAssetRouter(comptroller.assetRouter()).calcAssetsTotalValue(
+            comptroller.assetRouter().calcAssetsTotalValue(
                 assets,
                 amounts,
                 address(denomination)
@@ -143,7 +142,7 @@ contract Implementation is
         if (balance == 0) return 0;
 
         return
-            IAssetRouter(comptroller.assetRouter()).calcAssetValue(
+            comptroller.assetRouter().calcAssetValue(
                 asset,
                 balance,
                 address(denomination)
