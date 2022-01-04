@@ -19,13 +19,15 @@ abstract contract PerformanceFee {
     int128 public hwm64x64; // should be a float point number
     int128 public lastGrossSharePrice64x64;
     uint256 private _feeSum;
+    uint256 private _feeSet;
     uint256 private _lastOutstandingShare;
     uint256 private _crystallizationPeriod;
     uint256 private lastCrystallization;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
+    address private constant _FINALIZED_ACCOUNT = address(2);
 
     function initializePerformanceFee() public virtual {
-        lastGrossSharePrice64x64 = 1 << 64;
+        lastGrossSharePrice64x64 = FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
         lastCrystallization = block.timestamp;
     }
@@ -65,14 +67,16 @@ abstract contract PerformanceFee {
             "Not yet"
         );
         _updatePerformanceFee();
-        require(_feeSum > 0, "No fee to crystallize");
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
+        uint256 finalizedShare = shareToken.balanceOf(_FINALIZED_ACCOUNT);
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
+        shareToken.move(_FINALIZED_ACCOUNT, manager, finalizedShare);
         _updateGrossSharePrice();
         uint256 result = _lastOutstandingShare;
         _lastOutstandingShare = 0;
         _feeSum = 0;
+        _feeSet = 0;
         lastCrystallization = block.timestamp;
         hwm64x64 = lastGrossSharePrice64x64;
         return result;
@@ -84,7 +88,7 @@ abstract contract PerformanceFee {
         IShareToken shareToken = __getShareToken();
         // Get accumulated wealth
         uint256 grossAssetValue = __getGrossAssetValue();
-        uint256 totalShare = shareToken.grossTotalShare();
+        uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
             return;
         }
@@ -95,7 +99,7 @@ abstract contract PerformanceFee {
             .muli(int256(totalShare));
         int256 fee = _feeRate64x64.muli(wealth);
         _feeSum = uint256(LibFee._max(0, int256(_feeSum) + fee));
-        uint256 netAssetValue = grossAssetValue - _feeSum;
+        uint256 netAssetValue = grossAssetValue - _feeSum - _feeSet;
         uint256 outstandingShare = (totalShare * _feeSum) / netAssetValue;
         if (outstandingShare > _lastOutstandingShare) {
             shareToken.mint(
@@ -109,7 +113,6 @@ abstract contract PerformanceFee {
             );
         }
         _lastOutstandingShare = outstandingShare;
-        totalShare = shareToken.grossTotalShare();
         lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
     }
 
@@ -118,8 +121,12 @@ abstract contract PerformanceFee {
     function _updateGrossSharePrice() internal virtual {
         IShareToken shareToken = __getShareToken();
         uint256 grossAssetValue = __getGrossAssetValue();
-        uint256 totalShare = shareToken.grossTotalShare();
-        lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+        uint256 totalShare = shareToken.netTotalShare();
+        if (totalShare == 0) {
+            lastGrossSharePrice64x64 = FEE_BASE64x64;
+        } else {
+            lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+        }
     }
 
     /// @notice Payout a portion of performance fee without the limitation of
@@ -127,13 +134,13 @@ abstract contract PerformanceFee {
     /// @param amount The share amount being redeemed.
     function _redemptionPayout(uint256 amount) internal virtual {
         IShareToken shareToken = __getShareToken();
-        address manager = __getManager();
         uint256 totalShare = shareToken.netTotalShare();
         uint256 payout = (_lastOutstandingShare * amount) / totalShare;
         uint256 fee = (_feeSum * amount) / totalShare;
-        shareToken.move(_OUTSTANDING_ACCOUNT, manager, payout);
+        shareToken.move(_OUTSTANDING_ACCOUNT, _FINALIZED_ACCOUNT, payout);
         _lastOutstandingShare -= payout;
         _feeSum -= fee;
+        _feeSet += fee;
     }
 
     /// @notice Get the share token of the pool.

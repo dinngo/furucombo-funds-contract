@@ -27,7 +27,7 @@ contract ShareToken is ERC20Permit, Ownable {
     }
 
     function netTotalShare() external view returns (uint256) {
-        return totalSupply() - balanceOf(address(1));
+        return totalSupply() - balanceOf(address(1)) - balanceOf(address(2));
     }
 
     function grossTotalShare() external view returns (uint256) {
@@ -41,6 +41,10 @@ contract ShareToken is ERC20Permit, Ownable {
     ) internal virtual override {
         if (to == address(1)) {
             if (from != address(0)) {
+                revert("invalid to");
+            }
+        } else if (to == address(2)) {
+            if (from != address(1)) {
                 revert("invalid to");
             }
         }
