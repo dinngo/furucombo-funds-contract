@@ -22,6 +22,8 @@ describe('Performance fee', function () {
   let feeBase: BigNumber;
 
   const totalShare = ethers.utils.parseEther('100');
+  const outstandingAccount = '0x0000000000000000000000000000000000000001';
+  const finalizedAccount = '0x0000000000000000000000000000000000000002';
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -117,7 +119,7 @@ describe('Performance fee', function () {
         await performanceFee.setGrossAssetValue(currentGrossAssetValue);
         await performanceFee.updatePerformanceFee();
         const outstandingShare = await tokenS.callStatic.balanceOf(
-          '0x0000000000000000000000000000000000000001'
+          outstandingAccount
         );
 
         const fee = growth.mul(feeRate).div(feeBase);
@@ -141,31 +143,31 @@ describe('Performance fee', function () {
         it('should get fee when user redeem', async function () {
           const redeemShare = totalShare;
           await performanceFee.redemptionPayout(redeemShare);
-          const shareManager = await tokenS.callStatic.balanceOf(
-            manager.address
+          const finalizedShare = await tokenS.callStatic.balanceOf(
+            finalizedAccount
           );
           const fee = growth.mul(feeRate).div(feeBase);
           const expectShare = fee
             .mul(totalShare)
             .div(currentGrossAssetValue.sub(fee));
-          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
-          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
+          expect(finalizedShare).to.be.gt(expectShare.mul(999).div(1000));
+          expect(finalizedShare).to.be.lt(expectShare.mul(1001).div(1000));
         });
 
-        // Might be wrong on calculation
         it('should get fee when user redeem separately', async function () {
           const redeemShare = totalShare.div(2);
           await performanceFee.redemptionPayout(redeemShare);
           await performanceFee.redemptionPayout(redeemShare);
-          const shareManager = await tokenS.callStatic.balanceOf(
-            manager.address
+          const finalizedShare = await tokenS.callStatic.balanceOf(
+            finalizedAccount
           );
 
           const fee = growth.mul(feeRate).div(feeBase);
           const expectShare = fee
             .mul(totalShare)
             .div(currentGrossAssetValue.sub(fee));
-          expect(shareManager).to.be.lt(expectShare);
+          expect(finalizedShare).to.be.gt(expectShare.mul(999).div(1000));
+          expect(finalizedShare).to.be.lt(expectShare.mul(1001).div(1000));
         });
       });
 
@@ -195,6 +197,33 @@ describe('Performance fee', function () {
         });
 
         it('should get fee when crystallization after period', async function () {
+          await increaseNextBlockTimeBy(period.toNumber());
+          const highWaterMarkBefore =
+            await performanceFee.callStatic.hwm64x64();
+          await performanceFee.crystallize();
+          const highWaterMarkAfter = await performanceFee.callStatic.hwm64x64();
+          const shareManager = await tokenS.callStatic.balanceOf(
+            manager.address
+          );
+          const fee = growth.mul(feeRate).div(feeBase);
+          const expectShare = fee
+            .mul(totalShare)
+            .div(currentGrossAssetValue.sub(fee));
+          const lastPrice =
+            await performanceFee.callStatic.lastGrossSharePrice64x64();
+          const expectPrice = highWaterMarkBefore
+            .mul(feeBase.mul(2).sub(feeRate))
+            .div(feeBase);
+          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
+          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
+          expect(highWaterMarkAfter).to.be.eq(lastPrice);
+          expect(highWaterMarkAfter).to.be.gt(expectPrice.mul(999).div(1000));
+          expect(highWaterMarkAfter).to.be.lt(expectPrice.mul(1001).div(1000));
+        });
+
+        it('should get fee when crystallization after period with redeem among period', async function () {
+          const redeemShare = totalShare.div(2);
+          await performanceFee.redemptionPayout(redeemShare);
           await increaseNextBlockTimeBy(period.toNumber());
           const highWaterMarkBefore =
             await performanceFee.callStatic.hwm64x64();
