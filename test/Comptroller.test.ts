@@ -385,14 +385,16 @@ describe('Comptroller', function () {
   describe('denomination management', function () {
     const tokenA = WBTC_TOKEN;
     const tokenB = DAI_TOKEN;
+    const dustA = ethers.utils.parseUnits('0.00001', 8);
+    const dustB = ethers.utils.parseUnits('0.1', 18);
     it('permit denominations', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).denomination(tokenA)).to.be.equal(
-        false
-      );
-      expect(await comptroller.connect(user).denomination(tokenB)).to.be.equal(
-        false
-      );
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenA)
+      ).to.be.equal(false);
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenB)
+      ).to.be.equal(false);
 
       // permit new denominations
       const receipt = await comptroller.permitDenominations([tokenA, tokenB]);
@@ -403,24 +405,24 @@ describe('Comptroller', function () {
         .to.emit(comptroller, 'PermitDenomination')
         .withArgs(tokenB);
 
-      // check initialCheck
-      expect(await comptroller.connect(user).denomination(tokenA)).to.be.equal(
-        true
-      );
-      expect(await comptroller.connect(user).denomination(tokenB)).to.be.equal(
-        true
-      );
+      // check denomination
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenA)
+      ).to.be.equal(true);
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenB)
+      ).to.be.equal(true);
     });
 
     it('forbid denominations', async function () {
       // check env before execution
       await comptroller.permitDenominations([tokenA, tokenB]);
-      expect(await comptroller.connect(user).denomination(tokenA)).to.be.equal(
-        true
-      );
-      expect(await comptroller.connect(user).denomination(tokenB)).to.be.equal(
-        true
-      );
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenA)
+      ).to.be.equal(true);
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenB)
+      ).to.be.equal(true);
 
       // permit new denominations
       const receipt = await comptroller.forbidDenominations([tokenA, tokenB]);
@@ -433,13 +435,35 @@ describe('Comptroller', function () {
         .to.emit(comptroller, 'ForbidDenomination')
         .withArgs(tokenB);
 
-      // check denomination
-      expect(await comptroller.connect(user).denomination(tokenA)).to.be.equal(
-        false
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenA)
+      ).to.be.equal(false);
+      expect(
+        await comptroller.connect(user).isValidDenomination(tokenB)
+      ).to.be.equal(false);
+    });
+
+    it('set denomination dusts', async function () {
+      const receipt = await comptroller.setDenominationDusts(
+        [tokenA, tokenB],
+        [dustA, dustB]
       );
-      expect(await comptroller.connect(user).denomination(tokenB)).to.be.equal(
-        false
-      );
+
+      // check events
+      await expect(receipt)
+        .to.emit(comptroller, 'SetDenominationDust')
+        .withArgs(dustA);
+      await expect(receipt)
+        .to.emit(comptroller, 'SetDenominationDust')
+        .withArgs(dustB);
+
+      // check dusts
+      expect(
+        await comptroller.connect(user).getDenominationDust(tokenA)
+      ).to.be.eq(dustA);
+      expect(
+        await comptroller.connect(user).getDenominationDust(tokenB)
+      ).to.be.eq(dustB);
     });
 
     it('should revert: permit denominations by non-owner', async function () {
@@ -451,6 +475,14 @@ describe('Comptroller', function () {
     it('should revert: forbid denominations by non-owner', async function () {
       await expect(
         comptroller.connect(user).forbidDenominations([tokenA, tokenB])
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('should revert: set denomination dusts by non-owner', async function () {
+      await expect(
+        comptroller
+          .connect(user)
+          .setDenominationDusts([tokenA, tokenB], [dustA, dustB])
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });

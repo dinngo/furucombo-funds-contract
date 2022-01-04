@@ -1,10 +1,16 @@
 import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { ShareModuleMock, SimpleToken, ShareToken } from '../typechain';
+import {
+  Comptroller,
+  ShareModuleMock,
+  SimpleToken,
+  ShareToken,
+} from '../typechain';
 import { DS_PROXY_REGISTRY } from './utils/constants';
 
 describe('Share module', function () {
+  let comptroller: Comptroller;
   let shareModule: ShareModuleMock;
   let shareToken: ShareToken;
   let user1: Wallet;
@@ -21,11 +27,21 @@ describe('Share module', function () {
         .connect(user1)
         .deploy(DS_PROXY_REGISTRY);
       await shareModule.deployed();
+      comptroller = await (
+        await ethers.getContractFactory('Comptroller')
+      ).deploy(
+        shareModule.address,
+        constants.AddressZero,
+        constants.AddressZero
+      );
+      await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user1)
         .deploy();
       await tokenD.deployed();
       // initialize
+      await shareModule.setComptroller(comptroller.address);
+      await comptroller.permitDenominations([tokenD.address]);
       await shareModule.setDenomination(tokenD.address);
       await shareModule.setShare();
       await shareModule.setDSProxy();
