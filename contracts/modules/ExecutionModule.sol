@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {PoolState} from "../PoolState.sol";
 import {Whitelist} from "../libraries/Whitelist.sol";
 
+import "hardhat/console.sol";
+
 /// @title Execution module
 abstract contract ExecutionModule is PoolState {
     /// @notice Execute on the pool's behalf. Execution is valid during
@@ -17,18 +19,22 @@ abstract contract ExecutionModule is PoolState {
         _beforeExecute();
 
         address action = comptroller.execAction();
+        bytes memory response = vault.execute(action, data);
 
-        // TODO: add value?
-        vault.execute(action, data);
-
-        _afterExecute();
+        _afterExecute(response);
     }
 
     function _beforeExecute() internal virtual returns (bool) {
         return true;
     }
 
-    function _afterExecute() internal virtual returns (bool) {
+    /// @param response execution response.
+    function _afterExecute(bytes memory response)
+        internal
+        virtual
+        returns (bool)
+    {
+        response;
         return true;
     }
 }

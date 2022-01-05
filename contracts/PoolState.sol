@@ -111,7 +111,7 @@ abstract contract PoolState {
         require(address(vault) != address(0), "Vault not set");
         require(address(comptroller) != address(0), "Comptroller not set");
         require(address(denomination) != address(0), "Denomination not set");
-        address action = comptroller.setupAction();
+        address action = comptroller.execAction();
         bytes memory data = abi.encodeWithSignature(
             "maxApprove(address)",
             denomination

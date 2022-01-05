@@ -1,6 +1,6 @@
 import { constants, Wallet, Signer, BigNumber } from 'ethers';
 import { expect } from 'chai';
-import { deployments } from 'hardhat';
+import { ethers, deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,
@@ -16,6 +16,7 @@ import {
   PoolProxyFactory,
   Implementation,
   ShareToken,
+  IUniswapV2Router02,
 } from '../../typechain';
 
 import {
@@ -30,14 +31,22 @@ import {
   FURUCOMBO_HCURVE,
   DS_PROXY_REGISTRY,
   WL_ANY_SIG,
+  QUICKSWAP_ROUTER,
+  SUSHISWAP_ROUTER,
+  WMATIC_TOKEN,
+  QUICKSWAP_USDC_WETH,
+  WETH_PROVIDER,
+  USDC_PROVIDER,
 } from '../utils/constants';
 
 import {
   szabo,
+  ether,
   asciiToHex32,
-  tokenProviderQuick,
+  tokenProviderSushi,
   simpleEncode,
   getCallData,
+  impersonateAndInjectEther,
 } from '../utils/utils';
 
 import {
@@ -56,6 +65,7 @@ describe('PoolExecuteStrategy', function () {
   const denominationAddress = USDC_TOKEN;
   const tokenAAddress = DAI_TOKEN;
   const tokenBAddress = WETH_TOKEN;
+  const denominationProviderAddress = USDC_PROVIDER;
 
   const denominationAggregator = CHAINLINK_USDC_USD;
   const tokenAAggregator = CHAINLINK_DAI_USD;
@@ -94,6 +104,9 @@ describe('PoolExecuteStrategy', function () {
   let poolProxy: Implementation;
   let poolVault: string;
 
+  let quickRouter: IUniswapV2Router02;
+  let sushiRouter: IUniswapV2Router02;
+
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
@@ -102,7 +115,10 @@ describe('PoolExecuteStrategy', function () {
       ).getSigners();
 
       // Setup tokens and providers
-      denominationProvider = await tokenProviderQuick(denominationAddress);
+      // denominationProvider = await tokenProviderSushi(denominationAddress);
+      denominationProvider = await impersonateAndInjectEther(
+        denominationProviderAddress
+      );
       denomination = await ethers.getContractAt('IERC20', denominationAddress);
       tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
       tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
@@ -142,6 +158,17 @@ describe('PoolExecuteStrategy', function () {
       );
 
       // Setup comptroller whitelist
+      await comptroller.permitDenominations(
+        [denomination.address],
+        [BigNumber.from('10')]
+      );
+
+      await comptroller.permitAssets(level, [
+        denominationAddress,
+        tokenA.address,
+        tokenB.address,
+      ]);
+
       await comptroller.permitAssets(level, [
         denominationAddress,
         tokenA.address,
@@ -202,8 +229,18 @@ describe('PoolExecuteStrategy', function () {
       );
       poolVault = await poolProxy.vault();
 
+      // External
+      quickRouter = await ethers.getContractAt(
+        'IUniswapV2Router02',
+        QUICKSWAP_ROUTER
+      );
+      sushiRouter = await ethers.getContractAt(
+        'IUniswapV2Router02',
+        SUSHISWAP_ROUTER
+      );
+
       // Transfer token to investor
-      const initialFunds = szabo('1000');
+      const initialFunds = szabo('3000');
       await denomination
         .connect(denominationProvider)
         .transfer(investor.address, initialFunds);
@@ -220,33 +257,51 @@ describe('PoolExecuteStrategy', function () {
       console.log('poolProxy', poolProxy.address);
       console.log('taskExecutor', taskExecutor.address);
       console.log('aFurucombo', aFurucombo.address);
+
+      // Deposit to get lp token
+      // const amount = szabo('50');
+      // await tokenA.connect(tokenAProvider).transfer(user.address, amount);
+      // await tokenA.connect(user).approve(quickRouter.address, amount);
+      // await tokenB.connect(tokenBProvider).transfer(user.address, amount);
+      // await tokenB.connect(user).approve(quickRouter.address, amount);
     }
   );
   beforeEach(async function () {
     await setupTest();
   });
 
-  describe('execute strategy in operation: quickSwap', function () {
-    const purchaseAmount = szabo('100');
+  describe('execute strategy in operation', function () {
+    const purchaseAmount = szabo('2000');
     let ownedShares: BigNumber;
+    let tokenAPoolVaultBalance: BigNumber;
+    let tokenBPoolVaultBalance: BigNumber;
+    let denominationProxyBalance: BigNumber;
+    let denominationCollectorBalance: BigNumber;
+
     beforeEach(async function () {
-      // TODO: Deposit denomination to get shares
+      // Deposit denomination to get shares
       await denomination
         .connect(investor)
         .approve(poolProxy.address, purchaseAmount);
       await poolProxy.connect(investor).purchase(purchaseAmount);
       ownedShares = await shareToken.balanceOf(investor.address);
-    });
 
-    it('normal', async function () {
-      const tokenAProxyBalance = await tokenA.balanceOf(poolVault);
-      const denominationProxyBalance = await denomination.balanceOf(poolVault);
-      const denominationCollectorBalance = await denomination.balanceOf(
+      tokenAPoolVaultBalance = await tokenA.balanceOf(poolVault);
+      tokenBPoolVaultBalance = await tokenB.balanceOf(poolVault);
+      denominationProxyBalance = await denomination.balanceOf(poolVault);
+      denominationCollectorBalance = await denomination.balanceOf(
         collector.address
       );
 
+      console.log(
+        'denominationProxyBalance',
+        denominationProxyBalance.toString()
+      );
+    });
+
+    it('quickswap', async function () {
       // Prepare action data
-      const amountIn = szabo('10');
+      const amountIn = szabo('1000');
       const base = await taskExecutor.FEE_BASE();
       const actionAmountIn = amountIn
         .mul(base.sub(execFeePercentage))
@@ -254,16 +309,21 @@ describe('PoolExecuteStrategy', function () {
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
+      const path = [denomination.address, tokenB.address, tokenA.address];
       const tos = [hFunds.address, FURUCOMBO_HQUICKSWAP];
       const configs = [constants.HashZero, constants.HashZero];
+
+      // Furucombo data
       const datas = [
         simpleEncode('updateTokens(address[])', [tokensIn]),
         simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
           actionAmountIn, // amountIn
           1, // amountOutMin
-          [denomination.address, tokenA.address], // path
+          path,
         ]),
       ];
+
+      // Action data
       const actionData = getCallData(aFurucombo, 'injectAndBatchExec', [
         tokensIn,
         [actionAmountIn],
@@ -282,34 +342,129 @@ describe('PoolExecuteStrategy', function () {
         [actionData],
       ]);
 
+      // Get expect amount out
+      const amountOuts = await quickRouter.getAmountsOut(actionAmountIn, path);
+      const amountOut = amountOuts[amountOuts.length - 1];
+
       // Execute strategy
       await poolProxy.connect(manager).execute(data);
 
       // Verify
-      const tokenAProxyBalanceAfter = await tokenA.balanceOf(
-        await poolProxy.vault()
-      );
-      const denominationProxyBalanceAfter = await denomination.balanceOf(
-        poolVault
-      );
-      const denominationCollectorBalanceAfter = await denomination.balanceOf(
-        collector.address
-      );
-
-      const expectExecuteFee = amountIn.mul(execFeePercentage).div(base);
-      expect(tokenAProxyBalanceAfter).to.be.gt(tokenAProxyBalance);
-      expect(denominationProxyBalanceAfter).to.be.lt(denominationProxyBalance);
-      expect(
-        denominationCollectorBalanceAfter.sub(denominationCollectorBalance)
-      ).to.be.eq(expectExecuteFee);
+      // check shares are the same
       expect(ownedShares).to.be.eq(
         await shareToken.balanceOf(investor.address)
       );
 
-      const assetList = await poolProxy.getAssetList();
-      console.log('assetList', assetList);
+      // check denomination will decrease and token will increase
+      expect(await tokenA.balanceOf(poolVault)).to.be.eq(
+        tokenAPoolVaultBalance.add(amountOut)
+      );
+      expect(await denomination.balanceOf(poolVault)).to.be.eq(
+        denominationProxyBalance.sub(amountIn)
+      );
 
-      // TODO: manager execute strategy
+      // check collector will get execute fee
+      expect(
+        (await denomination.balanceOf(collector.address)).sub(
+          denominationCollectorBalance
+        )
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(base));
+
+      // TODO: check it after refine quickswap handler
+      // check asset list will be updated
+      // const assetList = await poolProxy.getAssetList();
+      // const expectedAssets = [denomination.address].concat(
+      //   path.slice(1, path.length)
+      // );
+
+      // expect(assetList.length).to.be.eq(expectedAssets.length);
+      // for (let i = 0; i < assetList.length; ++i) {
+      //   expect(assetList[i]).to.be.eq(expectedAssets[i]);
+      // }
+    });
+
+    it('sushiswap', async function () {
+      // Prepare action data
+      const amountIn = szabo('1000');
+      const base = await taskExecutor.FEE_BASE();
+      const actionAmountIn = amountIn
+        .mul(base.sub(execFeePercentage))
+        .div(base);
+      const tokensIn = [denomination.address];
+      const amountsIn = [amountIn];
+      const tokensOut = [tokenA.address];
+      const path = [denomination.address, tokenB.address, tokenA.address];
+      const tos = [hFunds.address, FURUCOMBO_HSUSHISWAP];
+      const configs = [constants.HashZero, constants.HashZero];
+
+      // Furucombo data
+      const datas = [
+        simpleEncode('updateTokens(address[])', [tokensIn]),
+        simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
+          actionAmountIn, // amountIn
+          1, // amountOutMin
+          path,
+        ]),
+      ];
+
+      // Action data
+      const actionData = getCallData(aFurucombo, 'injectAndBatchExec', [
+        tokensIn,
+        [actionAmountIn],
+        tokensOut,
+        tos,
+        configs,
+        datas,
+      ]);
+
+      // TaskExecutor data
+      const data = getCallData(taskExecutor, 'batchExec', [
+        tokensIn,
+        amountsIn,
+        [aFurucombo.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      // Get expect amount out
+      const amountOuts = await sushiRouter.getAmountsOut(actionAmountIn, path);
+      const amountOut = amountOuts[amountOuts.length - 1];
+
+      // Execute strategy
+      await poolProxy.connect(manager).execute(data);
+
+      // Verify
+      // check shares are the same
+      expect(ownedShares).to.be.eq(
+        await shareToken.balanceOf(investor.address)
+      );
+
+      // check denomination will decrease and token will increase
+      expect(await tokenA.balanceOf(poolVault)).to.be.eq(
+        tokenAPoolVaultBalance.add(amountOut)
+      );
+      expect(await denomination.balanceOf(poolVault)).to.be.eq(
+        denominationProxyBalance.sub(amountIn)
+      );
+
+      // check collector will get execute fee
+      expect(
+        (await denomination.balanceOf(collector.address)).sub(
+          denominationCollectorBalance
+        )
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(base));
+
+      // TODO: check it after refine sushiswap handler
+      // check asset list will be updated
+      // const assetList = await poolProxy.getAssetList();
+      // const expectedAssets = [denomination.address].concat(
+      //   path.slice(1, path.length)
+      // );
+
+      // expect(assetList.length).to.be.eq(expectedAssets.length);
+      // for (let i = 0; i < assetList.length; ++i) {
+      //   expect(assetList[i]).to.be.eq(expectedAssets[i]);
+      // }
     });
   });
 });

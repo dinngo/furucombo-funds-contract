@@ -13,6 +13,8 @@ import {FundQuotaAction} from "./utils/FundQuotaAction.sol";
 import {DealingAssetAction} from "./utils/DealingAssetAction.sol";
 import {LibParam} from "./libraries/LibParam.sol";
 
+import "hardhat/console.sol";
+
 contract TaskExecutor is
     ITaskExecutor,
     DestructibleAction,
@@ -145,6 +147,7 @@ contract TaskExecutor is
             comptroller.validateDealingAssets(level, dealingAssets),
             "TaskExecutor: invalid dealing asset"
         );
+        console.log("TaskExecutor dealingAssets", dealingAssets.length);
         return dealingAssets;
     }
 
