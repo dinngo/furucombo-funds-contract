@@ -47,4 +47,14 @@ interface IComptroller is IBeacon {
     function execAction() external view returns (address);
 
     function setupAction() external view returns (address);
+
+    function isValidDenomination(address _denomination)
+        external
+        view
+        returns (bool);
+
+    function getDenominationDust(address _denomination)
+        external
+        view
+        returns (uint256);
 }

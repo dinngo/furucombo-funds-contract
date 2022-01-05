@@ -90,6 +90,10 @@ abstract contract PoolState {
             address(denomination) == address(0),
             "Denomination is initialized"
         );
+        require(
+            comptroller.isValidDenomination(address(denomination_)),
+            "Denomination is not valid"
+        );
         denomination = denomination_;
     }
 

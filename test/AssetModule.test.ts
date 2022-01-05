@@ -1,10 +1,11 @@
 import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { AssetModuleMock, SimpleToken } from '../typechain';
+import { Comptroller, AssetModuleMock, SimpleToken } from '../typechain';
 import { DS_PROXY_REGISTRY } from './utils/constants';
 
 describe('Asset module', function () {
+  let comptroller: Comptroller;
   let assetModule: AssetModuleMock;
   let user: Wallet;
   let tokenD: SimpleToken;
@@ -23,6 +24,14 @@ describe('Asset module', function () {
         .connect(user)
         .deploy(DS_PROXY_REGISTRY);
       await assetModule.deployed();
+      comptroller = await (
+        await ethers.getContractFactory('Comptroller')
+      ).deploy(
+        assetModule.address,
+        constants.AddressZero,
+        constants.AddressZero
+      );
+      await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
         .deploy();
@@ -40,6 +49,8 @@ describe('Asset module', function () {
         .deploy();
       await tokenD.deployed();
       // initialize
+      await assetModule.setComptroller(comptroller.address);
+      await comptroller.permitDenominations([tokenD.address], [0]);
       await assetModule.setDenomination(tokenD.address);
       await assetModule.setShare();
       await assetModule.setDSProxy();

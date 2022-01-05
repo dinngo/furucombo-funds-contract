@@ -13,7 +13,7 @@ cache: &global_cache
     - yarn build
     - apt-get update && apt-get install -y netcat
     - npm config set user 0
-    - RUNNER_COUNT=4
+    - RUNNER_COUNT=8
     - FILES=( $(find -H -L ./test/* -regex "^.*.test.ts") )
     - len=${#FILES[@]}
     - >

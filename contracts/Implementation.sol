@@ -121,8 +121,8 @@ contract Implementation is
             "Invalid asset"
         );
         int256 value = getAssetValue(asset);
-        // FIXME: positive value should be more than dust
-        require(value != 0, "No such asset");
+        int256 dust = int256(comptroller.getDenominationDust(asset));
+        require(value > dust || value < 0, "No such asset");
         super.addAsset(asset);
     }
 
@@ -130,8 +130,8 @@ contract Implementation is
     /// @param asset The asset to be removed.
     function removeAsset(address asset) public override {
         int256 value = getAssetValue(asset);
-        // FIXME: positive value should be less than dust
-        require(value == 0, "Remaining asset");
+        int256 dust = int256(comptroller.getDenominationDust(asset));
+        require(value <= dust && value >= 0, "Remaining asset");
         super.removeAsset(asset);
     }
 

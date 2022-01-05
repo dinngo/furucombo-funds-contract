@@ -10,6 +10,12 @@ contract Comptroller is UpgradeableBeacon {
     using Whitelist for Whitelist.AssetWList;
     using Whitelist for Whitelist.ManagerWList;
 
+    // Struct
+    struct DenominationConfig {
+        bool isPermitted;
+        uint256 dust;
+    }
+
     // Variable
     bool public fHalt;
     bool public fInitialAssetCheck;
@@ -20,7 +26,7 @@ contract Comptroller is UpgradeableBeacon {
     IAssetRouter public assetRouter;
 
     // Map
-    mapping(address => bool) public denomination;
+    mapping(address => DenominationConfig) public denomination;
     mapping(address => bool) public bannedProxy;
     mapping(uint256 => uint256) public stakedTier;
 
@@ -39,8 +45,9 @@ contract Comptroller is UpgradeableBeacon {
     event SetInitialAssetCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
-    event PermitDenomination(address indexed denomination);
+    event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
+    event SetDenominationDust(uint256 amount);
     event SetStakedTier(uint256 indexed level, uint256 amount);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
@@ -119,13 +126,16 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Denomination whitelist
-    function permitDenominations(address[] calldata denominations)
-        external
-        onlyOwner
-    {
+    function permitDenominations(
+        address[] calldata denominations,
+        uint256[] calldata dusts
+    ) external onlyOwner {
+        require(denominations.length == dusts.length, "Invalid length");
+
         for (uint256 i = 0; i < denominations.length; i++) {
-            denomination[denominations[i]] = true;
-            emit PermitDenomination(denominations[i]);
+            denomination[denominations[i]].isPermitted = true;
+            denomination[denominations[i]].dust = dusts[i];
+            emit PermitDenomination(denominations[i], dusts[i]);
         }
     }
 
@@ -134,9 +144,25 @@ contract Comptroller is UpgradeableBeacon {
         onlyOwner
     {
         for (uint256 i = 0; i < denominations.length; i++) {
-            denomination[denominations[i]] = false;
+            delete denomination[denominations[i]];
             emit ForbidDenomination(denominations[i]);
         }
+    }
+
+    function isValidDenomination(address _denomination)
+        external
+        view
+        returns (bool)
+    {
+        return denomination[_denomination].isPermitted;
+    }
+
+    function getDenominationDust(address _denomination)
+        external
+        view
+        returns (uint256)
+    {
+        return denomination[_denomination].dust;
     }
 
     // Ban Proxy
