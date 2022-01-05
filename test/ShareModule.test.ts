@@ -41,7 +41,7 @@ describe('Share module', function () {
       await tokenD.deployed();
       // initialize
       await shareModule.setComptroller(comptroller.address);
-      await comptroller.permitDenominations([tokenD.address]);
+      await comptroller.permitDenominations([tokenD.address], [0]);
       await shareModule.setDenomination(tokenD.address);
       await shareModule.setShare();
       await shareModule.setDSProxy();

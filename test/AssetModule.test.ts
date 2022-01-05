@@ -50,7 +50,7 @@ describe('Asset module', function () {
       await tokenD.deployed();
       // initialize
       await assetModule.setComptroller(comptroller.address);
-      await comptroller.permitDenominations([tokenD.address]);
+      await comptroller.permitDenominations([tokenD.address], [0]);
       await assetModule.setDenomination(tokenD.address);
       await assetModule.setShare();
       await assetModule.setDSProxy();

@@ -91,8 +91,7 @@ describe('Implementation', function () {
 
       // Initialization
       await implementation.setComptroller(comptroller.address);
-      await comptroller.permitDenominations([denomination.address]);
-      await comptroller.setDenominationDusts(
+      await comptroller.permitDenominations(
         [denomination.address],
         [denominationDust]
       );

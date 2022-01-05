@@ -45,7 +45,7 @@ contract Comptroller is UpgradeableBeacon {
     event SetInitialAssetCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
-    event PermitDenomination(address indexed denomination);
+    event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
     event SetDenominationDust(uint256 amount);
     event SetStakedTier(uint256 indexed level, uint256 amount);
@@ -126,13 +126,16 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Denomination whitelist
-    function permitDenominations(address[] calldata denominations)
-        external
-        onlyOwner
-    {
+    function permitDenominations(
+        address[] calldata denominations,
+        uint256[] calldata dusts
+    ) external onlyOwner {
+        require(denominations.length == dusts.length, "Invalid length");
+
         for (uint256 i = 0; i < denominations.length; i++) {
             denomination[denominations[i]].isPermitted = true;
-            emit PermitDenomination(denominations[i]);
+            denomination[denominations[i]].dust = dusts[i];
+            emit PermitDenomination(denominations[i], dusts[i]);
         }
     }
 
@@ -141,7 +144,7 @@ contract Comptroller is UpgradeableBeacon {
         onlyOwner
     {
         for (uint256 i = 0; i < denominations.length; i++) {
-            denomination[denominations[i]].isPermitted = false;
+            delete denomination[denominations[i]];
             emit ForbidDenomination(denominations[i]);
         }
     }
@@ -152,19 +155,6 @@ contract Comptroller is UpgradeableBeacon {
         returns (bool)
     {
         return denomination[_denomination].isPermitted;
-    }
-
-    // Denomination dust
-    function setDenominationDusts(
-        address[] calldata denominations,
-        uint256[] calldata amounts
-    ) external onlyOwner {
-        require(denominations.length == amounts.length, "Invalid length");
-
-        for (uint256 i = 0; i < denominations.length; i++) {
-            denomination[denominations[i]].dust = amounts[i];
-            emit SetDenominationDust(amounts[i]);
-        }
     }
 
     function getDenominationDust(address _denomination)
