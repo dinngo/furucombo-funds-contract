@@ -16,9 +16,10 @@ abstract contract ShareModule is PoolState {
     address[] public pendingAccountList;
     mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
+    uint256 public totalPendingBonus;
     uint256 public pendingStartTime;
     uint256 private constant _PENALTY_BASE = 1e4;
-    uint256 private constant _PENALTY = 0;
+    uint256 private constant _PENALTY = 100;
 
     event Purchased(uint256 assetAmount, uint256 shareAmount);
     event Redeemed(uint256 assetAmount, uint256 shareAmount);
@@ -98,9 +99,12 @@ abstract contract ShareModule is PoolState {
             pendingAccountList.pop();
         }
 
+        uint256 unusedBonus = totalPendingBonus;
         totalPendingShare = 0;
+        totalPendingBonus = 0;
         _enterState(State.Executing);
         pendingStartTime = 0;
+        shareToken.burn(address(this), unusedBonus);
 
         return true;
     }
@@ -120,6 +124,14 @@ abstract contract ShareModule is PoolState {
     {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
+        if (state == State.RedemptionPending) {
+            uint256 bonus = (share * (_PENALTY_BASE)) /
+                (_PENALTY_BASE - _PENALTY);
+            bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
+            totalPendingBonus -= bonus;
+            shareToken.move(address(this), user, bonus);
+            share += bonus;
+        }
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
         _callAfterPurchase(share);
         emit Purchased(balance, share);
@@ -132,7 +144,6 @@ abstract contract ShareModule is PoolState {
     {
         _callBeforeRedeem(share);
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
-        denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
             require(state == State.Executing, "Can only left while Executing");
             _enterState(State.RedemptionPending);
@@ -140,6 +151,7 @@ abstract contract ShareModule is PoolState {
             _redeemPending(user, shareLeft);
         }
         uint256 shareRedeemed = share - shareLeft;
+        denomination.safeTransferFrom(address(vault), user, balance);
         _callAfterRedeem(shareRedeemed);
         emit Redeemed(balance, shareRedeemed);
 
@@ -156,6 +168,7 @@ abstract contract ShareModule is PoolState {
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += effectiveShare;
         totalPendingShare += effectiveShare;
+        totalPendingBonus += (share - effectiveShare);
         shareToken.move(user, address(this), share);
         emit RedemptionPended(share);
 

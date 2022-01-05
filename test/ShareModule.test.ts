@@ -174,8 +174,11 @@ describe('Share module', function () {
     });
   });
 
-  describe('Pending redemption', function () {
+  describe.only('Pending redemption', function () {
     const pendingAmount = ethers.utils.parseEther('20');
+    const penalty = 100;
+    const penaltyBase = 10000;
+
     beforeEach(async function () {
       await shareModule.setState(2);
       await shareModule.purchase(purchaseAmount);
@@ -187,10 +190,13 @@ describe('Share module', function () {
     });
 
     it('should succeed when sufficient reserve', async function () {
+      const actualAmount = pendingAmount
+        .mul(penaltyBase - penalty)
+        .div(penaltyBase);
       await shareModule.setReserve(pendingAmount);
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'Redeemed')
-        .withArgs(pendingAmount, pendingAmount);
+        .withArgs(actualAmount, actualAmount);
     });
 
     it('should fail when insufficient reserve', async function () {
@@ -204,6 +210,26 @@ describe('Share module', function () {
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'BeforeRedeemCalled')
         .to.emit(shareModule, 'AfterRedeemCalled');
+    });
+
+    describe('purchase', function () {
+      it('should receive bonus when purchasing', async function () {
+        const purchaseAmount = pendingAmount
+          .mul(penaltyBase - penalty)
+          .div(penaltyBase);
+        await expect(shareModule.purchase(purchaseAmount))
+          .to.emit(shareModule, 'Purchased')
+          .withArgs(purchaseAmount, pendingAmount);
+      });
+
+      it('should partially receive bonus when purchasing over amount', async function () {
+        const purchaseAmount = pendingAmount
+          .mul(penaltyBase - penalty)
+          .div(penaltyBase);
+        await expect(shareModule.purchase(purchaseAmount.mul(2)))
+          .to.emit(shareModule, 'Purchased')
+          .withArgs(purchaseAmount.mul(2), pendingAmount.add(purchaseAmount));
+      });
     });
   });
 
