@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import {PoolState} from "../PoolState.sol";
 import {Whitelist} from "../libraries/Whitelist.sol";
 
-import "hardhat/console.sol";
-
 /// @title Execution module
 abstract contract ExecutionModule is PoolState {
     /// @notice Execute on the pool's behalf. Execution is valid during

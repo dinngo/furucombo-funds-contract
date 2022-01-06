@@ -11,6 +11,7 @@ import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
+
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 
 /// @title The implementation contract for pool.
@@ -124,7 +125,10 @@ contract Implementation is
             "Invalid asset"
         );
         int256 value = getAssetValue(asset);
-        int256 dust = int256(comptroller.getDenominationDust(asset));
+        int256 dust = int256(
+            comptroller.getDenominationDust(address(denomination))
+        );
+
         if (value > dust || value < 0) {
             super.addAsset(asset);
         }
@@ -134,9 +138,13 @@ contract Implementation is
     /// @param asset The asset to be removed.
     function removeAsset(address asset) public override {
         // Do not allow to remove denomination from list
-        if (asset != address(denomination)) {
+        address denominationAddress = address(denomination);
+        if (asset != denominationAddress) {
             int256 value = getAssetValue(asset);
-            int256 dust = int256(comptroller.getDenominationDust(asset));
+            int256 dust = int256(
+                comptroller.getDenominationDust(denominationAddress)
+            );
+
             if (value < dust && value >= 0) {
                 super.removeAsset(asset);
             }
@@ -182,10 +190,8 @@ contract Implementation is
 
         // add new asset to assetList
         address[] memory dealingAssets = abi.decode(response, (address[]));
-        console.log("_afterExecute");
-        console.log("dealingAssets.length", dealingAssets.length);
+
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
-            console.log("dealingAssets[i]", dealingAssets[i]);
             addAsset(dealingAssets[i]);
         }
 

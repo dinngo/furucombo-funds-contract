@@ -8,8 +8,6 @@ import {DelegateCallAction} from "../../utils/DelegateCallAction.sol";
 import {ErrorMsg} from "../../utils/ErrorMsg.sol";
 import {IFurucombo} from "./IFurucombo.sol";
 
-import "hardhat/console.sol";
-
 contract AFurucombo is
     ActionBase,
     DestructibleAction,
@@ -107,7 +105,6 @@ contract AFurucombo is
                 if (tokensIn[i] == NATIVE_TOKEN_ADDRESS) {
                     proxy.transfer(amount);
                 } else {
-                    console.log("amount", amount);
                     IERC20(tokensIn[i]).safeTransfer(proxy, amount);
                 }
             }

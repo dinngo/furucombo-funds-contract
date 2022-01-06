@@ -169,16 +169,12 @@ describe('PoolExecuteStrategy', function () {
         tokenB.address,
       ]);
 
-      await comptroller.permitAssets(level, [
-        denominationAddress,
-        tokenA.address,
-        tokenB.address,
-      ]);
-      comptroller.permitDelegateCalls(
+      await comptroller.permitDelegateCalls(
         level,
         [aFurucombo.address],
         [WL_ANY_SIG]
       );
+
       await comptroller.permitHandlers(
         level,
         [
@@ -257,13 +253,6 @@ describe('PoolExecuteStrategy', function () {
       console.log('poolProxy', poolProxy.address);
       console.log('taskExecutor', taskExecutor.address);
       console.log('aFurucombo', aFurucombo.address);
-
-      // Deposit to get lp token
-      // const amount = szabo('50');
-      // await tokenA.connect(tokenAProvider).transfer(user.address, amount);
-      // await tokenA.connect(user).approve(quickRouter.address, amount);
-      // await tokenB.connect(tokenBProvider).transfer(user.address, amount);
-      // await tokenB.connect(user).approve(quickRouter.address, amount);
     }
   );
   beforeEach(async function () {
@@ -291,11 +280,6 @@ describe('PoolExecuteStrategy', function () {
       denominationProxyBalance = await denomination.balanceOf(poolVault);
       denominationCollectorBalance = await denomination.balanceOf(
         collector.address
-      );
-
-      console.log(
-        'denominationProxyBalance',
-        denominationProxyBalance.toString()
       );
     });
 
