@@ -94,7 +94,12 @@ describe('AFurucombo', function () {
 
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
-      ).deploy(implementation.address, assetRouter.address, collector.address);
+      ).deploy(
+        implementation.address,
+        assetRouter.address,
+        collector.address,
+        0
+      );
       await comptroller.deployed();
       await comptroller.setInitialAssetCheck(false);
 
