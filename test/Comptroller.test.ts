@@ -47,14 +47,13 @@ describe('Comptroller', function () {
       ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
-      const execFeePercentage = 200; // 20%
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(
         implementation.address,
         assetRouter.address,
         collector.address,
-        execFeePercentage
+        0
       );
       await comptroller.deployed();
 
