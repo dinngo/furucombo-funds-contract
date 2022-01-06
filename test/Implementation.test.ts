@@ -25,10 +25,7 @@ import { simpleEncode, tokenProviderQuick } from './utils/utils';
 describe('Implementation', function () {
   const denominationAddress = USDC_TOKEN;
   const denominationAggregator = CHAINLINK_USDC_USD;
-<<<<<<< HEAD
   const denominationDust = ethers.utils.parseUnits('0.1', 6);
-=======
->>>>>>> Integrate asset router to Implementation contract
   const tokenAAddress = WETH_TOKEN;
   const tokenBAddress = WBTC_TOKEN;
   const tokenCAddress = BAT_TOKEN;
@@ -116,13 +113,11 @@ describe('Implementation', function () {
 
       // Initialization
       await implementation.setComptroller(comptroller.address);
-<<<<<<< HEAD
       await comptroller.permitDenominations(
         [denomination.address],
         [denominationDust]
       );
-=======
->>>>>>> Integrate asset router to Implementation contract
+
       await implementation.setDenomination(denomination.address);
       await implementation.setDSProxy();
       vault = await ethers.getContractAt(
@@ -178,7 +173,6 @@ describe('Implementation', function () {
           tokenA.address
         );
       });
-<<<<<<< HEAD
 
       it('can not be added: balance of asset < dust ', async function () {
         const dustAmount = await assetRouter.calcAssetValue(
@@ -196,16 +190,6 @@ describe('Implementation', function () {
           tokenA.address
         );
       });
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Integrate asset router to Implementation contract
-=======
-      // TODO: less than dust
-      // TODO: debt cases
->>>>>>> test: add execute strategy quickswap and sushiswap integration tests
-=======
->>>>>>> test: add add/remove asset unit tests
     });
 
     describe('remove asset', function () {
@@ -250,7 +234,6 @@ describe('Implementation', function () {
         );
       });
 
-<<<<<<< HEAD
       it('dust balance of asset', async function () {
         const dustAmount = await assetRouter.calcAssetValue(
           denomination.address,
@@ -271,20 +254,11 @@ describe('Implementation', function () {
         );
       });
 
-<<<<<<< HEAD
-=======
->>>>>>> Integrate asset router to Implementation contract
-      it('should revert: non-zero balance of asset', async function () {
-        await expect(
-          implementation.removeAsset(tokenA.address)
-        ).to.be.revertedWith('Remaining asset');
-=======
       it('can not be removed: balance of asset > dust ', async function () {
         await implementation.removeAsset(tokenA.address);
         expect(await implementation.getAssetList()).to.deep.include(
           tokenA.address
         );
->>>>>>> test: add add/remove asset unit tests
       });
 
       it('can not be removed: denomination', async function () {
