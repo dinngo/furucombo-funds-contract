@@ -174,7 +174,7 @@ describe('Share module', function () {
     });
   });
 
-  describe.only('Pending redemption', function () {
+  describe('Pending redemption', function () {
     const pendingAmount = ethers.utils.parseEther('20');
     const penalty = 100;
     const penaltyBase = 10000;
@@ -212,6 +212,13 @@ describe('Share module', function () {
         .to.emit(shareModule, 'AfterRedeemCalled');
     });
 
+    it('should settle without penalty in specific usage', async function () {
+      await shareModule.setReserve(pendingAmount);
+      await expect(shareModule.settlePendingRedemptionWithoutPenalty())
+        .to.emit(shareModule, 'Redeemed')
+        .withArgs(pendingAmount, pendingAmount);
+    });
+
     describe('purchase', function () {
       it('should receive bonus when purchasing', async function () {
         const purchaseAmount = pendingAmount
@@ -231,10 +238,33 @@ describe('Share module', function () {
           .withArgs(purchaseAmount.mul(2), pendingAmount.add(purchaseAmount));
       });
     });
+
+    it('should settle the remain bonus when settle without penalty', async function () {
+      const bonus = pendingAmount.mul(penalty).div(penaltyBase);
+      const purchaseAmount = pendingAmount
+        .mul(penaltyBase - penalty)
+        .div(penaltyBase)
+        .div(2);
+      const actualAmount = pendingAmount
+        .mul(penaltyBase - penalty)
+        .div(penaltyBase);
+      await shareModule.purchase(purchaseAmount);
+      await shareModule.setTotalAssetValue(pendingAmount.add(purchaseAmount));
+      await shareModule.setReserve(pendingAmount);
+      await expect(shareModule.settlePendingRedemptionWithoutPenalty())
+        .to.emit(shareModule, 'Redeemed')
+        .withArgs(
+          actualAmount.add(bonus.div(2)),
+          actualAmount.add(bonus.div(2))
+        );
+    });
   });
 
   describe('Claim pending redemption', function () {
     const pendingAmount = ethers.utils.parseEther('20');
+    const penalty = 100;
+    const penaltyBase = 10000;
+
     beforeEach(async function () {
       await shareModule.setState(2);
       await shareModule.purchase(purchaseAmount);
@@ -243,6 +273,9 @@ describe('Share module', function () {
     });
 
     it('should success when claiming the redemption', async function () {
+      const actualAmount = pendingAmount
+        .mul(penaltyBase - penalty)
+        .div(penaltyBase);
       await shareModule.redeem(purchaseAmount);
       await shareModule.setReserve(0);
       await shareModule.setTotalAssetValue(pendingAmount);
@@ -250,14 +283,15 @@ describe('Share module', function () {
       await shareModule.settlePendingRedemption();
       await expect(shareModule.claimPendingRedemption())
         .to.emit(shareModule, 'RedemptionClaimed')
-        .withArgs(pendingAmount)
+        .withArgs(actualAmount)
         .to.emit(tokenD, 'Transfer')
-        .withArgs(shareModule.address, user1.address, pendingAmount);
+        .withArgs(shareModule.address, user1.address, actualAmount);
     });
 
     it('should success when claiming with difference user', async function () {
       // Transfer part of the share to user 2
       const amount = pendingAmount.div(2);
+      const actualAmount = amount.mul(penaltyBase - penalty).div(penaltyBase);
       await shareToken.transfer(user2.address, amount);
       // User 1 redeem
       await shareModule.redeem(purchaseAmount.sub(amount));
@@ -271,15 +305,15 @@ describe('Share module', function () {
       // User 1 claim
       await expect(shareModule.connect(user1).claimPendingRedemption())
         .to.emit(shareModule, 'RedemptionClaimed')
-        .withArgs(amount)
+        .withArgs(actualAmount)
         .to.emit(tokenD, 'Transfer')
-        .withArgs(shareModule.address, user1.address, amount);
+        .withArgs(shareModule.address, user1.address, actualAmount);
       // User 2 claim
       await expect(shareModule.connect(user2).claimPendingRedemption())
         .to.emit(shareModule, 'RedemptionClaimed')
-        .withArgs(amount)
+        .withArgs(actualAmount)
         .to.emit(tokenD, 'Transfer')
-        .withArgs(shareModule.address, user2.address, amount);
+        .withArgs(shareModule.address, user2.address, actualAmount);
     });
   });
 });

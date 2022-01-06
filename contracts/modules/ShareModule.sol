@@ -89,8 +89,24 @@ abstract contract ShareModule is PoolState {
     /// @notice Settle the pending redemption and assign the proper balance to
     /// each user.
     function settlePendingRedemption() public virtual returns (bool) {
+        return _settlePendingRedemption(true);
+    }
+
+    function _settlePendingRedemption(bool applyPenalty)
+        internal
+        returns (bool)
+    {
+        if (totalPendingShare == 0) return false;
+
         // Might lead to gas insufficient if pending list too long
-        uint256 totalRedemption = _redeem(address(this), totalPendingShare);
+        uint256 redeemAmount;
+        if (applyPenalty) {
+            redeemAmount = totalPendingShare;
+        } else {
+            redeemAmount = totalPendingShare + totalPendingBonus;
+            totalPendingBonus = 0;
+        }
+        uint256 totalRedemption = _redeem(address(this), redeemAmount);
         while (pendingAccountList.length > 0) {
             address user = pendingAccountList[pendingAccountList.length - 1];
             uint256 share = pendingShares[user];
@@ -99,12 +115,14 @@ abstract contract ShareModule is PoolState {
             pendingAccountList.pop();
         }
 
-        uint256 unusedBonus = totalPendingBonus;
-        totalPendingShare = 0;
-        totalPendingBonus = 0;
         _enterState(State.Executing);
         pendingStartTime = 0;
-        shareToken.burn(address(this), unusedBonus);
+        totalPendingShare = 0;
+        if (totalPendingBonus != 0) {
+            uint256 unusedBonus = totalPendingBonus;
+            totalPendingBonus = 0;
+            shareToken.burn(address(this), unusedBonus);
+        }
 
         return true;
     }
@@ -125,8 +143,7 @@ abstract contract ShareModule is PoolState {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
         if (state == State.RedemptionPending) {
-            uint256 bonus = (share * (_PENALTY_BASE)) /
-                (_PENALTY_BASE - _PENALTY);
+            uint256 bonus = (share * (_PENALTY)) / (_PENALTY_BASE - _PENALTY);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);

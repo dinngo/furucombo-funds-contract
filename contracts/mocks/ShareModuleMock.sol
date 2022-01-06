@@ -24,6 +24,10 @@ contract ShareModuleMock is ShareModule, BaseMock {
         totalAssetValueMock = amount;
     }
 
+    function settlePendingRedemptionWithoutPenalty() external {
+        _settlePendingRedemption(false);
+    }
+
     function _callBeforePurchase(uint256) internal override {
         emit BeforePurchaseCalled();
     }
