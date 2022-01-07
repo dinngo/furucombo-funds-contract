@@ -5,9 +5,11 @@ import {
   Comptroller,
   Implementation,
   AssetRouter,
+  MortgageVault,
   TaskExecutor,
   Chainlink,
   AssetRegistry,
+  SimpleToken,
 } from '../typechain';
 import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 
@@ -15,6 +17,7 @@ describe('Comptroller', function () {
   let comptroller: Comptroller;
   let implementation: Implementation;
   let assetRouter: AssetRouter;
+  let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
 
   let owner: Wallet;
@@ -23,11 +26,17 @@ describe('Comptroller', function () {
 
   let oracle: Chainlink;
   let registry: AssetRegistry;
+  let tokenM: SimpleToken;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
       [owner, user, collector] = await (ethers as any).getSigners();
+
+      tokenM = await (await ethers.getContractFactory('SimpleToken'))
+        .connect(user)
+        .deploy();
+      await tokenM.deployed();
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
@@ -47,13 +56,19 @@ describe('Comptroller', function () {
       ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
+      mortgageVault = await (
+        await ethers.getContractFactory('MortgageVault')
+      ).deploy(tokenM.address);
+      await mortgageVault.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(
         implementation.address,
         assetRouter.address,
         collector.address,
-        0
+        0,
+        mortgageVault.address
       );
       await comptroller.deployed();
 
