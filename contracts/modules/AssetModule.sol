@@ -17,18 +17,22 @@ abstract contract AssetModule is PoolState {
 
     /// @notice Add asset to the asset tracking list.
     /// @param asset The asset to be tracked.
-    function addAsset(address asset) public virtual {
-        // require(_assetList.pushBack(asset), "Asset existed");
-        //  emit AssetAdded(asset);
+    function addAsset(address asset)
+        public
+        virtual
+        when3States(State.Executing, State.RedemptionPending, State.Liquidating)
+    {
         if (_assetList.pushBack(asset)) {
             emit AssetAdded(asset);
         }
     }
 
     /// @notice Remove the asset from the asset tracking list.
-    function removeAsset(address asset) public virtual {
-        // require(_assetList.remove(asset), "Asset not existed");
-        // emit AssetRemoved(asset);
+    function removeAsset(address asset)
+        public
+        virtual
+        when3States(State.Executing, State.RedemptionPending, State.Liquidating)
+    {
         if (_assetList.remove(asset)) {
             emit AssetRemoved(asset);
         }

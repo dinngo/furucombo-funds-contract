@@ -12,8 +12,6 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 
-import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
-
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
@@ -50,7 +48,7 @@ contract Implementation is
         uint256 crystallizationPeriod_,
         uint256 reserveExecution_,
         address newOwner
-    ) external checkReady {
+    ) external checkReady whenState(State.Initializing) {
         _setLevel(level_);
         _setComptroller(comptroller_);
         _setDenomination(denomination_);
@@ -75,9 +73,11 @@ contract Implementation is
 
     /// @notice Finalize the initialization of the pool.
     function finalize() public onlyOwner {
-        // Add denomination to list and never remove
-        super.addAsset(address(denomination));
         _finalize();
+
+        // Add denomination to list and never remove
+        require(getAssetList().length == 0, "assetList is not empty");
+        addAsset(address(denomination));
     }
 
     /// @notice Liquidate the pool.
@@ -107,7 +107,7 @@ contract Implementation is
         }
 
         return
-            IAssetRouter(comptroller.assetRouter()).calcAssetsTotalValue(
+            comptroller.assetRouter().calcAssetsTotalValue(
                 assets,
                 amounts,
                 address(denomination)
@@ -124,13 +124,17 @@ contract Implementation is
             comptroller.validateDealingAsset(level, asset),
             "Invalid asset"
         );
-        int256 value = getAssetValue(asset);
-        int256 dust = int256(
-            comptroller.getDenominationDust(address(denomination))
-        );
-
-        if (value > dust || value < 0) {
+        if (asset == address(denomination)) {
             super.addAsset(asset);
+        } else {
+            int256 value = getAssetValue(asset);
+            int256 dust = int256(
+                comptroller.getDenominationDust(address(denomination))
+            );
+
+            if (value > dust || value < 0) {
+                super.addAsset(asset);
+            }
         }
     }
 
@@ -138,11 +142,11 @@ contract Implementation is
     /// @param asset The asset to be removed.
     function removeAsset(address asset) public override {
         // Do not allow to remove denomination from list
-        address denominationAddress = address(denomination);
-        if (asset != denominationAddress) {
+        address _denomination = address(denomination);
+        if (asset != _denomination) {
             int256 value = getAssetValue(asset);
             int256 dust = int256(
-                comptroller.getDenominationDust(denominationAddress)
+                comptroller.getDenominationDust(_denomination)
             );
 
             if (value < dust && value >= 0) {

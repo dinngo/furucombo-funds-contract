@@ -8,16 +8,6 @@ interface IPool {
 
     function level() external returns (uint256);
 
-    // function canDelegateCall(address asset, bytes4 sig)
-    //     external
-    //     pure
-    //     returns (bool);
-
-    // function canContractCall(address asset, bytes4 sig)
-    //     external
-    //     pure
-    //     returns (bool);
-
     function initialize(
         uint256 level,
         address comptroller,

@@ -12,7 +12,7 @@ abstract contract ExecutionModule is PoolState {
     function execute(bytes calldata data)
         public
         virtual
-        whenStates(State.Executing, State.RedemptionPending)
+        when3States(State.Executing, State.RedemptionPending, State.Liquidating)
     {
         _beforeExecute();
 

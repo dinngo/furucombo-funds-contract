@@ -38,6 +38,16 @@ abstract contract PoolState {
         _;
     }
 
+    modifier when3States(
+        State expect1,
+        State expect2,
+        State expect3
+    ) {
+        if (state != expect1 && state != expect2 && state != expect3)
+            revert InvalidState(state);
+        _;
+    }
+
     modifier whenNotState(State expectNot) {
         if (state == expectNot) revert InvalidState(state);
         _;

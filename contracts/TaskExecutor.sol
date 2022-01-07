@@ -34,6 +34,7 @@ contract TaskExecutor is
         DestructibleAction(_owner)
         DelegateCallAction()
     {
+        // FIXME: get from caller or assign it directly
         comptroller = IComptroller(_comptroller);
     }
 

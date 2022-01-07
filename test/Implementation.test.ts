@@ -160,6 +160,16 @@ describe('Implementation', function () {
         );
       });
 
+      it('add denonmination with zero value ', async function () {
+        expect(await implementation.getAssetList()).to.not.include(
+          denomination.address
+        );
+        await implementation.addAsset(denomination.address);
+        expect(await implementation.getAssetList()).to.deep.include(
+          denomination.address
+        );
+      });
+
       it('should revert: asset is not permitted', async function () {
         await expect(
           implementation.addAsset(tokenA.address)
@@ -314,4 +324,6 @@ describe('Implementation', function () {
       expect(await implementation.getTotalAssetValue()).to.be.eq(0);
     });
   });
+
+  // TODO: Add finalize() test
 });
