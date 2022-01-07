@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
+import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
 abstract contract PoolState {
     enum State {
@@ -19,6 +20,7 @@ abstract contract PoolState {
     uint256 public level;
     State public state;
     IComptroller public comptroller;
+    IMortgageVault public mortgageVault;
     IERC20 public denomination;
     IShareToken public shareToken;
     IDSProxy public vault; // DSProxy
