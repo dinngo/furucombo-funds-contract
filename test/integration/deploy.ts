@@ -150,7 +150,7 @@ export async function deployTaskExecutorAndAFurucombo(
   // AFurucombo
   const aFurucombo = await (
     await ethers.getContractFactory('AFurucombo')
-  ).deploy(ownerAddress, furucomboAddress);
+  ).deploy(ownerAddress, furucomboAddress, comptroller.address);
   await aFurucombo.deployed();
 
   return [taskExecutor, aFurucombo];

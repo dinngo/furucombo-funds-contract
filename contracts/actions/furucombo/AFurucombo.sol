@@ -5,8 +5,10 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {DestructibleAction} from "../../utils/DestructibleAction.sol";
 import {DelegateCallAction} from "../../utils/DelegateCallAction.sol";
 import {ErrorMsg} from "../../utils/ErrorMsg.sol";
+import {IPool} from "../../interfaces/IPool.sol";
 import {ActionBase} from "../ActionBase.sol";
 import {IFurucombo} from "./IFurucombo.sol";
+
 import {IComptroller} from "../../interfaces/IComptroller.sol";
 
 contract AFurucombo is
@@ -18,13 +20,16 @@ contract AFurucombo is
     using SafeERC20 for IERC20;
 
     address payable public immutable proxy;
+    IComptroller public immutable comptroller;
     uint256 private constant _TOKEN_DUST = 10;
 
-    constructor(address payable _owner, address payable _proxy)
-        DestructibleAction(_owner)
-        DelegateCallAction()
-    {
+    constructor(
+        address payable _owner,
+        address payable _proxy,
+        address _comptroller
+    ) DestructibleAction(_owner) DelegateCallAction() {
         proxy = _proxy;
+        comptroller = IComptroller(_comptroller);
     }
 
     /// @notice Inject tokens and execute combo.
@@ -49,8 +54,10 @@ contract AFurucombo is
             amountsOut[i] = _getBalance(tokensOut[i]);
         }
 
+        // check comptroller handler call
+        _checkHandlerCall(tos, datas);
+
         // Inject and execute combo
-        // TODO: check handler call in inject
         _inject(tokensIn, amountsIn);
         try IFurucombo(proxy).batchExec(tos, configs, datas) returns (
             address[] memory dealAssets
@@ -85,6 +92,20 @@ contract AFurucombo is
         }
 
         return amountsOut;
+    }
+
+    /// @notice verify valid handler .
+    function _checkHandlerCall(address[] memory tos, bytes[] memory datas)
+        internal
+    {
+        // check comptroller handler call
+        uint256 level = IPool(msg.sender).level();
+        for (uint256 i = 0; i < tos.length; ++i) {
+            require(
+                comptroller.canHandlerCall(level, tos[i], bytes4(datas[i])),
+                "_checkHandlerCall: invalid comptroller handler call"
+            );
+        }
     }
 
     /// @notice Inject tokens to furucombo.

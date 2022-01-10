@@ -37,6 +37,7 @@ import {
   getTaskExecutorFundQuotas,
   getTaskExecutorDealingAssets,
   profileGas,
+  getFuncSig,
 } from './utils/utils';
 
 describe('AFurucombo', function () {
@@ -122,7 +123,7 @@ describe('AFurucombo', function () {
 
       aFurucombo = await (
         await ethers.getContractFactory('AFurucombo')
-      ).deploy(owner.address, furucombo.address);
+      ).deploy(owner.address, furucombo.address, comptroller.address);
       await aFurucombo.deployed();
 
       hFunds = await (await ethers.getContractFactory('HFunds')).deploy();
@@ -159,14 +160,8 @@ describe('AFurucombo', function () {
       // Permit handler
       comptroller.permitHandlers(
         await proxy.getLevel(),
-        [hFunds.address],
-        [WL_ANY_SIG]
-      );
-
-      comptroller.permitHandlers(
-        await proxy.getLevel(),
-        [FURUCOMBO_HQUICKSWAP],
-        [WL_ANY_SIG]
+        [hFunds.address, FURUCOMBO_HQUICKSWAP],
+        [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG]
       );
     }
   );
@@ -475,6 +470,39 @@ describe('AFurucombo', function () {
         proxy.connect(user).executeMock(taskExecutor.address, data)
       ).to.be.revertedWith(
         'injectAndBatchExec: Furucombo has remaining tokens'
+      );
+    });
+
+    it('should revert: invalid handler', async function () {
+      const tokensIn: any[] = [];
+      const amountsIn: any[] = [];
+      const tokensOut: any[] = [];
+      const tos = [hFunds.address];
+      const configs = [
+        '0x0003000000000000000000000000000000000000000000000000000000000000',
+      ];
+      const datas = [simpleEncode('_inject(address[],uint256[])', [[], []])];
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        tokensIn,
+        amountsIn,
+        aFurucombo.address,
+        getCallData(aFurucombo, 'injectAndBatchExec', [
+          tokensIn,
+          amountsIn,
+          tokensOut,
+          tos,
+          configs,
+          datas,
+        ]),
+      ]);
+
+      // send token to vault
+      // const vault = await proxy.vault();
+      await expect(
+        proxy.connect(user).executeMock(taskExecutor.address, data)
+      ).to.be.revertedWith(
+        '_checkHandlerCall: invalid comptroller handler call'
       );
     });
   });

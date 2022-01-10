@@ -17,7 +17,7 @@ interface IComptroller is IBeacon {
         bytes4 sig
     ) external view returns (bool);
 
-    function canHandlerCalls(
+    function canHandlerCall(
         uint256 level,
         address to,
         bytes4 sig
