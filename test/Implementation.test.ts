@@ -112,14 +112,32 @@ describe('Implementation', function () {
       );
 
       // Initialization
-      await implementation.setComptroller(comptroller.address);
       await comptroller.permitDenominations(
         [denomination.address],
         [denominationDust]
       );
+      await comptroller.permitAssets(level, [denomination.address]);
 
-      await implementation.setDenomination(denomination.address);
-      await implementation.setDSProxy();
+      const shareToken = await (await ethers.getContractFactory('SimpleToken'))
+        .connect(user)
+        .deploy();
+      await shareToken.deployed();
+
+      await implementation
+        .connect(owner)
+        .initialize(
+          level,
+          comptroller.address,
+          denomination.address,
+          shareToken.address,
+          200,
+          200,
+          10,
+          0,
+          owner.address
+        );
+
+      await implementation.finalize();
       vault = await ethers.getContractAt(
         'IDSProxy',
         await implementation.vault()
@@ -145,6 +163,7 @@ describe('Implementation', function () {
         // Add asset
         await implementation.addAsset(tokenA.address);
         expect(await implementation.getAssetList()).to.be.deep.eq([
+          denomination.address,
           tokenA.address,
         ]);
       });
@@ -157,16 +176,6 @@ describe('Implementation', function () {
         await implementation.addAsset(tokenC.address);
         expect(await implementation.getAssetList()).to.deep.include(
           tokenC.address
-        );
-      });
-
-      it('add denonmination with zero value ', async function () {
-        expect(await implementation.getAssetList()).to.not.include(
-          denomination.address
-        );
-        await implementation.addAsset(denomination.address);
-        expect(await implementation.getAssetList()).to.deep.include(
-          denomination.address
         );
       });
 
@@ -234,7 +243,6 @@ describe('Implementation', function () {
         const amount = await tokenA.balanceOf(vault.address);
         const data = simpleEncode('transfer(address,uint256)', [
           owner.address,
-          // tokenAAmount,
           amount,
         ]);
         await implementation.vaultCallMock(tokenA.address, data);
