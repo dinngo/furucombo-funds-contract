@@ -79,8 +79,8 @@ contract Comptroller is UpgradeableBeacon {
         address implementation_,
         IAssetRouter assetRouter_,
         address execFeeCollector_,
-        uint256 execFeePercentage_
-        IMortgageVault mortgageVault_,
+        uint256 execFeePercentage_,
+        IMortgageVault mortgageVault_
     ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
         mortgageVault = mortgageVault_;

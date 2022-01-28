@@ -22,7 +22,7 @@ describe('Comptroller_Whitelist', function () {
   let comptroller: Comptroller;
   let implementation: Implementation;
   let assetRouter: AssetRouter;
-  let mortgageVault: mortgageVault;
+  let mortgageVault: MortgageVault;
   let actionMockA: AMock;
   let actionMockB: AMock;
   let handlerMockA: HandlerMock;
