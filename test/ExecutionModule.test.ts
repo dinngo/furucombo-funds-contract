@@ -79,14 +79,6 @@ describe('Execution module', function () {
       );
     });
 
-    it('should fail when liquidating', async function () {
-      await executionModule.setState(4);
-      const executionData = action.interface.encodeFunctionData('foo');
-      await expect(executionModule.execute(executionData)).to.be.revertedWith(
-        'InvalidState(4)'
-      );
-    });
-
     it('should fail when closed', async function () {
       await executionModule.setState(5);
       const executionData = action.interface.encodeFunctionData('foo');

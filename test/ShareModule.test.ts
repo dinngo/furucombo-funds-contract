@@ -32,6 +32,7 @@ describe('Share module', function () {
       ).deploy(
         shareModule.address,
         constants.AddressZero,
+        constants.AddressZero,
         constants.AddressZero
       );
       await comptroller.deployed();

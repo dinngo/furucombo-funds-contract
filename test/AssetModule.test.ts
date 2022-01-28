@@ -65,21 +65,30 @@ describe('Asset module', function () {
   });
 
   describe('add asset', function () {
+    beforeEach(async function () {
+      await assetModule.setState(2);
+    });
+
     it('should success when asset is not in the list', async function () {
       await expect(assetModule.addAsset(token0.address))
         .to.emit(assetModule, 'AssetAdded')
         .withArgs(token0.address);
     });
 
-    it('should fail when asset is in the list', async function () {
+    it('should non-revert when asset is in the list', async function () {
       await assetModule.addAsset(token0.address);
-      await expect(assetModule.addAsset(token0.address)).to.be.revertedWith(
-        'Asset existed'
-      );
+      await assetModule.addAsset(token0.address);
+      expect(await assetModule.callStatic.getAssetList()).to.be.deep.eq([
+        token0.address,
+      ]);
     });
   });
 
   describe('remove asset', function () {
+    beforeEach(async function () {
+      await assetModule.setState(2);
+    });
+
     it('should success when asset is in the list', async function () {
       await assetModule.addAsset(token0.address);
       await expect(assetModule.removeAsset(token0.address))
@@ -87,10 +96,9 @@ describe('Asset module', function () {
         .withArgs(token0.address);
     });
 
-    it('should fail when asset is in the list', async function () {
-      await expect(assetModule.removeAsset(token0.address)).to.be.revertedWith(
-        'Asset not existed'
-      );
+    it('should non-revert when asset is not in the list', async function () {
+      await assetModule.removeAsset(token0.address);
+      expect(await assetModule.callStatic.getAssetList()).to.be.deep.eq([]);
     });
   });
 
@@ -144,13 +152,17 @@ describe('Asset module', function () {
     });
 
     it('should fail when not Executing or Liquidating', async function () {
+      await assetModule.setState(3);
       await assetModule.addAsset(tokenD.address);
-      await expect(assetModule.close()).to.be.revertedWith('InvalidState(0)');
+      await expect(assetModule.close()).to.be.revertedWith(
+        "reverted with custom error 'InvalidState(3)'"
+      );
     });
   });
 
   describe('get asset list', function () {
     beforeEach(async function () {
+      await assetModule.setState(2);
       await assetModule.addAsset(tokenD.address);
       await assetModule.addAsset(token0.address);
       await assetModule.addAsset(token1.address);

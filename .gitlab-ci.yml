@@ -96,6 +96,26 @@ test_3:
   script:
     - yarn test ${UNITTEST_FILES[3]}
 
+test_4:
+  <<: *test-configuration
+  script:
+    - yarn test ${UNITTEST_FILES[4]}
+
+test_5:
+  <<: *test-configuration
+  script:
+    - yarn test ${UNITTEST_FILES[5]}
+
+test_6:
+  <<: *test-configuration
+  script:
+    - yarn test ${UNITTEST_FILES[6]}
+
+test_7:
+  <<: *test-configuration
+  script:
+    - yarn test ${UNITTEST_FILES[7]}
+
 deploy:
   stage: deploy
   tags:

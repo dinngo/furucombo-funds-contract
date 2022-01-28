@@ -9,10 +9,6 @@ contract PoolProxyMock is Implementation {
         Implementation(dsProxyRegistry_)
     {}
 
-    function getLevel() external pure returns (uint256) {
-        return 1;
-    }
-
     function canContractCall(address to, bytes4 sig)
         external
         pure
@@ -48,6 +44,10 @@ contract PoolProxyMock is Implementation {
         returns (bytes memory)
     {
         return vault.execute{value: msg.value}(_target, _data);
+    }
+
+    function setLevel(uint256 level) external {
+        _setLevel(level);
     }
 
     function setDSProxy() external {
