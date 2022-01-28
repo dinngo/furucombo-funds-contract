@@ -38,6 +38,16 @@ abstract contract PoolState {
         _;
     }
 
+    modifier when3States(
+        State expect1,
+        State expect2,
+        State expect3
+    ) {
+        if (state != expect1 && state != expect2 && state != expect3)
+            revert InvalidState(state);
+        _;
+    }
+
     modifier whenNotState(State expectNot) {
         if (state == expectNot) revert InvalidState(state);
         _;
@@ -111,7 +121,7 @@ abstract contract PoolState {
         require(address(vault) != address(0), "Vault not set");
         require(address(comptroller) != address(0), "Comptroller not set");
         require(address(denomination) != address(0), "Denomination not set");
-        address action = comptroller.setupAction();
+        address action = comptroller.execAction();
         bytes memory data = abi.encodeWithSignature(
             "maxApprove(address)",
             denomination

@@ -8,7 +8,13 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IPool} from "./interfaces/IPool.sol";
 
 contract PoolProxyFactory {
+    event PoolCreated(address indexed newPool);
+
     IComptroller public comptroller;
+
+    constructor(address _comptroller) {
+        comptroller = IComptroller(_comptroller);
+    }
 
     function createPool(
         IERC20 denomination,
@@ -22,17 +28,19 @@ contract PoolProxyFactory {
         bytes memory data = abi.encodeWithSignature(
             "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
             level,
-            address(share),
             address(comptroller),
             address(denomination),
+            address(share),
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
             reserveExecution,
             msg.sender
         );
+
         IPool pool = IPool(address(new PoolProxy(address(comptroller), data)));
         share.transferOwnership(address(pool));
+        emit PoolCreated(address(pool));
         return address(pool);
     }
 }

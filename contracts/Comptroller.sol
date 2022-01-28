@@ -20,7 +20,6 @@ contract Comptroller is UpgradeableBeacon {
     bool public fHalt;
     bool public fInitialAssetCheck;
     address public execAction;
-    address public setupAction;
     address public execFeeCollector;
     uint256 public execFeePercentage;
     IAssetRouter public assetRouter;
@@ -51,7 +50,6 @@ contract Comptroller is UpgradeableBeacon {
     event SetStakedTier(uint256 indexed level, uint256 amount);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
-    event SetSetupAction(address indexed action);
     event PermitManager(address indexed to);
     event ForbidManager(address indexed to);
     event PermitAsset(uint256 indexed level, address assets);
@@ -78,10 +76,12 @@ contract Comptroller is UpgradeableBeacon {
     constructor(
         address implementation_,
         IAssetRouter assetRouter_,
-        address execFeeCollector_
+        address execFeeCollector_,
+        uint256 execFeePercentage_
     ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
         execFeeCollector = execFeeCollector_;
+        execFeePercentage = execFeePercentage_;
         fInitialAssetCheck = true;
         this;
     }
@@ -196,11 +196,6 @@ contract Comptroller is UpgradeableBeacon {
     function setExecAction(address action) external onlyOwner {
         execAction = action;
         emit SetExecAction(action);
-    }
-
-    function setSetupAction(address action) external onlyOwner {
-        setupAction = action;
-        emit SetSetupAction(action);
     }
 
     // Manager whitelist

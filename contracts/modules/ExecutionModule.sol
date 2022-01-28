@@ -12,21 +12,27 @@ abstract contract ExecutionModule is PoolState {
     function execute(bytes calldata data)
         public
         virtual
-        whenStates(State.Executing, State.RedemptionPending)
+        when3States(State.Executing, State.RedemptionPending, State.Liquidating)
     {
         _beforeExecute();
 
         address action = comptroller.execAction();
-        vault.execute(action, data);
+        bytes memory response = vault.execute(action, data);
 
-        _afterExecute();
+        _afterExecute(response);
     }
 
     function _beforeExecute() internal virtual returns (bool) {
         return true;
     }
 
-    function _afterExecute() internal virtual returns (bool) {
+    /// @param response execution response.
+    function _afterExecute(bytes memory response)
+        internal
+        virtual
+        returns (bool)
+    {
+        response;
         return true;
     }
 }

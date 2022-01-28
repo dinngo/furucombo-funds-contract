@@ -43,6 +43,10 @@ export function ether(num: any) {
   return ethers.utils.parseUnits(num, 'ether');
 }
 
+export function szabo(num: any) {
+  return ethers.utils.parseUnits(num, 6);
+}
+
 export async function getTaskExecutorFundQuotas(
   proxy: any,
   taskExecutor: any,
@@ -151,6 +155,18 @@ export async function getHandlerReturn(receipt: any, dataTypes: any) {
     }
   });
   return actionResult;
+}
+
+export async function getEventArgs(receipt: any, event: string) {
+  let args: any;
+  const result = await receipt.wait();
+  result.events.forEach((element: any) => {
+    if (element.event === event) {
+      args = element.args;
+    }
+  });
+
+  return args;
 }
 
 export function asciiToHex32(s: string) {

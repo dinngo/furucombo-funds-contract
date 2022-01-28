@@ -61,6 +61,7 @@ abstract contract ManagementFee {
         IShareToken shareToken = __getShareToken();
         uint256 currentTime = block.timestamp;
         uint256 totalShare = shareToken.grossTotalShare();
+
         uint256 sharesDue = (
             _feeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(
                 FEE_BASE64x64

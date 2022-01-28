@@ -17,7 +17,7 @@ interface IComptroller is IBeacon {
         bytes4 sig
     ) external view returns (bool);
 
-    function canHandlerCalls(
+    function canHandlerCall(
         uint256 level,
         address to,
         bytes4 sig
@@ -45,8 +45,6 @@ interface IComptroller is IBeacon {
     function assetRouter() external view returns (IAssetRouter);
 
     function execAction() external view returns (address);
-
-    function setupAction() external view returns (address);
 
     function isValidDenomination(address _denomination)
         external

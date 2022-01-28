@@ -48,7 +48,7 @@ contract Implementation is
         uint256 crystallizationPeriod_,
         uint256 reserveExecution_,
         address newOwner
-    ) external {
+    ) external whenState(State.Initializing) checkReady {
         _setLevel(level_);
         _setComptroller(comptroller_);
         _setDenomination(denomination_);
@@ -74,6 +74,10 @@ contract Implementation is
     /// @notice Finalize the initialization of the pool.
     function finalize() public onlyOwner {
         _finalize();
+
+        // Add denomination to list and never remove
+        require(getAssetList().length == 0, "assetList is not empty");
+        addAsset(address(denomination));
     }
 
     /// @notice Liquidate the pool.
@@ -120,19 +124,35 @@ contract Implementation is
             comptroller.validateDealingAsset(level, asset),
             "Invalid asset"
         );
-        int256 value = getAssetValue(asset);
-        int256 dust = int256(comptroller.getDenominationDust(asset));
-        require(value > dust || value < 0, "No such asset");
-        super.addAsset(asset);
+        if (asset == address(denomination)) {
+            super.addAsset(asset);
+        } else {
+            int256 value = getAssetValue(asset);
+            int256 dust = int256(
+                comptroller.getDenominationDust(address(denomination))
+            );
+
+            if (value > dust || value < 0) {
+                super.addAsset(asset);
+            }
+        }
     }
 
     /// @notice Remove the asset from the tracking list.
     /// @param asset The asset to be removed.
     function removeAsset(address asset) public override {
-        int256 value = getAssetValue(asset);
-        int256 dust = int256(comptroller.getDenominationDust(asset));
-        require(value <= dust && value >= 0, "Remaining asset");
-        super.removeAsset(asset);
+        // Do not allow to remove denomination from list
+        address _denomination = address(denomination);
+        if (asset != _denomination) {
+            int256 value = getAssetValue(asset);
+            int256 dust = int256(
+                comptroller.getDenominationDust(_denomination)
+            );
+
+            if (value < dust && value >= 0) {
+                super.removeAsset(asset);
+            }
+        }
     }
 
     /// @notice Get the value of a give asset.
@@ -159,9 +179,27 @@ contract Implementation is
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute() internal override returns (bool) {
+    function _afterExecute(bytes memory response)
+        internal
+        override
+        returns (bool)
+    {
         require(__getReserve() >= reserveExecution, "Insufficient reserve");
-        return super._afterExecute();
+
+        // remove asset from assetList
+        address[] memory assetList = getAssetList();
+        for (uint256 i = 0; i < assetList.length; ++i) {
+            removeAsset(assetList[i]);
+        }
+
+        // add new asset to assetList
+        address[] memory dealingAssets = abi.decode(response, (address[]));
+
+        for (uint256 i = 0; i < dealingAssets.length; ++i) {
+            addAsset(dealingAssets[i]);
+        }
+
+        return super._afterExecute(response);
     }
 
     /////////////////////////////////////////////////////

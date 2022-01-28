@@ -25,7 +25,7 @@ contract TaskExecutor is
     using LibParam for bytes32;
 
     // prettier-ignore
-    address public constant ETHER = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 public constant PERCENTAGE_BASE = 1 ether;
     uint256 public constant FEE_BASE = 1e4;
     IComptroller public immutable comptroller;
@@ -34,6 +34,7 @@ contract TaskExecutor is
         DestructibleAction(_owner)
         DelegateCallAction()
     {
+        // FIXME: get from caller or assign it directly
         comptroller = IComptroller(_comptroller);
     }
 
@@ -85,24 +86,19 @@ contract TaskExecutor is
             "TaskExecutor: Tos and configs length inconsistent"
         );
 
-        uint256 level = IPool(msg.sender).getLevel();
+        uint256 level = IPool(msg.sender).level();
 
         for (uint256 i = 0; i < tos.length; i++) {
             bytes32 config = configs[i];
 
             if (config.isDelegateCall()) {
-                // Delegate call case
-
-                // check fund delegate call
-                bytes4 sig = bytes4(datas[i]);
-                require(
-                    IPool(msg.sender).canDelegateCall(tos[i], sig),
-                    "TaskExecutor: invalid proxy delegate call"
-                );
-
                 // check comptroller delegate call
                 require(
-                    comptroller.canDelegateCall(level, tos[i], sig),
+                    comptroller.canDelegateCall(
+                        level,
+                        tos[i],
+                        bytes4(datas[i])
+                    ),
                     "TaskExecutor: invalid comptroller delegate call"
                 );
 
@@ -121,12 +117,6 @@ contract TaskExecutor is
                 // Decode eth value from data
                 (uint256 ethValue, bytes memory _data) = _decodeEthValue(
                     datas[i]
-                );
-
-                // check fund contract call
-                require(
-                    IPool(msg.sender).canContractCall(tos[i], bytes4(_data)),
-                    "TaskExecutor: invalid proxy contract call"
                 );
 
                 // check comptroller contract call
@@ -288,7 +278,7 @@ contract TaskExecutor is
         uint256[] calldata amountsIn
     ) internal {
         // Check initial asset from white list
-        uint256 level = IPool(msg.sender).getLevel();
+        uint256 level = IPool(msg.sender).level();
         require(
             comptroller.validateInitialAssets(level, tokensIn),
             "TaskExecutor: invalid initial asset"
@@ -307,7 +297,7 @@ contract TaskExecutor is
 
             // send fee to collector
             uint256 execFee = (amountsIn[i] * feePercentage) / FEE_BASE;
-            if (address(tokensIn[i]) == ETHER) {
+            if (address(tokensIn[i]) == NATIVE_TOKEN) {
                 collector.transfer(execFee);
             } else {
                 IERC20(tokensIn[i]).safeTransfer(collector, execFee);

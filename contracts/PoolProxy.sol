@@ -10,7 +10,6 @@ contract PoolProxy is BeaconProxy {
         payable
         BeaconProxy(beacon, data)
     {
-        // May move to factory and assign directly to user through data
-        IPool(address(this)).initializeOwnership(msg.sender);
+        this;
     }
 }
