@@ -15,10 +15,6 @@ contract ImplementationMock is Implementation {
         _setComptroller(comptroller_);
     }
 
-    function setDenomination(IERC20 denomination_) external {
-        _setDenomination(denomination_);
-    }
-
     function setDSProxy() external {
         address dsProxy_ = dsProxyRegistry.build();
         _setDSProxy(IDSProxy(dsProxy_));
