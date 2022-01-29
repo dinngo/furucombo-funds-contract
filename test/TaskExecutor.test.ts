@@ -115,16 +115,18 @@ describe('Task Executor', function () {
         .connect(user)
         .deploy(dsProxyRegistry.address);
       await proxy.deployed();
+      await proxy.setLevel(1);
+      await proxy.setDSProxy();
 
       // Permit delegate calls
       comptroller.permitDelegateCalls(
-        await proxy.getLevel(),
+        await proxy.level(),
         [fooAction.address],
         [WL_ANY_SIG]
       );
 
       comptroller.permitContractCalls(
-        await proxy.getLevel(),
+        await proxy.level(),
         [foo.address],
         [WL_ANY_SIG]
       );
@@ -136,7 +138,6 @@ describe('Task Executor', function () {
   beforeEach(async function () {
     // setupTest will use the evm_snapshot to reset environment for speed up testing
     await setupTest();
-    await proxy.setDSProxy();
   });
 
   describe('execute by delegate call', function () {
@@ -233,7 +234,7 @@ describe('Task Executor', function () {
 
     it('should revert: no contract code', async function () {
       comptroller.permitDelegateCalls(
-        await proxy.getLevel(),
+        await proxy.level(),
         [collector.address],
         [WL_ANY_SIG]
       );
@@ -286,7 +287,7 @@ describe('Task Executor', function () {
 
     it('should revert: non existed function', async function () {
       comptroller.permitDelegateCalls(
-        await proxy.getLevel(),
+        await proxy.level(),
         [fooAction.address],
         [WL_ANY_SIG]
       );
@@ -374,7 +375,7 @@ describe('Task Executor', function () {
 
     it('should revert: invalid comptroller delegate call', async function () {
       await comptroller.canDelegateCall(
-        await proxy.getLevel(),
+        await proxy.level(),
         collector.address,
         WL_ANY_SIG
       );
@@ -421,7 +422,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('invalid proxy delegate call');
+      ).to.be.revertedWith('TaskExecutor: invalid comptroller delegate call');
     });
   });
 
@@ -520,7 +521,7 @@ describe('Task Executor', function () {
 
     it('should revert: send token', async function () {
       await comptroller.permitContractCalls(
-        await proxy.getLevel(),
+        await proxy.level(),
         [collector.address],
         [WL_ANY_SIG]
       );
@@ -653,7 +654,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
-      ).to.be.revertedWith('TaskExecutor: invalid proxy contract call');
+      ).to.be.revertedWith('TaskExecutor: invalid comptroller contract call');
     });
   });
 
@@ -733,10 +734,10 @@ describe('Task Executor', function () {
 
   describe('return assets', function () {
     beforeEach(async function () {
-      await comptroller.permitAssets(await proxy.getLevel(), [tokenA.address]);
+      await comptroller.permitAssets(await proxy.level(), [tokenA.address]);
       expect(
         await comptroller.validateDealingAsset(
-          await proxy.getLevel(),
+          await proxy.level(),
           tokenA.address
         )
       ).to.be.eq(true);
@@ -746,7 +747,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address];
       await comptroller.permitAssets(
-        await proxy.getLevel(),
+        await proxy.level(),
         expectedDealingAssets
       );
 
@@ -786,7 +787,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address, tokenB.address];
       await comptroller.permitAssets(
-        await proxy.getLevel(),
+        await proxy.level(),
         expectedDealingAssets
       );
 
@@ -826,7 +827,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address, tokenB.address];
       await comptroller.permitAssets(
-        await proxy.getLevel(),
+        await proxy.level(),
         expectedDealingAssets
       );
 
@@ -869,7 +870,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address, tokenB.address];
       await comptroller.permitAssets(
-        await proxy.getLevel(),
+        await proxy.level(),
         expectedDealingAssets
       );
 
@@ -912,7 +913,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address];
       await comptroller.permitAssets(
-        await proxy.getLevel(),
+        await proxy.level(),
         expectedDealingAssets
       );
 
@@ -942,7 +943,7 @@ describe('Task Executor', function () {
     const quota = ether('10');
 
     beforeEach(async function () {
-      await comptroller.permitAssets(await proxy.getLevel(), [tokenA.address]);
+      await comptroller.permitAssets(await proxy.level(), [tokenA.address]);
       await tokenA.connect(tokenAProvider).transfer(await proxy.vault(), quota);
       await tokenB.connect(tokenBProvider).transfer(await proxy.vault(), quota);
     });
@@ -1030,7 +1031,7 @@ describe('Task Executor', function () {
 
       expect(
         await comptroller.validateInitialAsset(
-          await proxy.getLevel(),
+          await proxy.level(),
           tokenB.address
         )
       ).to.be.eq(false);

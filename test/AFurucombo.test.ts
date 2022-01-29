@@ -149,17 +149,19 @@ describe('AFurucombo', function () {
         .connect(user)
         .deploy(dsProxyRegistry.address);
       await proxy.deployed();
+      await proxy.setLevel(1);
+      await proxy.setDSProxy();
 
       // Permit delegate calls
       comptroller.permitDelegateCalls(
-        await proxy.getLevel(),
+        await proxy.level(),
         [aFurucombo.address],
         [WL_ANY_SIG]
       );
 
       // Permit handler
       comptroller.permitHandlers(
-        await proxy.getLevel(),
+        await proxy.level(),
         [hFunds.address, FURUCOMBO_HQUICKSWAP],
         [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG]
       );
@@ -171,7 +173,6 @@ describe('AFurucombo', function () {
   // setupTest will use the evm_snapshot to reset environment to speed up testing
   beforeEach(async function () {
     await setupTest();
-    await proxy.setDSProxy();
   });
 
   describe('inject and batchExec', function () {
