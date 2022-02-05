@@ -5,6 +5,7 @@ import {
   Comptroller,
   Implementation,
   AssetRouter,
+  MortgageVault,
   TaskExecutorMock,
   IDSProxyRegistry,
   IERC20,
@@ -44,6 +45,7 @@ describe('AFurucombo', function () {
   let comptroller: Comptroller;
   let implementation: Implementation;
   let assetRouter: AssetRouter;
+  let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutorMock;
   let dsProxyRegistry: IDSProxyRegistry;
   let proxy: PoolProxyMock;
@@ -93,13 +95,19 @@ describe('AFurucombo', function () {
       ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
+      mortgageVault = await (
+        await ethers.getContractFactory('MortgageVault')
+      ).deploy(token.address);
+      await mortgageVault.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(
         implementation.address,
         assetRouter.address,
         collector.address,
-        0
+        0,
+        mortgageVault.address
       );
       await comptroller.deployed();
       await comptroller.setInitialAssetCheck(false);

@@ -24,13 +24,15 @@ describe('Asset module', function () {
         .connect(user)
         .deploy(DS_PROXY_REGISTRY);
       await assetModule.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(
         assetModule.address,
         constants.AddressZero,
         constants.AddressZero,
-        0
+        0,
+        constants.AddressZero
       );
       await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
