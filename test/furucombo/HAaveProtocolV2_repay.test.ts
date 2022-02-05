@@ -156,7 +156,7 @@ describe('Aave V2 Repay', function () {
       });
 
       // Get handler return result
-      const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+      const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const borrowTokenUserAfter = await borrowToken.balanceOf(user.address);
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
       const interestMax = borrowAmount
@@ -200,7 +200,7 @@ describe('Aave V2 Repay', function () {
       });
 
       // Get handler return result
-      const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+      const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
       const interestMax = borrowAmount
         .mul(BigNumber.from(1))
@@ -249,7 +249,7 @@ describe('Aave V2 Repay', function () {
       });
 
       // Get handler return result
-      const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+      const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const borrowTokenUserAfter = await borrowToken.balanceOf(user.address);
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
       const interestMax = borrowAmount
@@ -290,7 +290,7 @@ describe('Aave V2 Repay', function () {
       });
 
       // Get handler return result
-      const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+      const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
       const interestMax = borrowAmount
         .mul(BigNumber.from(1))

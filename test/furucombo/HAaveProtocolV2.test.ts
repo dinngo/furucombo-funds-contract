@@ -37,12 +37,6 @@ describe('Aave V2', function () {
   const awmaticAddress = AWMATIC_V2;
   const ATOKEN_DUST = ether('0.00001');
 
-  // let id;
-  // let balanceUser;
-  // let balanceProxy;
-  // let providerAddress;
-  // let wmaticProviderAddress;
-
   let owner: Wallet;
   let user: Wallet;
 
@@ -248,7 +242,7 @@ describe('Aave V2', function () {
         });
 
         // Get handler return result
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await awmatic.balanceOf(user.address);
         const interestMax = depositAmount
           .mul(BigNumber.from(1))
@@ -283,7 +277,7 @@ describe('Aave V2', function () {
         });
 
         // Get handler return result
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await awmatic.balanceOf(user.address);
         const interestMax = depositAmount
           .mul(BigNumber.from(1))
@@ -344,7 +338,7 @@ describe('Aave V2', function () {
         });
 
         // Get handler return result
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await aToken.balanceOf(user.address);
         const tokenUserAfter = await token.balanceOf(user.address);
         const interestMax = depositAmount
@@ -386,7 +380,7 @@ describe('Aave V2', function () {
         });
 
         // Get handler return result
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await aToken.balanceOf(user.address);
         const tokenUserAfter = await token.balanceOf(user.address);
         const interestMax = depositAmount
@@ -439,7 +433,7 @@ describe('Aave V2', function () {
         });
 
         // Get handler return result
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await aToken.balanceOf(user.address);
         const tokenUserAfter = await token.balanceOf(user.address);
 

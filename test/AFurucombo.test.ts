@@ -16,6 +16,7 @@ import {
   PoolProxyMock,
   Chainlink,
   AssetRegistry,
+  IVariableDebtToken,
 } from '../typechain';
 
 import {
@@ -27,6 +28,8 @@ import {
   NATIVE_TOKEN,
   FURUCOMBO_HQUICKSWAP,
   WMATIC_TOKEN,
+  AWETH_V2_DEBT_VARIABLE,
+  AAVEPROTOCOL_V2_PROVIDER,
 } from './utils/constants';
 import {
   getActionReturn,
@@ -42,6 +45,8 @@ import {
 } from './utils/utils';
 
 describe('AFurucombo', function () {
+  const debtTokenAddress = AWETH_V2_DEBT_VARIABLE;
+
   let comptroller: Comptroller;
   let implementation: Implementation;
   let assetRouter: AssetRouter;
@@ -61,6 +66,7 @@ describe('AFurucombo', function () {
 
   let token: IERC20;
   let tokenOut: IERC20;
+  let debtToken: IVariableDebtToken;
   let tokenProvider: Signer;
 
   let oracle: Chainlink;
@@ -74,7 +80,12 @@ describe('AFurucombo', function () {
       // Setup token and unlock provider
       tokenProvider = await impersonateAndInjectEther(DAI_PROVIDER);
       token = await ethers.getContractAt('IERC20', DAI_TOKEN);
+
       tokenOut = await ethers.getContractAt('IERC20', WETH_TOKEN);
+      debtToken = await ethers.getContractAt(
+        'IVariableDebtToken',
+        debtTokenAddress
+      );
 
       // Setup contracts
       implementation = await (
@@ -513,6 +524,57 @@ describe('AFurucombo', function () {
       ).to.be.revertedWith(
         '_checkHandlerCall: invalid comptroller handler call'
       );
+    });
+  });
+
+  describe('approve delegation to proxy', function () {
+    it('approve delegation', async function () {
+      const vault = await proxy.vault();
+
+      expect(
+        await debtToken.borrowAllowance(vault, furucombo.address)
+      ).to.be.eq(0);
+
+      const borrowAmount = ether('0.05');
+      const tokens = [debtToken.address];
+      const amounts = [borrowAmount];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        [],
+        [],
+        aFurucombo.address,
+        getCallData(aFurucombo, 'approveDelegation', [tokens, amounts]),
+      ]);
+
+      // Execute
+      const receipt = await proxy
+        .connect(user)
+        .executeMock(taskExecutor.address, data);
+
+      expect(
+        await debtToken.borrowAllowance(vault, furucombo.address)
+      ).to.be.eq(borrowAmount);
+
+      await profileGas(receipt);
+    });
+
+    it('should revert: inconsistent length', async function () {
+      const borrowAmount = ether('0.05');
+      const tokens = [debtToken.address];
+      const amounts = [borrowAmount, borrowAmount];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        [],
+        [],
+        aFurucombo.address,
+        getCallData(aFurucombo, 'approveDelegation', [tokens, amounts]),
+      ]);
+
+      await expect(
+        proxy.connect(user).executeMock(taskExecutor.address, data)
+      ).to.be.revertedWith('token length != amounts length');
     });
   });
 });
