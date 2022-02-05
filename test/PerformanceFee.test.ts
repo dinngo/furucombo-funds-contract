@@ -182,6 +182,7 @@ describe('Performance fee', function () {
         });
 
         it('should not get fee when crystallization before period', async function () {
+          await increaseNextBlockTimeBy(period.toNumber() * 0.4);
           const highWaterMarkBefore =
             await performanceFee.callStatic.hwm64x64();
           await expect(performanceFee.crystallize()).to.be.revertedWith(
@@ -194,6 +195,53 @@ describe('Performance fee', function () {
           expect(shareManager).to.be.eq(BigNumber.from(0));
           const highWaterMarkAfter = await performanceFee.callStatic.hwm64x64();
           expect(highWaterMarkAfter).to.be.eq(highWaterMarkBefore);
+        });
+
+        it('should get fee when crystallization after period', async function () {
+          await increaseNextBlockTimeBy(period.toNumber());
+          const highWaterMarkBefore =
+            await performanceFee.callStatic.hwm64x64();
+          await performanceFee.crystallize();
+          const highWaterMarkAfter = await performanceFee.callStatic.hwm64x64();
+          const shareManager = await tokenS.callStatic.balanceOf(
+            manager.address
+          );
+          const fee = growth.mul(feeRate).div(feeBase);
+          const expectShare = fee
+            .mul(totalShare)
+            .div(currentGrossAssetValue.sub(fee));
+          const lastPrice =
+            await performanceFee.callStatic.lastGrossSharePrice64x64();
+          const expectPrice = highWaterMarkBefore
+            .mul(feeBase.mul(2).sub(feeRate))
+            .div(feeBase);
+          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
+          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
+          expect(highWaterMarkAfter).to.be.eq(lastPrice);
+          expect(highWaterMarkAfter).to.be.gt(expectPrice.mul(999).div(1000));
+          expect(highWaterMarkAfter).to.be.lt(expectPrice.mul(1001).div(1000));
+        });
+
+        it('should get fee when crystallization at next period', async function () {
+          await increaseNextBlockTimeBy(period.toNumber() * 1.8);
+          await performanceFee.crystallize();
+          await increaseNextBlockTimeBy(period.toNumber() * 0.4);
+          const highWaterMarkBefore =
+            await performanceFee.callStatic.hwm64x64();
+          await performanceFee.crystallize();
+          const highWaterMarkAfter = await performanceFee.callStatic.hwm64x64();
+          const shareManager = await tokenS.callStatic.balanceOf(
+            manager.address
+          );
+          const fee = growth.mul(feeRate).div(feeBase);
+          const expectShare = fee
+            .mul(totalShare)
+            .div(currentGrossAssetValue.sub(fee));
+          const lastPrice =
+            await performanceFee.callStatic.lastGrossSharePrice64x64();
+          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
+          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
+          expect(highWaterMarkAfter).to.be.eq(lastPrice);
         });
 
         it('should get fee when crystallization after period', async function () {

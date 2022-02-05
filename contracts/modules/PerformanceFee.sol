@@ -21,15 +21,17 @@ abstract contract PerformanceFee {
     uint256 private _feeSum;
     uint256 private _feeSet;
     uint256 private _lastOutstandingShare;
+    uint256 private _crystallizationStart;
     uint256 private _crystallizationPeriod;
-    uint256 private lastCrystallization;
+    uint256 private _lastCrystallization;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
     address private constant _FINALIZED_ACCOUNT = address(2);
 
     function initializePerformanceFee() public virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
-        lastCrystallization = block.timestamp;
+        _crystallizationStart = block.timestamp;
+        _lastCrystallization = block.timestamp;
     }
 
     function getFeeRate() public view returns (int128) {
@@ -62,10 +64,7 @@ abstract contract PerformanceFee {
     /// @notice Crystallize for the performance fee.
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
-        require(
-            block.timestamp > lastCrystallization + _crystallizationPeriod,
-            "Not yet"
-        );
+        require(_canCrystallize(), "Not yet");
         _updatePerformanceFee();
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
@@ -77,7 +76,7 @@ abstract contract PerformanceFee {
         _lastOutstandingShare = 0;
         _feeSum = 0;
         _feeSet = 0;
-        lastCrystallization = block.timestamp;
+        _lastCrystallization = block.timestamp;
         hwm64x64 = lastGrossSharePrice64x64;
         return result;
     }
@@ -141,6 +140,18 @@ abstract contract PerformanceFee {
         _lastOutstandingShare -= payout;
         _feeSum -= fee;
         _feeSet += fee;
+    }
+
+    function _canCrystallize() internal virtual returns (bool) {
+        uint256 nowPeriod = (block.timestamp - _crystallizationStart) /
+            _crystallizationPeriod;
+        uint256 lastPeriod = (_lastCrystallization - _crystallizationStart) /
+            _crystallizationPeriod;
+        if (nowPeriod > lastPeriod) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /// @notice Get the share token of the pool.
