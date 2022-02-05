@@ -27,6 +27,7 @@ contract PoolProxyFactory {
     ) external returns (address) {
         IMortgageVault vault = comptroller.mortgageVault();
         uint256 mortgageAmount = comptroller.stakedTier(level);
+        // Can be customized
         ShareToken share = new ShareToken("TEST", "TST");
         bytes memory data = abi.encodeWithSignature(
             "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
