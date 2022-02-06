@@ -85,6 +85,13 @@ contract Implementation is
         _liquidate();
     }
 
+    /// @notice Close the pool. The pending redemption will be settled
+    /// without penalty.
+    function close() public override onlyOwner {
+        super.close();
+        _settlePendingRedemption(false);
+    }
+
     /// @notice Get the current reserve amount of the pool.
     /// @return The reserve amount.
     function __getReserve() internal view override returns (uint256) {

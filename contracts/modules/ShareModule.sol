@@ -1,19 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AssetModule} from "./AssetModule.sol";
 import {PoolState} from "../PoolState.sol";
 
 /// @title Share module
 abstract contract ShareModule is PoolState {
+    using ABDKMath64x64 for uint256;
+    using ABDKMath64x64 for int128;
     using SafeERC20 for IERC20;
 
     mapping(address => uint256) public pendingShares;
     address[] public pendingAccountList;
     mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
+    uint256 public totalPendingBonus;
     uint256 public pendingStartTime;
+    uint256 private constant _PENALTY_BASE = 1e4;
+    uint256 private constant _PENALTY = 100;
 
     event Purchased(uint256 assetAmount, uint256 shareAmount);
     event Redeemed(uint256 assetAmount, uint256 shareAmount);
@@ -83,8 +89,24 @@ abstract contract ShareModule is PoolState {
     /// @notice Settle the pending redemption and assign the proper balance to
     /// each user.
     function settlePendingRedemption() public virtual returns (bool) {
+        return _settlePendingRedemption(true);
+    }
+
+    function _settlePendingRedemption(bool applyPenalty)
+        internal
+        returns (bool)
+    {
+        if (totalPendingShare == 0) return false;
+
         // Might lead to gas insufficient if pending list too long
-        uint256 totalRedemption = _redeem(address(this), totalPendingShare);
+        uint256 redeemAmount;
+        if (applyPenalty) {
+            redeemAmount = totalPendingShare;
+        } else {
+            redeemAmount = totalPendingShare + totalPendingBonus;
+            totalPendingBonus = 0;
+        }
+        uint256 totalRedemption = _redeem(address(this), redeemAmount);
         while (pendingAccountList.length > 0) {
             address user = pendingAccountList[pendingAccountList.length - 1];
             uint256 share = pendingShares[user];
@@ -93,9 +115,14 @@ abstract contract ShareModule is PoolState {
             pendingAccountList.pop();
         }
 
-        totalPendingShare = 0;
         _enterState(State.Executing);
         pendingStartTime = 0;
+        totalPendingShare = 0;
+        if (totalPendingBonus != 0) {
+            uint256 unusedBonus = totalPendingBonus;
+            totalPendingBonus = 0;
+            shareToken.burn(address(this), unusedBonus);
+        }
 
         return true;
     }
@@ -115,6 +142,13 @@ abstract contract ShareModule is PoolState {
     {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
+        if (state == State.RedemptionPending) {
+            uint256 bonus = (share * (_PENALTY)) / (_PENALTY_BASE - _PENALTY);
+            bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
+            totalPendingBonus -= bonus;
+            shareToken.move(address(this), user, bonus);
+            share += bonus;
+        }
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
         _callAfterPurchase(share);
         emit Purchased(balance, share);
@@ -127,7 +161,6 @@ abstract contract ShareModule is PoolState {
     {
         _callBeforeRedeem(share);
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
-        denomination.safeTransferFrom(address(vault), user, balance);
         if (shareLeft != 0) {
             require(state == State.Executing, "Can only left while Executing");
             _enterState(State.RedemptionPending);
@@ -135,6 +168,7 @@ abstract contract ShareModule is PoolState {
             _redeemPending(user, shareLeft);
         }
         uint256 shareRedeemed = share - shareLeft;
+        denomination.safeTransferFrom(address(vault), user, balance);
         _callAfterRedeem(shareRedeemed);
         emit Redeemed(balance, shareRedeemed);
 
@@ -146,9 +180,12 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256)
     {
+        uint256 effectiveShare = (share * (_PENALTY_BASE - _PENALTY)) /
+            _PENALTY_BASE;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
-        pendingShares[user] += share;
-        totalPendingShare += share;
+        pendingShares[user] += effectiveShare;
+        totalPendingShare += effectiveShare;
+        totalPendingBonus += (share - effectiveShare);
         shareToken.move(user, address(this), share);
         emit RedemptionPended(share);
 
