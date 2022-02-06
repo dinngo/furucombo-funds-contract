@@ -4,6 +4,7 @@ import { ethers, deployments } from 'hardhat';
 import {
   AssetRegistry,
   AssetRouter,
+  MortgageVault,
   Chainlink,
   IERC20,
   Registry,
@@ -20,6 +21,7 @@ import {
 } from '../../typechain';
 
 import {
+  BAT_TOKEN,
   USDC_TOKEN,
   WETH_TOKEN,
   DAI_TOKEN,
@@ -35,6 +37,7 @@ import {
   SUSHISWAP_ROUTER,
   WMATIC_TOKEN,
   QUICKSWAP_USDC_WETH,
+  BAT_PROVIDER,
   WETH_PROVIDER,
   USDC_PROVIDER,
 } from '../utils/constants';
@@ -56,6 +59,7 @@ import {
   deployContracts,
   createPoolProxy,
   deployAssetResolvers,
+  deployMortgageVault,
   deployTaskExecutorAndAFurucombo,
   registerHandlers,
   registerResolvers,
@@ -63,9 +67,11 @@ import {
 
 describe('PoolExecuteStrategy', function () {
   const denominationAddress = USDC_TOKEN;
+  const mortgageAddress = BAT_TOKEN;
   const tokenAAddress = DAI_TOKEN;
   const tokenBAddress = WETH_TOKEN;
   const denominationProviderAddress = USDC_PROVIDER;
+  const mortgageProviderAddress = BAT_PROVIDER;
 
   const denominationAggregator = CHAINLINK_USDC_USD;
   const tokenAAggregator = CHAINLINK_DAI_USD;
@@ -84,6 +90,7 @@ describe('PoolExecuteStrategy', function () {
   let investor: Wallet;
 
   let denomination: IERC20;
+  let mortgage: IERC20;
   let tokenA: IERC20;
   let tokenB: IERC20;
   let shareToken: ShareToken;
@@ -98,6 +105,7 @@ describe('PoolExecuteStrategy', function () {
   let oracle: Chainlink;
   let assetRegistry: AssetRegistry;
   let assetRouter: AssetRouter;
+  let mortgageVault: MortgageVault;
   let implementation: Implementation;
   let comptroller: Comptroller;
   let poolProxyFactory: PoolProxyFactory;
@@ -120,6 +128,7 @@ describe('PoolExecuteStrategy', function () {
         denominationProviderAddress
       );
       denomination = await ethers.getContractAt('IERC20', denominationAddress);
+      mortgage = await ethers.getContractAt('IERC20', mortgageAddress);
       tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
       tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
 
@@ -127,12 +136,15 @@ describe('PoolExecuteStrategy', function () {
       [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
       [oracle, assetRegistry, assetRouter] =
         await deployAssetOracleAndRouterAndRegistry();
+      mortgageVault = await deployMortgageVault(mortgage.address);
+
       [implementation, comptroller, poolProxyFactory] =
         await deployComptrollerAndPoolProxyFactory(
           DS_PROXY_REGISTRY,
           assetRouter.address,
           collector.address,
-          execFeePercentage
+          execFeePercentage,
+          mortgageVault.address
         );
       [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(
         comptroller,

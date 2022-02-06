@@ -8,6 +8,7 @@ import {
   Chainlink,
   ERC20,
   AssetRouter,
+  MortgageVault,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -54,6 +55,7 @@ describe('Implementation', function () {
   let tokenCProvider: Signer;
 
   let assetRouter: AssetRouter;
+  let mortgageVault: MortgageVault;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -102,13 +104,19 @@ describe('Implementation', function () {
         await ethers.getContractFactory('AssetRouter')
       ).deploy(oracle.address, assetRegistry.address);
 
+      mortgageVault = await (
+        await ethers.getContractFactory('MortgageVault')
+      ).deploy(tokenA.address);
+      await mortgageVault.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(
         implementation.address,
         assetRouter.address,
         owner.address,
-        execFeePercentage
+        execFeePercentage,
+        mortgageVault.address
       );
 
       // Initialization

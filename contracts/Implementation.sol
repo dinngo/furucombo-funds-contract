@@ -11,6 +11,7 @@ import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
+import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
@@ -60,6 +61,7 @@ contract Implementation is
         address dsProxy_ = dsProxyRegistry.build();
         _setDSProxy(IDSProxy(dsProxy_));
         _transferOwnership(newOwner);
+        mortgageVault = comptroller_.mortgageVault();
     }
 
     /////////////////////////////////////////////////////
@@ -83,6 +85,7 @@ contract Implementation is
     /// @notice Liquidate the pool.
     function liquidate() public onlyOwner {
         _liquidate();
+        mortgageVault.claim(comptroller.owner());
     }
 
     /// @notice Close the pool. The pending redemption will be settled
@@ -90,6 +93,7 @@ contract Implementation is
     function close() public override onlyOwner {
         super.close();
         _settlePendingRedemption(false);
+        mortgageVault.claim(msg.sender);
     }
 
     /// @notice Get the current reserve amount of the pool.

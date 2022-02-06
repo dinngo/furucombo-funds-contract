@@ -5,16 +5,21 @@ import {
   Comptroller,
   Implementation,
   AssetRouter,
+  MortgageVault,
   TaskExecutor,
   Chainlink,
   AssetRegistry,
+  SimpleToken,
+  PoolProxyFactory,
 } from '../typechain';
 import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
+import { getEventArgs } from './utils/utils';
 
 describe('Comptroller', function () {
   let comptroller: Comptroller;
   let implementation: Implementation;
   let assetRouter: AssetRouter;
+  let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
 
   let owner: Wallet;
@@ -23,11 +28,24 @@ describe('Comptroller', function () {
 
   let oracle: Chainlink;
   let registry: AssetRegistry;
+  let tokenM: SimpleToken;
+  let tokenD: SimpleToken;
+  let factory: PoolProxyFactory;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
       [owner, user, collector] = await (ethers as any).getSigners();
+
+      tokenM = await (await ethers.getContractFactory('SimpleToken'))
+        .connect(user)
+        .deploy();
+      await tokenM.deployed();
+
+      tokenD = await (await ethers.getContractFactory('SimpleToken'))
+        .connect(user)
+        .deploy();
+      await tokenD.deployed();
 
       implementation = await (
         await ethers.getContractFactory('Implementation')
@@ -47,13 +65,19 @@ describe('Comptroller', function () {
       ).deploy(oracle.address, registry.address);
       await assetRouter.deployed();
 
+      mortgageVault = await (
+        await ethers.getContractFactory('MortgageVault')
+      ).deploy(tokenM.address);
+      await mortgageVault.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(
         implementation.address,
         assetRouter.address,
         collector.address,
-        0
+        0,
+        mortgageVault.address
       );
       await comptroller.deployed();
 
@@ -61,6 +85,11 @@ describe('Comptroller', function () {
         await ethers.getContractFactory('TaskExecutor')
       ).deploy(owner.address, comptroller.address);
       await taskExecutor.deployed();
+
+      factory = await (
+        await ethers.getContractFactory('PoolProxyFactory')
+      ).deploy(comptroller.address);
+      await factory.deployed();
     }
   );
 
@@ -502,6 +531,38 @@ describe('Comptroller', function () {
       await expect(
         comptroller.connect(user).setStakedTier(level, stakeAmount)
       ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    describe('create pool', function () {
+      const dustD = ethers.utils.parseUnits('0.1', 18);
+      beforeEach(async function () {
+        await comptroller.permitDenominations([tokenD.address], [dustD]);
+        await comptroller.setStakedTier(level, stakeAmount);
+      });
+
+      it('should stake for the given tier', async function () {
+        const tokenMUserBefore = await tokenM.callStatic.balanceOf(
+          user.address
+        );
+        const tokenMVaultBefore = await tokenM.callStatic.balanceOf(
+          mortgageVault.address
+        );
+        await tokenM.connect(user).approve(mortgageVault.address, stakeAmount);
+        const receipt = await factory
+          .connect(user)
+          .createPool(tokenD.address, 1, 0, 0, 300, 0);
+        const pool = await getEventArgs(receipt, 'PoolCreated');
+        const tokenMUserAfter = await tokenM.callStatic.balanceOf(user.address);
+        const tokenMVaultAfter = await tokenM.callStatic.balanceOf(
+          mortgageVault.address
+        );
+        const mortgagePool = await mortgageVault.callStatic.poolAmounts(
+          pool[0]
+        );
+        expect(tokenMUserBefore.sub(tokenMUserAfter)).to.be.eq(stakeAmount);
+        expect(tokenMVaultAfter.sub(tokenMVaultBefore)).to.be.eq(stakeAmount);
+        expect(mortgagePool).to.be.eq(stakeAmount);
+      });
     });
   });
 

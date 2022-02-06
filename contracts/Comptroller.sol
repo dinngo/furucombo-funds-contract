@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {Whitelist} from "./libraries/Whitelist.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
+import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
 contract Comptroller is UpgradeableBeacon {
     using Whitelist for Whitelist.ActionWList;
@@ -23,6 +24,7 @@ contract Comptroller is UpgradeableBeacon {
     address public execFeeCollector;
     uint256 public execFeePercentage;
     IAssetRouter public assetRouter;
+    IMortgageVault public mortgageVault;
 
     // Map
     mapping(address => DenominationConfig) public denomination;
@@ -77,9 +79,11 @@ contract Comptroller is UpgradeableBeacon {
         address implementation_,
         IAssetRouter assetRouter_,
         address execFeeCollector_,
-        uint256 execFeePercentage_
+        uint256 execFeePercentage_,
+        IMortgageVault mortgageVault_
     ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
+        mortgageVault = mortgageVault_;
         execFeeCollector = execFeeCollector_;
         execFeePercentage = execFeePercentage_;
         fInitialAssetCheck = true;

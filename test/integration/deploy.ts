@@ -63,6 +63,15 @@ export async function deployAssetOracleAndRouterAndRegistry(): Promise<any> {
   return [oracle, assetRegistry, assetRouter];
 }
 
+export async function deployMortgageVault(token: string): Promise<any> {
+  const mortgageVault = await (
+    await ethers.getContractFactory('MortgageVault')
+  ).deploy(token);
+  await mortgageVault.deployed();
+
+  return mortgageVault;
+}
+
 export async function deployAssetResolvers(resolvers: string[]): Promise<any> {
   const result: any[] = [];
 
@@ -80,7 +89,8 @@ export async function deployComptrollerAndPoolProxyFactory(
   dsProxyRegistry: string,
   assetRouterAddress: string,
   collectorAddress: string,
-  execFeePercentage: any
+  execFeePercentage: any,
+  mortgageVaultAddress: string
 ): Promise<any> {
   const implementation = await (
     await ethers.getContractFactory('Implementation')
@@ -94,7 +104,8 @@ export async function deployComptrollerAndPoolProxyFactory(
     implementation.address,
     assetRouterAddress,
     collectorAddress,
-    execFeePercentage
+    execFeePercentage,
+    mortgageVaultAddress
   );
   await comptroller.deployed();
 
