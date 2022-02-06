@@ -92,14 +92,8 @@ contract Implementation is
     /// without penalty.
     function close() public override onlyOwner {
         super.close();
-        mortgageVault.claim(msg.sender);
-    }
-
-    /// @notice Close the pool. The pending redemption will be settled
-    /// without penalty.
-    function close() public override onlyOwner {
-        super.close();
         _settlePendingRedemption(false);
+        mortgageVault.claim(msg.sender);
     }
 
     /// @notice Get the current reserve amount of the pool.
