@@ -29,7 +29,6 @@ import {
   simpleEncode,
   asciiToHex32,
   balanceDelta,
-  getGasConsumption,
 } from './../utils/utils';
 
 describe('Proxy', function () {
@@ -320,9 +319,9 @@ describe('Proxy', function () {
       );
 
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0')
-          .sub(value[0].add(value[1]).add(value[2]).div(BigNumber.from('2')))
-          .sub(await getGasConsumption(receipt))
+        ether('0').sub(
+          value[0].add(value[1]).add(value[2]).div(BigNumber.from('2'))
+        )
       );
 
       expect(await foo0.balanceOf(proxy.address)).to.be.eq(ether('0'));

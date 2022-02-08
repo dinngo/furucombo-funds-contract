@@ -29,7 +29,6 @@ import {
   profileGas,
   simpleEncode,
   asciiToHex32,
-  getGasConsumption,
   tokenProviderQuick,
 } from './../utils/utils';
 
@@ -131,12 +130,9 @@ describe('Aave V2 Borrow', function () {
       await token
         .connect(providerAddress)
         .approve(lendingPool.address, depositAmount);
-
-      expect(await aToken.balanceOf(user.address)).to.be.eq(0);
       await lendingPool
         .connect(providerAddress)
         .deposit(token.address, depositAmount, user.address, 0);
-      expect(await aToken.balanceOf(user.address)).to.be.eq(depositAmount);
 
       borrowTokenUserBefore = await borrowToken.balanceOf(user.address);
       borrowWMATICUserBefore = await wmatic.balanceOf(user.address);
@@ -252,9 +248,7 @@ describe('Aave V2 Borrow', function () {
       expect(await debtToken.balanceOf(proxy.address)).to.be.eq(0);
 
       // Verify user balance
-      expect(balancerUserAfter.sub(balancerUserBefore)).to.be.eq(
-        borrowAmount.sub(await getGasConsumption(receipt))
-      );
+      expect(balancerUserAfter.sub(balancerUserBefore)).to.be.eq(borrowAmount);
 
       //  borrowAmount <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
       const interestMax = borrowAmount

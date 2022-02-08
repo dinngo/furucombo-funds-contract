@@ -178,11 +178,6 @@ export async function balanceDelta(addr: string, b: BigNumber) {
   return (await ethers.provider.getBalance(addr)).sub(b);
 }
 
-export async function getGasConsumption(receipt: any) {
-  const result = await receipt.wait();
-  return result.gasUsed.mul(receipt.gasPrice);
-}
-
 export function getFuncSig(artifact: any, name: string) {
   return artifact.interface.getSighash(name);
 }

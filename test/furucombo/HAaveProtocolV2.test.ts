@@ -27,7 +27,6 @@ import {
   asciiToHex32,
   balanceDelta,
   getHandlerReturn,
-  getGasConsumption,
   expectEqWithinBps,
   tokenProviderQuick,
 } from './../utils/utils';
@@ -133,9 +132,7 @@ describe('Aave V2', function () {
         expectEqWithinBps(await awmatic.balanceOf(user.address), value, 100);
 
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          ether('0')
-            .sub(value)
-            .sub(await getGasConsumption(receipt))
+          ether('0').sub(value)
         );
         profileGas(receipt);
       });
@@ -155,9 +152,7 @@ describe('Aave V2', function () {
         expectEqWithinBps(await awmatic.balanceOf(user.address), value, 100);
 
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          ether('0')
-            .sub(value)
-            .sub(await getGasConsumption(receipt))
+          ether('0').sub(value)
         );
         profileGas(receipt);
       });
@@ -182,7 +177,7 @@ describe('Aave V2', function () {
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expectEqWithinBps(await aToken.balanceOf(user.address), value, 100);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          ether('0').sub(await getGasConsumption(receipt))
+          ether('0')
         );
         profileGas(receipt);
       });
@@ -205,7 +200,7 @@ describe('Aave V2', function () {
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expectEqWithinBps(await aToken.balanceOf(user.address), value, 100);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          ether('0').sub(await getGasConsumption(receipt))
+          ether('0')
         );
         profileGas(receipt);
       });
@@ -269,9 +264,7 @@ describe('Aave V2', function () {
         expect(aTokenUserAfter).to.be.lt(
           depositAmount.add(interestMax).sub(value)
         );
-        expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          value.sub(await getGasConsumption(receipt))
-        );
+        expect(await balanceDelta(user.address, userBalance)).to.be.eq(value);
         profileGas(receipt);
       });
 
@@ -372,7 +365,7 @@ describe('Aave V2', function () {
         );
         expect(tokenUserAfter).to.be.eq(value);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          ether('0').sub(await getGasConsumption(receipt))
+          ether('0')
         );
         profileGas(receipt);
       });
@@ -420,7 +413,7 @@ describe('Aave V2', function () {
         );
         expect(tokenUserAfter).to.be.eq(handlerReturn);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          ether('0').sub(await getGasConsumption(receipt))
+          ether('0')
         );
         profileGas(receipt);
       });
@@ -459,7 +452,7 @@ describe('Aave V2', function () {
         expect(aTokenUserAfter).to.be.lt(ATOKEN_DUST);
         expect(tokenUserAfter).to.be.eq(handlerReturn);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-          ether('0').sub(await getGasConsumption(receipt))
+          ether('0')
         );
         profileGas(receipt);
       });
