@@ -35,6 +35,7 @@ abstract contract PoolState {
         require(
             level != 0 &&
                 address(comptroller) != address(0) &&
+                address(mortgageVault) != address(0) &&
                 address(denomination) != address(0) &&
                 address(shareToken) != address(0) &&
                 address(vault) != address(0),
