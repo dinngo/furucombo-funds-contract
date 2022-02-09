@@ -27,7 +27,6 @@ import {
   getHandlerReturn,
   profileGas,
   sendEther,
-  getGasConsumption,
   balanceDelta,
 } from './../utils/utils';
 
@@ -167,9 +166,7 @@ describe('Funds', function () {
         ether('0')
       );
       // user balance will not include msg.value because it is provided by user itself
-      expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        value[1].sub(await getGasConsumption(receipt))
-      );
+      expect(await balanceDelta(user.address, userBalance)).to.be.eq(value[1]);
 
       await profileGas(receipt);
     });
@@ -204,7 +201,7 @@ describe('Funds', function () {
       // user balance will not include msg.value because it is provided by user itself
       expect(
         (await ethers.provider.getBalance(user.address)).sub(userBalance)
-      ).to.be.eq(value[1].sub(await getGasConsumption(receipt)));
+      ).to.be.eq(value[1]);
 
       await profileGas(receipt);
     });

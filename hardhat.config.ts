@@ -39,13 +39,16 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    hardhat: {
+      initialBaseFeePerGas: 0,
+    },
     beta: {
       url: process.env.BETA_URL || '',
       accounts:
         process.env.SECRET_BETA !== undefined ? [process.env.SECRET_BETA] : [],
     },
     localhost: {
-      gasPrice: 1000000000, // 1Gwei
+      gasPrice: 0,
       gas: 30000000,
       timeout: 900000,
     },

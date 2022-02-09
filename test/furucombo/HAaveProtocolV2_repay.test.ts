@@ -26,7 +26,6 @@ import {
   profileGas,
   simpleEncode,
   asciiToHex32,
-  getGasConsumption,
   tokenProviderQuick,
   expectEqWithinBps,
   getHandlerReturn,
@@ -181,7 +180,7 @@ describe('Aave V2 Repay', function () {
       );
       expect(borrowTokenUserAfter).to.be.eq(borrowAmount.sub(value));
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
       profileGas(receipt);
     });
@@ -223,9 +222,7 @@ describe('Aave V2 Repay', function () {
         borrowAmount.add(interestMax).sub(value)
       );
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0')
-          .sub(value)
-          .sub(await getGasConsumption(receipt))
+        ether('0').sub(value)
       );
       profileGas(receipt);
     });
@@ -271,7 +268,7 @@ describe('Aave V2 Repay', function () {
         value.sub(borrowAmount).sub(interestMax)
       );
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
       profileGas(receipt);
     });
@@ -308,14 +305,11 @@ describe('Aave V2 Repay', function () {
       // (repay - borrow - interestMax) < borrowTokenUserAfter <= (repay - borrow)
 
       const userBalanceDelta = await balanceDelta(user.address, userBalance);
-      const gasConsumption = await getGasConsumption(receipt);
       const borrowTokenUserDelta = (
         await borrowToken.balanceOf(user.address)
       ).sub(borrowTokenUserBalance);
 
-      const repayAmount = userBalanceDelta
-        .add(gasConsumption)
-        .add(borrowTokenUserDelta);
+      const repayAmount = userBalanceDelta.add(borrowTokenUserDelta);
 
       expect(repayAmount).to.be.lte(ether('0').sub(borrowAmount));
       expect(repayAmount).to.be.gt(

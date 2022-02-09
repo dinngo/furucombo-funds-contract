@@ -27,7 +27,6 @@ import {
   ether,
   simpleEncode,
   asciiToHex32,
-  getGasConsumption,
   tokenProviderQuick,
   balanceDelta,
   padRightZero,
@@ -172,7 +171,6 @@ describe('Aave V2 Flashloan', function () {
       await lendingPool
         .connect(tokenBProvider)
         .deposit(tokenB.address, depositAmount, user.address, 0);
-      expect(await aToken.balanceOf(user.address)).to.be.eq(depositAmount);
 
       userBalance = await ethers.provider.getBalance(user.address);
       proxyBalance = await ethers.provider.getBalance(proxy.address);
@@ -207,7 +205,7 @@ describe('Aave V2 Flashloan', function () {
         tokenAUser.add(value).sub(fee)
       );
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
     });
 
@@ -249,7 +247,7 @@ describe('Aave V2 Flashloan', function () {
       );
       expect(await variableDebtTokenA.balanceOf(user.address)).to.be.eq(value);
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
     });
 
@@ -287,7 +285,7 @@ describe('Aave V2 Flashloan', function () {
         tokenBUser.add(value).sub(fee)
       );
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
     });
 
@@ -491,7 +489,7 @@ describe('Aave V2 Flashloan', function () {
         tokenBUser.add(value.add(value)).sub(fee)
       );
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
     });
 
@@ -553,7 +551,7 @@ describe('Aave V2 Flashloan', function () {
         tokenBUser.add(value).sub(fee)
       );
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
     });
   });
@@ -623,7 +621,7 @@ describe('Aave V2 Flashloan', function () {
         tokenBUser.add(value.sub(depositValue).sub(fee))
       );
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(await getGasConsumption(receipt))
+        ether('0')
       );
     });
   });
