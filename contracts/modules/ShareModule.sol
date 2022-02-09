@@ -17,7 +17,6 @@ abstract contract ShareModule is PoolState {
     mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
     uint256 public totalPendingBonus;
-    uint256 public pendingStartTime;
     uint256 private constant _PENALTY_BASE = 1e4;
     uint256 private constant _PENALTY = 100;
 
@@ -115,14 +114,14 @@ abstract contract ShareModule is PoolState {
             pendingAccountList.pop();
         }
 
-        _enterState(State.Executing);
-        pendingStartTime = 0;
         totalPendingShare = 0;
         if (totalPendingBonus != 0) {
             uint256 unusedBonus = totalPendingBonus;
             totalPendingBonus = 0;
             shareToken.burn(address(this), unusedBonus);
         }
+
+        _resume();
 
         return true;
     }
@@ -162,9 +161,7 @@ abstract contract ShareModule is PoolState {
         _callBeforeRedeem(share);
         (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
         if (shareLeft != 0) {
-            require(state == State.Executing, "Can only left while Executing");
-            _enterState(State.RedemptionPending);
-            pendingStartTime = block.timestamp;
+            _pend();
             _redeemPending(user, shareLeft);
         }
         uint256 shareRedeemed = share - shareLeft;

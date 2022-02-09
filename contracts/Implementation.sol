@@ -78,10 +78,19 @@ contract Implementation is
         addAsset(address(denomination));
     }
 
-    /// @notice Liquidate the pool.
-    function liquidate() public onlyOwner {
+    /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
+    function liquidate() public {
+        require(pendingStartTime != 0, "Pending does not start");
+        require(
+            block.timestamp >
+                pendingStartTime + comptroller.pendingExpiration(),
+            "Pending does not expire"
+        );
+
         _liquidate();
+
         mortgageVault.claim(comptroller.owner());
+        _transferOwnership(comptroller.pendingLiquidator());
     }
 
     /// @notice Close the pool. The pending redemption will be settled

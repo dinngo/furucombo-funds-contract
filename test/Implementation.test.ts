@@ -1,4 +1,4 @@
-import { ethers, deployments } from 'hardhat';
+import { ethers, deployments, network } from 'hardhat';
 import { Wallet, Signer, BigNumber, constants } from 'ethers';
 import { expect } from 'chai';
 import {
@@ -35,6 +35,7 @@ describe('Implementation', function () {
   const tokenAAmount = ethers.utils.parseEther('1');
   const tokenBAmount = ethers.utils.parseUnits('1', 8);
   const execFeePercentage = 200; // 20%
+  const pendingExpiration = 86400; // 1 day
   const level = 1;
 
   let comptroller: Comptroller;
@@ -44,6 +45,7 @@ describe('Implementation', function () {
 
   let owner: Wallet;
   let user: Wallet;
+  let liquidator: Wallet;
 
   let denomination: ERC20;
   let denominationProvider: Signer;
@@ -60,7 +62,7 @@ describe('Implementation', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture();
-      [owner, user] = await (ethers as any).getSigners();
+      [owner, user, liquidator] = await (ethers as any).getSigners();
 
       denomination = await ethers.getContractAt('ERC20', denominationAddress);
       denominationProvider = await tokenProviderQuick(denomination.address);
@@ -116,6 +118,8 @@ describe('Implementation', function () {
         assetRouter.address,
         owner.address,
         execFeePercentage,
+        liquidator.address,
+        pendingExpiration,
         mortgageVault.address
       );
 
@@ -185,6 +189,43 @@ describe('Implementation', function () {
     it('should revert: finalize by non-owner', async function () {
       await expect(implementation.connect(user).finalize()).to.be.revertedWith(
         'Ownable: caller is not the owner'
+      );
+    });
+
+    it('liquidate', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await network.provider.send('evm_increaseTime', [pendingExpiration + 1]);
+      await expect(implementation.liquidate())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(4)
+        .to.emit(implementation, 'OwnershipTransferred')
+        .withArgs(owner.address, liquidator.address);
+    });
+
+    it('liquidate by user', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await network.provider.send('evm_increaseTime', [pendingExpiration + 1]);
+      await expect(implementation.connect(user).liquidate())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(4)
+        .to.emit(implementation, 'OwnershipTransferred')
+        .withArgs(owner.address, liquidator.address);
+    });
+
+    it('should revert: pending does not start', async function () {
+      await implementation.finalize();
+      await expect(implementation.liquidate()).to.be.revertedWith(
+        'Pending does not start'
+      );
+    });
+
+    it('should revert: pending does not expire', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await expect(implementation.liquidate()).to.be.revertedWith(
+        'Pending does not expire'
       );
     });
   });

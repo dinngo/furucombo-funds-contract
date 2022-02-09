@@ -25,6 +25,7 @@ describe('Comptroller', function () {
   let owner: Wallet;
   let user: Wallet;
   let collector: Wallet;
+  let liquidator: Wallet;
 
   let oracle: Chainlink;
   let registry: AssetRegistry;
@@ -35,7 +36,7 @@ describe('Comptroller', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, collector] = await (ethers as any).getSigners();
+      [owner, user, collector, liquidator] = await (ethers as any).getSigners();
 
       tokenM = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -76,6 +77,8 @@ describe('Comptroller', function () {
         implementation.address,
         assetRouter.address,
         collector.address,
+        0,
+        liquidator.address,
         0,
         mortgageVault.address
       );
@@ -604,7 +607,7 @@ describe('Comptroller', function () {
     });
   });
 
-  // asset router management
+  // Fee
   describe('fee', function () {
     it('set fee collector', async function () {
       // check env before execution
@@ -612,12 +615,12 @@ describe('Comptroller', function () {
         collector.address
       );
 
-      // set new asset router
+      // set new fee collector
       await expect(comptroller.setFeeCollector(user.address))
         .to.emit(comptroller, 'SetExecFeeCollector')
         .withArgs(user.address);
 
-      // check new asset router
+      // check new fee collector
       expect(await comptroller.connect(user).execFeeCollector()).to.be.equal(
         user.address
       );
@@ -635,13 +638,13 @@ describe('Comptroller', function () {
         0
       );
 
-      // set new asset router
+      // set new fee percentage
       const percentage = BigNumber.from('20');
       await expect(comptroller.setExecFeePercentage(percentage))
         .to.emit(comptroller, 'SetExecFeePercentage')
         .withArgs(percentage);
 
-      // check new asset router
+      // check new fee percentage
       expect(await comptroller.connect(user).execFeePercentage()).to.be.equal(
         percentage
       );
@@ -650,6 +653,47 @@ describe('Comptroller', function () {
     it('should revert: set fee collector by non-owner', async function () {
       await expect(
         comptroller.connect(user).setExecFeePercentage(BigNumber.from('20'))
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+  });
+
+  // Pending redemption
+  describe('Pending redemption', function () {
+    const expiration = '86400'; // 1 day
+
+    it('set liquidator', async function () {
+      expect(await comptroller.pendingLiquidator()).to.be.eq(
+        liquidator.address
+      );
+
+      await expect(
+        comptroller.connect(owner).setPendingLiquidator(user.address)
+      )
+        .to.emit(comptroller, 'SetPendingLiquidator')
+        .withArgs(user.address);
+
+      expect(await comptroller.pendingLiquidator()).to.be.eq(user.address);
+    });
+
+    it('should revert: set liquidator by non-owner', async function () {
+      await expect(
+        comptroller.connect(user).setPendingLiquidator(user.address)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('set expiration', async function () {
+      expect(await comptroller.pendingExpiration()).to.be.eq(0);
+
+      await expect(comptroller.setPendingExpiration(expiration))
+        .to.emit(comptroller, 'SetPendingExpiration')
+        .withArgs(expiration);
+
+      expect(await comptroller.pendingExpiration()).to.be.eq(expiration);
+    });
+
+    it('should revert: set expiration by non-owner', async function () {
+      await expect(
+        comptroller.connect(user).setPendingExpiration(expiration)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });

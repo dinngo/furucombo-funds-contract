@@ -25,6 +25,7 @@ abstract contract PoolState {
     IShareToken public shareToken;
     IDSProxy public vault; // DSProxy
     uint256 public reserveExecution;
+    uint256 public pendingStartTime;
 
     event StateTransited(State to);
 
@@ -68,6 +69,8 @@ abstract contract PoolState {
         _;
     }
 
+    // State Changes
+
     function _review() internal whenState(State.Initializing) {
         _enterState(State.Reviewing);
     }
@@ -76,9 +79,19 @@ abstract contract PoolState {
         _enterState(State.Executing);
     }
 
+    function _pend() internal whenState(State.Executing) {
+        _enterState(State.RedemptionPending);
+        pendingStartTime = block.timestamp;
+    }
+
+    function _resume() internal whenState(State.RedemptionPending) {
+        pendingStartTime = 0;
+        _enterState(State.Executing);
+    }
+
     function _liquidate() internal whenState(State.RedemptionPending) {
+        pendingStartTime = 0;
         _enterState(State.Liquidating);
-        // Transfer the ownership to proceed liquidation
     }
 
     function _close() internal whenStates(State.Executing, State.Liquidating) {
@@ -89,6 +102,8 @@ abstract contract PoolState {
         state = state_;
         emit StateTransited(state_);
     }
+
+    // Setters
 
     function _setLevel(uint256 level_) internal {
         require(level == 0, "Level is set");

@@ -78,6 +78,8 @@ describe('Comptroller_Whitelist', function () {
         assetRouter.address,
         collector.address,
         execFeePercentage,
+        constants.AddressZero,
+        0,
         mortgageVault.address
       );
       await comptroller.deployed();

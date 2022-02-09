@@ -81,6 +81,7 @@ describe('PoolExecuteStrategy', function () {
   const mFeeRate = 10;
   const pFeeRate = 10;
   const execFeePercentage = 200; // 20%
+  const pendingExpiration = 86400; // 1 day
   const crystallizationPeriod = 300; // 5m
   const reserveExecution = szabo('10'); // 10USDC
   const shareTokenName = 'TEST';
@@ -89,6 +90,7 @@ describe('PoolExecuteStrategy', function () {
   let collector: Wallet;
   let manager: Wallet;
   let investor: Wallet;
+  let liquidator: Wallet;
 
   let denomination: IERC20;
   let mortgage: IERC20;
@@ -119,7 +121,7 @@ describe('PoolExecuteStrategy', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, collector, manager, investor] = await (
+      [owner, collector, manager, investor, liquidator] = await (
         ethers as any
       ).getSigners();
 
@@ -145,6 +147,8 @@ describe('PoolExecuteStrategy', function () {
           assetRouter.address,
           collector.address,
           execFeePercentage,
+          liquidator.address,
+          pendingExpiration,
           mortgageVault.address
         );
       [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(

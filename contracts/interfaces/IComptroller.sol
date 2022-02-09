@@ -30,6 +30,10 @@ interface IComptroller is IBeacon {
 
     function execFeeCollector() external view returns (address);
 
+    function pendingLiquidator() external view returns (address);
+
+    function pendingExpiration() external view returns (uint256);
+
     function validateDealingAsset(uint256 level, address asset)
         external
         view

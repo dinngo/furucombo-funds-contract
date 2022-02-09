@@ -23,6 +23,8 @@ contract Comptroller is UpgradeableBeacon {
     address public execAction;
     address public execFeeCollector;
     uint256 public execFeePercentage;
+    address public pendingLiquidator;
+    uint256 public pendingExpiration;
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
 
@@ -43,6 +45,8 @@ contract Comptroller is UpgradeableBeacon {
     event UnHalted();
     event SetExecFeeCollector(address indexed collector);
     event SetExecFeePercentage(uint256 indexed percentage);
+    event SetPendingLiquidator(address indexed liquidator);
+    event SetPendingExpiration(uint256 expiration);
     event SetInitialAssetCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
@@ -80,14 +84,17 @@ contract Comptroller is UpgradeableBeacon {
         IAssetRouter assetRouter_,
         address execFeeCollector_,
         uint256 execFeePercentage_,
+        address pendingLiquidator_,
+        uint256 pendingExpiration_,
         IMortgageVault mortgageVault_
     ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
         mortgageVault = mortgageVault_;
         execFeeCollector = execFeeCollector_;
         execFeePercentage = execFeePercentage_;
+        pendingLiquidator = pendingLiquidator_;
+        pendingExpiration = pendingExpiration_;
         fInitialAssetCheck = true;
-        this;
     }
 
     function implementation()
@@ -121,6 +128,17 @@ contract Comptroller is UpgradeableBeacon {
     function setExecFeePercentage(uint256 percentage) external onlyOwner {
         execFeePercentage = percentage;
         emit SetExecFeePercentage(execFeePercentage);
+    }
+
+    // Pending redemption
+    function setPendingLiquidator(address liquidator) external onlyOwner {
+        pendingLiquidator = liquidator;
+        emit SetPendingLiquidator(liquidator);
+    }
+
+    function setPendingExpiration(uint256 expiration) external onlyOwner {
+        pendingExpiration = expiration;
+        emit SetPendingExpiration(expiration);
     }
 
     // input check
