@@ -27,6 +27,7 @@ contract Comptroller is UpgradeableBeacon {
     uint256 public pendingExpiration;
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
+    uint256 public pendingRedemptionPenalty;
 
     // Map
     mapping(address => DenominationConfig) public denomination;
@@ -111,6 +112,7 @@ contract Comptroller is UpgradeableBeacon {
         pendingLiquidator = pendingLiquidator_;
         pendingExpiration = pendingExpiration_;
         fInitialAssetCheck = true;
+        pendingRedemptionPenalty = 100;
     }
 
     function implementation()
@@ -155,6 +157,12 @@ contract Comptroller is UpgradeableBeacon {
     function setPendingExpiration(uint256 expiration) external onlyOwner {
         pendingExpiration = expiration;
         emit SetPendingExpiration(expiration);
+    }
+
+    // Share
+    // Notice that the penalty's base is 1e4
+    function setPendingRedemptionPenalty(uint256 penalty) external onlyOwner {
+        pendingRedemptionPenalty = penalty;
     }
 
     // input check
