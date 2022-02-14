@@ -148,10 +148,7 @@ export async function getHandlerReturn(receipt: any, dataTypes: any) {
         element.data
       )[0];
 
-      actionResult = ethers.utils.defaultAbiCoder.decode(
-        dataTypes,
-        bytesData
-      )[0];
+      actionResult = ethers.utils.defaultAbiCoder.decode(dataTypes, bytesData);
     }
   });
   return actionResult;
@@ -273,4 +270,21 @@ export function calcSqrt(y: BigNumber) {
   }
 
   return z;
+}
+
+export async function latest() {
+  return BigNumber.from(
+    (await ethers.provider.getBlock(await ethers.provider.getBlockNumber()))
+      .timestamp
+  );
+}
+
+export async function getTimestampByTx(tx: any) {
+  return BigNumber.from(
+    (await ethers.provider.getBlock((await tx.wait()).blockNumber)).timestamp
+  );
+}
+
+export function decimal6(amount: any) {
+  return BigNumber.from(amount).mul(BigNumber.from('1000000'));
 }

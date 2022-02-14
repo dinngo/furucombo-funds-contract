@@ -10,6 +10,7 @@ import {ActionBase} from "../ActionBase.sol";
 import {IFurucombo} from "./IFurucombo.sol";
 
 import {IComptroller} from "../../interfaces/IComptroller.sol";
+import {IDebtToken} from "../../interfaces/IDebtToken.sol";
 
 contract AFurucombo is
     ActionBase,
@@ -92,6 +93,25 @@ contract AFurucombo is
         }
 
         return amountsOut;
+    }
+
+    function approveDelegation(
+        IDebtToken[] calldata tokens,
+        uint256[] calldata amounts
+    ) external payable delegateCallOnly {
+        require(
+            tokens.length == amounts.length,
+            "token length != amounts length"
+        );
+
+        // approve delegation to furucombo proxy only,
+        // otherwise manager can borrow tokens base on the collateral of funds
+        for (uint256 i = 0; i < tokens.length; i++) {
+            tokens[i].approveDelegation(proxy, amounts[i]);
+
+            // Update dealing asset
+            addDealingAsset(address(tokens[i]));
+        }
     }
 
     /// @notice verify valid handler .

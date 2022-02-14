@@ -103,7 +103,7 @@ describe('Funds', function () {
         value: ether('1'),
       });
 
-      const handlerReturn = await getHandlerReturn(receipt, ['uint256[]']);
+      const handlerReturn = (await getHandlerReturn(receipt, ['uint256[]']))[0];
       // Verify token0
       expect(handlerReturn[0]).to.be.eq(value[0]);
       expect(await token0.balanceOf(proxy.address)).to.be.eq(ether('0'));
@@ -153,7 +153,7 @@ describe('Funds', function () {
         value: msgValue,
       });
 
-      const handlerReturn = await getHandlerReturn(receipt, ['uint256[]']);
+      const handlerReturn = (await getHandlerReturn(receipt, ['uint256[]']))[0];
       // Verify token0
       expect(handlerReturn[0]).to.be.eq(value[0]);
       expect(await token0.balanceOf(proxy.address)).to.be.eq(ether('0'));
@@ -186,7 +186,7 @@ describe('Funds', function () {
         value: msgValue,
       });
 
-      const handlerReturn = await getHandlerReturn(receipt, ['uint256[]']);
+      const handlerReturn = (await getHandlerReturn(receipt, ['uint256[]']))[0];
       // Verify token0
       expect(handlerReturn[0]).to.be.eq(value[0]);
       expect(await token0.balanceOf(proxy.address)).to.be.eq(ether('0'));
@@ -242,7 +242,9 @@ describe('Funds', function () {
           value: ether('0.1'),
         });
 
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256[]']);
+        const handlerReturn = (
+          await getHandlerReturn(receipt, ['uint256[]'])
+        )[0];
         expect(handlerReturn[0]).to.be.eq(value[0]);
 
         await expect(receipt)
@@ -272,7 +274,9 @@ describe('Funds', function () {
           value: ether('0.1'),
         });
 
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256[]']);
+        const handlerReturn = (
+          await getHandlerReturn(receipt, ['uint256[]'])
+        )[0];
         expect(handlerReturn[0]).to.be.eq(value[0]);
 
         await expect(receipt)
@@ -352,7 +356,9 @@ describe('Funds', function () {
           value: ether('1'),
         });
 
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256[]']);
+        const handlerReturn = (
+          await getHandlerReturn(receipt, ['uint256[]'])
+        )[0];
         expect(handlerReturn[0]).to.be.eq(value[0]);
 
         await expect(receipt)
@@ -894,7 +900,7 @@ describe('Funds', function () {
           value: value,
         });
 
-        const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
 
         expect(handlerReturn).to.be.eq(value);
 
@@ -913,7 +919,9 @@ describe('Funds', function () {
             value: ether('0.1'),
           });
 
-          const handlerReturn = await getHandlerReturn(receipt, ['uint256']);
+          const handlerReturn = (
+            await getHandlerReturn(receipt, ['uint256'])
+          )[0];
           expect(handlerReturn).to.be.eq(value);
           await profileGas(receipt);
         });
