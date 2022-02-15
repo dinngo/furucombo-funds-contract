@@ -23,12 +23,14 @@ contract PoolProxyFactory {
         uint256 mFeeRate,
         uint256 pFeeRate,
         uint256 crystallizationPeriod,
-        uint256 reserveExecution
+        uint256 reserveExecution,
+        string memory shareTokenName,
+        string memory shareTokenSymbol
     ) external returns (address) {
         IMortgageVault vault = comptroller.mortgageVault();
         uint256 mortgageAmount = comptroller.stakedTier(level);
         // Can be customized
-        ShareToken share = new ShareToken("TEST", "TST");
+        ShareToken share = new ShareToken(shareTokenName, shareTokenSymbol);
         bytes memory data = abi.encodeWithSignature(
             "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
             level,
