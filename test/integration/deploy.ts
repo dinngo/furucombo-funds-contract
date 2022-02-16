@@ -1,3 +1,4 @@
+import { AnyMxRecord } from 'dns';
 import { ethers } from 'hardhat';
 import { getEventArgs, asciiToHex32 } from '../utils/utils';
 
@@ -126,7 +127,9 @@ export async function createPoolProxy(
   mFeeRate: any,
   pFeeRate: any,
   crystallizationPeriod: any,
-  reserveExecution: any
+  reserveExecution: any,
+  shareTokenName: any,
+  shareTokenSymbol: any
 ): Promise<any> {
   const receipt = await poolProxyFactory
     .connect(manager)
@@ -136,7 +139,9 @@ export async function createPoolProxy(
       mFeeRate,
       pFeeRate,
       crystallizationPeriod,
-      reserveExecution
+      reserveExecution,
+      shareTokenName,
+      shareTokenSymbol
     );
   const eventArgs = await getEventArgs(receipt, 'PoolCreated');
   console.log('args.newPool', eventArgs.newPool);
