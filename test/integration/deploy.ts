@@ -1,4 +1,3 @@
-import { AnyMxRecord } from 'dns';
 import { ethers } from 'hardhat';
 import { getEventArgs, asciiToHex32 } from '../utils/utils';
 
