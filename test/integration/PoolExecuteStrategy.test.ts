@@ -84,7 +84,6 @@ describe('PoolExecuteStrategy', function () {
   const crystallizationPeriod = 300; // 5m
   const reserveExecution = szabo('10'); // 10USDC
   const shareTokenName = 'TEST';
-  const shareTokenSymbol = 'TST';
 
   let owner: Wallet;
   let collector: Wallet;
@@ -231,8 +230,7 @@ describe('PoolExecuteStrategy', function () {
         pFeeRate,
         crystallizationPeriod,
         reserveExecution,
-        shareTokenName,
-        shareTokenSymbol
+        shareTokenName
       );
       await poolProxy.connect(manager).finalize();
       shareToken = await ethers.getContractAt(

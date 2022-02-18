@@ -8,6 +8,3 @@ deployments
 #Hardhat files
 cache
 artifacts
-
-#npm pkg lock
-package-lock.json

@@ -127,8 +127,7 @@ export async function createPoolProxy(
   pFeeRate: any,
   crystallizationPeriod: any,
   reserveExecution: any,
-  shareTokenName: any,
-  shareTokenSymbol: any
+  shareTokenName: any
 ): Promise<any> {
   const receipt = await poolProxyFactory
     .connect(manager)
@@ -139,8 +138,7 @@ export async function createPoolProxy(
       pFeeRate,
       crystallizationPeriod,
       reserveExecution,
-      shareTokenName,
-      shareTokenSymbol
+      shareTokenName
     );
   const eventArgs = await getEventArgs(receipt, 'PoolCreated');
   console.log('args.newPool', eventArgs.newPool);
