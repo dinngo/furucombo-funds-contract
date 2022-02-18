@@ -195,7 +195,7 @@ describe('Implementation', function () {
     it('liquidate', async function () {
       await implementation.finalize();
       await implementation.pendMock();
-      await network.provider.send('evm_increaseTime', [pendingExpiration + 1]);
+      await network.provider.send('evm_increaseTime', [pendingExpiration]);
       await expect(implementation.liquidate())
         .to.emit(implementation, 'StateTransited')
         .withArgs(4)
@@ -206,7 +206,7 @@ describe('Implementation', function () {
     it('liquidate by user', async function () {
       await implementation.finalize();
       await implementation.pendMock();
-      await network.provider.send('evm_increaseTime', [pendingExpiration + 1]);
+      await network.provider.send('evm_increaseTime', [pendingExpiration]);
       await expect(implementation.connect(user).liquidate())
         .to.emit(implementation, 'StateTransited')
         .withArgs(4)

@@ -82,7 +82,7 @@ contract Implementation is
     function liquidate() public {
         require(pendingStartTime != 0, "Pending does not start");
         require(
-            block.timestamp >
+            block.timestamp >=
                 pendingStartTime + comptroller.pendingExpiration(),
             "Pending does not expire"
         );
