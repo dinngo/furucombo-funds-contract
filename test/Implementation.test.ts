@@ -353,6 +353,12 @@ describe('Implementation', function () {
       ).to.be.revertedWith('InvalidState(2)');
     });
 
+    it('should revert: set by non-owner', async function () {
+      await expect(
+        implementation.connect(user).setDenomination(tokenA.address)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
     it('set reserve execution', async function () {
       await implementation.setReserveExecution(denominationDust);
       expect(await implementation.reserveExecution()).to.be.eq(
@@ -365,6 +371,12 @@ describe('Implementation', function () {
       await expect(
         implementation.setReserveExecution(denominationDust)
       ).to.be.revertedWith('InvalidState(2)');
+    });
+
+    it('should revert: set by non-owner', async function () {
+      await expect(
+        implementation.connect(user).setReserveExecution(denominationDust)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
 

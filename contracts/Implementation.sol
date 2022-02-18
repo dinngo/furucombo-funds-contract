@@ -98,6 +98,7 @@ contract Implementation is
     /// @notice Set denomination only during reviewing.
     function setDenomination(IERC20 denomination_)
         external
+        onlyOwner
         whenState(State.Reviewing)
     {
         _setDenomination(denomination_);
@@ -106,6 +107,7 @@ contract Implementation is
     /// @notice Set reserve only during reviewing.
     function setReserveExecution(uint256 reserve_)
         external
+        onlyOwner
         whenState(State.Reviewing)
     {
         _setReserveExecution(reserve_);
