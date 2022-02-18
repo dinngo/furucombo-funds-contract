@@ -209,10 +209,7 @@ describe('Share module', function () {
       await shareModule.setReserve(pendingShare);
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'Redeemed')
-        .withArgs(actualAsset, actualShare)
-        .to.emit(shareModule, 'StateTransited')
-        .withArgs(2);
-      expect(await shareModule.pendingStartTime()).to.be.eq(0);
+        .withArgs(actualAsset, actualShare);
     });
 
     it('should fail when insufficient reserve', async function () {

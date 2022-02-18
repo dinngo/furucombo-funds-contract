@@ -78,6 +78,13 @@ contract Implementation is
         addAsset(address(denomination));
     }
 
+    /// @notice Resume the pool by anyone if can settle pending redeemption.
+    function resume() public {
+        _resume();
+
+        _settlePendingRedemption(true);
+    }
+
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
         require(pendingStartTime != 0, "Pending does not start");
@@ -97,6 +104,7 @@ contract Implementation is
     /// without penalty.
     function close() public override onlyOwner {
         super.close();
+
         _settlePendingRedemption(false);
         mortgageVault.claim(msg.sender);
     }
