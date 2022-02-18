@@ -11,7 +11,7 @@ library DealingAsset {
     // Data is stored in storage slot `uint256(keccak256('furucombo.poolcombo.asset.map')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
     bytes32 private constant _ASSET_MAP_SLOT =
-        0x63bf7fc1a12ec8f6f53711dc6df23ea45ef85d1fc86284dcf8b3ae4c71fd54ce;
+        0xec31421a1a944971f11fd2cbe8cfbba87b8b0d29a620a1efd4c05f9f7159c747;
 
     // Data is stored in storage slot `uint256(keccak256('furucombo.poolcombo.asset.array')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.

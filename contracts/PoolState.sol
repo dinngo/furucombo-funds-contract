@@ -131,10 +131,7 @@ abstract contract PoolState {
         vault.execute(action, data);
     }
 
-    function _setReserveExecution(uint256 reserveExecution_)
-        internal
-        whenStates(State.Initializing, State.Ready)
-    {
+    function _setReserveExecution(uint256 reserveExecution_) internal {
         reserveExecution = reserveExecution_;
     }
 }
