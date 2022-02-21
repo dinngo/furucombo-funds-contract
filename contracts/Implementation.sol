@@ -171,15 +171,21 @@ contract Implementation is
     /////////////////////////////////////////////////////
     // Asset Module
     /////////////////////////////////////////////////////
-    /// @notice Add the asset to the tracking list.
+    /// @notice Add the asset to the tracking list by owner.
     /// @param asset The asset to be added.
-    function addAsset(address asset) public override {
+    function addAsset(address asset) public onlyOwner {
+        _addAsset(asset);
+    }
+    
+    /// @notice Add the asset to the tracking list by contract.
+    /// @param asset The asset to be added.
+    function _addAsset(address asset) internal override {
         require(
             comptroller.validateDealingAsset(level, asset),
             "Invalid asset"
         );
         if (asset == address(denomination)) {
-            super.addAsset(asset);
+            super._addAsset(asset);
         } else {
             int256 value = getAssetValue(asset);
             int256 dust = int256(
@@ -187,14 +193,20 @@ contract Implementation is
             );
 
             if (value > dust || value < 0) {
-                super.addAsset(asset);
+                super._addAsset(asset);
             }
         }
     }
 
-    /// @notice Remove the asset from the tracking list.
+    /// @notice Remove the asset from the tracking list by owner.
     /// @param asset The asset to be removed.
-    function removeAsset(address asset) public override {
+    function removeAsset(address asset) public onlyOwner {
+        _removeAsset(asset);
+    }
+
+    /// @notice Remove the asset from the tracking list by contract.
+    /// @param asset The asset to be removed.
+    function _removeAsset(address asset) internal override {
         // Do not allow to remove denomination from list
         address _denomination = address(denomination);
         if (asset != _denomination) {
@@ -204,7 +216,7 @@ contract Implementation is
             );
 
             if (value < dust && value >= 0) {
-                super.removeAsset(asset);
+                super._removeAsset(asset);
             }
         }
     }

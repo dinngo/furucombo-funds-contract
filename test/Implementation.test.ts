@@ -290,6 +290,12 @@ describe('Implementation', function () {
         );
       });
 
+      it('should revert: add by non-owner', async function () {
+        await expect(
+          implementation.connect(user).addAsset(tokenA.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
       it('should revert: asset is not permitted', async function () {
         await expect(
           implementation.addAsset(tokenA.address)
@@ -381,6 +387,12 @@ describe('Implementation', function () {
         expect(await implementation.getAssetList()).to.not.include(
           tokenA.address
         );
+      });
+
+      it('should revert: remove by non-owner', async function () {
+        await expect(
+          implementation.connect(user).removeAsset(tokenA.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('can not be removed: balance of asset > dust ', async function () {
