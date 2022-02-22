@@ -85,12 +85,6 @@ abstract contract ShareModule is PoolState {
         balance = (share * assetValue) / shareAmount;
     }
 
-    /// @notice Settle the pending redemption and assign the proper balance to
-    /// each user.
-    function settlePendingRedemption() public virtual returns (bool) {
-        return _settlePendingRedemption(true);
-    }
-
     function _settlePendingRedemption(bool applyPenalty)
         internal
         returns (bool)
@@ -120,8 +114,6 @@ abstract contract ShareModule is PoolState {
             totalPendingBonus = 0;
             shareToken.burn(address(this), unusedBonus);
         }
-
-        _resume();
 
         return true;
     }

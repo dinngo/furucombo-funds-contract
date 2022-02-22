@@ -192,6 +192,18 @@ describe('Implementation', function () {
       );
     });
 
+    it('resume', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await expect(implementation.resume())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(2);
+      expect(await implementation.getAssetList()).to.be.deep.eq([
+        denomination.address,
+      ]);
+      expect(await implementation.pendingStartTime()).to.be.eq(0);
+    });
+
     it('liquidate', async function () {
       await implementation.finalize();
       await implementation.pendMock();
@@ -201,6 +213,7 @@ describe('Implementation', function () {
         .withArgs(4)
         .to.emit(implementation, 'OwnershipTransferred')
         .withArgs(owner.address, liquidator.address);
+      expect(await implementation.pendingStartTime()).to.be.eq(0);
     });
 
     it('liquidate by user', async function () {
@@ -226,6 +239,19 @@ describe('Implementation', function () {
       await implementation.pendMock();
       await expect(implementation.liquidate()).to.be.revertedWith(
         'Pending does not expire'
+      );
+    });
+
+    it('close when executing', async function () {
+      await implementation.finalize();
+      await expect(implementation.close())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(5);
+    });
+
+    it('should revert: close by non-owner', async function () {
+      await expect(implementation.connect(user).close()).to.be.revertedWith(
+        'Ownable: caller is not the owner'
       );
     });
   });
