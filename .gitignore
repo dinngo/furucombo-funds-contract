@@ -8,3 +8,6 @@ deployments
 #Hardhat files
 cache
 artifacts
+
+#vscode settings
+.vscode

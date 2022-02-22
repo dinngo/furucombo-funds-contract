@@ -13,7 +13,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
     event Registered(address indexed asset, address resolver);
     event Unregistered(address indexed asset);
     event BannedResolver(address indexed resolver);
-    event unbannedResolver(address indexed resolver);
+    event UnbannedResolver(address indexed resolver);
     event Halted();
     event Unhalted();
 
@@ -81,7 +81,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
             "AssetRegistry: resolver is not banned"
         );
         bannedResolvers[resolver] = false;
-        emit unbannedResolver(resolver);
+        emit UnbannedResolver(resolver);
     }
 
     /**
