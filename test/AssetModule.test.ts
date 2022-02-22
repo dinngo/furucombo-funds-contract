@@ -32,6 +32,8 @@ describe('Asset module', function () {
         constants.AddressZero,
         constants.AddressZero,
         0,
+        constants.AddressZero,
+        0,
         constants.AddressZero
       );
       await comptroller.deployed();
@@ -156,9 +158,7 @@ describe('Asset module', function () {
     it('should fail when not Executing or Liquidating', async function () {
       await assetModule.setState(3);
       await assetModule.addAsset(tokenD.address);
-      await expect(assetModule.close()).to.be.revertedWith(
-        "reverted with custom error 'InvalidState(3)'"
-      );
+      await expect(assetModule.close()).to.be.revertedWith('InvalidState(3)');
     });
   });
 

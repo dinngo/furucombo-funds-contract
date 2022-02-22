@@ -34,7 +34,9 @@ describe('Share module', function () {
         shareModule.address,
         constants.AddressZero,
         constants.AddressZero,
+        constants.Zero,
         constants.AddressZero,
+        constants.Zero,
         constants.AddressZero
       );
       await comptroller.deployed();
@@ -134,11 +136,16 @@ describe('Share module', function () {
       const remainShare = totalShare.sub(partialShare);
       await shareModule.setState(2);
       await shareModule.setReserve(partialAsset);
-      await expect(shareModule.redeem(totalShare))
+      const receipt = await shareModule.redeem(totalShare);
+      expect(receipt)
         .to.emit(shareModule, 'Redeemed')
         .withArgs(partialAsset, partialShare)
         .to.emit(shareModule, 'RedemptionPended')
-        .withArgs(remainShare);
+        .withArgs(remainShare)
+        .to.emit(shareModule, 'StateTransited')
+        .withArgs(3);
+      const block = await ethers.provider.getBlock(receipt.blockNumber!);
+      expect(await shareModule.pendingStartTime()).to.be.eq(block.timestamp);
     });
 
     it('should succeed when redemption pending', async function () {
@@ -202,12 +209,15 @@ describe('Share module', function () {
       await shareModule.setReserve(pendingShare);
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'Redeemed')
-        .withArgs(actualAsset, actualShare);
+        .withArgs(actualAsset, actualShare)
+        .to.emit(shareModule, 'StateTransited')
+        .withArgs(2);
+      expect(await shareModule.pendingStartTime()).to.be.eq(0);
     });
 
     it('should fail when insufficient reserve', async function () {
       await expect(shareModule.settlePendingRedemption()).to.be.revertedWith(
-        'Can only left while Executing'
+        'InvalidState(3)'
       );
     });
 

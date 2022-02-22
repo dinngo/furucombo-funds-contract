@@ -90,6 +90,8 @@ export async function deployComptrollerAndPoolProxyFactory(
   assetRouterAddress: string,
   collectorAddress: string,
   execFeePercentage: any,
+  liquidatorAddress: string,
+  pendingExpiration: number,
   mortgageVaultAddress: string
 ): Promise<any> {
   const implementation = await (
@@ -105,6 +107,8 @@ export async function deployComptrollerAndPoolProxyFactory(
     assetRouterAddress,
     collectorAddress,
     execFeePercentage,
+    liquidatorAddress,
+    pendingExpiration,
     mortgageVaultAddress
   );
   await comptroller.deployed();

@@ -11,6 +11,10 @@ contract ImplementationMock is Implementation {
         Implementation(dsProxyRegistry_)
     {}
 
+    function pendMock() external {
+        _pend();
+    }
+
     function setComptroller(IComptroller comptroller_) external {
         _setComptroller(comptroller_);
     }

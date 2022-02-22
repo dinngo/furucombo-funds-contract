@@ -96,6 +96,8 @@ describe('Task Executor', function () {
         assetRouter.address,
         collector.address,
         0,
+        constants.AddressZero,
+        constants.Zero,
         mortgageVault.address
       );
       await comptroller.deployed();

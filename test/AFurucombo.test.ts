@@ -1,4 +1,4 @@
-import { Wallet, BigNumber, Signer } from 'ethers';
+import { Wallet, BigNumber, Signer, constants } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
@@ -117,6 +117,8 @@ describe('AFurucombo', function () {
         implementation.address,
         assetRouter.address,
         collector.address,
+        0,
+        constants.AddressZero,
         0,
         mortgageVault.address
       );
