@@ -1,32 +1,17 @@
-import { constants, Wallet, BigNumber } from 'ethers';
+import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   FurucomboProxyMock,
+  FurucomboProxy,
   Registry,
   HAaveProtocolV2,
   IERC20,
   HFunds,
   ILendingPoolV2,
-  IWMATIC,
-  FooFactory,
-  Foo2Factory,
-  Foo,
-  Foo2,
-  Foo3,
-  Foo4,
-  FooHandler,
-  Foo2Handler,
-  Foo3Handler,
-  Foo4Handler,
-  Foo6Handler,
 } from '../../typechain';
 
 import {
-  DAI_TOKEN,
-  WETH_TOKEN,
-  MKR_TOKEN,
-  NATIVE_TOKEN,
   WMATIC_TOKEN,
   AAVE_RATEMODE,
   AAVEPROTOCOL_V2_PROVIDER,
@@ -36,14 +21,13 @@ import {
   simpleEncode,
   asciiToHex32,
   padRightZero,
-  balanceDelta,
 } from '../utils/utils';
 
 describe('CubeCounting', function () {
-  let owner: Wallet;
   let user: Wallet;
 
   let proxy: FurucomboProxyMock;
+  let furucomboProxy: FurucomboProxy;
   let registry: Registry;
   let hAaveV2: HAaveProtocolV2;
   let hFunds: HFunds;
@@ -54,7 +38,7 @@ describe('CubeCounting', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user] = await (ethers as any).getSigners();
+      [, user] = await (ethers as any).getSigners();
 
       // Setup token
       tokenA = await ethers.getContractAt('IERC20', WMATIC_TOKEN);
@@ -67,6 +51,11 @@ describe('CubeCounting', function () {
         await ethers.getContractFactory('FurucomboProxyMock')
       ).deploy(registry.address);
       await proxy.deployed();
+
+      furucomboProxy = await (
+        await ethers.getContractFactory('FurucomboProxy')
+      ).deploy(registry.address);
+      await furucomboProxy.deployed();
 
       // Deploy handler and register
       hAaveV2 = await (
@@ -131,7 +120,7 @@ describe('CubeCounting', function () {
   it('should revert: 0 -> 0', async function () {
     const to = hAaveV2.address;
 
-    // Prepare data
+    // Prepare flashloan data
     const data = [
       simpleEncode('checkSlippage(address[],uint256[])', [
         [tokenA.address],
@@ -151,5 +140,79 @@ describe('CubeCounting', function () {
     await expect(
       proxy.connect(user).execMock(to, flashloanCubeData)
     ).to.be.revertedWith('0_HAaveProtocolV2_flashLoan: 0_HFunds_checkSlippage');
+  });
+
+  it('should revert: 0 -> 1', async function () {
+    const to = hAaveV2.address;
+
+    // Prepare flashloan data
+    const data = [
+      simpleEncode('checkSlippage(address[],uint256[])', [
+        [tokenA.address],
+        [0],
+      ]),
+      simpleEncode('checkSlippage(address[],uint256[])', [
+        [tokenA.address],
+        [],
+      ]),
+    ];
+    const flashloanParams = ethers.utils.defaultAbiCoder.encode(
+      ['address[]', 'bytes32[]', 'bytes[]'],
+      [
+        [hFunds.address, hFunds.address],
+        [constants.HashZero, constants.HashZero],
+        data,
+      ]
+    );
+
+    const flashloanCubeData = simpleEncode(
+      'flashLoan(address[],uint256[],uint256[],bytes)',
+      [[tokenA.address], [ether('10')], [AAVE_RATEMODE.NODEBT], flashloanParams]
+    );
+
+    await expect(
+      proxy.connect(user).execMock(to, flashloanCubeData)
+    ).to.be.revertedWith('0_HAaveProtocolV2_flashLoan: 1_HFunds_checkSlippage');
+  });
+
+  it('should revert: 1 -> 1', async function () {
+    const tos = [hFunds.address, hAaveV2.address];
+    const configs = [constants.HashZero, constants.HashZero];
+
+    const firstCubeData = simpleEncode('checkSlippage(address[],uint256[])', [
+      [tokenA.address],
+      [0],
+    ]);
+
+    // Prepare flashloan data
+    const data = [
+      simpleEncode('checkSlippage(address[],uint256[])', [
+        [tokenA.address],
+        [0],
+      ]),
+      simpleEncode('checkSlippage(address[],uint256[])', [
+        [tokenA.address],
+        [],
+      ]),
+    ];
+    const flashloanParams = ethers.utils.defaultAbiCoder.encode(
+      ['address[]', 'bytes32[]', 'bytes[]'],
+      [
+        [hFunds.address, hFunds.address],
+        [constants.HashZero, constants.HashZero],
+        data,
+      ]
+    );
+
+    const flashloanCubeData = simpleEncode(
+      'flashLoan(address[],uint256[],uint256[],bytes)',
+      [[tokenA.address], [ether('10')], [AAVE_RATEMODE.NODEBT], flashloanParams]
+    );
+
+    const proxyDatas = [firstCubeData, flashloanCubeData];
+
+    await expect(
+      furucomboProxy.connect(user).batchExec(tos, configs, proxyDatas)
+    ).to.be.revertedWith('1_HAaveProtocolV2_flashLoan: 1_HFunds_checkSlippage');
   });
 });
