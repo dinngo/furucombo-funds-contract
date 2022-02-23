@@ -1,5 +1,5 @@
-import { ethers, deployments } from 'hardhat';
-import { Wallet, Signer, BigNumber } from 'ethers';
+import { ethers, deployments, network } from 'hardhat';
+import { Wallet, Signer, BigNumber, constants } from 'ethers';
 import { expect } from 'chai';
 import {
   Comptroller,
@@ -35,7 +35,8 @@ describe('Implementation', function () {
   const tokenAAmount = ethers.utils.parseEther('1');
   const tokenBAmount = ethers.utils.parseUnits('1', 8);
   const execFeePercentage = 200; // 20%
-  const level = 0;
+  const pendingExpiration = 86400; // 1 day
+  const level = 1;
 
   let comptroller: Comptroller;
   let implementation: ImplementationMock;
@@ -44,6 +45,7 @@ describe('Implementation', function () {
 
   let owner: Wallet;
   let user: Wallet;
+  let liquidator: Wallet;
 
   let denomination: ERC20;
   let denominationProvider: Signer;
@@ -60,7 +62,7 @@ describe('Implementation', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture();
-      [owner, user] = await (ethers as any).getSigners();
+      [owner, user, liquidator] = await (ethers as any).getSigners();
 
       denomination = await ethers.getContractAt('ERC20', denominationAddress);
       denominationProvider = await tokenProviderQuick(denomination.address);
@@ -116,6 +118,8 @@ describe('Implementation', function () {
         assetRouter.address,
         owner.address,
         execFeePercentage,
+        liquidator.address,
+        pendingExpiration,
         mortgageVault.address
       );
 
@@ -145,7 +149,6 @@ describe('Implementation', function () {
           owner.address
         );
 
-      await implementation.finalize();
       vault = await ethers.getContractAt(
         'IDSProxy',
         await implementation.vault()
@@ -157,7 +160,107 @@ describe('Implementation', function () {
     await setupTest();
   });
 
+  describe('State changes', function () {
+    it('should revert: twice initialization', async function () {
+      await expect(
+        implementation
+          .connect(owner)
+          .initialize(
+            0,
+            constants.AddressZero,
+            constants.AddressZero,
+            constants.AddressZero,
+            0,
+            0,
+            0,
+            0,
+            constants.AddressZero
+          )
+      ).to.be.revertedWith('InvalidState(1)');
+    });
+
+    it('finalize', async function () {
+      await implementation.finalize();
+      expect(await implementation.getAssetList()).to.be.deep.eq([
+        denomination.address,
+      ]);
+    });
+
+    it('should revert: finalize by non-owner', async function () {
+      await expect(implementation.connect(user).finalize()).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+    });
+
+    it('resume', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await expect(implementation.resume())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(2);
+      expect(await implementation.getAssetList()).to.be.deep.eq([
+        denomination.address,
+      ]);
+      expect(await implementation.pendingStartTime()).to.be.eq(0);
+    });
+
+    it('liquidate', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await network.provider.send('evm_increaseTime', [pendingExpiration]);
+      await expect(implementation.liquidate())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(4)
+        .to.emit(implementation, 'OwnershipTransferred')
+        .withArgs(owner.address, liquidator.address);
+      expect(await implementation.pendingStartTime()).to.be.eq(0);
+    });
+
+    it('liquidate by user', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await network.provider.send('evm_increaseTime', [pendingExpiration]);
+      await expect(implementation.connect(user).liquidate())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(4)
+        .to.emit(implementation, 'OwnershipTransferred')
+        .withArgs(owner.address, liquidator.address);
+    });
+
+    it('should revert: pending does not start', async function () {
+      await implementation.finalize();
+      await expect(implementation.liquidate()).to.be.revertedWith(
+        'Pending does not start'
+      );
+    });
+
+    it('should revert: pending does not expire', async function () {
+      await implementation.finalize();
+      await implementation.pendMock();
+      await expect(implementation.liquidate()).to.be.revertedWith(
+        'Pending does not expire'
+      );
+    });
+
+    it('close when executing', async function () {
+      await implementation.finalize();
+      await expect(implementation.close())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(5);
+    });
+
+    it('should revert: close by non-owner', async function () {
+      await expect(implementation.connect(user).close()).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+    });
+  });
+
   describe('Asset module', function () {
+    beforeEach(async function () {
+      await implementation.finalize();
+    });
+
     describe('add asset', function () {
       it('normal', async function () {
         // Permit asset
@@ -303,7 +406,52 @@ describe('Implementation', function () {
     });
   });
 
-  describe('General', function () {
+  describe('Setters', function () {
+    it('set denomination', async function () {
+      await comptroller.permitDenominations([tokenA.address], [tokenAAmount]);
+      await implementation.setDenomination(tokenA.address);
+      expect(await implementation.denomination()).to.be.eq(tokenA.address);
+    });
+
+    it('should revert: set denomination at wrong stage', async function () {
+      await implementation.finalize();
+      await expect(
+        implementation.setDenomination(tokenA.address)
+      ).to.be.revertedWith('InvalidState(2)');
+    });
+
+    it('should revert: set by non-owner', async function () {
+      await expect(
+        implementation.connect(user).setDenomination(tokenA.address)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('set reserve execution', async function () {
+      await implementation.setReserveExecution(denominationDust);
+      expect(await implementation.reserveExecution()).to.be.eq(
+        denominationDust
+      );
+    });
+
+    it('should revert: set reserve execution at wrong stage', async function () {
+      await implementation.finalize();
+      await expect(
+        implementation.setReserveExecution(denominationDust)
+      ).to.be.revertedWith('InvalidState(2)');
+    });
+
+    it('should revert: set by non-owner', async function () {
+      await expect(
+        implementation.connect(user).setReserveExecution(denominationDust)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+  });
+
+  describe('Getters', function () {
+    beforeEach(async function () {
+      await implementation.finalize();
+    });
+
     it('get asset total value', async function () {
       // Get expected amount
       const expectedA = await oracle.calcConversionAmount(
@@ -340,6 +488,4 @@ describe('Implementation', function () {
       expect(await implementation.getTotalAssetValue()).to.be.eq(0);
     });
   });
-
-  // TODO: Add finalize() test
 });

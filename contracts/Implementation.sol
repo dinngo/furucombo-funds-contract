@@ -29,6 +29,9 @@ contract Implementation is
         dsProxyRegistry = dsProxyRegistry_;
     }
 
+    /////////////////////////////////////////////////////
+    // State Changes
+    /////////////////////////////////////////////////////
     /// @notice Initializer.
     /// @param level_ The tier of the pool.
     /// @param comptroller_ The comptroller address.
@@ -49,7 +52,7 @@ contract Implementation is
         uint256 crystallizationPeriod_,
         uint256 reserveExecution_,
         address newOwner
-    ) external whenState(State.Initializing) checkReady {
+    ) external whenState(State.Initializing) initialized {
         _setLevel(level_);
         _setComptroller(comptroller_);
         _setDenomination(denomination_);
@@ -62,19 +65,12 @@ contract Implementation is
         _setDSProxy(IDSProxy(dsProxy_));
         _transferOwnership(newOwner);
         mortgageVault = comptroller_.mortgageVault();
-    }
 
-    /////////////////////////////////////////////////////
-    // General
-    /////////////////////////////////////////////////////
-    /// @notice Return the manager address.
-    /// @return Manager address.
-    function getManager() public view override returns (address) {
-        return owner();
+        _review();
     }
 
     /// @notice Finalize the initialization of the pool.
-    function finalize() public onlyOwner {
+    function finalize() public onlyOwner initialized {
         _finalize();
 
         // Add denomination to list and never remove
@@ -82,18 +78,65 @@ contract Implementation is
         addAsset(address(denomination));
     }
 
-    /// @notice Liquidate the pool.
-    function liquidate() public onlyOwner {
+    /// @notice Resume the pool by anyone if can settle pending redeemption.
+    function resume() public {
+        _resume();
+
+        _settlePendingRedemption(true);
+    }
+
+    /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
+    function liquidate() public {
+        require(pendingStartTime != 0, "Pending does not start");
+        require(
+            block.timestamp >=
+                pendingStartTime + comptroller.pendingExpiration(),
+            "Pending does not expire"
+        );
+
         _liquidate();
+
         mortgageVault.claim(comptroller.owner());
+        _transferOwnership(comptroller.pendingLiquidator());
     }
 
     /// @notice Close the pool. The pending redemption will be settled
     /// without penalty.
     function close() public override onlyOwner {
         super.close();
+
         _settlePendingRedemption(false);
         mortgageVault.claim(msg.sender);
+    }
+
+    /////////////////////////////////////////////////////
+    // Setters
+    /////////////////////////////////////////////////////
+    /// @notice Set denomination only during reviewing.
+    function setDenomination(IERC20 denomination_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setDenomination(denomination_);
+    }
+
+    /// @notice Set reserve only during reviewing.
+    function setReserveExecution(uint256 reserve_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setReserveExecution(reserve_);
+    }
+
+    /////////////////////////////////////////////////////
+    // Getters
+    /////////////////////////////////////////////////////
+    /// @notice Return the manager address.
+    /// @return Manager address.
+    function getManager() public view override returns (address) {
+        return owner();
     }
 
     /// @notice Get the current reserve amount of the pool.

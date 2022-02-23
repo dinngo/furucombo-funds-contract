@@ -10,7 +10,7 @@ import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 abstract contract PoolState {
     enum State {
         Initializing,
-        Ready,
+        Reviewing,
         Executing,
         RedemptionPending,
         Liquidating,
@@ -25,10 +25,24 @@ abstract contract PoolState {
     IShareToken public shareToken;
     IDSProxy public vault; // DSProxy
     uint256 public reserveExecution;
+    uint256 public pendingStartTime;
 
     event StateTransited(State to);
 
     error InvalidState(State current);
+
+    modifier initialized() {
+        _;
+        require(
+            level != 0 &&
+                address(comptroller) != address(0) &&
+                address(mortgageVault) != address(0) &&
+                address(denomination) != address(0) &&
+                address(shareToken) != address(0) &&
+                address(vault) != address(0),
+            "Uninitialized"
+        );
+    }
 
     modifier whenState(State expect) {
         if (state != expect) revert InvalidState(state);
@@ -55,24 +69,29 @@ abstract contract PoolState {
         _;
     }
 
-    modifier checkReady() {
-        _;
-        if (
-            state == State.Initializing &&
-            address(comptroller) != address(0) &&
-            address(denomination) != address(0) &&
-            address(shareToken) != address(0) &&
-            address(vault) != address(0)
-        ) _enterState(State.Ready);
+    // State Changes
+
+    function _review() internal whenState(State.Initializing) {
+        _enterState(State.Reviewing);
     }
 
-    function _finalize() internal whenState(State.Ready) {
+    function _finalize() internal whenState(State.Reviewing) {
+        _enterState(State.Executing);
+    }
+
+    function _pend() internal whenState(State.Executing) {
+        _enterState(State.RedemptionPending);
+        pendingStartTime = block.timestamp;
+    }
+
+    function _resume() internal whenState(State.RedemptionPending) {
+        pendingStartTime = 0;
         _enterState(State.Executing);
     }
 
     function _liquidate() internal whenState(State.RedemptionPending) {
+        pendingStartTime = 0;
         _enterState(State.Liquidating);
-        // Transfer the ownership to proceed liquidation
     }
 
     function _close() internal whenStates(State.Executing, State.Liquidating) {
@@ -83,6 +102,8 @@ abstract contract PoolState {
         state = state_;
         emit StateTransited(state_);
     }
+
+    // Setters
 
     function _setLevel(uint256 level_) internal {
         require(level == 0, "Level is set");
@@ -98,10 +119,6 @@ abstract contract PoolState {
     }
 
     function _setDenomination(IERC20 denomination_) internal {
-        require(
-            address(denomination) == address(0),
-            "Denomination is initialized"
-        );
         require(
             comptroller.isValidDenomination(address(denomination_)),
             "Denomination is not valid"

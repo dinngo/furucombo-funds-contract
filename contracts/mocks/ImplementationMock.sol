@@ -11,12 +11,12 @@ contract ImplementationMock is Implementation {
         Implementation(dsProxyRegistry_)
     {}
 
-    function setComptroller(IComptroller comptroller_) external {
-        _setComptroller(comptroller_);
+    function pendMock() external {
+        _pend();
     }
 
-    function setDenomination(IERC20 denomination_) external {
-        _setDenomination(denomination_);
+    function setComptroller(IComptroller comptroller_) external {
+        _setComptroller(comptroller_);
     }
 
     function setDSProxy() external {

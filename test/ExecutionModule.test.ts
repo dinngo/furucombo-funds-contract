@@ -71,7 +71,7 @@ describe('Execution module', function () {
       );
     });
 
-    it('should fail when ready', async function () {
+    it('should fail when reviewing', async function () {
       await executionModule.setState(1);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.be.revertedWith(

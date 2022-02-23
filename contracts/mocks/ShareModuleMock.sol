@@ -24,6 +24,10 @@ contract ShareModuleMock is ShareModule, BaseMock {
         totalAssetValueMock = amount;
     }
 
+    function settlePendingRedemption() external {
+        _settlePendingRedemption(true);
+    }
+
     function settlePendingRedemptionWithoutPenalty() external {
         _settlePendingRedemption(false);
     }

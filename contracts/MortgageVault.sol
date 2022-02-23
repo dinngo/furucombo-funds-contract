@@ -43,7 +43,6 @@ contract MortgageVault {
         uint256 amount = poolAmounts[pool];
         poolAmounts[pool] = 0;
         totalAmount -= amount;
-
         mortgage.safeTransfer(receiver, amount);
         emit ClaimMortgage(receiver, pool, amount);
     }
