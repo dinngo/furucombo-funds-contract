@@ -10,7 +10,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
     mapping(address => bool) public bannedResolvers;
     mapping(address => address) private _resolvers;
 
-    event Registered(address indexed asset, address resolver);
+    event Registered(address indexed asset, address indexed resolver);
     event Unregistered(address indexed asset);
     event BannedResolver(address indexed resolver);
     event UnbannedResolver(address indexed resolver);

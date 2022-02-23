@@ -1,4 +1,4 @@
-import { constants, Wallet, BigNumber } from 'ethers';
+import { Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { MortgageVault, SimpleToken } from '../typechain';
@@ -47,7 +47,11 @@ describe('MortgageVault', function () {
       const vaultBalanceBefore = await token.callStatic.balanceOf(
         mortgageVault.address
       );
-      await mortgageVault.stake(user.address, pool.address, stakingAmount);
+      await expect(
+        mortgageVault.stake(user.address, pool.address, stakingAmount)
+      )
+        .to.emit(mortgageVault, 'StakeMortgage')
+        .withArgs(user.address, pool.address, stakingAmount);
       const userBalanceAfter = await token.callStatic.balanceOf(user.address);
       const vaultBalanceAfter = await token.callStatic.balanceOf(
         mortgageVault.address
@@ -81,7 +85,10 @@ describe('MortgageVault', function () {
       const vaultBalanceBefore = await token.callStatic.balanceOf(
         mortgageVault.address
       );
-      await mortgageVault.connect(pool).claim(user.address);
+      await expect(mortgageVault.connect(pool).claim(user.address))
+        .to.emit(mortgageVault, 'ClaimMortgage')
+        .withArgs(user.address, pool.address, stakingAmount);
+
       const userBalanceAfter = await token.callStatic.balanceOf(user.address);
       const vaultBalanceAfter = await token.callStatic.balanceOf(
         mortgageVault.address

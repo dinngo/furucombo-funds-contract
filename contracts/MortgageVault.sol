@@ -11,8 +11,16 @@ contract MortgageVault {
     uint256 public totalAmount;
     mapping(address => uint256) public poolAmounts;
 
-    event StakeMortgage(address indexed sender, address pool, uint256 amount);
-    event ClaimMortgage(address indexed receiver, address pool, uint256 amount);
+    event StakeMortgage(
+        address indexed sender,
+        address indexed pool,
+        uint256 amount
+    );
+    event ClaimMortgage(
+        address indexed receiver,
+        address indexed pool,
+        uint256 amount
+    );
 
     constructor(IERC20 mortgage_) {
         mortgage = mortgage_;
