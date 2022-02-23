@@ -3,6 +3,7 @@ pragma solidity 0.8.9;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IProxy} from "./interface/IProxy.sol";
 import {IRegistry} from "./interface/IRegistry.sol";
 import {Config} from "./Config.sol";
@@ -18,6 +19,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
     using LibStack for bytes32[];
+    using Strings for uint256;
 
     event LogBegin(
         address indexed handler,
@@ -276,7 +278,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
             returndatacopy(add(result, 0x20), 0, size)
         }
 
-        if (!success) {
+        if (!succeeded) {
             if (result.length < 68) revert("_exec");
             assembly {
                 result := add(result, 0x04)
@@ -309,11 +311,11 @@ contract FurucomboProxy is IProxy, Storage, Config {
         if (stack.length == 0) {
             return;
         } else if (
-            stack.peek() == bytes32(bytes12(uint96(HandlerType.Custom)))
+            stack.peek() == bytes32(bytes12(uint96(HandlerType.Custom))) &&
+            bytes4(stack.peek(1)) != 0x00000000
         ) {
             stack.pop();
-            // Check if the handler is already set.
-            if (bytes4(stack.peek()) != 0x00000000) stack.setAddress(_to);
+            stack.setAddress(_to);
             stack.setHandlerType(HandlerType.Custom);
         }
     }
@@ -346,7 +348,11 @@ contract FurucomboProxy is IProxy, Storage, Config {
                 _tokenRefund(addr);
             } else if (handlerType == HandlerType.Custom) {
                 address addr = stack.getAddress();
-                _exec(addr, abi.encodeWithSelector(POSTPROCESS_SIG));
+                _exec(
+                    addr,
+                    abi.encodeWithSelector(POSTPROCESS_SIG),
+                    type(uint256).max
+                );
             } else if (handlerType == HandlerType.Others) {
                 // For specific asset like maker, aave.
                 address addr = stack.getAddress();
