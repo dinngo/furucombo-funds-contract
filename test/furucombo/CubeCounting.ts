@@ -115,104 +115,124 @@ describe('CubeCounting', function () {
         proxy.connect(user).execMock(to, flashloanCubeData)
       ).to.be.revertedWith('0_HAaveProtocolV2_flashLoan');
     });
-  });
+    it('should revert: 0 -> 0', async function () {
+      const to = hAaveV2.address;
 
-  it('should revert: 0 -> 0', async function () {
-    const to = hAaveV2.address;
+      // Prepare flashloan data
+      const data = [
+        simpleEncode('checkSlippage(address[],uint256[])', [
+          [tokenA.address],
+          [],
+        ]),
+      ];
+      const flashloanParams = ethers.utils.defaultAbiCoder.encode(
+        ['address[]', 'bytes32[]', 'bytes[]'],
+        [[hFunds.address], [constants.HashZero], data]
+      );
 
-    // Prepare flashloan data
-    const data = [
-      simpleEncode('checkSlippage(address[],uint256[])', [
-        [tokenA.address],
-        [],
-      ]),
-    ];
-    const flashloanParams = ethers.utils.defaultAbiCoder.encode(
-      ['address[]', 'bytes32[]', 'bytes[]'],
-      [[hFunds.address], [constants.HashZero], data]
-    );
+      const flashloanCubeData = simpleEncode(
+        'flashLoan(address[],uint256[],uint256[],bytes)',
+        [
+          [tokenA.address],
+          [ether('10')],
+          [AAVE_RATEMODE.NODEBT],
+          flashloanParams,
+        ]
+      );
 
-    const flashloanCubeData = simpleEncode(
-      'flashLoan(address[],uint256[],uint256[],bytes)',
-      [[tokenA.address], [ether('10')], [AAVE_RATEMODE.NODEBT], flashloanParams]
-    );
+      await expect(
+        proxy.connect(user).execMock(to, flashloanCubeData)
+      ).to.be.revertedWith(
+        '0_HAaveProtocolV2_flashLoan: 0_HFunds_checkSlippage'
+      );
+    });
 
-    await expect(
-      proxy.connect(user).execMock(to, flashloanCubeData)
-    ).to.be.revertedWith('0_HAaveProtocolV2_flashLoan: 0_HFunds_checkSlippage');
-  });
+    it('should revert: 0 -> 1', async function () {
+      const to = hAaveV2.address;
 
-  it('should revert: 0 -> 1', async function () {
-    const to = hAaveV2.address;
+      // Prepare flashloan data
+      const data = [
+        simpleEncode('checkSlippage(address[],uint256[])', [
+          [tokenA.address],
+          [0],
+        ]),
+        simpleEncode('checkSlippage(address[],uint256[])', [
+          [tokenA.address],
+          [],
+        ]),
+      ];
+      const flashloanParams = ethers.utils.defaultAbiCoder.encode(
+        ['address[]', 'bytes32[]', 'bytes[]'],
+        [
+          [hFunds.address, hFunds.address],
+          [constants.HashZero, constants.HashZero],
+          data,
+        ]
+      );
 
-    // Prepare flashloan data
-    const data = [
-      simpleEncode('checkSlippage(address[],uint256[])', [
+      const flashloanCubeData = simpleEncode(
+        'flashLoan(address[],uint256[],uint256[],bytes)',
+        [
+          [tokenA.address],
+          [ether('10')],
+          [AAVE_RATEMODE.NODEBT],
+          flashloanParams,
+        ]
+      );
+
+      await expect(
+        proxy.connect(user).execMock(to, flashloanCubeData)
+      ).to.be.revertedWith(
+        '0_HAaveProtocolV2_flashLoan: 1_HFunds_checkSlippage'
+      );
+    });
+
+    it('should revert: 1 -> 1', async function () {
+      const tos = [hFunds.address, hAaveV2.address];
+      const configs = [constants.HashZero, constants.HashZero];
+
+      const firstCubeData = simpleEncode('checkSlippage(address[],uint256[])', [
         [tokenA.address],
         [0],
-      ]),
-      simpleEncode('checkSlippage(address[],uint256[])', [
-        [tokenA.address],
-        [],
-      ]),
-    ];
-    const flashloanParams = ethers.utils.defaultAbiCoder.encode(
-      ['address[]', 'bytes32[]', 'bytes[]'],
-      [
-        [hFunds.address, hFunds.address],
-        [constants.HashZero, constants.HashZero],
-        data,
-      ]
-    );
+      ]);
 
-    const flashloanCubeData = simpleEncode(
-      'flashLoan(address[],uint256[],uint256[],bytes)',
-      [[tokenA.address], [ether('10')], [AAVE_RATEMODE.NODEBT], flashloanParams]
-    );
+      // Prepare flashloan data
+      const data = [
+        simpleEncode('checkSlippage(address[],uint256[])', [
+          [tokenA.address],
+          [0],
+        ]),
+        simpleEncode('checkSlippage(address[],uint256[])', [
+          [tokenA.address],
+          [],
+        ]),
+      ];
+      const flashloanParams = ethers.utils.defaultAbiCoder.encode(
+        ['address[]', 'bytes32[]', 'bytes[]'],
+        [
+          [hFunds.address, hFunds.address],
+          [constants.HashZero, constants.HashZero],
+          data,
+        ]
+      );
 
-    await expect(
-      proxy.connect(user).execMock(to, flashloanCubeData)
-    ).to.be.revertedWith('0_HAaveProtocolV2_flashLoan: 1_HFunds_checkSlippage');
-  });
+      const flashloanCubeData = simpleEncode(
+        'flashLoan(address[],uint256[],uint256[],bytes)',
+        [
+          [tokenA.address],
+          [ether('10')],
+          [AAVE_RATEMODE.NODEBT],
+          flashloanParams,
+        ]
+      );
 
-  it('should revert: 1 -> 1', async function () {
-    const tos = [hFunds.address, hAaveV2.address];
-    const configs = [constants.HashZero, constants.HashZero];
+      const proxyDatas = [firstCubeData, flashloanCubeData];
 
-    const firstCubeData = simpleEncode('checkSlippage(address[],uint256[])', [
-      [tokenA.address],
-      [0],
-    ]);
-
-    // Prepare flashloan data
-    const data = [
-      simpleEncode('checkSlippage(address[],uint256[])', [
-        [tokenA.address],
-        [0],
-      ]),
-      simpleEncode('checkSlippage(address[],uint256[])', [
-        [tokenA.address],
-        [],
-      ]),
-    ];
-    const flashloanParams = ethers.utils.defaultAbiCoder.encode(
-      ['address[]', 'bytes32[]', 'bytes[]'],
-      [
-        [hFunds.address, hFunds.address],
-        [constants.HashZero, constants.HashZero],
-        data,
-      ]
-    );
-
-    const flashloanCubeData = simpleEncode(
-      'flashLoan(address[],uint256[],uint256[],bytes)',
-      [[tokenA.address], [ether('10')], [AAVE_RATEMODE.NODEBT], flashloanParams]
-    );
-
-    const proxyDatas = [firstCubeData, flashloanCubeData];
-
-    await expect(
-      furucomboProxy.connect(user).batchExec(tos, configs, proxyDatas)
-    ).to.be.revertedWith('1_HAaveProtocolV2_flashLoan: 1_HFunds_checkSlippage');
+      await expect(
+        furucomboProxy.connect(user).batchExec(tos, configs, proxyDatas)
+      ).to.be.revertedWith(
+        '1_HAaveProtocolV2_flashLoan: 1_HFunds_checkSlippage'
+      );
+    });
   });
 });
