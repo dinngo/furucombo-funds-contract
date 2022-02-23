@@ -176,8 +176,8 @@ contract Implementation is
     function addAsset(address asset) public onlyOwner {
         _addAsset(asset);
     }
-    
-    /// @notice Add the asset to the tracking list by contract.
+
+    /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
         require(
@@ -204,7 +204,7 @@ contract Implementation is
         _removeAsset(asset);
     }
 
-    /// @notice Remove the asset from the tracking list by contract.
+    /// @notice Remove the asset from the tracking list.
     /// @param asset The asset to be removed.
     function _removeAsset(address asset) internal override {
         // Do not allow to remove denomination from list
