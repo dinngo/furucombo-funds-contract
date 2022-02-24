@@ -41,7 +41,7 @@ abstract contract ShareModule is PoolState {
     function redeem(uint256 share)
         public
         virtual
-        whenNotState(State.Liquidating)
+        when3States(State.Executing, State.RedemptionPending, State.Closed)
         returns (uint256 balance)
     {
         if (state == State.RedemptionPending) {

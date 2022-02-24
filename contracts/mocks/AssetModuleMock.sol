@@ -7,4 +7,12 @@ import {BaseMock} from "./BaseMock.sol";
 
 contract AssetModuleMock is AssetModule, BaseMock {
     constructor(IDSProxyRegistry dsProxyRegistry_) BaseMock(dsProxyRegistry_) {}
+
+    function addAsset(address asset) external {
+        _addAsset(asset);
+    }
+
+    function removeAsset(address asset) external {
+        _removeAsset(asset);
+    }
 }

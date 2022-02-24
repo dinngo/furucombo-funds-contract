@@ -63,11 +63,19 @@ describe('Share module', function () {
     await setupTest();
     await tokenD.approve(shareModule.address, constants.MaxUint256);
   });
-
+  
   describe('Purchase', function () {
-    it('should fail when not executing or redemption pending', async function () {
+    it('should fail when initializing', async function () {
+      await shareModule.setState(0);
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith(
         'InvalidState(0)'
+      );
+    });
+
+    it('should fail when reviewing', async function () {
+      await shareModule.setState(1);
+      await expect(shareModule.purchase(totalAsset)).to.be.revertedWith(
+        'InvalidState(1)'
       );
     });
 
@@ -83,6 +91,20 @@ describe('Share module', function () {
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'Purchased')
         .withArgs(totalAsset, totalShare);
+    });
+
+    it('should fail when liquidating', async function () {
+      await shareModule.setState(4);
+      await expect(shareModule.purchase(totalAsset)).to.be.revertedWith(
+        'InvalidState(4)'
+      );
+    });
+
+    it('should fail when closed', async function () {
+      await shareModule.setState(5);
+      await expect(shareModule.purchase(totalAsset)).to.be.revertedWith(
+        'InvalidState(5)'
+      );
     });
 
     it('should transfer denomination token from user to vault', async function () {
@@ -118,10 +140,17 @@ describe('Share module', function () {
       await shareModule.setTotalAssetValue(totalAsset);
     });
 
-    it('should fail when liquidating', async function () {
-      await shareModule.setState(4);
+    it('should fail when initializing', async function () {
+      await shareModule.setState(0);
       await expect(shareModule.redeem(totalShare)).to.be.revertedWith(
-        'InvalidState(4)'
+        'InvalidState(0)'
+      );
+    });
+
+    it('should fail when reviewing', async function () {
+      await shareModule.setState(1);
+      await expect(shareModule.redeem(totalShare)).to.be.revertedWith(
+        'InvalidState(1)'
       );
     });
 
@@ -153,6 +182,13 @@ describe('Share module', function () {
       await expect(shareModule.redeem(totalAsset))
         .to.emit(shareModule, 'RedemptionPended')
         .withArgs(totalShare);
+    });
+
+    it('should fail when liquidating', async function () {
+      await shareModule.setState(4);
+      await expect(shareModule.redeem(totalShare)).to.be.revertedWith(
+        'InvalidState(4)'
+      );
     });
 
     it('should succeed when closed', async function () {
