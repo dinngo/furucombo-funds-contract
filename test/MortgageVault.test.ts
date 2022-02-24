@@ -50,7 +50,7 @@ describe('MortgageVault', function () {
       await expect(
         mortgageVault.stake(user.address, pool.address, stakingAmount)
       )
-        .to.emit(mortgageVault, 'StakeMortgage')
+        .to.emit(mortgageVault, 'Staked')
         .withArgs(user.address, pool.address, stakingAmount);
       const userBalanceAfter = await token.callStatic.balanceOf(user.address);
       const vaultBalanceAfter = await token.callStatic.balanceOf(
@@ -86,7 +86,7 @@ describe('MortgageVault', function () {
         mortgageVault.address
       );
       await expect(mortgageVault.connect(pool).claim(user.address))
-        .to.emit(mortgageVault, 'ClaimMortgage')
+        .to.emit(mortgageVault, 'Claimed')
         .withArgs(user.address, pool.address, stakingAmount);
 
       const userBalanceAfter = await token.callStatic.balanceOf(user.address);

@@ -58,8 +58,8 @@ contract Comptroller is UpgradeableBeacon {
     event SetExecAction(address indexed action);
     event PermitManager(address indexed to);
     event ForbidManager(address indexed to);
-    event PermitAsset(uint256 indexed level, address indexed assets);
-    event ForbidAsset(uint256 indexed level, address indexed assets);
+    event PermitAsset(uint256 indexed level, address indexed asset);
+    event ForbidAsset(uint256 indexed level, address indexed asset);
     event PermitDelegateCall(
         uint256 indexed level,
         address indexed to,
