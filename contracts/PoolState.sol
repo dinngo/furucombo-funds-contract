@@ -6,6 +6,7 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {ISetupAction} from "./interfaces/ISetupAction.sol";
 
 abstract contract PoolState {
     enum State {
@@ -136,16 +137,22 @@ abstract contract PoolState {
         vault = dsProxy;
     }
 
-    function _setApproval() internal {
+    function _setDSProxyApproval(ISetupAction setupAction) internal {
         require(address(vault) != address(0), "Vault not set");
         require(address(comptroller) != address(0), "Comptroller not set");
         require(address(denomination) != address(0), "Denomination not set");
-        address action = comptroller.execAction();
+
         bytes memory data = abi.encodeWithSignature(
             "maxApprove(address)",
             denomination
         );
-        vault.execute(action, data);
+        vault.execute(address(setupAction), data);
+
+        require(
+            denomination.allowance(address(vault), address(this)) ==
+                type(uint256).max,
+            "wrong allowance"
+        );
     }
 
     function _setReserveExecution(uint256 reserveExecution_) internal {
