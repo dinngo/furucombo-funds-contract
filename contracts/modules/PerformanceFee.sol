@@ -49,7 +49,7 @@ abstract contract PerformanceFee {
         virtual
         returns (int128)
     {
-        require(feeRate < FEE_BASE, "rate should be less than 100%");
+        require(feeRate < FEE_BASE, "fee should be less than 100%");
         _feeRate64x64 = feeRate.divu(FEE_BASE);
 
         return _feeRate64x64;
@@ -58,6 +58,7 @@ abstract contract PerformanceFee {
     /// @notice Set the crystallization period.
     /// @param period The crystallization period to be set in second.
     function _setCrystallizationPeriod(uint256 period) internal virtual {
+        require(period > 0, "Crystallization period should not be 0");
         _crystallizationPeriod = period;
     }
 

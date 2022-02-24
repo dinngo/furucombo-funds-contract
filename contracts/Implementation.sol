@@ -52,11 +52,11 @@ contract Implementation is
         uint256 crystallizationPeriod_,
         uint256 reserveExecution_,
         address newOwner
-    ) external whenState(State.Initializing) initialized {
+    ) external whenState(State.Initializing) {
         _setLevel(level_);
         _setComptroller(comptroller_);
         _setDenomination(denomination_);
-        _setShare(shareToken_);
+        _setShareToken(shareToken_);
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
@@ -70,7 +70,7 @@ contract Implementation is
     }
 
     /// @notice Finalize the initialization of the pool.
-    function finalize() public onlyOwner initialized {
+    function finalize() public onlyOwner {
         _finalize();
 
         // Add denomination to list and never remove

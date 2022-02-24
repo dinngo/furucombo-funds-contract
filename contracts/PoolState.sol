@@ -31,19 +31,6 @@ abstract contract PoolState {
 
     error InvalidState(State current);
 
-    modifier initialized() {
-        _;
-        require(
-            level != 0 &&
-                address(comptroller) != address(0) &&
-                address(mortgageVault) != address(0) &&
-                address(denomination) != address(0) &&
-                address(shareToken) != address(0) &&
-                address(vault) != address(0),
-            "Uninitialized"
-        );
-    }
-
     modifier whenState(State expect) {
         if (state != expect) revert InvalidState(state);
         _;
@@ -107,6 +94,7 @@ abstract contract PoolState {
 
     function _setLevel(uint256 level_) internal {
         require(level == 0, "Level is set");
+        require(level_ > 0, "level should not be 0");
         level = level_;
     }
 
@@ -114,6 +102,10 @@ abstract contract PoolState {
         require(
             address(comptroller) == address(0),
             "Comptroller is initialized"
+        );
+        require(
+            address(comptroller_) != address(0),
+            "Comptroller should not be 0"
         );
         comptroller = comptroller_;
     }
@@ -123,16 +115,28 @@ abstract contract PoolState {
             comptroller.isValidDenomination(address(denomination_)),
             "Denomination is not valid"
         );
+        require(
+            address(denomination_) != address(0),
+            "Denomination should not be 0"
+        );
         denomination = denomination_;
     }
 
-    function _setShare(IShareToken shareToken_) internal {
-        require(address(shareToken) == address(0), "Share is initialized");
+    function _setShareToken(IShareToken shareToken_) internal {
+        require(
+            address(shareToken) == address(0),
+            "Share token is initialized"
+        );
+        require(
+            address(shareToken_) != address(0),
+            "Share token should not be 0"
+        );
         shareToken = shareToken_;
     }
 
     function _setDSProxy(IDSProxy dsProxy) internal {
         require(address(vault) == address(0), "Vault is initialized");
+        require(address(dsProxy) != address(0), "Vault should not be 0");
         vault = dsProxy;
     }
 
@@ -149,6 +153,8 @@ abstract contract PoolState {
     }
 
     function _setReserveExecution(uint256 reserveExecution_) internal {
+        //TODO: the reserveExecution_ value here should reference percentage MR
+        require(reserveExecution_ <= 100, "Reserve out of max limit");
         reserveExecution = reserveExecution_;
     }
 }

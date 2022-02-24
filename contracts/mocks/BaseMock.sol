@@ -34,7 +34,7 @@ contract BaseMock is PoolState {
 
     function setShare() external returns (address) {
         ShareToken token = new ShareToken("TST", "Test share");
-        _setShare(IShareToken(address(token)));
+        _setShareToken(IShareToken(address(token)));
         return address(token);
     }
 
