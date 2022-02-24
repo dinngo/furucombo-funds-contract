@@ -290,6 +290,29 @@ describe('Share module', function () {
         .withArgs(shareModule.address, user1.address, actualAsset);
     });
 
+    it('should claim nothing when claim twice', async function () {
+      const redeemShare = pendingShare;
+      const actualShare = redeemShare
+        .mul(penaltyBase - penalty)
+        .div(penaltyBase);
+      const actualAsset = actualShare;
+      await shareModule.redeem(totalShare);
+      await shareModule.setReserve(0);
+      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setReserve(pendingAsset);
+      await shareModule.settlePendingRedemption();
+      await expect(shareModule.claimPendingRedemption())
+        .to.emit(shareModule, 'RedemptionClaimed')
+        .withArgs(actualAsset)
+        .to.emit(tokenD, 'Transfer')
+        .withArgs(shareModule.address, user1.address, actualAsset);
+      await expect(shareModule.claimPendingRedemption())
+        .to.emit(shareModule, 'RedemptionClaimed')
+        .withArgs(0)
+        .to.emit(tokenD, 'Transfer')
+        .withArgs(shareModule.address, user1.address, 0);
+    });
+
     it('should success when claiming with difference user', async function () {
       // Transfer part of the share to user 2
       const redeemShare = pendingShare.div(2);
