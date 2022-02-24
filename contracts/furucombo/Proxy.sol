@@ -257,9 +257,9 @@ contract FurucomboProxy is IProxy, Storage, Config {
         uint256 _counter
     ) internal returns (bytes memory result) {
         require(_isValidHandler(_to), "Invalid handler");
-        bool succeeded;
+        bool success;
         assembly {
-            succeeded := delegatecall(
+            success := delegatecall(
                 sub(gas(), 5000),
                 _to,
                 add(_data, 0x20),
@@ -278,7 +278,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
             returndatacopy(add(result, 0x20), 0, size)
         }
 
-        if (!succeeded) {
+        if (!success) {
             if (result.length < 68) revert("_exec");
             assembly {
                 result := add(result, 0x04)
