@@ -61,6 +61,7 @@ describe('Implementation', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
+      console.log('setupTest...');
       await deployments.fixture();
       [owner, user, liquidator] = await (ethers as any).getSigners();
 
@@ -498,6 +499,84 @@ describe('Implementation', function () {
 
     it('zero total value', async function () {
       expect(await implementation.getTotalAssetValue()).to.be.eq(0);
+    });
+  });
+
+  describe.only('Reserve', function () {
+    let totalAssetValue = constants.Zero;
+    let denominationReserve = constants.Zero;
+
+    async function transferAssetToVault() {
+      console.log('transferAssetToVault before...');
+      await implementation.finalize();
+
+      // Transfer asset to vault
+      // Get expected amount
+      console.log('tokenAAmount:' + tokenAAmount.toString());
+      console.log('tokenBAmount:' + tokenBAmount.toString());
+      const expectedA = await oracle.calcConversionAmount(
+        tokenA.address,
+        tokenAAmount,
+        denomination.address
+      );
+      console.log('expectedA:' + expectedA.toString());
+      const expectedB = await oracle.calcConversionAmount(
+        tokenB.address,
+        tokenBAmount,
+        denomination.address
+      );
+
+      console.log('expectedB:' + expectedB.toString());
+      // Permit asset
+      await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
+
+      // Transfer assets to vault
+      await tokenA
+        .connect(tokenAProvider)
+        .transfer(vault.address, tokenAAmount);
+      await tokenB
+        .connect(tokenBProvider)
+        .transfer(vault.address, tokenBAmount);
+
+      // Add assets to tracking list
+      await implementation.addAsset(tokenA.address);
+      await implementation.addAsset(tokenB.address);
+
+      const value = await implementation.getTotalAssetValue();
+      totalAssetValue = expectedA.add(expectedB);
+      console.log('totalAssetValue:' + totalAssetValue);
+      expect(value).to.be.eq(expectedA.add(expectedB));
+
+      // Transfer denomination to vault
+      denominationReserve = totalAssetValue.div(10); // Transfer 10% of total asset value
+      console.log('denominationReserve:' + denominationReserve);
+      await denomination
+        .connect(denominationProvider)
+        .transfer(vault.address, denominationReserve);
+    }
+
+    it('reserve is enough', async function () {
+      await implementation.setReserveExecution(100); // 1%
+      await transferAssetToVault();
+      expect(await implementation.isReserveEnough()).to.be.eq(true);
+    });
+
+    it('reserve is a little bit more than setting', async function () {
+      await implementation.setReserveExecution(995); // 9.95%
+      await transferAssetToVault();
+      expect(await implementation.isReserveEnough()).to.be.eq(true);
+    });
+
+    it('reserve is not enough', async function () {
+      await implementation.setReserveExecution(1500); // 15%
+      await transferAssetToVault();
+      expect(await implementation.isReserveEnough()).to.be.eq(false);
+    });
+
+    it('reserve is a little bit less than setting', async function () {
+      await implementation.setReserveExecution(1005); // 10.05%
+      await transferAssetToVault();
+      expect(await implementation.isReserveEnough()).to.be.eq(false);
     });
   });
 });

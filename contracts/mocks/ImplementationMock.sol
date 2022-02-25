@@ -47,6 +47,10 @@ contract ImplementationMock is Implementation {
 
         return vault.execute(address(action), data);
     }
+
+    function isReserveEnough() external view returns (bool) {
+        return _isReserveEnough();
+    }
 }
 
 contract CallActionMock {

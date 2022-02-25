@@ -23,6 +23,8 @@ contract Implementation is
     ExecutionModule,
     FeeModule
 {
+    uint256 private constant _BASIS_POINT = 1e4;
+
     IDSProxyRegistry public immutable dsProxyRegistry;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
@@ -250,7 +252,7 @@ contract Implementation is
         override
         returns (bool)
     {
-        require(__getReserve() >= reserveExecution, "Insufficient reserve");
+        require(_isReserveEnough(), "Insufficient reserve");
 
         // remove asset from assetList
         address[] memory assetList = getAssetList();
@@ -266,6 +268,14 @@ contract Implementation is
         }
 
         return super._afterExecute(response);
+    }
+
+    /// @notice Check funds reserve is enough or not.
+    /// @return The reserve is enough or not.
+    function _isReserveEnough() internal view returns (bool) {
+        uint256 reserveBp = (getReserve() * _BASIS_POINT) /
+            __getTotalAssetValue();
+        return reserveBp >= reserveExecution;
     }
 
     /////////////////////////////////////////////////////
