@@ -65,9 +65,7 @@ contract Implementation is
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
         _setReserveExecution(reserveExecution_);
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
-        _setDSProxyApproval(setupAction);
+        _setVault(dsProxyRegistry, setupAction);
         _transferOwnership(newOwner);
         mortgageVault = comptroller_.mortgageVault();
 

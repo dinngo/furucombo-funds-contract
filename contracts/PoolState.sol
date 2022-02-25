@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
-import {IDSProxy} from "./interfaces/IDSProxy.sol";
+import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
@@ -132,16 +132,17 @@ abstract contract PoolState {
         shareToken = shareToken_;
     }
 
-    function _setDSProxy(IDSProxy dsProxy) internal {
+    function _setVault(
+        IDSProxyRegistry dsProxyRegistry,
+        ISetupAction setupAction
+    ) internal {
         require(address(vault) == address(0), "Vault is initialized");
-        vault = dsProxy;
-    }
-
-    function _setDSProxyApproval(ISetupAction setupAction) internal {
-        require(address(vault) != address(0), "Vault not set");
-        require(address(comptroller) != address(0), "Comptroller not set");
         require(address(denomination) != address(0), "Denomination not set");
 
+        // deploy vault
+        vault = IDSProxy(dsProxyRegistry.build());
+
+        // set vault approval
         bytes memory data = abi.encodeWithSignature(
             "maxApprove(address)",
             denomination

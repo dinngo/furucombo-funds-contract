@@ -8,12 +8,15 @@ import {IShareToken} from "../interfaces/IShareToken.sol";
 import {PoolState} from "../PoolState.sol";
 import {ShareToken} from "../ShareToken.sol";
 import {SetupAction} from "../actions/SetupAction.sol";
+import {ISetupAction} from "../interfaces/ISetupAction.sol";
 
 contract BaseMock is PoolState {
     IDSProxyRegistry public immutable dsProxyRegistry;
+    ISetupAction public immutable setupAction;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
         dsProxyRegistry = dsProxyRegistry_;
+        setupAction = new SetupAction();
     }
 
     function setLevel(uint256 level_) external {
@@ -38,18 +41,8 @@ contract BaseMock is PoolState {
         return address(token);
     }
 
-    function setDSProxy() external {
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
-    }
-
-    function setDSProxyApproval(address token) external {
-        SetupAction action = new SetupAction();
-        bytes memory data = abi.encodeWithSignature(
-            "maxApprove(address)",
-            token
-        );
-        vault.execute(address(action), data);
+    function setVault() external {
+        _setVault(dsProxyRegistry, setupAction);
     }
 
     function setReserveExecution(uint256 reserve_) external {
