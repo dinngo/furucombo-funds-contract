@@ -160,6 +160,20 @@ describe('Implementation', function () {
     await setupTest();
   });
 
+  describe('Initialize', function () {
+    it('should set vault approval to initialize caller', async function () {
+      let allowance: BigNumber;
+      const uint256Max = BigNumber.from(
+        '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+      );
+      allowance = await denomination.allowance(
+        vault.address,
+        implementation.address
+      );
+      expect(allowance.eq(uint256Max)).to.be.true;
+    });
+  });
+
   describe('State changes', function () {
     it('should revert: twice initialization', async function () {
       await expect(
