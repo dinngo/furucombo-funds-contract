@@ -206,10 +206,18 @@ describe('Share module', function () {
     });
 
     it('should succeed when sufficient reserve', async function () {
+      let userAddress: string;
+
       await shareModule.setReserve(pendingShare);
+      userAddress = await shareModule.pendingAccountList(0);
+
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'Redeemed')
         .withArgs(actualAsset, actualShare);
+
+      // ensure pendingShares[user] = 0
+      let share = await shareModule.pendingShares(userAddress);
+      expect(share == BigNumber.from('0'));
     });
 
     it('should fail when insufficient reserve', async function () {
