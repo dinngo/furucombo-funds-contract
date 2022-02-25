@@ -207,6 +207,7 @@ describe('Share module', function () {
 
     it('should succeed when sufficient reserve', async function () {
       let userAddress: string;
+      let share;
 
       await shareModule.setReserve(pendingShare);
       userAddress = await shareModule.pendingAccountList(0);
@@ -215,9 +216,8 @@ describe('Share module', function () {
         .to.emit(shareModule, 'Redeemed')
         .withArgs(actualAsset, actualShare);
 
-      // ensure pendingShares[user] = 0
-      let share = await shareModule.pendingShares(userAddress);
-      expect(share == BigNumber.from('0'));
+      share = await shareModule.pendingShares(userAddress);
+      expect(share).to.eq(BigNumber.from('0'));
     });
 
     it('should fail when insufficient reserve', async function () {
@@ -281,24 +281,8 @@ describe('Share module', function () {
     });
 
     it('should success when claiming the redemption', async function () {
-      const redeemShare = pendingShare;
-      const actualShare = redeemShare
-        .mul(penaltyBase - penalty)
-        .div(penaltyBase);
-      const actualAsset = actualShare;
-      await shareModule.redeem(totalShare);
-      await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
-      await shareModule.setReserve(pendingAsset);
-      await shareModule.settlePendingRedemption();
-      await expect(shareModule.claimPendingRedemption())
-        .to.emit(shareModule, 'RedemptionClaimed')
-        .withArgs(actualAsset)
-        .to.emit(tokenD, 'Transfer')
-        .withArgs(shareModule.address, user1.address, actualAsset);
-    });
+      let balance;
 
-    it('should claim nothing when claim twice', async function () {
       const redeemShare = pendingShare;
       const actualShare = redeemShare
         .mul(penaltyBase - penalty)
@@ -309,16 +293,15 @@ describe('Share module', function () {
       await shareModule.setTotalAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingRedemption();
+
       await expect(shareModule.claimPendingRedemption())
         .to.emit(shareModule, 'RedemptionClaimed')
         .withArgs(actualAsset)
         .to.emit(tokenD, 'Transfer')
         .withArgs(shareModule.address, user1.address, actualAsset);
-      await expect(shareModule.claimPendingRedemption())
-        .to.emit(shareModule, 'RedemptionClaimed')
-        .withArgs(0)
-        .to.emit(tokenD, 'Transfer')
-        .withArgs(shareModule.address, user1.address, 0);
+
+      balance = await shareModule.pendingRedemptions(user1.address);
+      await expect(balance).to.eq(BigNumber.from('0'));
     });
 
     it('should success when claiming with difference user', async function () {
