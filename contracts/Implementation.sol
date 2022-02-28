@@ -311,6 +311,14 @@ contract Implementation is
         // TODO: replace err msg: Insufficient reserve
         require(_isReserveEnough(), "I");
 
+        // Check asset value
+        uint256 totalAssetValue = __getTotalAssetValue();
+        uint256 minTotalAssetValue = (lastTotalAssetValue *
+            comptroller.execAssetValueToleranceRate()) / RATE_BASE;
+        // TODO: replace err msg: Insufficient total value for execution
+        require(totalAssetValue >= minTotalAssetValue, "I");
+        lastTotalAssetValue = totalAssetValue;
+
         return super._afterExecute(response);
     }
 
