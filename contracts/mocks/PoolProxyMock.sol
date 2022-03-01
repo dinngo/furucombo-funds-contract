@@ -48,12 +48,12 @@ contract PoolProxyMock is Implementation {
         return vault.execute{value: msg.value}(_target, _data);
     }
 
-    function setLevel(uint256 level) external {
-        _setLevel(level);
+    function setLevel(uint256 level_) external {
+        _setLevel(level_);
     }
 
     function setVault() external {
-        _setVault(dsProxyRegistry, setupAction);
+        _setVault(dsProxyRegistry);
     }
 
     function setComptroller(IComptroller comptroller_) external {

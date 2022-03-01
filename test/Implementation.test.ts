@@ -161,18 +161,6 @@ describe('Implementation', function () {
   });
 
   describe('State changes', function () {
-    it('should set vault approval to initialize caller', async function () {
-      let allowance: BigNumber;
-      const uint256Max = BigNumber.from(
-        '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-      );
-      allowance = await denomination.allowance(
-        vault.address,
-        implementation.address
-      );
-      expect(allowance.eq(uint256Max)).to.be.true;
-    });
-
     it('should revert: twice initialization', async function () {
       await expect(
         implementation
@@ -192,10 +180,19 @@ describe('Implementation', function () {
     });
 
     it('finalize', async function () {
+      let allowance;
+
       await implementation.finalize();
       expect(await implementation.getAssetList()).to.be.deep.eq([
         denomination.address,
       ]);
+
+      // check vault approval
+      allowance = await denomination.allowance(
+        vault.address,
+        implementation.address
+      );
+      expect(allowance).to.be.eq(constants.MaxUint256);
     });
 
     it('should revert: finalize by non-owner', async function () {

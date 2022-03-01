@@ -42,7 +42,11 @@ contract BaseMock is PoolState {
     }
 
     function setVault() external {
-        _setVault(dsProxyRegistry, setupAction);
+        _setVault(dsProxyRegistry);
+    }
+
+    function setVaultApproval() external {
+        _setVaultApproval(setupAction);
     }
 
     function setReserveExecution(uint256 reserve_) external {

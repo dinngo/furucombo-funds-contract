@@ -65,7 +65,7 @@ contract Implementation is
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
         _setReserveExecution(reserveExecution_);
-        _setVault(dsProxyRegistry, setupAction);
+        _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
         mortgageVault = comptroller_.mortgageVault();
 
@@ -79,6 +79,9 @@ contract Implementation is
         // Add denomination to list and never remove
         require(getAssetList().length == 0, "assetList is not empty");
         addAsset(address(denomination));
+
+        // Set approval for investor to redeem
+        _setVaultApproval(setupAction);
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.

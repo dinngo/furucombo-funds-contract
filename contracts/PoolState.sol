@@ -132,15 +132,25 @@ abstract contract PoolState {
         shareToken = shareToken_;
     }
 
-    function _setVault(
-        IDSProxyRegistry dsProxyRegistry,
-        ISetupAction setupAction
-    ) internal {
+    function _setVault(IDSProxyRegistry dsProxyRegistry) internal {
         require(address(vault) == address(0), "Vault is initialized");
-        require(address(denomination) != address(0), "Denomination not set");
+        require(
+            address(dsProxyRegistry) != address(0),
+            "Registry should not be 0"
+        );
 
         // deploy vault
         vault = IDSProxy(dsProxyRegistry.build());
+        require(address(vault) != address(0), "Vault is not initialized");
+    }
+
+    function _setVaultApproval(ISetupAction setupAction) internal {
+        require(address(vault) != address(0), "Vault should not be 0");
+        require(address(setupAction) != address(0), "Setup should not be 0");
+        require(
+            address(denomination) != address(0),
+            "Denomination should not be 0"
+        );
 
         // set vault approval
         bytes memory data = abi.encodeWithSignature(
