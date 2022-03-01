@@ -180,10 +180,19 @@ describe('Implementation', function () {
     });
 
     it('finalize', async function () {
+      let allowance;
+
       await implementation.finalize();
       expect(await implementation.getAssetList()).to.be.deep.eq([
         denomination.address,
       ]);
+
+      // check vault approval
+      allowance = await denomination.allowance(
+        vault.address,
+        implementation.address
+      );
+      expect(allowance).to.be.eq(constants.MaxUint256);
     });
 
     it('should revert: finalize by non-owner', async function () {
@@ -290,6 +299,12 @@ describe('Implementation', function () {
         );
       });
 
+      it('should revert: add by non-owner', async function () {
+        await expect(
+          implementation.connect(user).addAsset(tokenA.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
       it('should revert: asset is not permitted', async function () {
         await expect(
           implementation.addAsset(tokenA.address)
@@ -381,6 +396,12 @@ describe('Implementation', function () {
         expect(await implementation.getAssetList()).to.not.include(
           tokenA.address
         );
+      });
+
+      it('should revert: remove by non-owner', async function () {
+        await expect(
+          implementation.connect(user).removeAsset(tokenA.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('can not be removed: balance of asset > dust ', async function () {

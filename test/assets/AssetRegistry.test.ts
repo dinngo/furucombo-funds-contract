@@ -223,7 +223,7 @@ describe('AssetRegistry', function () {
       ).to.be.revertedWith('AssetRegistry: resolver is banned');
 
       await expect(registry.connect(owner).unbanResolver(resolver.address))
-        .to.emit(registry, 'unbannedResolver')
+        .to.emit(registry, 'UnbannedResolver')
         .withArgs(resolver.address);
 
       expect(await registry.bannedResolvers(resolver.address)).to.be.eq(false);

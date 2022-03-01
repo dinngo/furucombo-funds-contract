@@ -12,6 +12,8 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {ISetupAction} from "./interfaces/ISetupAction.sol";
+import {SetupAction} from "./actions/SetupAction.sol";
 
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
@@ -24,9 +26,11 @@ contract Implementation is
     FeeModule
 {
     IDSProxyRegistry public immutable dsProxyRegistry;
+    ISetupAction public immutable setupAction;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
         dsProxyRegistry = dsProxyRegistry_;
+        setupAction = new SetupAction();
     }
 
     /////////////////////////////////////////////////////
@@ -61,8 +65,7 @@ contract Implementation is
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
         _setReserveExecution(reserveExecution_);
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
+        _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
         mortgageVault = comptroller_.mortgageVault();
 
@@ -76,6 +79,9 @@ contract Implementation is
         // Add denomination to list and never remove
         require(getAssetList().length == 0, "assetList is not empty");
         addAsset(address(denomination));
+
+        // Set approval for investor to redeem
+        _setVaultApproval(setupAction);
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
@@ -171,15 +177,21 @@ contract Implementation is
     /////////////////////////////////////////////////////
     // Asset Module
     /////////////////////////////////////////////////////
+    /// @notice Add the asset to the tracking list by owner.
+    /// @param asset The asset to be added.
+    function addAsset(address asset) public onlyOwner {
+        _addAsset(asset);
+    }
+
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
-    function addAsset(address asset) public override {
+    function _addAsset(address asset) internal override {
         require(
             comptroller.validateDealingAsset(level, asset),
             "Invalid asset"
         );
         if (asset == address(denomination)) {
-            super.addAsset(asset);
+            super._addAsset(asset);
         } else {
             int256 value = getAssetValue(asset);
             int256 dust = int256(
@@ -187,14 +199,20 @@ contract Implementation is
             );
 
             if (value > dust || value < 0) {
-                super.addAsset(asset);
+                super._addAsset(asset);
             }
         }
     }
 
+    /// @notice Remove the asset from the tracking list by owner.
+    /// @param asset The asset to be removed.
+    function removeAsset(address asset) public onlyOwner {
+        _removeAsset(asset);
+    }
+
     /// @notice Remove the asset from the tracking list.
     /// @param asset The asset to be removed.
-    function removeAsset(address asset) public override {
+    function _removeAsset(address asset) internal override {
         // Do not allow to remove denomination from list
         address _denomination = address(denomination);
         if (asset != _denomination) {
@@ -204,7 +222,7 @@ contract Implementation is
             );
 
             if (value < dust && value >= 0) {
-                super.removeAsset(asset);
+                super._removeAsset(asset);
             }
         }
     }

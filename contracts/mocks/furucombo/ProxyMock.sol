@@ -18,7 +18,7 @@ contract FurucomboProxyMock is FurucomboProxy, GasProfiler {
     {
         _preProcess();
         _setBase();
-        result = _exec(to, data);
+        result = _exec(to, data, 0);
         _setPostProcess(to);
         _deltaGas("Gas");
         _postProcess();

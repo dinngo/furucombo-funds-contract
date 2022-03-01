@@ -17,8 +17,8 @@ abstract contract AssetModule is PoolState {
 
     /// @notice Add asset to the asset tracking list.
     /// @param asset The asset to be tracked.
-    function addAsset(address asset)
-        public
+    function _addAsset(address asset)
+        internal
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Liquidating)
     {
@@ -28,8 +28,8 @@ abstract contract AssetModule is PoolState {
     }
 
     /// @notice Remove the asset from the asset tracking list.
-    function removeAsset(address asset)
-        public
+    function _removeAsset(address asset)
+        internal
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Liquidating)
     {
