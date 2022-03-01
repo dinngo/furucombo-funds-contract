@@ -26,6 +26,7 @@ abstract contract PerformanceFee {
     uint256 private _lastCrystallization;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
     address private constant _FINALIZED_ACCOUNT = address(2);
+    uint256 public constant CRYSTALLIZATION_PERIOD_MIN = 1 days;
 
     function initializePerformanceFee() public virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
@@ -58,7 +59,10 @@ abstract contract PerformanceFee {
     /// @notice Set the crystallization period.
     /// @param period The crystallization period to be set in second.
     function _setCrystallizationPeriod(uint256 period) internal virtual {
-        require(period > 0, "Crystallization period should not be 0");
+        require(
+            period >= CRYSTALLIZATION_PERIOD_MIN,
+            "Crystallization period too short"
+        );
         _crystallizationPeriod = period;
     }
 
