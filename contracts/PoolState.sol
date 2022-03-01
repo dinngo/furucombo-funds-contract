@@ -153,8 +153,6 @@ abstract contract PoolState {
     }
 
     function _setReserveExecution(uint256 reserveExecution_) internal {
-        //TODO: the reserveExecution_ value here should reference percentage MR
-        require(reserveExecution_ <= 100, "Reserve out of max limit");
         reserveExecution = reserveExecution_;
     }
 }
