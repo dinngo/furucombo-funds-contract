@@ -58,14 +58,30 @@ contract Comptroller is UpgradeableBeacon {
     event SetExecAction(address indexed action);
     event PermitManager(address indexed to);
     event ForbidManager(address indexed to);
-    event PermitAsset(uint256 indexed level, address assets);
-    event ForbidAsset(uint256 indexed level, address assets);
-    event PermitDelegateCall(uint256 indexed level, address to, bytes4 sig);
-    event ForbidDelegateCall(uint256 indexed level, address to, bytes4 sig);
-    event PermitContractCall(uint256 indexed level, address to, bytes4 sig);
-    event ForbidContractCall(uint256 indexed level, address to, bytes4 sig);
-    event PermitHandler(uint256 indexed level, address to, bytes4 sig);
-    event ForbidHandler(uint256 indexed level, address to, bytes4 sig);
+    event PermitAsset(uint256 indexed level, address indexed asset);
+    event ForbidAsset(uint256 indexed level, address indexed asset);
+    event PermitDelegateCall(
+        uint256 indexed level,
+        address indexed to,
+        bytes4 sig
+    );
+    event ForbidDelegateCall(
+        uint256 indexed level,
+        address indexed to,
+        bytes4 sig
+    );
+    event PermitContractCall(
+        uint256 indexed level,
+        address indexed to,
+        bytes4 sig
+    );
+    event ForbidContractCall(
+        uint256 indexed level,
+        address indexed to,
+        bytes4 sig
+    );
+    event PermitHandler(uint256 indexed level, address indexed to, bytes4 sig);
+    event ForbidHandler(uint256 indexed level, address indexed to, bytes4 sig);
 
     // Modifier
     modifier onlyUnHalted() {

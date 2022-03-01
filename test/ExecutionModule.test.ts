@@ -2,7 +2,7 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
-  ComptrollerMock,
+  Comptroller,
   ExecutionModuleMock,
   SimpleAction,
   SimpleToken,
@@ -11,12 +11,11 @@ import { DS_PROXY_REGISTRY } from './utils/constants';
 
 describe('Execution module', function () {
   let executionModule: ExecutionModuleMock;
-  let comptroller: ComptrollerMock;
+  let comptroller: Comptroller;
   let action: SimpleAction;
   let user: Wallet;
-  let token: SimpleToken;
+  let tokenD: SimpleToken;
   let vault: any;
-  const purchaseAmount = ethers.utils.parseEther('100');
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -28,17 +27,32 @@ describe('Execution module', function () {
         .connect(user)
         .deploy(DS_PROXY_REGISTRY);
       await executionModule.deployed();
+
       comptroller = await (
-        await ethers.getContractFactory('ComptrollerMock')
-      ).deploy();
+        await ethers.getContractFactory('Comptroller')
+      ).deploy(
+        executionModule.address,
+        constants.AddressZero,
+        constants.AddressZero,
+        constants.Zero,
+        constants.AddressZero,
+        constants.Zero,
+        constants.AddressZero
+      );
       await comptroller.deployed();
+      tokenD = await (await ethers.getContractFactory('SimpleToken'))
+        .connect(user)
+        .deploy();
+      await tokenD.deployed();
       action = await (await ethers.getContractFactory('SimpleAction')).deploy();
       await action.deployed();
       // initialize
-      await comptroller.setAction(action.address);
-      await executionModule.setDSProxy();
-      vault = await executionModule.callStatic.vault();
+      await comptroller.setExecAction(action.address);
+      await comptroller.permitDenominations([tokenD.address], [0]);
       await executionModule.setComptroller(comptroller.address);
+      await executionModule.setDenomination(tokenD.address);
+      await executionModule.setVault();
+      vault = await executionModule.callStatic.vault();
     }
   );
 

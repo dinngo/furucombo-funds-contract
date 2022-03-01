@@ -180,10 +180,19 @@ describe('Implementation', function () {
     });
 
     it('finalize', async function () {
+      let allowance;
+
       await implementation.finalize();
       expect(await implementation.getAssetList()).to.be.deep.eq([
         denomination.address,
       ]);
+
+      // check vault approval
+      allowance = await denomination.allowance(
+        vault.address,
+        implementation.address
+      );
+      expect(allowance).to.be.eq(constants.MaxUint256);
     });
 
     it('should revert: finalize by non-owner', async function () {

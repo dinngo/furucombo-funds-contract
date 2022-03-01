@@ -5,6 +5,9 @@ coverage.json
 typechain
 deployments
 
-#Hardhat files
+# Hardhat files
 cache
 artifacts
+
+# vscode settings
+.vscode
