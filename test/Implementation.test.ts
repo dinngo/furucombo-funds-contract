@@ -19,6 +19,7 @@ import {
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
+  BASIS_POINT,
 } from './utils/constants';
 
 import { simpleEncode, tokenProviderQuick } from './utils/utils';
@@ -502,31 +503,26 @@ describe('Implementation', function () {
     });
   });
 
-  describe.only('Reserve', function () {
+  describe('Reserve', function () {
     let totalAssetValue = constants.Zero;
     let denominationReserve = constants.Zero;
+    let currentReserve = constants.Zero; // The numerator of reserve percentage. Denominator is 1e4
 
     async function transferAssetToVault() {
-      console.log('transferAssetToVault before...');
       await implementation.finalize();
 
       // Transfer asset to vault
-      // Get expected amount
-      console.log('tokenAAmount:' + tokenAAmount.toString());
-      console.log('tokenBAmount:' + tokenBAmount.toString());
       const expectedA = await oracle.calcConversionAmount(
         tokenA.address,
         tokenAAmount,
         denomination.address
       );
-      console.log('expectedA:' + expectedA.toString());
       const expectedB = await oracle.calcConversionAmount(
         tokenB.address,
         tokenBAmount,
         denomination.address
       );
 
-      console.log('expectedB:' + expectedB.toString());
       // Permit asset
       await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
 
@@ -543,38 +539,40 @@ describe('Implementation', function () {
       await implementation.addAsset(tokenB.address);
 
       const value = await implementation.getTotalAssetValue();
-      totalAssetValue = expectedA.add(expectedB);
-      console.log('totalAssetValue:' + totalAssetValue);
       expect(value).to.be.eq(expectedA.add(expectedB));
 
-      // Transfer denomination to vault
-      denominationReserve = totalAssetValue.div(10); // Transfer 10% of total asset value
-      console.log('denominationReserve:' + denominationReserve);
+      // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
+      denominationReserve = value.div(10);
       await denomination
         .connect(denominationProvider)
         .transfer(vault.address, denominationReserve);
+
+      totalAssetValue = await implementation.getTotalAssetValue();
+      currentReserve = denominationReserve
+        .mul(BASIS_POINT)
+        .div(totalAssetValue);
     }
 
-    it('reserve is enough', async function () {
+    it('reserve is totally enough', async function () {
       await implementation.setReserveExecution(100); // 1%
       await transferAssetToVault();
       expect(await implementation.isReserveEnough()).to.be.eq(true);
     });
 
     it('reserve is a little bit more than setting', async function () {
-      await implementation.setReserveExecution(995); // 9.95%
+      await implementation.setReserveExecution(currentReserve.sub(5)); // reserveExecution is 0.05% below currentReserve
       await transferAssetToVault();
       expect(await implementation.isReserveEnough()).to.be.eq(true);
     });
 
-    it('reserve is not enough', async function () {
+    it('reserve is totally not enough', async function () {
       await implementation.setReserveExecution(1500); // 15%
       await transferAssetToVault();
       expect(await implementation.isReserveEnough()).to.be.eq(false);
     });
 
     it('reserve is a little bit less than setting', async function () {
-      await implementation.setReserveExecution(1005); // 10.05%
+      await implementation.setReserveExecution(currentReserve.add(5)); // reserveExecution is 0.05% above currentReserve
       await transferAssetToVault();
       expect(await implementation.isReserveEnough()).to.be.eq(false);
     });
