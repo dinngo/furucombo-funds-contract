@@ -62,7 +62,6 @@ describe('Implementation', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      console.log('setupTest...');
       await deployments.fixture();
       [owner, user, liquidator] = await (ethers as any).getSigners();
 
