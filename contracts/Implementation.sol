@@ -12,6 +12,8 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {ISetupAction} from "./interfaces/ISetupAction.sol";
+import {SetupAction} from "./actions/SetupAction.sol";
 
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
@@ -24,9 +26,11 @@ contract Implementation is
     FeeModule
 {
     IDSProxyRegistry public immutable dsProxyRegistry;
+    ISetupAction public immutable setupAction;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
         dsProxyRegistry = dsProxyRegistry_;
+        setupAction = new SetupAction();
     }
 
     /////////////////////////////////////////////////////
@@ -61,8 +65,7 @@ contract Implementation is
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
         _setReserveExecution(reserveExecution_);
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
+        _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
         mortgageVault = comptroller_.mortgageVault();
 
@@ -76,6 +79,9 @@ contract Implementation is
         // Add denomination to list and never remove
         require(getAssetList().length == 0, "assetList is not empty");
         addAsset(address(denomination));
+
+        // Set approval for investor to redeem
+        _setVaultApproval(setupAction);
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.

@@ -3,9 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
-import {IDSProxy} from "./interfaces/IDSProxy.sol";
+import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {ISetupAction} from "./interfaces/ISetupAction.sol";
 
 abstract contract PoolState {
     enum State {
@@ -131,21 +132,38 @@ abstract contract PoolState {
         shareToken = shareToken_;
     }
 
-    function _setDSProxy(IDSProxy dsProxy) internal {
+    function _setVault(IDSProxyRegistry dsProxyRegistry) internal {
         require(address(vault) == address(0), "Vault is initialized");
-        vault = dsProxy;
+        require(
+            address(dsProxyRegistry) != address(0),
+            "Registry should not be 0"
+        );
+
+        // deploy vault
+        vault = IDSProxy(dsProxyRegistry.build());
+        require(address(vault) != address(0), "Vault is not initialized");
     }
 
-    function _setApproval() internal {
-        require(address(vault) != address(0), "Vault not set");
-        require(address(comptroller) != address(0), "Comptroller not set");
-        require(address(denomination) != address(0), "Denomination not set");
-        address action = comptroller.execAction();
+    function _setVaultApproval(ISetupAction setupAction) internal {
+        require(address(vault) != address(0), "Vault should not be 0");
+        require(address(setupAction) != address(0), "Setup should not be 0");
+        require(
+            address(denomination) != address(0),
+            "Denomination should not be 0"
+        );
+
+        // set vault approval
         bytes memory data = abi.encodeWithSignature(
             "maxApprove(address)",
             denomination
         );
-        vault.execute(action, data);
+        vault.execute(address(setupAction), data);
+
+        require(
+            denomination.allowance(address(vault), address(this)) ==
+                type(uint256).max,
+            "wrong allowance"
+        );
     }
 
     function _setReserveExecution(uint256 reserveExecution_) internal {
