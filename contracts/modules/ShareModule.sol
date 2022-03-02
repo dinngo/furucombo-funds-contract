@@ -85,21 +85,38 @@ abstract contract ShareModule is PoolState {
         balance = (share * assetValue) / shareAmount;
     }
 
+    function isPendingResolvable(bool applyPenalty) public view returns (bool) {
+        uint256 redeemShares = _getResolvePendingShares(applyPenalty);
+        uint256 redeemSharesBalance = calculateBalance(redeemShares);
+        uint256 reserve = __getReserve();
+        if (reserve < redeemSharesBalance) return false;
+
+        return true;
+    }
+
+    function _getResolvePendingShares(bool applyPenalty)
+        internal
+        view
+        returns (uint256)
+    {
+        if (applyPenalty) {
+            return totalPendingShare;
+        } else {
+            return totalPendingShare + totalPendingBonus;
+        }
+    }
+
     function _settlePendingRedemption(bool applyPenalty)
         internal
         returns (bool)
     {
-        if (totalPendingShare == 0) return false;
-
         // Might lead to gas insufficient if pending list too long
-        uint256 redeemAmount;
-        if (applyPenalty) {
-            redeemAmount = totalPendingShare;
-        } else {
-            redeemAmount = totalPendingShare + totalPendingBonus;
+        uint256 redeemShares = _getResolvePendingShares(applyPenalty);
+        if (!applyPenalty) {
             totalPendingBonus = 0;
         }
-        uint256 totalRedemption = _redeem(address(this), redeemAmount);
+
+        uint256 totalRedemption = _redeem(address(this), redeemShares);
         while (pendingAccountList.length > 0) {
             address user = pendingAccountList[pendingAccountList.length - 1];
             uint256 share = pendingShares[user];
