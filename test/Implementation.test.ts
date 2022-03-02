@@ -9,6 +9,7 @@ import {
   ERC20,
   AssetRouter,
   MortgageVault,
+  SimpleToken,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -35,8 +36,13 @@ describe('Implementation', function () {
   const tokenAAmount = ethers.utils.parseEther('1');
   const tokenBAmount = ethers.utils.parseUnits('1', 8);
   const execFeePercentage = 200; // 20%
+  const managementFeeRate = 0; // 0%
+  const performanceFeeRate = 1000; // 10%
   const pendingExpiration = 86400; // 1 day
+  const CRYSTALLIZATION_PERIOD_MIN = 86400; // 1 day
+  const crystallizationPeriod = CRYSTALLIZATION_PERIOD_MIN;
   const level = 1;
+  const reserveExecution = 0;
 
   let comptroller: Comptroller;
   let implementation: ImplementationMock;
@@ -55,6 +61,7 @@ describe('Implementation', function () {
   let tokenBProvider: Signer;
   let tokenC: ERC20;
   let tokenCProvider: Signer;
+  let shareToken: SimpleToken;
 
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
@@ -130,7 +137,7 @@ describe('Implementation', function () {
       );
       await comptroller.permitAssets(level, [denomination.address]);
 
-      const shareToken = await (await ethers.getContractFactory('SimpleToken'))
+      shareToken = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
         .deploy();
       await shareToken.deployed();
@@ -142,10 +149,10 @@ describe('Implementation', function () {
           comptroller.address,
           denomination.address,
           shareToken.address,
-          200,
-          200,
-          10,
-          0,
+          managementFeeRate,
+          performanceFeeRate,
+          crystallizationPeriod,
+          reserveExecution,
           owner.address
         );
 
@@ -161,6 +168,61 @@ describe('Implementation', function () {
   });
 
   describe('State changes', function () {
+    describe('Initialize', function () {
+      it('should set level', async function () {
+        const _level = await implementation.level();
+        expect(_level).to.be.gt(0);
+        expect(_level).to.be.eq(level);
+      });
+
+      it('should set comptroller', async function () {
+        const comptrollerAddr = await implementation.comptroller();
+        expect(comptrollerAddr).to.be.not.eq(constants.AddressZero);
+        expect(comptrollerAddr).to.be.eq(comptroller.address);
+      });
+
+      it('should set denomination', async function () {
+        const denominationAddr = await implementation.denomination();
+        expect(denominationAddr).to.be.not.eq(constants.AddressZero);
+        expect(denominationAddr).to.be.eq(denomination.address);
+      });
+
+      it('should set share token', async function () {
+        const shareTokenAddr = await implementation.shareToken();
+        expect(shareTokenAddr).to.be.not.eq(constants.AddressZero);
+        expect(shareTokenAddr).to.be.eq(shareToken.address);
+      });
+
+      it('should set management fee rate', async function () {
+        const feeRate = await implementation.getManagementFeeRate();
+        expect(feeRate).to.be.eq(BigNumber.from('18446744073709551616'));
+      });
+
+      it('should set performance fee rate', async function () {
+        const feeRate = await implementation.getFeeRate();
+        expect(feeRate).to.be.eq(BigNumber.from('1844674407370955161'));
+      });
+
+      it('should set crystallization period', async function () {
+        const _crystallizationPeriod =
+          await implementation.getCrystallizationPeriod();
+        expect(_crystallizationPeriod).to.be.gte(CRYSTALLIZATION_PERIOD_MIN);
+        expect(_crystallizationPeriod).to.be.eq(crystallizationPeriod);
+      });
+
+      it('should set vault', async function () {
+        expect(await implementation.vault()).to.be.not.eq(
+          constants.AddressZero
+        );
+      });
+
+      it('should set owner', async function () {
+        const _owner = await implementation.owner();
+        expect(_owner).to.be.not.eq(constants.AddressZero);
+        expect(_owner).to.be.eq(owner.address);
+      });
+    });
+
     it('should revert: twice initialization', async function () {
       await expect(
         implementation
@@ -428,43 +490,148 @@ describe('Implementation', function () {
   });
 
   describe('Setters', function () {
-    it('set denomination', async function () {
-      await comptroller.permitDenominations([tokenA.address], [tokenAAmount]);
-      await implementation.setDenomination(tokenA.address);
-      expect(await implementation.denomination()).to.be.eq(tokenA.address);
+    describe('Denomination', function () {
+      it('set denomination', async function () {
+        await comptroller.permitDenominations([tokenA.address], [tokenAAmount]);
+        await implementation.setDenomination(tokenA.address);
+        expect(await implementation.denomination()).to.be.eq(tokenA.address);
+      });
+
+      it('should revert: set denomination at wrong stage', async function () {
+        await implementation.finalize();
+        await expect(
+          implementation.setDenomination(tokenA.address)
+        ).to.be.revertedWith('InvalidState(2)');
+      });
+
+      it('should revert: set by non-owner', async function () {
+        await expect(
+          implementation.connect(user).setDenomination(tokenA.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: set by zero address', async function () {
+        await comptroller.permitDenominations(
+          [constants.AddressZero],
+          [denominationDust]
+        );
+        await expect(
+          implementation.setDenomination(constants.AddressZero)
+        ).to.be.revertedWith('Denomination should not be 0');
+      });
     });
 
-    it('should revert: set denomination at wrong stage', async function () {
-      await implementation.finalize();
-      await expect(
-        implementation.setDenomination(tokenA.address)
-      ).to.be.revertedWith('InvalidState(2)');
+    describe('Management Fee Rate', function () {
+      const feeRate = BigNumber.from('1000');
+
+      it('set management fee rate', async function () {
+        await implementation.setManagementFeeRate(feeRate);
+        expect(await implementation.getManagementFeeRate()).to.be.eq(
+          BigNumber.from('18446744135297203117')
+        );
+      });
+
+      it('should revert: set management fee rate at wrong stage', async function () {
+        await implementation.finalize();
+        await expect(
+          implementation.setManagementFeeRate(feeRate)
+        ).to.be.revertedWith('InvalidState(2)');
+      });
+
+      it('should revert: set by non-owner', async function () {
+        await expect(
+          implementation.connect(user).setManagementFeeRate(feeRate)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: set by max value', async function () {
+        const maxRate = 1e4;
+        await expect(
+          implementation.setManagementFeeRate(maxRate)
+        ).to.be.revertedWith('fee should be less than 100%');
+      });
     });
 
-    it('should revert: set by non-owner', async function () {
-      await expect(
-        implementation.connect(user).setDenomination(tokenA.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+    describe('Performance Fee Rate', function () {
+      const feeRate = BigNumber.from('0');
+
+      it('set performance fee rate', async function () {
+        await implementation.setPerformanceFeeRate(feeRate);
+        expect(await implementation.getFeeRate()).to.be.eq(BigNumber.from('0'));
+      });
+
+      it('should revert: set performance fee rate at wrong stage', async function () {
+        await implementation.finalize();
+        await expect(
+          implementation.setPerformanceFeeRate(feeRate)
+        ).to.be.revertedWith('InvalidState(2)');
+      });
+
+      it('should revert: set by non-owner', async function () {
+        await expect(
+          implementation.connect(user).setPerformanceFeeRate(feeRate)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: set by max value', async function () {
+        const maxRate = 1e4;
+        await expect(
+          implementation.setPerformanceFeeRate(maxRate)
+        ).to.be.revertedWith('fee should be less than 100%');
+      });
     });
 
-    it('set reserve execution', async function () {
-      await implementation.setReserveExecution(denominationDust);
-      expect(await implementation.reserveExecution()).to.be.eq(
-        denominationDust
-      );
+    describe('Crystallization Period', function () {
+      const period = CRYSTALLIZATION_PERIOD_MIN + 1000;
+
+      it('set crystallization period', async function () {
+        await implementation.setCrystallizationPeriod(period);
+        expect(await implementation.getCrystallizationPeriod()).to.be.eq(
+          period
+        );
+      });
+
+      it('should revert: set crystallization period at wrong stage', async function () {
+        await implementation.finalize();
+        await expect(
+          implementation.setCrystallizationPeriod(period)
+        ).to.be.revertedWith('InvalidState(2)');
+      });
+
+      it('should revert: set by non-owner', async function () {
+        await expect(
+          implementation.connect(user).setCrystallizationPeriod(period)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: set by too short period', async function () {
+        const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
+        await expect(
+          implementation.setCrystallizationPeriod(shortPeriod)
+        ).to.be.revertedWith('Crystallization period too short');
+      });
     });
 
-    it('should revert: set reserve execution at wrong stage', async function () {
-      await implementation.finalize();
-      await expect(
-        implementation.setReserveExecution(denominationDust)
-      ).to.be.revertedWith('InvalidState(2)');
-    });
+    describe('Reserve Execution', function () {
+      it('set reserve execution', async function () {
+        await implementation.setReserveExecution(denominationDust);
+        expect(await implementation.reserveExecution()).to.be.eq(
+          denominationDust
+        );
+      });
 
-    it('should revert: set by non-owner', async function () {
-      await expect(
-        implementation.connect(user).setReserveExecution(denominationDust)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      it('should revert: set reserve execution at wrong stage', async function () {
+        await implementation.finalize();
+        await expect(
+          implementation.setReserveExecution(denominationDust)
+        ).to.be.revertedWith('InvalidState(2)');
+      });
+
+      it('should revert: set by non-owner', async function () {
+        await expect(
+          implementation.connect(user).setReserveExecution(denominationDust)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
     });
   });
 
