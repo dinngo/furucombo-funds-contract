@@ -40,6 +40,7 @@ import {
   BAT_PROVIDER,
   WETH_PROVIDER,
   USDC_PROVIDER,
+  BASIS_POINT,
 } from '../utils/constants';
 
 import {
@@ -304,10 +305,9 @@ describe('PoolExecuteStrategy', function () {
     it('quickswap', async function () {
       // Prepare action data
       const amountIn = szabo('1000');
-      const base = await taskExecutor.FEE_BASE();
       const actionAmountIn = amountIn
-        .mul(base.sub(execFeePercentage))
-        .div(base);
+        .mul(BigNumber.from(BASIS_POINT).sub(execFeePercentage))
+        .div(BASIS_POINT);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -388,10 +388,9 @@ describe('PoolExecuteStrategy', function () {
     it('sushiswap', async function () {
       // Prepare action data
       const amountIn = szabo('1000');
-      const base = await taskExecutor.FEE_BASE();
       const actionAmountIn = amountIn
-        .mul(base.sub(execFeePercentage))
-        .div(base);
+        .mul(BigNumber.from(BASIS_POINT).sub(execFeePercentage))
+        .div(BASIS_POINT);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
