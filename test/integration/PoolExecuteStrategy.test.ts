@@ -370,7 +370,7 @@ describe('PoolExecuteStrategy', function () {
         (await denomination.balanceOf(collector.address)).sub(
           denominationCollectorBalance
         )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(base));
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(BASIS_POINT));
 
       // TODO: check it after refine quickswap handler
       // check asset list will be updated
@@ -453,7 +453,7 @@ describe('PoolExecuteStrategy', function () {
         (await denomination.balanceOf(collector.address)).sub(
           denominationCollectorBalance
         )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(base));
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(BASIS_POINT));
 
       // TODO: check it after refine sushiswap handler
       // check asset list will be updated

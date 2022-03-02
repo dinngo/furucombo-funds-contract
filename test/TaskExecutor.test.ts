@@ -23,6 +23,7 @@ import {
   WETH_PROVIDER,
   WL_ANY_SIG,
   NATIVE_TOKEN,
+  BASIS_POINT,
 } from './utils/constants';
 import {
   getCallData,
@@ -963,8 +964,7 @@ describe('Task Executor', function () {
       await comptroller.setInitialAssetCheck(false);
       const collector = await comptroller.execFeeCollector();
       const feePercentage = await comptroller.execFeePercentage();
-      const feeBase = await taskExecutor.FEE_BASE();
-      const expectExecutionFee = quota.mul(feePercentage).div(feeBase);
+      const expectExecutionFee = quota.mul(feePercentage).div(BASIS_POINT);
       const consumeQuota = quota.sub(expectExecutionFee);
       const collectorTokenABalance = await tokenA.balanceOf(collector);
       const collectorTokenBBalance = await tokenB.balanceOf(collector);
