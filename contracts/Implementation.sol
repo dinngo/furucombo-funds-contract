@@ -81,13 +81,10 @@ contract Implementation is
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
-    function resume() public whenState(State.RedemptionPending) {
-        require(totalPendingShare > 0, "pending share is 0");
-        require(isPendingResolvable(true), "reserve not enough");
+    function resume() public {
+        _resume();
 
         _settlePendingRedemption(true);
-
-        _resume();
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
@@ -107,19 +104,10 @@ contract Implementation is
 
     /// @notice Close the pool. The pending redemption will be settled
     /// without penalty.
-    function close()
-        public
-        override
-        onlyOwner
-        whenStates(State.Executing, State.Liquidating)
-    {
-        require(totalPendingShare == 0, "pending share is not 0");
-        require(isPendingResolvable(false), "reserve not enough");
-
-        _settlePendingRedemption(false);
-
+    function close() public override onlyOwner {
         super.close();
 
+        _settlePendingRedemption(false);
         mortgageVault.claim(msg.sender);
     }
 
