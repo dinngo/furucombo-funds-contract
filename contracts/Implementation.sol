@@ -293,16 +293,16 @@ contract Implementation is
 
     /// @notice Update the management fee and performance fee before redeem
     /// to get the latest share price.
-    function _callBeforeRedeem(uint256) internal override {
+    function _callBeforeRedeem(uint256 amount) internal override {
         _updateManagementFee();
         _updatePerformanceFee();
+        _redemptionPayout(amount);
         return;
     }
 
     /// @notice Payout the performance fee for the redempt portion and update
     /// the gross share price.
-    function _callAfterRedeem(uint256 amount) internal override {
-        _redemptionPayout(amount);
+    function _callAfterRedeem(uint256) internal override {
         _updateGrossSharePrice();
         return;
     }
