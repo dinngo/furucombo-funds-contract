@@ -127,6 +127,33 @@ contract Implementation is
         _setDenomination(denomination_);
     }
 
+    /// @notice Set management fee rate only during reviewing.
+    function setManagementFeeRate(uint256 mFeeRate_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setManagementFeeRate(mFeeRate_);
+    }
+
+    /// @notice Set performance fee rate only during reviewing.
+    function setPerformanceFeeRate(uint256 pFeeRate_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setPerformanceFeeRate(pFeeRate_);
+    }
+
+    /// @notice Set crystallization period only during reviewing.
+    function setCrystallizationPeriod(uint256 crystallizationPeriod_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setCrystallizationPeriod(crystallizationPeriod_);
+    }
+
     /// @notice Set reserve only during reviewing.
     function setReserveExecution(uint256 reserve_)
         external
