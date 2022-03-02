@@ -82,7 +82,7 @@ describe('PoolExecuteStrategy', function () {
   const pFeeRate = 10;
   const execFeePercentage = 200; // 20%
   const pendingExpiration = 86400; // 1 day
-  const crystallizationPeriod = 300; // 5m
+  const crystallizationPeriod = 86400; // 1 day
   const reserveExecution = szabo('10'); // 10USDC
   const shareTokenName = 'TEST';
 
