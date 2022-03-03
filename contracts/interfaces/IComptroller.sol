@@ -66,4 +66,6 @@ interface IComptroller is IBeacon {
         external
         view
         returns (uint256);
+
+    function isValidCreator(address creator) external view returns (bool);
 }
