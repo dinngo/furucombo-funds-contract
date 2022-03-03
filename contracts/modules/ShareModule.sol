@@ -140,7 +140,7 @@ abstract contract ShareModule is PoolState {
     {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
-        uint256 penalty = __getPendingRedemptionPenalty();
+        uint256 penalty = _getPendingRedemptionPenalty();
         if (state == State.RedemptionPending) {
             uint256 bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
@@ -177,7 +177,7 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256)
     {
-        uint256 penalty = __getPendingRedemptionPenalty();
+        uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
@@ -237,13 +237,16 @@ abstract contract ShareModule is PoolState {
         return;
     }
 
-    function __getTotalAssetValue() internal view virtual returns (uint256);
-
-    function __getReserve() internal view virtual returns (uint256);
-
-    function __getPendingRedemptionPenalty()
+    function _getPendingRedemptionPenalty()
         internal
         view
         virtual
-        returns (uint256);
+        returns (uint256)
+    {
+        return comptroller.pendingRedemptionPenalty();
+    }
+
+    function __getTotalAssetValue() internal view virtual returns (uint256);
+
+    function __getReserve() internal view virtual returns (uint256);
 }

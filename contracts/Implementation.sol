@@ -168,15 +168,6 @@ contract Implementation is
             );
     }
 
-    function __getPendingRedemptionPenalty()
-        internal
-        view
-        override
-        returns (uint256)
-    {
-        return comptroller.pendingRedemptionPenalty();
-    }
-
     /////////////////////////////////////////////////////
     // Asset Module
     /////////////////////////////////////////////////////
