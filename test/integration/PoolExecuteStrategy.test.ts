@@ -44,7 +44,7 @@ import {
 } from '../utils/constants';
 
 import {
-  szabo,
+  mwei,
   ether,
   asciiToHex32,
   tokenProviderSushi,
@@ -84,7 +84,7 @@ describe('PoolExecuteStrategy', function () {
   const execFeePercentage = 200; // 20%
   const pendingExpiration = 86400; // 1 day
   const crystallizationPeriod = 300; // 5m
-  const reserveExecution = szabo('10'); // 10USDC
+  const reserveExecution = 1000; // 10%
   const shareTokenName = 'TEST';
 
   let owner: Wallet;
@@ -255,7 +255,7 @@ describe('PoolExecuteStrategy', function () {
       );
 
       // Transfer token to investor
-      const initialFunds = szabo('3000');
+      const initialFunds = mwei('3000');
       await denomination
         .connect(denominationProvider)
         .transfer(investor.address, initialFunds);
@@ -279,7 +279,7 @@ describe('PoolExecuteStrategy', function () {
   });
 
   describe('execute strategy in operation', function () {
-    const purchaseAmount = szabo('2000');
+    const purchaseAmount = mwei('2000');
     let ownedShares: BigNumber;
     let tokenAPoolVaultBalance: BigNumber;
     let tokenBPoolVaultBalance: BigNumber;
@@ -304,7 +304,7 @@ describe('PoolExecuteStrategy', function () {
 
     it('quickswap', async function () {
       // Prepare action data
-      const amountIn = szabo('1000');
+      const amountIn = mwei('1000');
       const actionAmountIn = amountIn
         .mul(BigNumber.from(BASIS_POINT).sub(execFeePercentage))
         .div(BASIS_POINT);
@@ -387,7 +387,7 @@ describe('PoolExecuteStrategy', function () {
 
     it('sushiswap', async function () {
       // Prepare action data
-      const amountIn = szabo('1000');
+      const amountIn = mwei('1000');
       const actionAmountIn = amountIn
         .mul(BigNumber.from(BASIS_POINT).sub(execFeePercentage))
         .div(BASIS_POINT);

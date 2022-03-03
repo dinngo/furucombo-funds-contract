@@ -43,7 +43,7 @@ export function ether(num: any) {
   return ethers.utils.parseUnits(num, 'ether');
 }
 
-export function szabo(num: any) {
+export function mwei(num: any) {
   return ethers.utils.parseUnits(num, 6);
 }
 
