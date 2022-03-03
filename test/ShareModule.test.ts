@@ -51,11 +51,11 @@ describe('Share module', function () {
       await shareModule.setShare();
       await shareModule.setVault();
       await shareModule.setVaultApproval();
-      const token = await shareModule.callStatic.shareToken();
+      const token = await shareModule.shareToken();
       shareToken = await (
         await ethers.getContractFactory('ShareToken')
       ).attach(token);
-      vault = await shareModule.callStatic.vault();
+      vault = await shareModule.vault();
     }
   );
 
@@ -242,18 +242,15 @@ describe('Share module', function () {
     });
 
     it('should succeed when sufficient reserve', async function () {
-      let userAddress: string;
-      let share;
-
       await shareModule.setReserve(pendingShare);
-      userAddress = await shareModule.pendingAccountList(0);
+      const userAddress = await shareModule.pendingAccountList(0);
 
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'Redeemed')
         .withArgs(shareModule.address, actualAsset, actualShare);
 
-      share = await shareModule.pendingShares(userAddress);
-      expect(share).to.eq(BigNumber.from('0'));
+      const share = await shareModule.pendingShares(userAddress);
+      expect(share).to.be.eq(BigNumber.from('0'));
     });
 
     it('should fail when insufficient reserve', async function () {
@@ -325,8 +322,6 @@ describe('Share module', function () {
     });
 
     it('should success when claiming the redemption', async function () {
-      let balance;
-
       const redeemShare = pendingShare;
       const actualShare = redeemShare
         .mul(penaltyBase - penalty)
@@ -344,8 +339,8 @@ describe('Share module', function () {
         .to.emit(tokenD, 'Transfer')
         .withArgs(shareModule.address, user1.address, actualAsset);
 
-      balance = await shareModule.pendingRedemptions(user1.address);
-      await expect(balance).to.eq(BigNumber.from('0'));
+      const balance = await shareModule.pendingRedemptions(user1.address);
+      expect(balance).to.be.eq(BigNumber.from('0'));
     });
 
     it('should success when claiming with difference user', async function () {
