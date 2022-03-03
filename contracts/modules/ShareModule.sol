@@ -59,28 +59,6 @@ abstract contract ShareModule is PoolState {
         }
     }
 
-    /// @notice Calculate the balance of the given share amount.
-    /// @param share The share amount to be queried.
-    /// @return shareLeft The share amount left due to insufficient reserve.
-    /// @return balance The max swappable balance based on reserve.
-    function getRedeemableAmount(uint256 share)
-        public
-        view
-        virtual
-        returns (uint256 shareLeft, uint256 balance)
-    {
-        shareLeft = 0;
-        balance = calculateBalance(share);
-        uint256 reserve = __getReserve();
-
-        // insufficient reserve
-        if (balance > reserve) {
-            uint256 shareToBurn = calculateShare(reserve);
-            shareLeft = share - shareToBurn;
-            balance = reserve;
-        }
-    }
-
     /// @notice Calculate the share amount corresponding to the given balance.
     /// @param balance The balance to be queried.
     /// @return share The share amount.
@@ -113,6 +91,27 @@ abstract contract ShareModule is PoolState {
         uint256 assetValue = __getTotalAssetValue();
         uint256 shareAmount = shareToken.totalSupply();
         balance = (share * assetValue) / shareAmount;
+    }
+
+    /// @notice Calculate the max redeemable balance of the given share amount.
+    /// @param share The share amount to be queried.
+    /// @return shareLeft The share amount left due to insufficient reserve.
+    /// @return balance The max redeemable balance from reserve.
+    function calculateRedeemableBalance(uint256 share)
+        public
+        view
+        virtual
+        returns (uint256 shareLeft, uint256 balance)
+    {
+        balance = calculateBalance(share);
+        uint256 reserve = __getReserve();
+
+        // insufficient reserve
+        if (balance > reserve) {
+            uint256 shareToBurn = calculateShare(reserve);
+            shareLeft = share - shareToBurn;
+            balance = reserve;
+        }
     }
 
     function _settlePendingRedemption(bool applyPenalty)
@@ -181,14 +180,11 @@ abstract contract ShareModule is PoolState {
         returns (uint256)
     {
         _callBeforeRedeem(share);
-        (uint256 shareLeft, uint256 balance) = getRedeemableAmount(share);
-        uint256 shareToRedeem = share - shareLeft;
-
-        uint256 initialShares = shareToken.balanceOf(user);
-        shareToken.burn(user, shareToRedeem);
-        uint256 shareRedeemed = initialShares - shareToken.balanceOf(user);
-
-        require(shareRedeemed == shareToRedeem, "redeemed wrong share amount");
+        (uint256 shareLeft, uint256 balance) = calculateRedeemableBalance(
+            share
+        );
+        uint256 shareRedeemed = share - shareLeft;
+        shareToken.burn(user, shareRedeemed);
 
         if (shareLeft != 0) {
             _pend();
