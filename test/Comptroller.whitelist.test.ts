@@ -108,152 +108,152 @@ describe('Comptroller_Whitelist', function () {
     await setupTest();
   });
 
-  // manager management
-  describe('manager management', function () {
-    it('permit single manager', async function () {
+  // creator management
+  describe('creator management', function () {
+    it('permit single creator', async function () {
       // check env before execution
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(false);
 
-      // permit manager
-      await expect(comptroller.permitManagers([user.address]))
-        .to.emit(comptroller, 'PermitManager')
+      // permit creator
+      await expect(comptroller.permitCreators([user.address]))
+        .to.emit(comptroller, 'PermitCreator')
         .withArgs(user.address);
 
-      // check managers
+      // check creators
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(false);
     });
 
-    it('permit multiple managers', async function () {
+    it('permit multiple creators', async function () {
       // check env before execution
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(false);
 
-      // permit managers
-      const receipt = await comptroller.permitManagers([
+      // permit creators
+      const receipt = await comptroller.permitCreators([
         user.address,
         collector.address,
       ]);
 
       // check events
       await expect(receipt)
-        .to.emit(comptroller, 'PermitManager')
+        .to.emit(comptroller, 'PermitCreator')
         .withArgs(user.address);
       await expect(receipt)
-        .to.emit(comptroller, 'PermitManager')
+        .to.emit(comptroller, 'PermitCreator')
         .withArgs(collector.address);
 
-      // check managers
+      // check creators
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(true);
     });
 
-    it('permit ANY managers', async function () {
+    it('permit ANY creators', async function () {
       // check env before execution
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(false);
 
-      // permit managers
-      await expect(comptroller.permitManagers([WL_ANY_ADDRESS]))
-        .to.emit(comptroller, 'PermitManager')
+      // permit creators
+      await expect(comptroller.permitCreators([WL_ANY_ADDRESS]))
+        .to.emit(comptroller, 'PermitCreator')
         .withArgs(WL_ANY_ADDRESS);
 
-      // check managers
+      // check creators
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(true);
     });
 
-    it('forbid single manager', async function () {
+    it('forbid single creator', async function () {
       // check env before execution
-      await comptroller.permitManagers([user.address, collector.address]);
+      await comptroller.permitCreators([user.address, collector.address]);
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(true);
 
-      // permit manager
-      await expect(comptroller.forbidManagers([user.address]))
-        .to.emit(comptroller, 'ForbidManager')
+      // permit creator
+      await expect(comptroller.forbidCreators([user.address]))
+        .to.emit(comptroller, 'ForbidCreator')
         .withArgs(user.address);
 
-      // check managers
+      // check creators
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(true);
     });
 
-    it('forbid multiple managers', async function () {
+    it('forbid multiple creators', async function () {
       // check env before execution
-      await comptroller.permitManagers([user.address, collector.address]);
+      await comptroller.permitCreators([user.address, collector.address]);
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(true);
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(true);
 
-      // forbid managers
-      const receipt = await comptroller.forbidManagers([
+      // forbid creators
+      const receipt = await comptroller.forbidCreators([
         user.address,
         collector.address,
       ]);
 
       // check events
       await expect(receipt)
-        .to.emit(comptroller, 'ForbidManager')
+        .to.emit(comptroller, 'ForbidCreator')
         .withArgs(user.address);
       await expect(receipt)
-        .to.emit(comptroller, 'ForbidManager')
+        .to.emit(comptroller, 'ForbidCreator')
         .withArgs(collector.address);
 
-      // check managers
+      // check creators
       expect(
-        await comptroller.connect(user).validManager(user.address)
+        await comptroller.connect(user).isValidCreator(user.address)
       ).to.be.equal(false);
       expect(
-        await comptroller.connect(user).validManager(collector.address)
+        await comptroller.connect(user).isValidCreator(collector.address)
       ).to.be.equal(false);
     });
 
-    it('should revert: permit manager by non-owner', async function () {
+    it('should revert: permit creator by non-owner', async function () {
       await expect(
-        comptroller.connect(user).permitManagers([user.address])
+        comptroller.connect(user).permitCreators([user.address])
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
-    it('should revert: forbid manager by non-owner', async function () {
+    it('should revert: forbid creator by non-owner', async function () {
       await expect(
-        comptroller.connect(user).forbidManagers([user.address])
+        comptroller.connect(user).forbidCreators([user.address])
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
