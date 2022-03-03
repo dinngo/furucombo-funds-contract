@@ -51,11 +51,11 @@ describe('Share module', function () {
       await shareModule.setShare();
       await shareModule.setVault();
       await shareModule.setVaultApproval();
-      const token = await shareModule.callStatic.shareToken();
+      const token = await shareModule.shareToken();
       shareToken = await (
         await ethers.getContractFactory('ShareToken')
       ).attach(token);
-      vault = await shareModule.callStatic.vault();
+      vault = await shareModule.vault();
     }
   );
 
@@ -63,7 +63,7 @@ describe('Share module', function () {
     await setupTest();
     await tokenD.approve(shareModule.address, constants.MaxUint256);
   });
-  
+
   describe('Purchase', function () {
     it('should fail when initializing', async function () {
       await shareModule.setState(0);
@@ -243,9 +243,14 @@ describe('Share module', function () {
 
     it('should succeed when sufficient reserve', async function () {
       await shareModule.setReserve(pendingShare);
+      const userAddress = await shareModule.pendingAccountList(0);
+
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'Redeemed')
         .withArgs(shareModule.address, actualAsset, actualShare);
+
+      const share = await shareModule.pendingShares(userAddress);
+      expect(share).to.be.eq(0);
     });
 
     it('should fail when insufficient reserve', async function () {
@@ -327,11 +332,15 @@ describe('Share module', function () {
       await shareModule.setTotalAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingRedemption();
+
       await expect(shareModule.claimPendingRedemption())
         .to.emit(shareModule, 'RedemptionClaimed')
         .withArgs(user1.address, actualAsset)
         .to.emit(tokenD, 'Transfer')
         .withArgs(shareModule.address, user1.address, actualAsset);
+
+      const balance = await shareModule.pendingRedemptions(user1.address);
+      expect(balance).to.be.eq(0);
     });
 
     it('should success when claiming with difference user', async function () {

@@ -108,13 +108,16 @@ abstract contract ShareModule is PoolState {
             totalPendingBonus = 0;
         }
         uint256 totalRedemption = _redeem(address(this), redeemAmount);
-        while (pendingAccountList.length > 0) {
-            address user = pendingAccountList[pendingAccountList.length - 1];
+        uint256 pendingAccountListLength = pendingAccountList.length;
+        for (uint256 i = 0; i < pendingAccountListLength; i++) {
+            address user = pendingAccountList[i];
             uint256 share = pendingShares[user];
+            pendingShares[user] = 0;
             uint256 redemption = (totalRedemption * share) / totalPendingShare;
             pendingRedemptions[user] += redemption;
-            pendingAccountList.pop();
         }
+        // remove all pending accounts
+        delete pendingAccountList;
 
         totalPendingShare = 0;
         if (totalPendingBonus != 0) {
@@ -130,6 +133,7 @@ abstract contract ShareModule is PoolState {
     /// @return balance The balance being claimed.
     function claimPendingRedemption() public virtual returns (uint256 balance) {
         balance = pendingRedemptions[msg.sender];
+        pendingRedemptions[msg.sender] = 0;
         denomination.safeTransfer(msg.sender, balance);
         emit RedemptionClaimed(msg.sender, balance);
     }
