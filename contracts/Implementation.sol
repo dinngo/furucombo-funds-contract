@@ -112,10 +112,10 @@ contract Implementation is
         onlyOwner
         whenStates(State.Executing, State.Liquidating)
     {
-        require(isPendingResolvable(false), "reserve not enough");
-
-        _settlePendingRedemption(false);
-
+        if (state == State.Liquidating) {
+            require(isPendingResolvable(false), "reserve not enough");
+            _settlePendingRedemption(false);
+        }
         super.close();
 
         mortgageVault.claim(msg.sender);
@@ -275,6 +275,12 @@ contract Implementation is
 
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
             addAsset(dealingAssets[i]);
+        }
+
+        // if possible, settle pending redemption
+        if (state == State.RedemptionPending && isPendingResolvable(true)) {
+            _settlePendingRedemption(true);
+            _resume();
         }
 
         return super._afterExecute(response);

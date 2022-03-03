@@ -167,6 +167,12 @@ abstract contract ShareModule is PoolState {
             totalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
             share += bonus;
+
+            // if possible, settle pending redemption
+            if (isPendingResolvable(true)) {
+                _settlePendingRedemption(true);
+                _resume();
+            }
         }
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
         _callAfterPurchase(share);

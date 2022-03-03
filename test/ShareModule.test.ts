@@ -51,11 +51,11 @@ describe('Share module', function () {
       await shareModule.setShare();
       await shareModule.setDSProxy();
       await shareModule.setDSProxyApproval(tokenD.address);
-      const token = await shareModule.callStatic.shareToken();
+      const token = await shareModule.shareToken();
       shareToken = await (
         await ethers.getContractFactory('ShareToken')
       ).attach(token);
-      vault = await shareModule.callStatic.vault();
+      vault = await shareModule.vault();
     }
   );
 
@@ -63,7 +63,7 @@ describe('Share module', function () {
     await setupTest();
     await tokenD.approve(shareModule.address, constants.MaxUint256);
   });
-  
+
   describe('Purchase', function () {
     it('should fail when initializing', async function () {
       await shareModule.setState(0);
@@ -355,6 +355,43 @@ describe('Share module', function () {
         .withArgs(actualAsset)
         .to.emit(tokenD, 'Transfer')
         .withArgs(shareModule.address, user2.address, actualAsset);
+    });
+  });
+
+  describe.only('Settle pending', function () {
+    const pendingShare = ethers.utils.parseEther('20');
+    const pendingAsset = pendingShare;
+    const penalty = 100;
+    const penaltyBase = 10000;
+    const actualShare = pendingShare
+      .mul(penaltyBase - penalty)
+      .div(penaltyBase);
+    const actualAsset = actualShare;
+    const bonus = pendingShare.mul(penalty).div(penaltyBase);
+
+    beforeEach(async function () {
+      await shareModule.setState(2);
+      await shareModule.purchase(totalAsset);
+      await shareModule.setReserve(totalAsset.sub(pendingAsset));
+      await shareModule.setTotalAssetValue(totalAsset);
+      await shareModule.redeem(totalAsset);
+      await shareModule.setReserve(0);
+      await shareModule.setTotalAssetValue(pendingAsset);
+    });
+
+    it('should resolve pending after purchase', async function () {
+      console.log('state:' + (await shareModule.state()));
+      const purchaseAmount = ethers.utils.parseEther('25');
+      await expect(shareModule.purchase(purchaseAmount)).to.emit(
+        shareModule,
+        'Purchased'
+      );
+      await expect(shareModule.purchase(purchaseAmount)).to.emit(
+        shareModule,
+        'Redeemed'
+      );
+      console.log('after state:' + (await shareModule.state()));
+      expect(shareModule.state()).to.be.eq(2);
     });
   });
 });
