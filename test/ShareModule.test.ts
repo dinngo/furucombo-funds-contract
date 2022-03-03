@@ -250,7 +250,7 @@ describe('Share module', function () {
         .withArgs(shareModule.address, actualAsset, actualShare);
 
       const share = await shareModule.pendingShares(userAddress);
-      expect(share).to.be.eq(BigNumber.from('0'));
+      expect(share).to.be.eq(0);
     });
 
     it('should fail when insufficient reserve', async function () {
@@ -340,7 +340,7 @@ describe('Share module', function () {
         .withArgs(shareModule.address, user1.address, actualAsset);
 
       const balance = await shareModule.pendingRedemptions(user1.address);
-      expect(balance).to.be.eq(BigNumber.from('0'));
+      expect(balance).to.be.eq(0);
     });
 
     it('should success when claiming with difference user', async function () {
