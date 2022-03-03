@@ -6,6 +6,8 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {AssetModule} from "./AssetModule.sol";
 import {PoolState} from "../PoolState.sol";
 
+import "hardhat/console.sol";
+
 /// @title Share module
 abstract contract ShareModule is PoolState {
     using ABDKMath64x64 for uint256;
@@ -86,10 +88,48 @@ abstract contract ShareModule is PoolState {
     }
 
     function isPendingResolvable(bool applyPenalty) public view returns (bool) {
+        console.log("1");
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
+        console.log("2");
         uint256 redeemSharesBalance = calculateBalance(redeemShares);
+        console.log("3");
         uint256 reserve = __getReserve();
         if (reserve < redeemSharesBalance) return false;
+        console.log("4");
+        return true;
+    }
+
+    function _settlePendingRedemption(bool applyPenalty)
+        internal
+        returns (bool)
+    {
+        console.log("5");
+        // Might lead to gas insufficient if pending list too long
+        uint256 redeemShares = _getResolvePendingShares(applyPenalty);
+        if (redeemShares == 0) return true;
+
+        if (!applyPenalty) {
+            totalPendingBonus = 0;
+        }
+
+        console.log("6 redeemShares:%d", redeemShares);
+        uint256 totalRedemption = _redeem(address(this), redeemShares);
+        console.log("7 totalRedemption:%d", totalRedemption);
+        console.log("8 pendingAccountList:%d", pendingAccountList.length);
+        while (pendingAccountList.length > 0) {
+            address user = pendingAccountList[pendingAccountList.length - 1];
+            uint256 share = pendingShares[user];
+            uint256 redemption = (totalRedemption * share) / totalPendingShare;
+            pendingRedemptions[user] += redemption;
+            pendingAccountList.pop();
+        }
+        console.log("9 totalPendingBonus:%d", totalPendingBonus);
+        totalPendingShare = 0;
+        if (totalPendingBonus != 0) {
+            uint256 unusedBonus = totalPendingBonus;
+            totalPendingBonus = 0;
+            shareToken.burn(address(this), unusedBonus);
+        }
 
         return true;
     }
@@ -104,35 +144,6 @@ abstract contract ShareModule is PoolState {
         } else {
             return totalPendingShare + totalPendingBonus;
         }
-    }
-
-    function _settlePendingRedemption(bool applyPenalty)
-        internal
-        returns (bool)
-    {
-        // Might lead to gas insufficient if pending list too long
-        uint256 redeemShares = _getResolvePendingShares(applyPenalty);
-        if (!applyPenalty) {
-            totalPendingBonus = 0;
-        }
-
-        uint256 totalRedemption = _redeem(address(this), redeemShares);
-        while (pendingAccountList.length > 0) {
-            address user = pendingAccountList[pendingAccountList.length - 1];
-            uint256 share = pendingShares[user];
-            uint256 redemption = (totalRedemption * share) / totalPendingShare;
-            pendingRedemptions[user] += redemption;
-            pendingAccountList.pop();
-        }
-
-        totalPendingShare = 0;
-        if (totalPendingBonus != 0) {
-            uint256 unusedBonus = totalPendingBonus;
-            totalPendingBonus = 0;
-            shareToken.burn(address(this), unusedBonus);
-        }
-
-        return true;
     }
 
     /// @notice Claim the settled pending redemption.

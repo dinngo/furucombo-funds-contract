@@ -82,7 +82,6 @@ contract Implementation is
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
-        require(totalPendingShare > 0, "pending share is 0");
         require(isPendingResolvable(true), "reserve not enough");
 
         _settlePendingRedemption(true);
@@ -113,7 +112,6 @@ contract Implementation is
         onlyOwner
         whenStates(State.Executing, State.Liquidating)
     {
-        require(totalPendingShare == 0, "pending share is not 0");
         require(isPendingResolvable(false), "reserve not enough");
 
         _settlePendingRedemption(false);
