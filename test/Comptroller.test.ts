@@ -553,7 +553,7 @@ describe('Comptroller', function () {
         await tokenM.connect(user).approve(mortgageVault.address, stakeAmount);
         const receipt = await factory
           .connect(user)
-          .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST');
+          .createPool(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
         const pool = await getEventArgs(receipt, 'PoolCreated');
         const tokenMUserAfter = await tokenM.callStatic.balanceOf(user.address);
         const tokenMVaultAfter = await tokenM.callStatic.balanceOf(
