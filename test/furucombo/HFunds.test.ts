@@ -574,7 +574,7 @@ describe('Funds', function () {
     });
   });
 
-  describe.only('return fund', function () {
+  describe('return fund', function () {
     let usdt: IERC20Usdt;
     let token: IERC20;
     beforeEach(async function () {

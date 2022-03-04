@@ -60,6 +60,12 @@ contract HFunds is HandlerBase {
         external
         payable
     {
+        _requireMsg(
+            tokens.length == amounts.length,
+            "returnFunds",
+            "token and amount do not match"
+        );
+
         for (uint256 i = 0; i < tokens.length; i++) {
             // token can't be matic token
             _notMaticToken(tokens[i]);
