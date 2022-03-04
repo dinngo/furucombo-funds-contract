@@ -78,6 +78,10 @@ contract Implementation is
 
         // Add denomination to list and never remove
         require(getAssetList().length == 0, "assetList is not empty");
+        require(
+            comptroller.isValidDenomination(address(denomination)),
+            "Denomination is not valid"
+        );
         addAsset(address(denomination));
 
         // Set approval for investor to redeem

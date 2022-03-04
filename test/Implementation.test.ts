@@ -221,46 +221,53 @@ describe('Implementation', function () {
         expect(_owner).to.be.not.eq(constants.AddressZero);
         expect(_owner).to.be.eq(owner.address);
       });
+
+      it('should revert: twice initialization', async function () {
+        await expect(
+          implementation
+            .connect(owner)
+            .initialize(
+              0,
+              constants.AddressZero,
+              constants.AddressZero,
+              constants.AddressZero,
+              0,
+              0,
+              0,
+              0,
+              constants.AddressZero
+            )
+        ).to.be.revertedWith('InvalidState(1)');
+      });
     });
 
-    it('should revert: twice initialization', async function () {
-      await expect(
-        implementation
-          .connect(owner)
-          .initialize(
-            0,
-            constants.AddressZero,
-            constants.AddressZero,
-            constants.AddressZero,
-            0,
-            0,
-            0,
-            0,
-            constants.AddressZero
-          )
-      ).to.be.revertedWith('InvalidState(1)');
-    });
+    describe('Finalize', function () {
+      it('should success', async function () {
+        await implementation.finalize();
+        expect(await implementation.getAssetList()).to.be.deep.eq([
+          denomination.address,
+        ]);
 
-    it('finalize', async function () {
-      let allowance;
+        // check vault approval
+        const allowance = await denomination.allowance(
+          vault.address,
+          implementation.address
+        );
+        expect(allowance).to.be.eq(constants.MaxUint256);
+      });
 
-      await implementation.finalize();
-      expect(await implementation.getAssetList()).to.be.deep.eq([
-        denomination.address,
-      ]);
+      it('should revert: finalize by non-owner', async function () {
+        await expect(
+          implementation.connect(user).finalize()
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
 
-      // check vault approval
-      allowance = await denomination.allowance(
-        vault.address,
-        implementation.address
-      );
-      expect(allowance).to.be.eq(constants.MaxUint256);
-    });
-
-    it('should revert: finalize by non-owner', async function () {
-      await expect(implementation.connect(user).finalize()).to.be.revertedWith(
-        'Ownable: caller is not the owner'
-      );
+      it('should revert: finalize after denomination is forbidden', async function () {
+        await comptroller.forbidDenominations([denomination.address]);
+        await expect(implementation.finalize()).to.be.revertedWith(
+          'Denomination is not valid'
+        );
+      });
     });
 
     it('resume', async function () {
@@ -275,55 +282,59 @@ describe('Implementation', function () {
       expect(await implementation.pendingStartTime()).to.be.eq(0);
     });
 
-    it('liquidate', async function () {
-      await implementation.finalize();
-      await implementation.pendMock();
-      await network.provider.send('evm_increaseTime', [pendingExpiration]);
-      await expect(implementation.liquidate())
-        .to.emit(implementation, 'StateTransited')
-        .withArgs(4)
-        .to.emit(implementation, 'OwnershipTransferred')
-        .withArgs(owner.address, liquidator.address);
-      expect(await implementation.pendingStartTime()).to.be.eq(0);
+    describe('Liquidate', function () {
+      it('liquidate', async function () {
+        await implementation.finalize();
+        await implementation.pendMock();
+        await network.provider.send('evm_increaseTime', [pendingExpiration]);
+        await expect(implementation.liquidate())
+          .to.emit(implementation, 'StateTransited')
+          .withArgs(4)
+          .to.emit(implementation, 'OwnershipTransferred')
+          .withArgs(owner.address, liquidator.address);
+        expect(await implementation.pendingStartTime()).to.be.eq(0);
+      });
+
+      it('liquidate by user', async function () {
+        await implementation.finalize();
+        await implementation.pendMock();
+        await network.provider.send('evm_increaseTime', [pendingExpiration]);
+        await expect(implementation.connect(user).liquidate())
+          .to.emit(implementation, 'StateTransited')
+          .withArgs(4)
+          .to.emit(implementation, 'OwnershipTransferred')
+          .withArgs(owner.address, liquidator.address);
+      });
+
+      it('should revert: pending does not start', async function () {
+        await implementation.finalize();
+        await expect(implementation.liquidate()).to.be.revertedWith(
+          'Pending does not start'
+        );
+      });
+
+      it('should revert: pending does not expire', async function () {
+        await implementation.finalize();
+        await implementation.pendMock();
+        await expect(implementation.liquidate()).to.be.revertedWith(
+          'Pending does not expire'
+        );
+      });
     });
 
-    it('liquidate by user', async function () {
-      await implementation.finalize();
-      await implementation.pendMock();
-      await network.provider.send('evm_increaseTime', [pendingExpiration]);
-      await expect(implementation.connect(user).liquidate())
-        .to.emit(implementation, 'StateTransited')
-        .withArgs(4)
-        .to.emit(implementation, 'OwnershipTransferred')
-        .withArgs(owner.address, liquidator.address);
-    });
+    describe('Close', function () {
+      it('close when executing', async function () {
+        await implementation.finalize();
+        await expect(implementation.close())
+          .to.emit(implementation, 'StateTransited')
+          .withArgs(5);
+      });
 
-    it('should revert: pending does not start', async function () {
-      await implementation.finalize();
-      await expect(implementation.liquidate()).to.be.revertedWith(
-        'Pending does not start'
-      );
-    });
-
-    it('should revert: pending does not expire', async function () {
-      await implementation.finalize();
-      await implementation.pendMock();
-      await expect(implementation.liquidate()).to.be.revertedWith(
-        'Pending does not expire'
-      );
-    });
-
-    it('close when executing', async function () {
-      await implementation.finalize();
-      await expect(implementation.close())
-        .to.emit(implementation, 'StateTransited')
-        .withArgs(5);
-    });
-
-    it('should revert: close by non-owner', async function () {
-      await expect(implementation.connect(user).close()).to.be.revertedWith(
-        'Ownable: caller is not the owner'
-      );
+      it('should revert: close by non-owner', async function () {
+        await expect(implementation.connect(user).close()).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        );
+      });
     });
   });
 

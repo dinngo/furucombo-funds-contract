@@ -192,6 +192,10 @@ contract Comptroller is UpgradeableBeacon {
         view
         returns (bool)
     {
+        require(
+            address(_denomination) != address(0),
+            "Denomination should not be 0"
+        );
         return denomination[_denomination].isPermitted;
     }
 

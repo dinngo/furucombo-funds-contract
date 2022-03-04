@@ -116,10 +116,6 @@ abstract contract PoolState {
             comptroller.isValidDenomination(address(denomination_)),
             "Denomination is not valid"
         );
-        require(
-            address(denomination_) != address(0),
-            "Denomination should not be 0"
-        );
         denomination = denomination_;
     }
 
@@ -151,8 +147,8 @@ abstract contract PoolState {
         require(address(vault) != address(0), "Vault should not be 0");
         require(address(setupAction) != address(0), "Setup should not be 0");
         require(
-            address(denomination) != address(0),
-            "Denomination should not be 0"
+            comptroller.isValidDenomination(address(denomination)),
+            "Denomination is not valid"
         );
 
         // set vault approval
