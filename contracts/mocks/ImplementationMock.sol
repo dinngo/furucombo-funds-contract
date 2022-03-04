@@ -12,7 +12,7 @@ contract ImplementationMock is Implementation {
     {}
 
     function reviewingMock() external {
-        _enterState(State.Reviewing);
+        _review();
     }
 
     function pendMock() external {
