@@ -140,11 +140,10 @@ describe('Aave V2 Repay', function () {
     it('partial', async function () {
       const value = borrowAmount.div(BigNumber.from('2'));
       const to = hAaveV2.address;
-      const data = simpleEncode('repay(address,uint256,uint256,address)', [
+      const data = simpleEncode('repay(address,uint256,uint256)', [
         borrowToken.address,
         value,
         rateMode,
-        user.address,
       ]);
       await borrowToken.connect(user).transfer(proxy.address, value);
       await proxy.updateTokenMock(borrowToken.address);
@@ -188,11 +187,7 @@ describe('Aave V2 Repay', function () {
     it('partial by MATIC', async function () {
       const value = borrowAmount.div(BigNumber.from('2'));
       const to = hAaveV2.address;
-      const data = simpleEncode('repayETH(uint256,uint256,address)', [
-        value,
-        rateMode,
-        user.address,
-      ]);
+      const data = simpleEncode('repayETH(uint256,uint256)', [value, rateMode]);
       userBalance = await ethers.provider.getBalance(user.address);
       // const debtTokenUserBefore = await debtToken.balanceOf(user.address);
       const receipt = await proxy.connect(user).execMock(to, data, {
@@ -231,11 +226,10 @@ describe('Aave V2 Repay', function () {
       const extraNeed = ether('1');
       const value = borrowAmount.add(extraNeed);
       const to = hAaveV2.address;
-      const data = simpleEncode('repay(address,uint256,uint256,address)', [
+      const data = simpleEncode('repay(address,uint256,uint256)', [
         borrowToken.address,
         value,
         rateMode,
-        user.address,
       ]);
       await borrowToken
         .connect(borrowTokenProvider)
@@ -277,11 +271,7 @@ describe('Aave V2 Repay', function () {
       const extraNeed = ether('1');
       const value = borrowAmount.add(extraNeed);
       const to = hAaveV2.address;
-      const data = simpleEncode('repayETH(uint256,uint256,address)', [
-        value,
-        rateMode,
-        user.address,
-      ]);
+      const data = simpleEncode('repayETH(uint256,uint256)', [value, rateMode]);
       userBalance = await ethers.provider.getBalance(user.address);
       const borrowTokenUserBalance = await borrowToken.balanceOf(user.address);
 
@@ -322,11 +312,10 @@ describe('Aave V2 Repay', function () {
     it('should revert: not enough balance', async function () {
       const value = ether('0.5');
       const to = hAaveV2.address;
-      const data = simpleEncode('repay(address,uint256,uint256,address)', [
+      const data = simpleEncode('repay(address,uint256,uint256)', [
         borrowToken.address,
         value,
         rateMode,
-        user.address,
       ]);
       await borrowToken
         .connect(user)
@@ -341,11 +330,10 @@ describe('Aave V2 Repay', function () {
     it('should revert: not supported token', async function () {
       const value = ether('0.5');
       const to = hAaveV2.address;
-      const data = simpleEncode('repay(address,uint256,uint256,address)', [
+      const data = simpleEncode('repay(address,uint256,uint256)', [
         mockToken.address,
         value,
         rateMode,
-        user.address,
       ]);
       await mockToken.connect(owner).transfer(proxy.address, value);
       await proxy.updateTokenMock(mockToken.address);
@@ -359,11 +347,10 @@ describe('Aave V2 Repay', function () {
       const value = ether('0.5');
       const to = hAaveV2.address;
       const unborrowedRateMode = (rateMode % 2) + 1;
-      const data = simpleEncode('repay(address,uint256,uint256,address)', [
+      const data = simpleEncode('repay(address,uint256,uint256)', [
         borrowToken.address,
         value,
         unborrowedRateMode,
-        user.address,
       ]);
       await borrowToken.connect(user).transfer(proxy.address, value);
       await proxy.updateTokenMock(borrowToken.address);
