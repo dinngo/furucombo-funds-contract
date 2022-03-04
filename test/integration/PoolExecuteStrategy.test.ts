@@ -82,6 +82,7 @@ describe('PoolExecuteStrategy', function () {
   const mFeeRate = 10;
   const pFeeRate = 10;
   const execFeePercentage = 200; // 20%
+  const valueTolerance = 9000; // 90%
   const pendingExpiration = 86400; // 1 day
   const crystallizationPeriod = 300; // 5m
   const reserveExecutionRatio = 1000; // 10%
@@ -150,7 +151,8 @@ describe('PoolExecuteStrategy', function () {
           execFeePercentage,
           liquidator.address,
           pendingExpiration,
-          mortgageVault.address
+          mortgageVault.address,
+          valueTolerance
         );
       [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(
         comptroller,

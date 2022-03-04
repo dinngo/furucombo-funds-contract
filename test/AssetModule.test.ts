@@ -34,7 +34,8 @@ describe('Asset module', function () {
         0,
         constants.AddressZero,
         0,
-        constants.AddressZero
+        constants.AddressZero,
+        0
       );
       await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
