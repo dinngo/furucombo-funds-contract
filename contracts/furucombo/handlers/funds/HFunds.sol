@@ -56,6 +56,29 @@ contract HFunds is HandlerBase {
         return amounts;
     }
 
+    function returnFunds(address[] calldata tokens, uint256[] calldata amounts)
+        external
+        payable
+    {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            // token can't be matic token
+            _notMaticToken(tokens[i]);
+            address payable receiver = payable(_getSender());
+
+            uint256 amount = _getBalance(tokens[i], amounts[i]);
+            if (amount > 0) {
+                // ETH case
+                if (
+                    tokens[i] == address(0) || tokens[i] == NATIVE_TOKEN_ADDRESS
+                ) {
+                    receiver.transfer(amount);
+                } else {
+                    IERC20(tokens[i]).safeTransfer(receiver, amount);
+                }
+            }
+        }
+    }
+
     function checkSlippage(
         address[] calldata tokens,
         uint256[] calldata amounts
