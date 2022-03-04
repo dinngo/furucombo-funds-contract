@@ -72,24 +72,24 @@ library Whitelist {
         return wl.acl[level][asset] || wl.acl[ANY32][asset];
     }
 
-    // Manager white list
-    struct ManagerWList {
+    // Creator white list
+    struct CreatorWList {
         mapping(address => bool) acl;
     }
 
-    function permit(ManagerWList storage wl, address manager) internal {
-        wl.acl[manager] = true;
+    function permit(CreatorWList storage wl, address creator) internal {
+        wl.acl[creator] = true;
     }
 
-    function forbid(ManagerWList storage wl, address manager) internal {
-        wl.acl[manager] = false;
+    function forbid(CreatorWList storage wl, address creator) internal {
+        wl.acl[creator] = false;
     }
 
-    function canCall(ManagerWList storage wl, address manager)
+    function canCall(CreatorWList storage wl, address creator)
         internal
         view
         returns (bool)
     {
-        return wl.acl[manager] || wl.acl[ANY20];
+        return wl.acl[creator] || wl.acl[ANY20];
     }
 }

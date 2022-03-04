@@ -26,6 +26,7 @@ contract PoolProxyFactory {
         uint256 reserveExecution,
         string memory shareTokenName
     ) external returns (address) {
+        require(comptroller.isValidCreator(msg.sender), "Invalid creator");
         IMortgageVault vault = comptroller.mortgageVault();
         uint256 mortgageAmount = comptroller.stakedTier(level);
         // Can be customized
