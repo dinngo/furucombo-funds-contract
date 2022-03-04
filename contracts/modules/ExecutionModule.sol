@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PoolState} from "../PoolState.sol";
+import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 import {Whitelist} from "../libraries/Whitelist.sol";
 
 /// @title Execution module
-abstract contract ExecutionModule is PoolState {
+abstract contract ExecutionModule is PoolProxyStorageUtils {
     /// @notice Execute on the pool's behalf. Execution is valid during
     /// Executing and Redemption Pending state.
     /// @param data The data to be applied to the execution.
