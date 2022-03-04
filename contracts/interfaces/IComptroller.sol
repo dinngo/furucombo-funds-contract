@@ -53,6 +53,8 @@ interface IComptroller is IBeacon {
 
     function mortgageVault() external view returns (IMortgageVault);
 
+    function pendingRedemptionPenalty() external view returns (uint256);
+
     function execAction() external view returns (address);
 
     function stakedTier(uint256 tier) external view returns (uint256);
