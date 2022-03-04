@@ -133,7 +133,7 @@ abstract contract PerformanceFee {
     /// @param amount The share amount being redeemed.
     function _redemptionPayout(uint256 amount) internal virtual {
         IShareToken shareToken = __getShareToken();
-        uint256 totalShare = shareToken.netTotalShare();
+        uint256 totalShare = shareToken.netTotalShare() + amount;
         if (totalShare != 0) {
             uint256 payout = (_lastOutstandingShare * amount) / totalShare;
             uint256 fee = (_feeSum * amount) / totalShare;
