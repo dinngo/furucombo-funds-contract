@@ -23,7 +23,7 @@ contract PoolProxyFactory {
         uint256 mFeeRate,
         uint256 pFeeRate,
         uint256 crystallizationPeriod,
-        uint256 reserveExecution,
+        uint256 reserveExecutionRatio,
         string memory shareTokenName
     ) external returns (address) {
         IMortgageVault vault = comptroller.mortgageVault();
@@ -39,7 +39,7 @@ contract PoolProxyFactory {
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecution,
+            reserveExecutionRatio,
             msg.sender
         );
 

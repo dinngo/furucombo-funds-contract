@@ -11,6 +11,10 @@ contract ImplementationMock is Implementation {
         Implementation(dsProxyRegistry_)
     {}
 
+    function reviewingMock() external {
+        _enterState(State.Reviewing);
+    }
+
     function pendMock() external {
         _pend();
     }

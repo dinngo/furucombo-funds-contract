@@ -13,6 +13,6 @@ interface IPool {
         address comptroller,
         address denomination,
         address shareToken,
-        uint256 reserveExecution
+        uint256 reserveExecutionRatio
     ) external;
 }

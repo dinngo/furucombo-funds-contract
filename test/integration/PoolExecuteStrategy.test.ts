@@ -40,7 +40,7 @@ import {
   BAT_PROVIDER,
   WETH_PROVIDER,
   USDC_PROVIDER,
-  BASIS_POINT,
+  FEE_BASE,
 } from '../utils/constants';
 
 import {
@@ -84,7 +84,7 @@ describe('PoolExecuteStrategy', function () {
   const execFeePercentage = 200; // 20%
   const pendingExpiration = 86400; // 1 day
   const crystallizationPeriod = 300; // 5m
-  const reserveExecution = 1000; // 10%
+  const reserveExecutionRatio = 1000; // 10%
   const shareTokenName = 'TEST';
 
   let owner: Wallet;
@@ -234,7 +234,7 @@ describe('PoolExecuteStrategy', function () {
         mFeeRate,
         pFeeRate,
         crystallizationPeriod,
-        reserveExecution,
+        reserveExecutionRatio,
         shareTokenName
       );
       await poolProxy.connect(manager).finalize();
@@ -306,8 +306,8 @@ describe('PoolExecuteStrategy', function () {
       // Prepare action data
       const amountIn = mwei('1000');
       const actionAmountIn = amountIn
-        .mul(BigNumber.from(BASIS_POINT).sub(execFeePercentage))
-        .div(BASIS_POINT);
+        .mul(BigNumber.from(FEE_BASE).sub(execFeePercentage))
+        .div(FEE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -370,7 +370,7 @@ describe('PoolExecuteStrategy', function () {
         (await denomination.balanceOf(collector.address)).sub(
           denominationCollectorBalance
         )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(BASIS_POINT));
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(FEE_BASE));
 
       // TODO: check it after refine quickswap handler
       // check asset list will be updated
@@ -389,8 +389,8 @@ describe('PoolExecuteStrategy', function () {
       // Prepare action data
       const amountIn = mwei('1000');
       const actionAmountIn = amountIn
-        .mul(BigNumber.from(BASIS_POINT).sub(execFeePercentage))
-        .div(BASIS_POINT);
+        .mul(BigNumber.from(FEE_BASE).sub(execFeePercentage))
+        .div(FEE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -453,7 +453,7 @@ describe('PoolExecuteStrategy', function () {
         (await denomination.balanceOf(collector.address)).sub(
           denominationCollectorBalance
         )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(BASIS_POINT));
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(FEE_BASE));
 
       // TODO: check it after refine sushiswap handler
       // check asset list will be updated

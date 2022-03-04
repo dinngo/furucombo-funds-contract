@@ -24,7 +24,7 @@ abstract contract PoolState {
     IERC20 public denomination;
     IShareToken public shareToken;
     IDSProxy public vault; // DSProxy
-    uint256 public reserveExecution;
+    uint256 public reserveExecutionRatio; // reserve ratio, base is 1e4. 100 means 1%
     uint256 public pendingStartTime;
 
     event StateTransited(State to);
@@ -148,7 +148,9 @@ abstract contract PoolState {
         vault.execute(action, data);
     }
 
-    function _setReserveExecution(uint256 reserveExecution_) internal {
-        reserveExecution = reserveExecution_;
+    function _setReserveExecutionRatio(uint256 reserveExecutionRatio_)
+        internal
+    {
+        reserveExecutionRatio = reserveExecutionRatio_;
     }
 }

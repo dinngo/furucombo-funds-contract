@@ -27,7 +27,7 @@ contract TaskExecutor is
     // prettier-ignore
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 public constant PERCENTAGE_BASE = 1 ether;
-    uint256 private constant _BASIS_POINT = 1e4;
+    uint256 private constant _FEE_BASE = 1e4;
     IComptroller public immutable comptroller;
 
     constructor(address payable _owner, address _comptroller)
@@ -296,7 +296,7 @@ contract TaskExecutor is
             );
 
             // send fee to collector
-            uint256 execFee = (amountsIn[i] * feePercentage) / _BASIS_POINT;
+            uint256 execFee = (amountsIn[i] * feePercentage) / _FEE_BASE;
             if (address(tokensIn[i]) == NATIVE_TOKEN) {
                 collector.transfer(execFee);
             } else {

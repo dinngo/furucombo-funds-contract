@@ -17,7 +17,7 @@ abstract contract ShareModule is PoolState {
     mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
     uint256 public totalPendingBonus;
-    uint256 private constant _BASIS_POINT = 1e4;
+    uint256 private constant _PENALTY_BASE = 1e4;
     uint256 private constant _PENALTY = 100;
 
     event Purchased(uint256 assetAmount, uint256 shareAmount);
@@ -134,7 +134,7 @@ abstract contract ShareModule is PoolState {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
         if (state == State.RedemptionPending) {
-            uint256 bonus = (share * (_PENALTY)) / (_BASIS_POINT - _PENALTY);
+            uint256 bonus = (share * (_PENALTY)) / (_PENALTY_BASE - _PENALTY);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
@@ -169,8 +169,8 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256)
     {
-        uint256 effectiveShare = (share * (_BASIS_POINT - _PENALTY)) /
-            _BASIS_POINT;
+        uint256 effectiveShare = (share * (_PENALTY_BASE - _PENALTY)) /
+            _PENALTY_BASE;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += effectiveShare;
         totalPendingShare += effectiveShare;
