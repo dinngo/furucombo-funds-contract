@@ -277,11 +277,7 @@ contract Implementation is
             addAsset(dealingAssets[i]);
         }
 
-        // if possible, settle pending redemption
-        if (state == State.RedemptionPending && isPendingResolvable(true)) {
-            _settlePendingRedemption(true);
-            _resume();
-        }
+        trySettleRedemption(true);
 
         return super._afterExecute(response);
     }

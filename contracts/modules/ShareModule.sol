@@ -87,8 +87,16 @@ abstract contract ShareModule is PoolState {
         balance = (share * assetValue) / shareAmount;
     }
 
+    /// @notice Claim the settled pending redemption.
+    /// @return balance The balance being claimed.
+    function claimPendingRedemption() public virtual returns (uint256 balance) {
+        balance = pendingRedemptions[msg.sender];
+        denomination.safeTransfer(msg.sender, balance);
+        emit RedemptionClaimed(balance);
+    }
+
     function isPendingResolvable(bool applyPenalty) public view returns (bool) {
-        console.log("1");
+        console.log("1 isPendingResolvable");
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
         console.log("2");
         uint256 redeemSharesBalance = calculateBalance(redeemShares);
@@ -146,37 +154,50 @@ abstract contract ShareModule is PoolState {
         }
     }
 
-    /// @notice Claim the settled pending redemption.
-    /// @return balance The balance being claimed.
-    function claimPendingRedemption() public virtual returns (uint256 balance) {
-        balance = pendingRedemptions[msg.sender];
-        denomination.safeTransfer(msg.sender, balance);
-        emit RedemptionClaimed(balance);
-    }
-
     function _purchase(address user, uint256 balance)
         internal
         virtual
         returns (uint256 share)
     {
+        console.log("1 balance:%d", balance);
         _callBeforePurchase(0);
+        console.log("2");
         share = _addShare(user, balance);
+        console.log("3 share:%d", share);
         if (state == State.RedemptionPending) {
+            console.log("4");
             uint256 bonus = (share * (_PENALTY)) / (_BASIS_POINT - _PENALTY);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
+            console.log("5 bonus:%d", bonus);
             shareToken.move(address(this), user, bonus);
             share += bonus;
+            console.log("6");
+        }
+        console.log("10");
+        denomination.safeTransferFrom(msg.sender, address(vault), balance);
+        console.log("11");
+        trySettleRedemption(true);
+        _callAfterPurchase(share);
+        console.log("12");
+        emit Purchased(balance, share);
+    }
 
-            // if possible, settle pending redemption
-            if (isPendingResolvable(true)) {
-                _settlePendingRedemption(true);
+    function trySettleRedemption(bool applyPenalty) internal {
+        // if possible, settle pending redemption
+        if (
+            _getResolvePendingShares(applyPenalty) > 0 &&
+            isPendingResolvable(applyPenalty)
+        ) {
+            console.log("7");
+            _settlePendingRedemption(applyPenalty);
+            console.log("8");
+            if (state == State.RedemptionPending) {
+                console.log("9");
                 _resume();
+                console.log("10");
             }
         }
-        denomination.safeTransferFrom(msg.sender, address(vault), balance);
-        _callAfterPurchase(share);
-        emit Purchased(balance, share);
     }
 
     function _redeem(address user, uint256 share)

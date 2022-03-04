@@ -381,17 +381,14 @@ describe('Share module', function () {
 
     it('should resolve pending after purchase', async function () {
       console.log('state:' + (await shareModule.state()));
-      const purchaseAmount = ethers.utils.parseEther('25');
-      await expect(shareModule.purchase(purchaseAmount)).to.emit(
-        shareModule,
-        'Purchased'
-      );
-      await expect(shareModule.purchase(purchaseAmount)).to.emit(
-        shareModule,
-        'Redeemed'
-      );
+      const purchaseAmount = ethers.utils.parseEther('50');
+      await shareModule.setReserve(purchaseAmount.sub(pendingAsset));
+      await expect(shareModule.purchase(purchaseAmount))
+        .to.emit(shareModule, 'Purchased')
+        .to.emit(shareModule, 'Redeemed');
+
       console.log('after state:' + (await shareModule.state()));
-      expect(shareModule.state()).to.be.eq(2);
+      expect(await shareModule.state()).to.be.eq(2);
     });
   });
 });
