@@ -312,7 +312,7 @@ contract Implementation is
         require(_isReserveEnough(), "I");
 
         // Check asset value
-        uint256 totalAssetValue = __getTotalAssetValue();
+        uint256 totalAssetValue = getTotalAssetValue();
         uint256 minTotalAssetValue = (lastTotalAssetValue *
             comptroller.execAssetValueToleranceRate()) / RATE_BASE;
         // TODO: replace err msg: Insufficient total value for execution

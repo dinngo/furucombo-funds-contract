@@ -7,6 +7,9 @@ import {IComptroller} from "../interfaces/IComptroller.sol";
 import {Implementation} from "../Implementation.sol";
 
 contract ImplementationMock is Implementation {
+    uint256 public totalAssetValueMock;
+    bool public totalAssetValueMocked;
+
     constructor(IDSProxyRegistry dsProxyRegistry_)
         Implementation(dsProxyRegistry_)
     {}
@@ -17,6 +20,27 @@ contract ImplementationMock is Implementation {
 
     function pendMock() external {
         _pend();
+    }
+
+    /////////////////////////////////////////////////////
+    // General
+    /////////////////////////////////////////////////////
+    function setTotalAssetValueMock(uint256 totalAssetValue) external {
+        totalAssetValueMock = totalAssetValue;
+        totalAssetValueMocked = true;
+    }
+
+    function getTotalAssetValue()
+        public
+        view
+        override(Implementation)
+        returns (uint256)
+    {
+        if (totalAssetValueMocked) {
+            return totalAssetValueMock;
+        } else {
+            return super.getTotalAssetValue();
+        }
     }
 
     /////////////////////////////////////////////////////
@@ -38,6 +62,10 @@ contract ImplementationMock is Implementation {
 
     function isReserveEnough() external view returns (bool) {
         return _isReserveEnough();
+    }
+
+    function setLastTotalAssetValue(uint256 value) external {
+        lastTotalAssetValue = value;
     }
 }
 
