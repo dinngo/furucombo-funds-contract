@@ -11,17 +11,12 @@ contract ImplementationMock is Implementation {
         Implementation(dsProxyRegistry_)
     {}
 
+    function reviewingMock() external {
+        _enterState(State.Reviewing);
+    }
+
     function pendMock() external {
         _pend();
-    }
-
-    function setComptroller(IComptroller comptroller_) external {
-        _setComptroller(comptroller_);
-    }
-
-    function setDSProxy() external {
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
     }
 
     /////////////////////////////////////////////////////

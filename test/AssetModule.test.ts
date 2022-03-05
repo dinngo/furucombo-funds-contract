@@ -44,21 +44,21 @@ describe('Asset module', function () {
       token0 = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
         .deploy();
-      await tokenD.deployed();
+      await token0.deployed();
       token1 = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
         .deploy();
-      await tokenD.deployed();
+      await token1.deployed();
       token2 = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
         .deploy();
-      await tokenD.deployed();
+      await token2.deployed();
       // initialize
       await assetModule.setComptroller(comptroller.address);
       await comptroller.permitDenominations([tokenD.address], [0]);
       await assetModule.setDenomination(tokenD.address);
       await assetModule.setShare();
-      await assetModule.setDSProxy();
+      await assetModule.setVault();
       vault = await assetModule.callStatic.vault();
     }
   );

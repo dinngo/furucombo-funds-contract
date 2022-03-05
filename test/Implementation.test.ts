@@ -19,7 +19,7 @@ import {
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
-  BASIS_POINT,
+  FEE_BASE,
 } from './utils/constants';
 
 import { simpleEncode, tokenProviderQuick } from './utils/utils';
@@ -181,10 +181,19 @@ describe('Implementation', function () {
     });
 
     it('finalize', async function () {
+      let allowance;
+
       await implementation.finalize();
       expect(await implementation.getAssetList()).to.be.deep.eq([
         denomination.address,
       ]);
+
+      // check vault approval
+      allowance = await denomination.allowance(
+        vault.address,
+        implementation.address
+      );
+      expect(allowance).to.be.eq(constants.MaxUint256);
     });
 
     it('should revert: finalize by non-owner', async function () {
@@ -440,8 +449,8 @@ describe('Implementation', function () {
     });
 
     it('set reserve execution', async function () {
-      await implementation.setReserveExecution(denominationDust);
-      expect(await implementation.reserveExecution()).to.be.eq(
+      await implementation.setReserveExecutionRatio(denominationDust);
+      expect(await implementation.reserveExecutionRatio()).to.be.eq(
         denominationDust
       );
     });
@@ -449,13 +458,13 @@ describe('Implementation', function () {
     it('should revert: set reserve execution at wrong stage', async function () {
       await implementation.finalize();
       await expect(
-        implementation.setReserveExecution(denominationDust)
+        implementation.setReserveExecutionRatio(denominationDust)
       ).to.be.revertedWith('InvalidState(2)');
     });
 
     it('should revert: set by non-owner', async function () {
       await expect(
-        implementation.connect(user).setReserveExecution(denominationDust)
+        implementation.connect(user).setReserveExecutionRatio(denominationDust)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
@@ -503,9 +512,13 @@ describe('Implementation', function () {
   });
 
   describe('Reserve', function () {
-    let totalAssetValue = constants.Zero;
-    let denominationReserve = constants.Zero;
-    let currentReserve = constants.Zero; // The numerator of reserve percentage. Denominator is 1e4
+    const reserveBase = FEE_BASE;
+    let currentReserve = constants.Zero;
+
+    beforeEach(async function () {
+      currentReserve = await transferAssetToVault();
+      implementation.reviewingMock();
+    });
 
     async function transferAssetToVault() {
       await implementation.finalize();
@@ -541,38 +554,36 @@ describe('Implementation', function () {
       expect(value).to.be.eq(expectedA.add(expectedB));
 
       // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
-      denominationReserve = value.div(10);
+      const denominationReserve = value.div(10);
       await denomination
         .connect(denominationProvider)
         .transfer(vault.address, denominationReserve);
 
-      totalAssetValue = await implementation.getTotalAssetValue();
-      currentReserve = denominationReserve
-        .mul(BASIS_POINT)
+      const totalAssetValue = await implementation.getTotalAssetValue();
+      const currentReserve = denominationReserve
+        .mul(reserveBase)
         .div(totalAssetValue);
+
+      return currentReserve;
     }
 
     it('reserve is totally enough', async function () {
-      await implementation.setReserveExecution(100); // 1%
-      await transferAssetToVault();
+      await implementation.setReserveExecutionRatio(100); // 1%
       expect(await implementation.isReserveEnough()).to.be.eq(true);
     });
 
     it('reserve is a little bit more than setting', async function () {
-      await implementation.setReserveExecution(currentReserve.sub(5)); // reserveExecution is 0.05% below currentReserve
-      await transferAssetToVault();
+      await implementation.setReserveExecutionRatio(currentReserve.sub(5)); // reserveExecution is 0.05% below currentReserve
       expect(await implementation.isReserveEnough()).to.be.eq(true);
     });
 
     it('reserve is totally not enough', async function () {
-      await implementation.setReserveExecution(1500); // 15%
-      await transferAssetToVault();
+      await implementation.setReserveExecutionRatio(1500); // 15%
       expect(await implementation.isReserveEnough()).to.be.eq(false);
     });
 
     it('reserve is a little bit less than setting', async function () {
-      await implementation.setReserveExecution(currentReserve.add(5)); // reserveExecution is 0.05% above currentReserve
-      await transferAssetToVault();
+      await implementation.setReserveExecutionRatio(currentReserve.add(5)); // reserveExecution is 0.05% above currentReserve
       expect(await implementation.isReserveEnough()).to.be.eq(false);
     });
   });

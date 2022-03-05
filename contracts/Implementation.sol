@@ -12,6 +12,8 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {ISetupAction} from "./interfaces/ISetupAction.sol";
+import {SetupAction} from "./actions/SetupAction.sol";
 
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
@@ -23,12 +25,14 @@ contract Implementation is
     ExecutionModule,
     FeeModule
 {
-    uint256 private constant _BASIS_POINT = 1e4;
+    uint256 private constant _RESERVE_BASE = 1e4;
 
     IDSProxyRegistry public immutable dsProxyRegistry;
+    ISetupAction public immutable setupAction;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) {
         dsProxyRegistry = dsProxyRegistry_;
+        setupAction = new SetupAction();
     }
 
     /////////////////////////////////////////////////////
@@ -42,7 +46,7 @@ contract Implementation is
     /// @param mFeeRate_ The management fee rate.
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
-    /// @param reserveExecution_ The reserve amount during execution.
+    /// @param reserveExecutionRatio_ The reserve ratio during execution.
     /// @param newOwner The owner to be assigned to the pool.
     function initialize(
         uint256 level_,
@@ -52,7 +56,7 @@ contract Implementation is
         uint256 mFeeRate_,
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
-        uint256 reserveExecution_,
+        uint256 reserveExecutionRatio_,
         address newOwner
     ) external whenState(State.Initializing) initialized {
         _setLevel(level_);
@@ -62,9 +66,8 @@ contract Implementation is
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
-        _setReserveExecution(reserveExecution_);
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
+        _setReserveExecutionRatio(reserveExecutionRatio_);
+        _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
         mortgageVault = comptroller_.mortgageVault();
 
@@ -78,6 +81,9 @@ contract Implementation is
         // Add denomination to list and never remove
         require(getAssetList().length == 0, "assetList is not empty");
         addAsset(address(denomination));
+
+        // Set approval for investor to redeem
+        _setVaultApproval(setupAction);
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
@@ -85,8 +91,6 @@ contract Implementation is
         require(isPendingResolvable(true), "reserve not enough");
 
         _settlePendingRedemption(true);
-
-        _resume();
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
@@ -116,8 +120,10 @@ contract Implementation is
             require(isPendingResolvable(false), "reserve not enough");
             _settlePendingRedemption(false);
         }
+
         super.close();
 
+        _settlePendingRedemption(false);
         mortgageVault.claim(msg.sender);
     }
 
@@ -133,13 +139,13 @@ contract Implementation is
         _setDenomination(denomination_);
     }
 
-    /// @notice Set reserve only during reviewing.
-    function setReserveExecution(uint256 reserve_)
+    /// @notice Set reserve ratio only during reviewing.
+    function setReserveExecutionRatio(uint256 reserve_)
         external
         onlyOwner
         whenState(State.Reviewing)
     {
-        _setReserveExecution(reserve_);
+        _setReserveExecutionRatio(reserve_);
     }
 
     /////////////////////////////////////////////////////
@@ -282,12 +288,12 @@ contract Implementation is
         return super._afterExecute(response);
     }
 
-    /// @notice Check funds reserve is enough or not.
-    /// @return The reserve is enough or not.
+    /// @notice Check funds reserve ratio is enough or not.
+    /// @return The reserve ratio is enough or not.
     function _isReserveEnough() internal view returns (bool) {
-        uint256 reserveBp = (getReserve() * _BASIS_POINT) /
+        uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
             __getTotalAssetValue();
-        return reserveBp >= reserveExecution;
+        return reserveRatio >= reserveExecutionRatio;
     }
 
     /////////////////////////////////////////////////////

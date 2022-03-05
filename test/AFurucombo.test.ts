@@ -17,6 +17,7 @@ import {
   Chainlink,
   AssetRegistry,
   IVariableDebtToken,
+  SimpleToken,
 } from '../typechain';
 
 import {
@@ -71,6 +72,8 @@ describe('AFurucombo', function () {
 
   let oracle: Chainlink;
   let registry: AssetRegistry;
+
+  let tokenD: SimpleToken;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -160,6 +163,11 @@ describe('AFurucombo', function () {
         ethers.utils.hexZeroPad(asciiToHex32('FURUCOMBO_HQUICKSWAP'), 32)
       );
 
+      tokenD = await (await ethers.getContractFactory('SimpleToken'))
+        .connect(user)
+        .deploy();
+      await tokenD.deployed();
+
       // Setup PoolProxy
       dsProxyRegistry = await ethers.getContractAt(
         'IDSProxyRegistry',
@@ -170,8 +178,12 @@ describe('AFurucombo', function () {
         .connect(user)
         .deploy(dsProxyRegistry.address);
       await proxy.deployed();
+
+      await proxy.setComptroller(comptroller.address);
+      await comptroller.permitDenominations([tokenD.address], [0]);
+      await proxy.setupDenomination(tokenD.address);
+      await proxy.setVault();
       await proxy.setLevel(1);
-      await proxy.setDSProxy();
 
       // Permit delegate calls
       comptroller.permitDelegateCalls(

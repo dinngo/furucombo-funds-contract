@@ -19,13 +19,20 @@ abstract contract ShareModule is PoolState {
     mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
     uint256 public totalPendingBonus;
-    uint256 private constant _BASIS_POINT = 1e4;
-    uint256 private constant _PENALTY = 100;
+    uint256 private constant _PENALTY_BASE = 1e4;
 
-    event Purchased(uint256 assetAmount, uint256 shareAmount);
-    event Redeemed(uint256 assetAmount, uint256 shareAmount);
-    event RedemptionPended(uint256 shareAmount);
-    event RedemptionClaimed(uint256 assetAmount);
+    event Purchased(
+        address indexed user,
+        uint256 assetAmount,
+        uint256 shareAmount
+    );
+    event Redeemed(
+        address indexed user,
+        uint256 assetAmount,
+        uint256 shareAmount
+    );
+    event RedemptionPended(address indexed user, uint256 shareAmount);
+    event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
     /// @return share The share amount being purchased.
@@ -91,8 +98,9 @@ abstract contract ShareModule is PoolState {
     /// @return balance The balance being claimed.
     function claimPendingRedemption() public virtual returns (uint256 balance) {
         balance = pendingRedemptions[msg.sender];
+        pendingRedemptions[msg.sender] = 0;
         denomination.safeTransfer(msg.sender, balance);
-        emit RedemptionClaimed(balance);
+        emit RedemptionClaimed(msg.sender, balance);
     }
 
     function isPendingResolvable(bool applyPenalty) public view returns (bool) {
@@ -105,6 +113,27 @@ abstract contract ShareModule is PoolState {
         if (reserve < redeemSharesBalance) return false;
         console.log("4");
         return true;
+    }
+
+    /// @notice Calculate the max redeemable balance of the given share amount.
+    /// @param share The share amount to be queried.
+    /// @return shareLeft The share amount left due to insufficient reserve.
+    /// @return balance The max redeemable balance from reserve.
+    function calculateRedeemableBalance(uint256 share)
+        public
+        view
+        virtual
+        returns (uint256 shareLeft, uint256 balance)
+    {
+        balance = calculateBalance(share);
+        uint256 reserve = __getReserve();
+
+        // insufficient reserve
+        if (balance > reserve) {
+            uint256 shareToBurn = calculateShare(reserve);
+            shareLeft = share - shareToBurn;
+            balance = reserve;
+        }
     }
 
     function _settlePendingRedemption(bool applyPenalty)
@@ -124,14 +153,22 @@ abstract contract ShareModule is PoolState {
         uint256 totalRedemption = _redeem(address(this), redeemShares);
         console.log("7 totalRedemption:%d", totalRedemption);
         console.log("8 pendingAccountList:%d", pendingAccountList.length);
-        while (pendingAccountList.length > 0) {
-            address user = pendingAccountList[pendingAccountList.length - 1];
+
+        uint256 pendingAccountListLength = pendingAccountList.length;
+        for (uint256 i = 0; i < pendingAccountListLength; i++) {
+            address user = pendingAccountList[i];
+
             uint256 share = pendingShares[user];
+            pendingShares[user] = 0;
             uint256 redemption = (totalRedemption * share) / totalPendingShare;
             pendingRedemptions[user] += redemption;
-            pendingAccountList.pop();
         }
+
         console.log("9 totalPendingBonus:%d", totalPendingBonus);
+
+        // remove all pending accounts
+        delete pendingAccountList;
+
         totalPendingShare = 0;
         if (totalPendingBonus != 0) {
             uint256 unusedBonus = totalPendingBonus;
@@ -166,7 +203,10 @@ abstract contract ShareModule is PoolState {
         console.log("3 share:%d", share);
         if (state == State.RedemptionPending) {
             console.log("4");
-            uint256 bonus = (share * (_PENALTY)) / (_BASIS_POINT - _PENALTY);
+
+            uint256 penalty = _getPendingRedemptionPenalty();
+            uint256 bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
+
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
             console.log("5 bonus:%d", bonus);
@@ -179,8 +219,10 @@ abstract contract ShareModule is PoolState {
         console.log("11");
         trySettleRedemption(true);
         _callAfterPurchase(share);
+
         console.log("12");
-        emit Purchased(balance, share);
+
+        emit Purchased(user, balance, share);
     }
 
     function trySettleRedemption(bool applyPenalty) internal {
@@ -206,15 +248,20 @@ abstract contract ShareModule is PoolState {
         returns (uint256)
     {
         _callBeforeRedeem(share);
-        (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
+        (uint256 shareLeft, uint256 balance) = calculateRedeemableBalance(
+            share
+        );
+        uint256 shareRedeemed = share - shareLeft;
+        shareToken.burn(user, shareRedeemed);
+
         if (shareLeft != 0) {
             _pend();
             _redeemPending(user, shareLeft);
         }
-        uint256 shareRedeemed = share - shareLeft;
+
         denomination.safeTransferFrom(address(vault), user, balance);
         _callAfterRedeem(shareRedeemed);
-        emit Redeemed(balance, shareRedeemed);
+        emit Redeemed(user, balance, shareRedeemed);
 
         return balance;
     }
@@ -224,14 +271,15 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256)
     {
-        uint256 effectiveShare = (share * (_BASIS_POINT - _PENALTY)) /
-            _BASIS_POINT;
+        uint256 penalty = _getPendingRedemptionPenalty();
+        uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
+            _PENALTY_BASE;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += effectiveShare;
         totalPendingShare += effectiveShare;
         totalPendingBonus += (share - effectiveShare);
         shareToken.move(user, address(this), share);
-        emit RedemptionPended(share);
+        emit RedemptionPended(user, share);
 
         return 0;
     }
@@ -243,24 +291,6 @@ abstract contract ShareModule is PoolState {
     {
         share = calculateShare(balance);
         shareToken.mint(user, share);
-    }
-
-    function _removeShare(address user, uint256 share)
-        internal
-        virtual
-        returns (uint256 shareLeft, uint256 balance)
-    {
-        balance = calculateBalance(share);
-        uint256 reserve = __getReserve();
-        if (balance > reserve) {
-            uint256 shareToBurn = calculateShare(reserve);
-            shareLeft = share - shareToBurn;
-            balance = reserve;
-            shareToken.burn(user, shareToBurn);
-        } else {
-            shareLeft = 0;
-            shareToken.burn(user, share);
-        }
     }
 
     function _callBeforePurchase(uint256 amount) internal virtual {
@@ -281,6 +311,15 @@ abstract contract ShareModule is PoolState {
     function _callAfterRedeem(uint256 amount) internal virtual {
         amount;
         return;
+    }
+
+    function _getPendingRedemptionPenalty()
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        return comptroller.pendingRedemptionPenalty();
     }
 
     function __getTotalAssetValue() internal view virtual returns (uint256);
