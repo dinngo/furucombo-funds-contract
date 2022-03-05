@@ -8,6 +8,8 @@ interface IPool {
 
     function level() external returns (uint256);
 
+    function vault() external view returns (address);
+
     function initialize(
         uint256 level,
         address comptroller,

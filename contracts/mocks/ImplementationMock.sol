@@ -19,15 +19,6 @@ contract ImplementationMock is Implementation {
         _pend();
     }
 
-    function setComptroller(IComptroller comptroller_) external {
-        _setComptroller(comptroller_);
-    }
-
-    function setDSProxy() external {
-        address dsProxy_ = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy_));
-    }
-
     /////////////////////////////////////////////////////
     // General
     /////////////////////////////////////////////////////

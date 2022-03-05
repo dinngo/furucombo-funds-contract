@@ -14,6 +14,7 @@ import {
   IERC20,
   AssetRegistry,
   Chainlink,
+  SimpleToken,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -55,6 +56,8 @@ describe('Task Executor', function () {
 
   let oracle: Chainlink;
   let registry: AssetRegistry;
+
+  let tokenD: SimpleToken;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -126,8 +129,17 @@ describe('Task Executor', function () {
         .connect(user)
         .deploy(dsProxyRegistry.address);
       await proxy.deployed();
+
+      tokenD = await (await ethers.getContractFactory('SimpleToken'))
+        .connect(user)
+        .deploy();
+      await tokenD.deployed();
+      //initialize
+      await proxy.setComptroller(comptroller.address);
+      await comptroller.permitDenominations([tokenD.address], [0]);
+      await proxy.setupDenomination(tokenD.address);
       await proxy.setLevel(1);
-      await proxy.setDSProxy();
+      await proxy.setVault();
 
       // Permit delegate calls
       comptroller.permitDelegateCalls(

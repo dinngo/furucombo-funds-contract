@@ -11,6 +11,13 @@ contract MortgageVault {
     uint256 public totalAmount;
     mapping(address => uint256) public poolAmounts;
 
+    event Staked(address indexed sender, address indexed pool, uint256 amount);
+    event Claimed(
+        address indexed receiver,
+        address indexed pool,
+        uint256 amount
+    );
+
     constructor(IERC20 mortgage_) {
         mortgage = mortgage_;
     }
@@ -24,6 +31,7 @@ contract MortgageVault {
         poolAmounts[pool] += amount;
         totalAmount += amount;
         mortgage.safeTransferFrom(sender, address(this), amount);
+        emit Staked(sender, pool, amount);
     }
 
     function claim(address receiver) external {
@@ -31,6 +39,8 @@ contract MortgageVault {
         uint256 amount = poolAmounts[pool];
         poolAmounts[pool] = 0;
         totalAmount -= amount;
+
         mortgage.safeTransfer(receiver, amount);
+        emit Claimed(receiver, pool, amount);
     }
 }

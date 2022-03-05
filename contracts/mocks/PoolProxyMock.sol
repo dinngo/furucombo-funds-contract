@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDSProxy, IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
 import {Implementation} from "../Implementation.sol";
+import {IComptroller} from "../interfaces/IComptroller.sol";
 
 contract PoolProxyMock is Implementation {
     constructor(IDSProxyRegistry dsProxyRegistry_)
@@ -46,12 +48,19 @@ contract PoolProxyMock is Implementation {
         return vault.execute{value: msg.value}(_target, _data);
     }
 
-    function setLevel(uint256 level) external {
-        _setLevel(level);
+    function setLevel(uint256 level_) external {
+        _setLevel(level_);
     }
 
-    function setDSProxy() external {
-        address dsProxy = dsProxyRegistry.build();
-        _setDSProxy(IDSProxy(dsProxy));
+    function setVault() external {
+        _setVault(dsProxyRegistry);
+    }
+
+    function setComptroller(IComptroller comptroller_) external {
+        _setComptroller(comptroller_);
+    }
+
+    function setupDenomination(IERC20 denomination_) external {
+        _setDenomination(denomination_);
     }
 }

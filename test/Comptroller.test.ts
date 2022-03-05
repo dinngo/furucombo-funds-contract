@@ -543,6 +543,12 @@ describe('Comptroller', function () {
         await comptroller.setStakedTier(level, stakeAmount);
       });
 
+      it('should revert: invalid creator', async function () {
+        await expect(
+          factory.connect(user).createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
+        ).to.be.revertedWith('Invalid creator');
+      })
+
       it('should stake for the given tier', async function () {
         const tokenMUserBefore = await tokenM.callStatic.balanceOf(
           user.address
@@ -551,6 +557,7 @@ describe('Comptroller', function () {
           mortgageVault.address
         );
         await tokenM.connect(user).approve(mortgageVault.address, stakeAmount);
+        await comptroller.permitCreators([user.address]);
         const receipt = await factory
           .connect(user)
           .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST');

@@ -9,7 +9,12 @@ import {IPool} from "./interfaces/IPool.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
 contract PoolProxyFactory {
-    event PoolCreated(address indexed newPool);
+    event PoolCreated(
+        address indexed newPool,
+        address comptroller,
+        address shareToken,
+        address vault
+    );
 
     IComptroller public comptroller;
 
@@ -26,7 +31,8 @@ contract PoolProxyFactory {
         uint256 reserveExecutionRatio,
         string memory shareTokenName
     ) external returns (address) {
-        IMortgageVault vault = comptroller.mortgageVault();
+        require(comptroller.isValidCreator(msg.sender), "Invalid creator");
+        IMortgageVault mortgageVault = comptroller.mortgageVault();
         uint256 mortgageAmount = comptroller.stakedTier(level);
         // Can be customized
         ShareToken share = new ShareToken(shareTokenName, "FFST");
@@ -44,9 +50,14 @@ contract PoolProxyFactory {
         );
 
         IPool pool = IPool(address(new PoolProxy(address(comptroller), data)));
-        vault.stake(msg.sender, address(pool), mortgageAmount);
+        mortgageVault.stake(msg.sender, address(pool), mortgageAmount);
         share.transferOwnership(address(pool));
-        emit PoolCreated(address(pool));
+        emit PoolCreated(
+            address(pool),
+            address(comptroller),
+            address(share),
+            pool.vault()
+        );
         return address(pool);
     }
 }

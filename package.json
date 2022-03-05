@@ -10,7 +10,8 @@
     "compile": "npx hardhat compile",
     "lint:solhint": "solhint \"contracts/**/*.sol\"",
     "lint:prettier": "scripts/prettier.sh",
-    "deploy": "scripts/deploy.sh"
+    "deploy": "scripts/deploy.sh",
+    "deploy:beta": "hardhat deploy --network beta"
   },
   "repository": {
     "type": "git",
