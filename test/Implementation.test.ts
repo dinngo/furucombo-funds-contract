@@ -578,6 +578,11 @@ describe('Implementation', function () {
   });
 
   describe('execute', function () {
-    it('should resolve RedemptionPending state after exec', function () {});
+    it('resolve RedemptionPending state after execute', async function () {
+      // Make fund go to RedemptionPending state
+      const reserve = await implementation.getReserve();
+      const redeemAmount = reserve.add(ethers.utils.parseEther('5'));
+      await implementation.redeem(redeemAmount);
+    });
   });
 });
