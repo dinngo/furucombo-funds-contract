@@ -576,4 +576,8 @@ describe('Implementation', function () {
       expect(await implementation.isReserveEnough()).to.be.eq(false);
     });
   });
+
+  describe('execute', function () {
+    it('should resolve RedemptionPending state after exec', function () {});
+  });
 });

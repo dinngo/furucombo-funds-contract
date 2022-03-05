@@ -6,12 +6,14 @@ import {
   ShareModuleMock,
   SimpleToken,
   ShareToken,
+  ExecutionModuleMock,
 } from '../typechain';
 import { DS_PROXY_REGISTRY } from './utils/constants';
 
 describe('Share module', function () {
   let comptroller: Comptroller;
   let shareModule: ShareModuleMock;
+  let executionModule: ExecutionModuleMock;
   let shareToken: ShareToken;
   let user1: Wallet;
   let user2: Wallet;
@@ -28,6 +30,14 @@ describe('Share module', function () {
         .connect(user1)
         .deploy(DS_PROXY_REGISTRY);
       await shareModule.deployed();
+
+      executionModule = await (
+        await ethers.getContractFactory('ExecutionModuleMock')
+      )
+        .connect(user1)
+        .deploy(DS_PROXY_REGISTRY);
+      await executionModule.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(
@@ -374,21 +384,28 @@ describe('Share module', function () {
       await shareModule.purchase(totalAsset);
       await shareModule.setReserve(totalAsset.sub(pendingAsset));
       await shareModule.setTotalAssetValue(totalAsset);
-      await shareModule.redeem(totalAsset);
+      await shareModule.redeem(totalAsset); // Now the pending redemption amount is pendingShare(pendingAsset)
       await shareModule.setReserve(0);
       await shareModule.setTotalAssetValue(pendingAsset);
     });
 
-    it('should resolve pending after purchase', async function () {
-      console.log('state:' + (await shareModule.state()));
-      const purchaseAmount = ethers.utils.parseEther('50');
-      await shareModule.setReserve(purchaseAmount.sub(pendingAsset));
+    it('should resolve RedemptionPending state after purchase', async function () {
+      expect(await shareModule.state()).to.be.eq(3); // RedemptionPending
+
+      const purchaseAmount = pendingAsset.mul(3);
+      await shareModule.setReserve(purchaseAmount.sub(pendingAsset)); // Make sure reserve is more than pendingAsset
       await expect(shareModule.purchase(purchaseAmount))
         .to.emit(shareModule, 'Purchased')
         .to.emit(shareModule, 'Redeemed');
 
       console.log('after state:' + (await shareModule.state()));
-      expect(await shareModule.state()).to.be.eq(2);
+      expect(await shareModule.state()).to.be.eq(2); // Executing
+    });
+
+    it('should resolve RedemptionPending state after exec', async function () {
+      expect(await shareModule.state()).to.be.eq(3); // RedemptionPending
+
+      expect(await shareModule.state()).to.be.eq(2); // Executing
     });
   });
 });
