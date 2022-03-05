@@ -28,7 +28,7 @@ contract PoolProxyFactory {
         uint256 mFeeRate,
         uint256 pFeeRate,
         uint256 crystallizationPeriod,
-        uint256 reserveExecution,
+        uint256 reserveExecutionRatio,
         string memory shareTokenName
     ) external returns (address) {
         require(comptroller.isValidCreator(msg.sender), "Invalid creator");
@@ -45,7 +45,7 @@ contract PoolProxyFactory {
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecution,
+            reserveExecutionRatio,
             msg.sender
         );
 
