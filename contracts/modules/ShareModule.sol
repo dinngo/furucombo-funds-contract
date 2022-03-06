@@ -44,15 +44,17 @@ abstract contract ShareModule is PoolState {
         share = _purchase(msg.sender, balance);
     }
 
-    /// @notice Redeem with the given share amount. Can only redeem when pool
-    /// is not under liquidation.
-    function redeem(uint256 share)
+    /// @notice Redeem with the given share amount. Need to wait when pool is under liquidation
+    function redeem(uint256 share, bool acceptPending)
         public
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Closed)
         returns (uint256 balance)
     {
         if (state == State.RedemptionPending) {
+            if (!acceptPending) {
+                revert("Redeem in pending without permission");
+            }
             balance = _redeemPending(msg.sender, share);
         } else {
             balance = _redeem(msg.sender, share);
