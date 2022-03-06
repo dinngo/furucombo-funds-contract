@@ -61,19 +61,20 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
     function repay(
         address asset,
         uint256 amount,
-        uint256 rateMode,
-        address onBehalfOf
+        uint256 rateMode
     ) external payable returns (uint256 remainDebt) {
         _notMaticToken(asset);
+        address onBehalfOf = _getSender();
         remainDebt = _repay(asset, amount, rateMode, onBehalfOf);
     }
 
-    function repayETH(
-        uint256 amount,
-        uint256 rateMode,
-        address onBehalfOf
-    ) external payable returns (uint256 remainDebt) {
+    function repayETH(uint256 amount, uint256 rateMode)
+        external
+        payable
+        returns (uint256 remainDebt)
+    {
         IWMATIC(WMATIC).deposit{value: amount}();
+        address onBehalfOf = _getSender();
         remainDebt = _repay(WMATIC, amount, rateMode, onBehalfOf);
 
         _updateToken(WMATIC);

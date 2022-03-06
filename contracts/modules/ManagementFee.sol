@@ -10,7 +10,7 @@ abstract contract ManagementFee {
     using ABDKMath64x64 for uint256;
 
     int128 private _feeRate64x64;
-    uint256 public constant FEE_BASE = 1e4;
+    uint256 private constant _FEE_BASE = 1e4;
     int128 public constant FEE_BASE64x64 = 1 << 64;
     uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 public lastMFeeClaimTime;
@@ -22,7 +22,7 @@ abstract contract ManagementFee {
         virtual
         returns (int128)
     {
-        return _setManagementFeeRate(feeRate.divu(FEE_BASE));
+        return _setManagementFeeRate(feeRate.divu(_FEE_BASE));
     }
 
     /// @dev Calculate the effective fee rate to achieve the fee rate in an

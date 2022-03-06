@@ -26,6 +26,20 @@ contract FurucomboProxyMock is FurucomboProxy, GasProfiler {
         return result;
     }
 
+    function execMockNotRefund(address to, bytes memory data)
+        external
+        payable
+        returns (bytes memory result)
+    {
+        _preProcess();
+        _setBase();
+        result = _exec(to, data, 0);
+        _setPostProcess(to);
+        _deltaGas("Gas");
+        emit RecordHandlerResult(result);
+        return result;
+    }
+
     function _preProcess() internal override {
         // Set the sender.
         _setSender();

@@ -21,6 +21,7 @@ describe('Share module', function () {
   const totalAsset = ethers.utils.parseEther('100');
   const totalShare = totalAsset;
   const acceptPending = false;
+  const penalty = 100;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -64,6 +65,7 @@ describe('Share module', function () {
   beforeEach(async function () {
     await setupTest();
     await tokenD.approve(shareModule.address, constants.MaxUint256);
+    await shareModule.setPendingRedemptionPenalty(penalty);
   });
 
   describe('Purchase', function () {
@@ -250,7 +252,6 @@ describe('Share module', function () {
   describe('Settle pending redemption', function () {
     const pendingShare = ethers.utils.parseEther('20');
     const pendingAsset = pendingShare;
-    const penalty = 100;
     const penaltyBase = 10000;
     const actualShare = pendingShare
       .mul(penaltyBase - penalty)
@@ -338,7 +339,6 @@ describe('Share module', function () {
   describe('Claim pending redemption', function () {
     const pendingShare = ethers.utils.parseEther('20');
     const pendingAsset = pendingShare;
-    const penalty = 100;
     const penaltyBase = 10000;
 
     beforeEach(async function () {
@@ -371,6 +371,7 @@ describe('Share module', function () {
     });
 
     it('should success when claiming with difference user', async function () {
+      const acceptPending = true;
       // Transfer part of the share to user 2
       const redeemShare = pendingShare.div(2);
       const actualShare = redeemShare

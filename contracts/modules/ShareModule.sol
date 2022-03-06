@@ -18,7 +18,6 @@ abstract contract ShareModule is PoolState {
     uint256 public totalPendingShare;
     uint256 public totalPendingBonus;
     uint256 private constant _PENALTY_BASE = 1e4;
-    uint256 private constant _PENALTY = 100;
 
     event Purchased(
         address indexed user,
@@ -95,6 +94,27 @@ abstract contract ShareModule is PoolState {
         balance = (share * assetValue) / shareAmount;
     }
 
+    /// @notice Calculate the max redeemable balance of the given share amount.
+    /// @param share The share amount to be queried.
+    /// @return shareLeft The share amount left due to insufficient reserve.
+    /// @return balance The max redeemable balance from reserve.
+    function calculateRedeemableBalance(uint256 share)
+        public
+        view
+        virtual
+        returns (uint256 shareLeft, uint256 balance)
+    {
+        balance = calculateBalance(share);
+        uint256 reserve = __getReserve();
+
+        // insufficient reserve
+        if (balance > reserve) {
+            uint256 shareToBurn = calculateShare(reserve);
+            shareLeft = share - shareToBurn;
+            balance = reserve;
+        }
+    }
+
     function _settlePendingRedemption(bool applyPenalty)
         internal
         returns (bool)
@@ -147,8 +167,9 @@ abstract contract ShareModule is PoolState {
     {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
+        uint256 penalty = _getPendingRedemptionPenalty();
         if (state == State.RedemptionPending) {
-            uint256 bonus = (share * (_PENALTY)) / (_PENALTY_BASE - _PENALTY);
+            uint256 bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
@@ -165,12 +186,17 @@ abstract contract ShareModule is PoolState {
         returns (uint256)
     {
         _callBeforeRedeem(share);
-        (uint256 shareLeft, uint256 balance) = _removeShare(user, share);
+        (uint256 shareLeft, uint256 balance) = calculateRedeemableBalance(
+            share
+        );
+        uint256 shareRedeemed = share - shareLeft;
+        shareToken.burn(user, shareRedeemed);
+
         if (shareLeft != 0) {
             _pend();
             _redeemPending(user, shareLeft);
         }
-        uint256 shareRedeemed = share - shareLeft;
+
         denomination.safeTransferFrom(address(vault), user, balance);
         _callAfterRedeem(shareRedeemed);
         emit Redeemed(user, balance, shareRedeemed);
@@ -183,7 +209,8 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256)
     {
-        uint256 effectiveShare = (share * (_PENALTY_BASE - _PENALTY)) /
+        uint256 penalty = _getPendingRedemptionPenalty();
+        uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += effectiveShare;
@@ -204,24 +231,6 @@ abstract contract ShareModule is PoolState {
         shareToken.mint(user, share);
     }
 
-    function _removeShare(address user, uint256 share)
-        internal
-        virtual
-        returns (uint256 shareLeft, uint256 balance)
-    {
-        balance = calculateBalance(share);
-        uint256 reserve = __getReserve();
-        if (balance > reserve) {
-            uint256 shareToBurn = calculateShare(reserve);
-            shareLeft = share - shareToBurn;
-            balance = reserve;
-            shareToken.burn(user, shareToBurn);
-        } else {
-            shareLeft = 0;
-            shareToken.burn(user, share);
-        }
-    }
-
     function _callBeforePurchase(uint256 amount) internal virtual {
         amount;
         return;
@@ -240,6 +249,15 @@ abstract contract ShareModule is PoolState {
     function _callAfterRedeem(uint256 amount) internal virtual {
         amount;
         return;
+    }
+
+    function _getPendingRedemptionPenalty()
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        return comptroller.pendingRedemptionPenalty();
     }
 
     function __getTotalAssetValue() internal view virtual returns (uint256);
