@@ -200,7 +200,7 @@ contract Implementation is
                 comptroller.getDenominationDust(address(denomination))
             );
 
-            if (value > dust || value < 0) {
+            if (value >= dust || value < 0) {
                 super._addAsset(asset);
             }
         }
