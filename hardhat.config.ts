@@ -41,6 +41,8 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
+      allowUnlimitedContractSize: true,
+      blockGasLimit: 900000000,
     },
     beta: {
       url: process.env.BETA_URL || '',

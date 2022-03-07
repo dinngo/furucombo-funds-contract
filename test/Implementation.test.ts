@@ -9,6 +9,9 @@ import {
   ERC20,
   AssetRouter,
   MortgageVault,
+  PoolFooAction,
+  PoolFoo,
+  TaskExecutor,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -20,9 +23,15 @@ import {
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
   FEE_BASE,
+  WL_ANY_SIG,
 } from './utils/constants';
 
-import { simpleEncode, tokenProviderQuick } from './utils/utils';
+import {
+  simpleEncode,
+  tokenProviderQuick,
+  mwei,
+  getCallData,
+} from './utils/utils';
 
 describe('Implementation', function () {
   const denominationAddress = USDC_TOKEN;
@@ -38,9 +47,11 @@ describe('Implementation', function () {
   const execFeePercentage = 200; // 20%
   const pendingExpiration = 86400; // 1 day
   const level = 1;
+  const reserveBase = FEE_BASE;
 
   let comptroller: Comptroller;
   let implementation: ImplementationMock;
+  let taskExecutor: TaskExecutor;
   let vault: IDSProxy;
   let oracle: Chainlink;
 
@@ -59,6 +70,8 @@ describe('Implementation', function () {
 
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
+  let fooAction: PoolFooAction;
+  let foo: PoolFoo;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -154,8 +167,65 @@ describe('Implementation', function () {
         'IDSProxy',
         await implementation.vault()
       );
+
+      taskExecutor = await (
+        await ethers.getContractFactory('TaskExecutor')
+      ).deploy(owner.address, comptroller.address);
+      await taskExecutor.deployed();
+      await comptroller.setExecAction(taskExecutor.address);
+
+      fooAction = await (
+        await ethers.getContractFactory('PoolFooAction')
+      ).deploy();
+      await fooAction.deployed();
+
+      foo = await (await ethers.getContractFactory('PoolFoo')).deploy();
+      await foo.deployed();
     }
   );
+
+  async function transferAssetToVault() {
+    await implementation.finalize();
+
+    // Transfer asset to vault
+    const expectedA = await oracle.calcConversionAmount(
+      tokenA.address,
+      tokenAAmount,
+      denomination.address
+    );
+    const expectedB = await oracle.calcConversionAmount(
+      tokenB.address,
+      tokenBAmount,
+      denomination.address
+    );
+
+    // Permit asset
+    await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
+
+    // Transfer assets to vault
+    await tokenA.connect(tokenAProvider).transfer(vault.address, tokenAAmount);
+    await tokenB.connect(tokenBProvider).transfer(vault.address, tokenBAmount);
+
+    // Add assets to tracking list
+    await implementation.addAsset(tokenA.address);
+    await implementation.addAsset(tokenB.address);
+
+    const value = await implementation.getTotalAssetValue();
+    expect(value).to.be.eq(expectedA.add(expectedB));
+
+    // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
+    const denominationReserve = value.div(10);
+    await denomination
+      .connect(denominationProvider)
+      .transfer(vault.address, denominationReserve);
+
+    const totalAssetValue = await implementation.getTotalAssetValue();
+    const currentReserveRatio = denominationReserve
+      .mul(reserveBase)
+      .div(totalAssetValue);
+
+    return currentReserveRatio;
+  }
 
   beforeEach(async function () {
     await setupTest();
@@ -512,60 +582,12 @@ describe('Implementation', function () {
   });
 
   describe('Reserve', function () {
-    const reserveBase = FEE_BASE;
-    let currentReserve = constants.Zero;
+    let currentReserveRatio = constants.Zero;
 
     beforeEach(async function () {
-      currentReserve = await transferAssetToVault();
+      currentReserveRatio = await transferAssetToVault();
       implementation.reviewingMock();
     });
-
-    async function transferAssetToVault() {
-      await implementation.finalize();
-
-      // Transfer asset to vault
-      const expectedA = await oracle.calcConversionAmount(
-        tokenA.address,
-        tokenAAmount,
-        denomination.address
-      );
-      const expectedB = await oracle.calcConversionAmount(
-        tokenB.address,
-        tokenBAmount,
-        denomination.address
-      );
-
-      // Permit asset
-      await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
-
-      // Transfer assets to vault
-      await tokenA
-        .connect(tokenAProvider)
-        .transfer(vault.address, tokenAAmount);
-      await tokenB
-        .connect(tokenBProvider)
-        .transfer(vault.address, tokenBAmount);
-
-      // Add assets to tracking list
-      await implementation.addAsset(tokenA.address);
-      await implementation.addAsset(tokenB.address);
-
-      const value = await implementation.getTotalAssetValue();
-      expect(value).to.be.eq(expectedA.add(expectedB));
-
-      // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
-      const denominationReserve = value.div(10);
-      await denomination
-        .connect(denominationProvider)
-        .transfer(vault.address, denominationReserve);
-
-      const totalAssetValue = await implementation.getTotalAssetValue();
-      const currentReserve = denominationReserve
-        .mul(reserveBase)
-        .div(totalAssetValue);
-
-      return currentReserve;
-    }
 
     it('reserve is totally enough', async function () {
       await implementation.setReserveExecutionRatio(100); // 1%
@@ -573,7 +595,7 @@ describe('Implementation', function () {
     });
 
     it('reserve is a little bit more than setting', async function () {
-      await implementation.setReserveExecutionRatio(currentReserve.sub(5)); // reserveExecution is 0.05% below currentReserve
+      await implementation.setReserveExecutionRatio(currentReserveRatio.sub(5)); // reserveExecution is 0.05% below currentReserve
       expect(await implementation.isReserveEnough()).to.be.eq(true);
     });
 
@@ -583,17 +605,60 @@ describe('Implementation', function () {
     });
 
     it('reserve is a little bit less than setting', async function () {
-      await implementation.setReserveExecutionRatio(currentReserve.add(5)); // reserveExecution is 0.05% above currentReserve
+      await implementation.setReserveExecutionRatio(currentReserveRatio.add(5)); // reserveExecution is 0.05% above currentReserve
       expect(await implementation.isReserveEnough()).to.be.eq(false);
     });
   });
 
-  describe('execute', function () {
+  describe.only('execute', function () {
     it('resolve RedemptionPending state after execute', async function () {
+      await transferAssetToVault();
+      const currentReserve = await implementation.getReserve();
+
+      const redeemAmount = currentReserve.add(mwei('500'));
+      await denomination
+        .connect(denominationProvider)
+        .transfer(owner.address, redeemAmount.mul(2));
+
+      // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
+      await denomination.connect(owner).approve(implementation.address, 500);
+      await implementation.purchase(500);
+
       // Make fund go to RedemptionPending state
-      const reserve = await implementation.getReserve();
-      const redeemAmount = reserve.add(ethers.utils.parseEther('5'));
-      await implementation.redeem(redeemAmount);
+      const redeemShare = await implementation.calculateShare(redeemAmount);
+      await implementation.redeem(redeemShare);
+      expect(await implementation.state()).to.be.eq(3); // RedemptionPending
+
+      // Transfer some money to vault, so that able to resolve pending redemption
+      await denomination
+        .connect(denominationProvider)
+        .transfer(vault.address, redeemAmount.mul(2));
+
+      // Prepare task data and execute
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint1', [
+        foo.address,
+        expectNValue,
+      ]);
+
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      // Permit delegate calls
+      await comptroller.permitDelegateCalls(
+        await implementation.level(),
+        [fooAction.address],
+        [WL_ANY_SIG]
+      );
+      expect(await implementation.execute(data))
+        .to.emit(implementation, 'Redeemed')
+        .to.emit(denomination, 'Transfer');
+      expect(await implementation.state()).to.be.eq(2); // Executing
     });
   });
 });
