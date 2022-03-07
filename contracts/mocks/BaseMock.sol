@@ -49,7 +49,7 @@ contract BaseMock is PoolState {
         _setVaultApproval(setupAction);
     }
 
-    function setReserveExecution(uint256 reserve_) external {
-        _setReserveExecution(reserve_);
+    function setReserveExecutionRatio(uint256 reserve_) external {
+        _setReserveExecutionRatio(reserve_);
     }
 }

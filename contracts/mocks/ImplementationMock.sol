@@ -11,6 +11,10 @@ contract ImplementationMock is Implementation {
         Implementation(dsProxyRegistry_)
     {}
 
+    function reviewingMock() external {
+        _enterState(State.Reviewing);
+    }
+
     function pendMock() external {
         _pend();
     }
@@ -37,6 +41,10 @@ contract ImplementationMock is Implementation {
         CallActionMock action = new CallActionMock();
 
         return vault.execute(address(action), data);
+    }
+
+    function isReserveEnough() external view returns (bool) {
+        return _isReserveEnough();
     }
 }
 
