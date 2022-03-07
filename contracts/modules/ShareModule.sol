@@ -51,9 +51,7 @@ abstract contract ShareModule is PoolState {
         returns (uint256 balance)
     {
         if (state == State.RedemptionPending) {
-            if (!acceptPending) {
-                revert("Redeem in pending without permission");
-            }
+            require(acceptPending, "Redeem in pending without permission");
             balance = _redeemPending(msg.sender, share);
         } else {
             balance = _redeem(msg.sender, share);

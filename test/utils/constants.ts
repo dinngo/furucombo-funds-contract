@@ -188,3 +188,13 @@ export const WL_ANY_SIG = '0xffffffff';
 /* Event Signature */
 export const RecordHandlerResultSig =
   '0x90c726ff5efa7268723ee48df835144384bc0f012e89750782886764b5e54f16';
+
+/* Pool State */
+export const POOL_STATE = {
+  INITIALIZING: 0,
+  REVIEWING: 1,
+  EXECUTING: 2,
+  REDEMPTION_PENDING: 3,
+  LIQUIDATING: 4,
+  CLOSED: 5,
+};
