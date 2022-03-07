@@ -333,7 +333,9 @@ describe('Comptroller', function () {
         // check env before execution
         await comptroller.permitAssets(level, [tokenA]);
         expect(
-          await comptroller.connect(user).isValidateInitialAssets(level, [tokenA])
+          await comptroller
+            .connect(user)
+            .isValidateInitialAssets(level, [tokenA])
         ).to.be.equal(true);
       });
 
@@ -386,7 +388,9 @@ describe('Comptroller', function () {
 
         // check multiple assets
         expect(
-          await comptroller.connect(user).isValidateInitialAssets(level, [tokenA])
+          await comptroller
+            .connect(user)
+            .isValidateInitialAssets(level, [tokenA])
         ).to.be.equal(true);
         expect(
           await comptroller
@@ -554,9 +558,11 @@ describe('Comptroller', function () {
 
       it('should revert: invalid creator', async function () {
         await expect(
-          factory.connect(user).createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
+          factory
+            .connect(user)
+            .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
         ).to.be.revertedWith('Invalid creator');
-      })
+      });
 
       it('should stake for the given tier', async function () {
         const tokenMUserBefore = await tokenM.callStatic.balanceOf(
@@ -619,7 +625,7 @@ describe('Comptroller', function () {
     it('should revert: set zero asset router', async function () {
       await expect(
         comptroller.connect(owner).setAssetRouter(constants.AddressZero)
-      ).to.be.revertedWith('Comptroller: router zero address');
+      ).to.be.revertedWith('Comptroller: Zero address');
     });
   });
 
@@ -646,6 +652,12 @@ describe('Comptroller', function () {
       await expect(
         comptroller.connect(user).setFeeCollector(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('should revert: set zero address fee collector', async function () {
+      await expect(
+        comptroller.setFeeCollector(constants.AddressZero)
+      ).to.be.revertedWith('Comptroller: Zero address');
     });
 
     it('set fee percentage', async function () {
@@ -695,6 +707,12 @@ describe('Comptroller', function () {
       await expect(
         comptroller.connect(user).setPendingLiquidator(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('should revert: set zero address liquidator', async function () {
+      await expect(
+        comptroller.setPendingLiquidator(constants.AddressZero)
+      ).to.be.revertedWith('Comptroller: Zero address');
     });
 
     it('set expiration', async function () {
@@ -755,6 +773,12 @@ describe('Comptroller', function () {
       await expect(
         comptroller.connect(user).setExecAction(taskExecutor.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('should revert: set zero address execution action', async function () {
+      await expect(
+        comptroller.setExecAction(constants.AddressZero)
+      ).to.be.revertedWith('Comptroller: Zero address');
     });
   });
 });

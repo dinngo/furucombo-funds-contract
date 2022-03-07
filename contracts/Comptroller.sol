@@ -95,6 +95,11 @@ contract Comptroller is UpgradeableBeacon {
         _;
     }
 
+    modifier nonZeroAddress(address newSetter) {
+        require(newSetter != address(0), "Comptroller: Zero address");
+        _;
+    }
+
     // Public Function
     constructor(
         address implementation_,
@@ -138,7 +143,15 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Fee
-    function setFeeCollector(address collector) external onlyOwner {
+    function setFeeCollector(address collector)
+        external
+        nonZeroAddress(collector)
+        onlyOwner
+    {
+        require(
+            collector != address(0),
+            "Comptroller: shouldn't be zero address"
+        );
         execFeeCollector = collector;
         emit SetExecFeeCollector(collector);
     }
@@ -149,7 +162,11 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Pending redemption
-    function setPendingLiquidator(address liquidator) external onlyOwner {
+    function setPendingLiquidator(address liquidator)
+        external
+        nonZeroAddress(liquidator)
+        onlyOwner
+    {
         pendingLiquidator = liquidator;
         emit SetPendingLiquidator(liquidator);
     }
@@ -236,17 +253,21 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Asset Router
-    function setAssetRouter(IAssetRouter _assetRouter) external onlyOwner {
-        require(
-            address(_assetRouter) != address(0),
-            "Comptroller: router zero address"
-        );
+    function setAssetRouter(IAssetRouter _assetRouter)
+        external
+        nonZeroAddress(address(_assetRouter))
+        onlyOwner
+    {
         assetRouter = _assetRouter;
         emit SetAssetRouter(address(_assetRouter));
     }
 
     // Action
-    function setExecAction(address action) external onlyOwner {
+    function setExecAction(address action)
+        external
+        nonZeroAddress(action)
+        onlyOwner
+    {
         execAction = action;
         emit SetExecAction(action);
     }
