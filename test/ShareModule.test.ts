@@ -249,7 +249,7 @@ describe('Share module', function () {
     });
   });
 
-  describe('Settle pending redemption', function () {
+  describe('Pending redemption', function () {
     const pendingShare = ethers.utils.parseEther('20');
     const pendingAsset = pendingShare;
     const penaltyBase = 10000;
