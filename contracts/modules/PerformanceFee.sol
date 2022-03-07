@@ -42,6 +42,20 @@ abstract contract PerformanceFee {
         return _crystallizationPeriod;
     }
 
+    /// @notice Check if it can be crystallized.
+    function isCrystallable() public view virtual returns (bool) {
+        uint256 nowPeriod = _timeToPeriod(block.timestamp);
+        uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
+        return nowPeriod > lastPeriod;
+    }
+
+    /// @notice Returns the earliest time that can be crystallized next
+    /// even if more than one period has passed.
+    function getNextCrystallizeTime() public view returns (uint256) {
+        uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
+        return _periodToTime(lastPeriod + 1);
+    }
+
     /// @notice Set the performance fee rate.
     /// @param feeRate The fee rate on a 1e4 basis.
     function _setPerformanceFeeRate(uint256 feeRate)
@@ -58,13 +72,14 @@ abstract contract PerformanceFee {
     /// @notice Set the crystallization period.
     /// @param period The crystallization period to be set in second.
     function _setCrystallizationPeriod(uint256 period) internal virtual {
+        require(period > 0, "period should be greater than 0");
         _crystallizationPeriod = period;
     }
 
     /// @notice Crystallize for the performance fee.
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
-        require(_canCrystallize(), "Not yet");
+        require(isCrystallable(), "Not yet");
         _updatePerformanceFee();
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
@@ -142,16 +157,15 @@ abstract contract PerformanceFee {
         _feeSet += fee;
     }
 
-    function _canCrystallize() internal virtual returns (bool) {
-        uint256 nowPeriod = (block.timestamp - _crystallizationStart) /
-            _crystallizationPeriod;
-        uint256 lastPeriod = (_lastCrystallization - _crystallizationStart) /
-            _crystallizationPeriod;
-        if (nowPeriod > lastPeriod) {
-            return true;
-        } else {
-            return false;
-        }
+    /// @notice Convert the time to the number of crystallization periods.
+    function _timeToPeriod(uint256 timestamp) internal view returns (uint256) {
+        require(timestamp >= _crystallizationStart, "time before start");
+        return (timestamp - _crystallizationStart) / _crystallizationPeriod;
+    }
+
+    /// @notice Convert the number of crystallization periods to time.
+    function _periodToTime(uint256 period) internal view returns (uint256) {
+        return _crystallizationStart + period * _crystallizationPeriod;
     }
 
     /// @notice Get the share token of the pool.
