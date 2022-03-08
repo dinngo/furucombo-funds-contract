@@ -58,28 +58,31 @@ contract Implementation is
         uint256 crystallizationPeriod_,
         uint256 reserveExecutionRatio_,
         address newOwner
-    ) external whenState(State.Initializing) initialized {
+    ) external whenState(State.Initializing) {
         _setLevel(level_);
         _setComptroller(comptroller_);
         _setDenomination(denomination_);
-        _setShare(shareToken_);
+        _setShareToken(shareToken_);
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
         _setReserveExecutionRatio(reserveExecutionRatio_);
         _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
-        mortgageVault = comptroller_.mortgageVault();
+        _setMortgageVault(comptroller_);
 
         _review();
     }
 
     /// @notice Finalize the initialization of the pool.
-    function finalize() public onlyOwner initialized {
+    function finalize() public onlyOwner {
         _finalize();
 
         // Add denomination to list and never remove
-        require(getAssetList().length == 0, "assetList is not empty");
+        // TODO: replace err msg: assetList is not empty
+        require(getAssetList().length == 0, "a");
+        // TODO: replace err msg: Invalid denomination
+        require(comptroller.isValidDenomination(address(denomination)), "I");
         addAsset(address(denomination));
 
         // Set approval for investor to redeem
@@ -97,11 +100,13 @@ contract Implementation is
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
-        require(pendingStartTime != 0, "Pending does not start");
+        // TODO: replace err msg: Pending does not start
+        require(pendingStartTime != 0, "P");
+        // TODO: replace err msg: Pending does not expire
         require(
             block.timestamp >=
                 pendingStartTime + comptroller.pendingExpiration(),
-            "Pending does not expire"
+            "P"
         );
 
         _liquidate();
@@ -140,6 +145,33 @@ contract Implementation is
         _setDenomination(denomination_);
     }
 
+    /// @notice Set management fee rate only during reviewing.
+    function setManagementFeeRate(uint256 mFeeRate_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setManagementFeeRate(mFeeRate_);
+    }
+
+    /// @notice Set performance fee rate only during reviewing.
+    function setPerformanceFeeRate(uint256 pFeeRate_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setPerformanceFeeRate(pFeeRate_);
+    }
+
+    /// @notice Set crystallization period only during reviewing.
+    function setCrystallizationPeriod(uint256 crystallizationPeriod_)
+        external
+        onlyOwner
+        whenState(State.Reviewing)
+    {
+        _setCrystallizationPeriod(crystallizationPeriod_);
+    }
+
     /// @notice Set reserve ratio only during reviewing.
     function setReserveExecutionRatio(uint256 reserve_)
         external
@@ -166,8 +198,8 @@ contract Implementation is
 
     /// @notice Get the total asset value of the pool.
     /// @return The value of asset.
-    function __getTotalAssetValue()
-        internal
+    function getTotalAssetValue()
+        public
         view
         override(FeeModule, ShareModule)
         returns (uint256)
@@ -199,10 +231,8 @@ contract Implementation is
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
-        require(
-            comptroller.validateDealingAsset(level, asset),
-            "Invalid asset"
-        );
+        // TODO: replace err msg: Invalid asset
+        require(comptroller.validateDealingAsset(level, asset), "I");
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
@@ -269,7 +299,8 @@ contract Implementation is
         override
         returns (bool)
     {
-        require(_isReserveEnough(), "Insufficient reserve");
+        // TODO: replace err msg: Insufficient reserve
+        require(_isReserveEnough(), "I");
 
         // remove asset from assetList
         address[] memory assetList = getAssetList();
@@ -293,7 +324,7 @@ contract Implementation is
     /// @return The reserve ratio is enough or not.
     function _isReserveEnough() internal view returns (bool) {
         uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
-            __getTotalAssetValue();
+            getTotalAssetValue();
         return reserveRatio >= reserveExecutionRatio;
     }
 

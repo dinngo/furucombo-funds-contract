@@ -179,6 +179,10 @@ contract Comptroller is UpgradeableBeacon {
         require(denominations.length == dusts.length, "Invalid length");
 
         for (uint256 i = 0; i < denominations.length; i++) {
+            require(
+                address(denominations[i]) != address(0),
+                "Denomination should not be zero address"
+            );
             denomination[denominations[i]].isPermitted = true;
             denomination[denominations[i]].dust = dusts[i];
             emit PermitDenomination(denominations[i], dusts[i]);
