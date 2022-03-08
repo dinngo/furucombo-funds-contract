@@ -4,6 +4,8 @@ import { ethers, deployments } from 'hardhat';
 import { PerformanceFeeMock, ShareToken } from '../typechain';
 import { DS_PROXY_REGISTRY } from './utils/constants';
 
+/// @notice increase the block time need mine block, 
+/// the next view function will be correct.
 async function increaseNextBlockTimeBy(interval: number) {
   const blockNumber = await ethers.provider.getBlockNumber();
   let block = null;
