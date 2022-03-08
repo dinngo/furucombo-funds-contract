@@ -39,7 +39,7 @@ describe('Implementation', function () {
   const managementFeeRate = 0; // 0%
   const performanceFeeRate = 1000; // 10%
   const pendingExpiration = 86400; // 1 day
-  const CRYSTALLIZATION_PERIOD_MIN = 86400; // 1 day
+  const CRYSTALLIZATION_PERIOD_MIN = 1; // 1 sec
   const crystallizationPeriod = CRYSTALLIZATION_PERIOD_MIN;
   const level = 1;
   const reserveExecution = 0;
@@ -174,54 +174,51 @@ describe('Implementation', function () {
         expect(_level).to.be.gt(0);
         expect(_level).to.be.eq(level);
       });
-
       it('should set comptroller', async function () {
         const comptrollerAddr = await implementation.comptroller();
         expect(comptrollerAddr).to.be.not.eq(constants.AddressZero);
         expect(comptrollerAddr).to.be.eq(comptroller.address);
       });
-
       it('should set denomination', async function () {
         const denominationAddr = await implementation.denomination();
         expect(denominationAddr).to.be.not.eq(constants.AddressZero);
         expect(denominationAddr).to.be.eq(denomination.address);
       });
-
       it('should set share token', async function () {
         const shareTokenAddr = await implementation.shareToken();
         expect(shareTokenAddr).to.be.not.eq(constants.AddressZero);
         expect(shareTokenAddr).to.be.eq(shareToken.address);
       });
-
       it('should set management fee rate', async function () {
         const feeRate = await implementation.getManagementFeeRate();
         expect(feeRate).to.be.eq(BigNumber.from('18446744073709551616'));
       });
-
       it('should set performance fee rate', async function () {
-        const feeRate = await implementation.getFeeRate();
+        const feeRate = await implementation.getPerformanceFeeRate();
         expect(feeRate).to.be.eq(BigNumber.from('1844674407370955161'));
       });
-
       it('should set crystallization period', async function () {
         const _crystallizationPeriod =
           await implementation.getCrystallizationPeriod();
         expect(_crystallizationPeriod).to.be.gte(CRYSTALLIZATION_PERIOD_MIN);
         expect(_crystallizationPeriod).to.be.eq(crystallizationPeriod);
       });
-
       it('should set vault', async function () {
         expect(await implementation.vault()).to.be.not.eq(
           constants.AddressZero
         );
       });
-
       it('should set owner', async function () {
         const _owner = await implementation.owner();
         expect(_owner).to.be.not.eq(constants.AddressZero);
         expect(_owner).to.be.eq(owner.address);
       });
-
+      it('should set mortgage vault', async function () {
+        const mortgageVault = await comptroller.mortgageVault();
+        const _mortgageVault = await implementation.mortgageVault();
+        expect(_mortgageVault).to.be.not.eq(constants.AddressZero);
+        expect(_mortgageVault).to.be.eq(mortgageVault);
+      });
       it('should revert: twice initialization', async function () {
         await expect(
           implementation
@@ -265,7 +262,7 @@ describe('Implementation', function () {
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
         await expect(implementation.finalize()).to.be.revertedWith(
-          'Denomination is not valid'
+          'Invalid denomination'
         );
       });
     });
@@ -522,13 +519,9 @@ describe('Implementation', function () {
       });
 
       it('should revert: set by zero address', async function () {
-        await comptroller.permitDenominations(
-          [constants.AddressZero],
-          [denominationDust]
-        );
         await expect(
           implementation.setDenomination(constants.AddressZero)
-        ).to.be.revertedWith('Denomination should not be 0');
+        ).to.be.revertedWith('Invalid denomination');
       });
     });
 
@@ -559,16 +552,16 @@ describe('Implementation', function () {
         const maxRate = 1e4;
         await expect(
           implementation.setManagementFeeRate(maxRate)
-        ).to.be.revertedWith('fee should be less than 100%');
+        ).to.be.revertedWith('fee rate should be less than 100%');
       });
     });
 
     describe('Performance Fee Rate', function () {
-      const feeRate = BigNumber.from('0');
+      const feeRate = 0;
 
       it('set performance fee rate', async function () {
         await implementation.setPerformanceFeeRate(feeRate);
-        expect(await implementation.getFeeRate()).to.be.eq(BigNumber.from('0'));
+        expect(await implementation.getPerformanceFeeRate()).to.be.eq(0);
       });
 
       it('should revert: set performance fee rate at wrong stage', async function () {
@@ -588,7 +581,7 @@ describe('Implementation', function () {
         const maxRate = 1e4;
         await expect(
           implementation.setPerformanceFeeRate(maxRate)
-        ).to.be.revertedWith('fee should be less than 100%');
+        ).to.be.revertedWith('fee rate should be less than 100%');
       });
     });
 

@@ -499,6 +499,15 @@ describe('Comptroller', function () {
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
+    it('should revert: permit zero address denomination', async function () {
+      await expect(
+        comptroller.permitDenominations(
+          [tokenA, constants.AddressZero, tokenB],
+          [dustA, dustA, dustB]
+        )
+      ).to.be.revertedWith('Denomination should not be zero address');
+    });
+
     it('should revert: forbid denominations by non-owner', async function () {
       await expect(
         comptroller.connect(user).forbidDenominations([tokenA, tokenB])

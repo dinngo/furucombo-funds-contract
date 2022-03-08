@@ -67,7 +67,7 @@ contract Implementation is
         _setReserveExecution(reserveExecution_);
         _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
-        mortgageVault = comptroller_.mortgageVault();
+        _setMortgageVault(comptroller_);
 
         _review();
     }
@@ -80,7 +80,7 @@ contract Implementation is
         require(getAssetList().length == 0, "assetList is not empty");
         require(
             comptroller.isValidDenomination(address(denomination)),
-            "Denomination is not valid"
+            "Invalid denomination"
         );
         addAsset(address(denomination));
 

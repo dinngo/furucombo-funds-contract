@@ -55,14 +55,14 @@ describe('Performance fee', function () {
     it('should success when zero', async function () {
       const feeRate = BigNumber.from('0');
       await performanceFee.setPerformanceFeeRate(feeRate);
-      const result = await performanceFee.callStatic.getFeeRate();
+      const result = await performanceFee.callStatic.getPerformanceFeeRate();
       expect(result).to.be.eq(BigNumber.from('0'));
     });
 
     it('should success in normal range', async function () {
       const feeRate = BigNumber.from('1000');
       await performanceFee.setPerformanceFeeRate(feeRate);
-      const result = await performanceFee.callStatic.getFeeRate();
+      const result = await performanceFee.callStatic.getPerformanceFeeRate();
       expect(result).to.be.eq(BigNumber.from('1844674407370955161'));
     });
 

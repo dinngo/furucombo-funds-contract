@@ -106,7 +106,7 @@ abstract contract PoolState {
         );
         require(
             address(comptroller_) != address(0),
-            "Comptroller should not be 0"
+            "Comptroller should not be zero address"
         );
         comptroller = comptroller_;
     }
@@ -114,7 +114,7 @@ abstract contract PoolState {
     function _setDenomination(IERC20 denomination_) internal {
         require(
             comptroller.isValidDenomination(address(denomination_)),
-            "Denomination is not valid"
+            "Invalid denomination"
         );
         denomination = denomination_;
     }
@@ -126,16 +126,32 @@ abstract contract PoolState {
         );
         require(
             address(shareToken_) != address(0),
-            "Share token should not be 0"
+            "Share token should not be zero address"
         );
         shareToken = shareToken_;
+    }
+
+    function _setMortgageVault(IComptroller comptroller_) internal {
+        require(
+            address(mortgageVault) == address(0),
+            "MortgageVault is initialized"
+        );
+        require(
+            address(comptroller_) != address(0),
+            "Comptroller should not be zero address"
+        );
+        mortgageVault = comptroller_.mortgageVault();
+        require(
+            address(mortgageVault) != address(0),
+            "MortgageVault is not initialized"
+        );
     }
 
     function _setVault(IDSProxyRegistry dsProxyRegistry) internal {
         require(address(vault) == address(0), "Vault is initialized");
         require(
             address(dsProxyRegistry) != address(0),
-            "Registry should not be 0"
+            "Registry should not be zero address"
         );
 
         // deploy vault
@@ -144,11 +160,17 @@ abstract contract PoolState {
     }
 
     function _setVaultApproval(ISetupAction setupAction) internal {
-        require(address(vault) != address(0), "Vault should not be 0");
-        require(address(setupAction) != address(0), "Setup should not be 0");
+        require(
+            address(vault) != address(0),
+            "Vault should not be zero address"
+        );
+        require(
+            address(setupAction) != address(0),
+            "Setup should not be zero address"
+        );
         require(
             comptroller.isValidDenomination(address(denomination)),
-            "Denomination is not valid"
+            "Invalid denomination"
         );
 
         // set vault approval
