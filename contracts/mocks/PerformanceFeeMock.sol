@@ -49,11 +49,11 @@ contract PerformanceFeeMock is PerformanceFee {
 
     function redemptionPayout(uint256 amount) public {
         _updatePerformanceFee();
-        _redemptionPayout(amount);
         grossAssetValue =
             grossAssetValue -
             ((grossAssetValue * amount) / shareToken.grossTotalShare());
         shareToken.burn(msg.sender, amount);
+        _redemptionPayout(amount);
         _updateGrossSharePrice();
     }
 

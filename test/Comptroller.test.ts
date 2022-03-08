@@ -499,6 +499,15 @@ describe('Comptroller', function () {
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
+    it('should revert: permit zero address denomination', async function () {
+      await expect(
+        comptroller.permitDenominations(
+          [tokenA, constants.AddressZero, tokenB],
+          [dustA, dustA, dustB]
+        )
+      ).to.be.revertedWith('Denomination should not be zero address');
+    });
+
     it('should revert: forbid denominations by non-owner', async function () {
       await expect(
         comptroller.connect(user).forbidDenominations([tokenA, tokenB])
@@ -560,7 +569,7 @@ describe('Comptroller', function () {
         await comptroller.permitCreators([user.address]);
         const receipt = await factory
           .connect(user)
-          .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST');
+          .createPool(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
         const pool = await getEventArgs(receipt, 'PoolCreated');
         const tokenMUserAfter = await tokenM.callStatic.balanceOf(user.address);
         const tokenMVaultAfter = await tokenM.callStatic.balanceOf(
