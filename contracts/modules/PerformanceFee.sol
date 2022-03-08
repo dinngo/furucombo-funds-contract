@@ -164,7 +164,8 @@ abstract contract PerformanceFee {
 
     /// @notice Convert the time to the number of crystallization periods.
     function _timeToPeriod(uint256 timestamp) internal view returns (uint256) {
-        require(timestamp >= _crystallizationStart, "time before start");
+        // TODO: replace err msg: time before start
+        require(timestamp >= _crystallizationStart, "t");
         return (timestamp - _crystallizationStart) / _crystallizationPeriod;
     }
 
