@@ -611,7 +611,7 @@ describe('Implementation', function () {
     });
   });
 
-  describe.only('execute', function () {
+  describe('execute', function () {
     beforeEach(async function () {
       await transferAssetToVault();
       const currentReserve = await implementation.getReserve();
