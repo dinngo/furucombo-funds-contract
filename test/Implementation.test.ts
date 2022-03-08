@@ -261,9 +261,8 @@ describe('Implementation', function () {
 
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
-        await expect(implementation.finalize()).to.be.revertedWith(
-          'Invalid denomination'
-        );
+        // TODO: replace err msg: Invalid denomination
+        await expect(implementation.finalize()).to.be.revertedWith('I');
       });
     });
 
@@ -306,7 +305,8 @@ describe('Implementation', function () {
       it('should revert: pending does not start', async function () {
         await implementation.finalize();
         await expect(implementation.liquidate()).to.be.revertedWith(
-          'Pending does not start'
+          // TODO: replace err msg: Pending does not start
+          'P'
         );
       });
 
@@ -314,7 +314,8 @@ describe('Implementation', function () {
         await implementation.finalize();
         await implementation.pendMock();
         await expect(implementation.liquidate()).to.be.revertedWith(
-          'Pending does not expire'
+          // TODO: replace err msg: Pending does not expire
+          'P'
         );
       });
     });
@@ -378,7 +379,8 @@ describe('Implementation', function () {
       it('should revert: asset is not permitted', async function () {
         await expect(
           implementation.addAsset(tokenA.address)
-        ).to.be.revertedWith('Invalid asset');
+          // TODO: replace err msg: Invalid asset
+        ).to.be.revertedWith('I');
       });
 
       it('can not be added: zero balance of asset', async function () {
@@ -521,7 +523,8 @@ describe('Implementation', function () {
       it('should revert: set by zero address', async function () {
         await expect(
           implementation.setDenomination(constants.AddressZero)
-        ).to.be.revertedWith('Invalid denomination');
+          // TODO: replace err msg: Invalid denomination
+        ).to.be.revertedWith('I');
       });
     });
 
@@ -552,7 +555,8 @@ describe('Implementation', function () {
         const maxRate = 1e4;
         await expect(
           implementation.setManagementFeeRate(maxRate)
-        ).to.be.revertedWith('fee rate should be less than 100%');
+          // TODO: replace err msg: fee rate should be less than 100%
+        ).to.be.revertedWith('f');
       });
     });
 
@@ -581,7 +585,8 @@ describe('Implementation', function () {
         const maxRate = 1e4;
         await expect(
           implementation.setPerformanceFeeRate(maxRate)
-        ).to.be.revertedWith('fee rate should be less than 100%');
+          // TODO: replace err msg: fee rate should be less than 100%
+        ).to.be.revertedWith('f');
       });
     });
 
@@ -612,7 +617,8 @@ describe('Implementation', function () {
         const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
         await expect(
           implementation.setCrystallizationPeriod(shortPeriod)
-        ).to.be.revertedWith('Crystallization period too short');
+          // TODO: replace err msg: Crystallization period too short
+        ).to.be.revertedWith('C');
       });
     });
 

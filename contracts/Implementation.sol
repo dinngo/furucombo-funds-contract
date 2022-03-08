@@ -77,11 +77,10 @@ contract Implementation is
         _finalize();
 
         // Add denomination to list and never remove
-        require(getAssetList().length == 0, "assetList is not empty");
-        require(
-            comptroller.isValidDenomination(address(denomination)),
-            "Invalid denomination"
-        );
+        // TODO: replace err msg: assetList is not empty
+        require(getAssetList().length == 0, "a");
+        // TODO: replace err msg: Invalid denomination
+        require(comptroller.isValidDenomination(address(denomination)), "I");
         addAsset(address(denomination));
 
         // Set approval for investor to redeem
@@ -97,11 +96,13 @@ contract Implementation is
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
-        require(pendingStartTime != 0, "Pending does not start");
+        // TODO: replace err msg: Pending does not start
+        require(pendingStartTime != 0, "P");
+        // TODO: replace err msg: Pending does not expire
         require(
             block.timestamp >=
                 pendingStartTime + comptroller.pendingExpiration(),
-            "Pending does not expire"
+            "P"
         );
 
         _liquidate();
@@ -217,10 +218,8 @@ contract Implementation is
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
-        require(
-            comptroller.validateDealingAsset(level, asset),
-            "Invalid asset"
-        );
+        // TODO: replace err msg: Invalid asset
+        require(comptroller.validateDealingAsset(level, asset), "I");
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
@@ -287,7 +286,8 @@ contract Implementation is
         override
         returns (bool)
     {
-        require(__getReserve() >= reserveExecution, "Insufficient reserve");
+        // TODO: replace err msg: Insufficient reserve
+        require(__getReserve() >= reserveExecution, "I");
 
         // remove asset from assetList
         address[] memory assetList = getAssetList();

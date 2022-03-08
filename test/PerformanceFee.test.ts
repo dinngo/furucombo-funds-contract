@@ -185,9 +185,8 @@ describe('Performance fee', function () {
           await increaseNextBlockTimeBy(period.toNumber() * 0.4);
           const highWaterMarkBefore =
             await performanceFee.callStatic.hwm64x64();
-          await expect(performanceFee.crystallize()).to.be.revertedWith(
-            'Not yet'
-          );
+          // TODO: replace err msg: Invalid denomination: Not yet
+          await expect(performanceFee.crystallize()).to.be.revertedWith('N');
           await performanceFee.updatePerformanceFee();
           const shareManager = await tokenS.callStatic.balanceOf(
             manager.address

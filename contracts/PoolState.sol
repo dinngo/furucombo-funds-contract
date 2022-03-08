@@ -94,84 +94,64 @@ abstract contract PoolState {
     // Setters
 
     function _setLevel(uint256 level_) internal {
-        require(level == 0, "Level is set");
-        require(level_ > 0, "level should not be 0");
+        // TODO: replace err msg: Level is set
+        require(level == 0, "");
+        // TODO: replace err msg: Level should not be 0
+        require(level_ > 0, "L");
         level = level_;
     }
 
     function _setComptroller(IComptroller comptroller_) internal {
-        require(
-            address(comptroller) == address(0),
-            "Comptroller is initialized"
-        );
-        require(
-            address(comptroller_) != address(0),
-            "Comptroller should not be zero address"
-        );
+        // TODO: replace err msg: Comptroller is initialized
+        require(address(comptroller) == address(0), "C");
+        // TODO: replace err msg: Comptroller should not be zero address
+        require(address(comptroller_) != address(0), "C");
         comptroller = comptroller_;
     }
 
     function _setDenomination(IERC20 denomination_) internal {
-        require(
-            comptroller.isValidDenomination(address(denomination_)),
-            "Invalid denomination"
-        );
+        // TODO: replace err msg: Invalid denomination
+        require(comptroller.isValidDenomination(address(denomination_)), "I");
         denomination = denomination_;
     }
 
     function _setShareToken(IShareToken shareToken_) internal {
-        require(
-            address(shareToken) == address(0),
-            "Share token is initialized"
-        );
-        require(
-            address(shareToken_) != address(0),
-            "Share token should not be zero address"
-        );
+        // TODO: replace err msg: Share token is initialized
+        require(address(shareToken) == address(0), "S");
+        // TODO: replace err msg: Share token should not be zero address
+        require(address(shareToken_) != address(0), "S");
         shareToken = shareToken_;
     }
 
     function _setMortgageVault(IComptroller comptroller_) internal {
-        require(
-            address(mortgageVault) == address(0),
-            "MortgageVault is initialized"
-        );
-        require(
-            address(comptroller_) != address(0),
-            "Comptroller should not be zero address"
-        );
+        // TODO: replace err msg: MortgageVault is initialized
+        require(address(mortgageVault) == address(0), "M");
+        // TODO: replace err msg: Comptroller should not be zero address
+        require(address(comptroller_) != address(0), "C");
         mortgageVault = comptroller_.mortgageVault();
-        require(
-            address(mortgageVault) != address(0),
-            "MortgageVault is not initialized"
-        );
+        // TODO: replace err msg: MortgageVault is not initialized
+        require(address(mortgageVault) != address(0), "M");
     }
 
     function _setVault(IDSProxyRegistry dsProxyRegistry) internal {
-        require(address(vault) == address(0), "Vault is initialized");
-        require(
-            address(dsProxyRegistry) != address(0),
-            "Registry should not be zero address"
-        );
+        // TODO: replace err msg: Vault is initialized
+        require(address(vault) == address(0), "V");
+        // TODO: replace err msg: Registry should not be zero address
+        require(address(dsProxyRegistry) != address(0), "R");
 
         // deploy vault
         vault = IDSProxy(dsProxyRegistry.build());
-        require(address(vault) != address(0), "Vault is not initialized");
+        // TODO: replace err msg: Vault is not initialized
+        require(address(vault) != address(0), "V");
     }
 
     function _setVaultApproval(ISetupAction setupAction) internal {
-        require(
-            address(vault) != address(0),
-            "Vault should not be zero address"
-        );
-        require(
-            address(setupAction) != address(0),
-            "Setup should not be zero address"
-        );
-        require(
-            comptroller.isValidDenomination(address(denomination)),
-            "Invalid denomination"
-        );
+        // TODO: replace err msg: Vault should not be zero address
+        require(address(vault) != address(0), "V");
+        // TODO: replace err msg: Setup should not be zero address
+        require(address(setupAction) != address(0), "S");
+        // TODO: replace err msg: Invalid denomination
+        require(comptroller.isValidDenomination(address(denomination)), "I");
 
         // set vault approval
         bytes memory data = abi.encodeWithSignature(
@@ -180,10 +160,11 @@ abstract contract PoolState {
         );
         vault.execute(address(setupAction), data);
 
+        // TODO: replace err msg: Wrong allowance
         require(
             denomination.allowance(address(vault), address(this)) ==
                 type(uint256).max,
-            "wrong allowance"
+            "W"
         );
     }
 
