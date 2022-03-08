@@ -182,20 +182,12 @@ describe('Share module', function () {
       expect(await shareModule.pendingStartTime()).to.be.eq(block.timestamp);
     });
 
-    it('should succeed with insufficient reserve without user permission', async function () {
-      const remainShare = totalShare.sub(partialShare);
+    it('should fail with insufficient reserve without user permission', async function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.setReserve(partialAsset);
-      const receipt = await shareModule.redeem(totalShare, acceptPending);
-      expect(receipt)
-        .to.emit(shareModule, 'Redeemed')
-        .withArgs(user1.address, partialAsset, partialShare)
-        .to.emit(shareModule, 'RedemptionPended')
-        .withArgs(user1.address, remainShare)
-        .to.emit(shareModule, 'StateTransited')
-        .withArgs(3);
-      const block = await ethers.provider.getBlock(receipt.blockNumber!);
-      expect(await shareModule.pendingStartTime()).to.be.eq(block.timestamp);
+      await expect(
+        shareModule.redeem(totalShare, acceptPending)
+      ).to.be.revertedWith('Partial redeem without permission');
     });
 
     it('should succeed when redemption pending with user permission', async function () {
