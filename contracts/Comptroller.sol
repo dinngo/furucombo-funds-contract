@@ -9,7 +9,7 @@ import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 contract Comptroller is UpgradeableBeacon {
     using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
-    using Whitelist for Whitelist.ManagerWList;
+    using Whitelist for Whitelist.CreatorWList;
 
     // Struct
     struct DenominationConfig {
@@ -27,6 +27,7 @@ contract Comptroller is UpgradeableBeacon {
     uint256 public pendingExpiration;
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
+    uint256 public pendingRedemptionPenalty;
 
     // Map
     mapping(address => DenominationConfig) public denomination;
@@ -34,7 +35,7 @@ contract Comptroller is UpgradeableBeacon {
     mapping(uint256 => uint256) public stakedTier;
 
     // ACL
-    Whitelist.ManagerWList private managerACL;
+    Whitelist.CreatorWList private creatorACL;
     Whitelist.AssetWList private assetACL;
     Whitelist.ActionWList private delegateCallACL;
     Whitelist.ActionWList private contractCallACL;
@@ -56,8 +57,8 @@ contract Comptroller is UpgradeableBeacon {
     event SetStakedTier(uint256 indexed level, uint256 amount);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
-    event PermitManager(address indexed to);
-    event ForbidManager(address indexed to);
+    event PermitCreator(address indexed to);
+    event ForbidCreator(address indexed to);
     event PermitAsset(uint256 indexed level, address indexed asset);
     event ForbidAsset(uint256 indexed level, address indexed asset);
     event PermitDelegateCall(
@@ -111,6 +112,7 @@ contract Comptroller is UpgradeableBeacon {
         pendingLiquidator = pendingLiquidator_;
         pendingExpiration = pendingExpiration_;
         fInitialAssetCheck = true;
+        pendingRedemptionPenalty = 100;
     }
 
     function implementation()
@@ -155,6 +157,12 @@ contract Comptroller is UpgradeableBeacon {
     function setPendingExpiration(uint256 expiration) external onlyOwner {
         pendingExpiration = expiration;
         emit SetPendingExpiration(expiration);
+    }
+
+    // Share
+    // Notice that the penalty's base is 1e4
+    function setPendingRedemptionPenalty(uint256 penalty) external onlyOwner {
+        pendingRedemptionPenalty = penalty;
     }
 
     // input check
@@ -240,23 +248,23 @@ contract Comptroller is UpgradeableBeacon {
         emit SetExecAction(action);
     }
 
-    // Manager whitelist
-    function permitManagers(address[] calldata managers) external onlyOwner {
-        for (uint256 i = 0; i < managers.length; i++) {
-            managerACL.permit(managers[i]);
-            emit PermitManager(managers[i]);
+    // Creator whitelist
+    function permitCreators(address[] calldata creators) external onlyOwner {
+        for (uint256 i = 0; i < creators.length; i++) {
+            creatorACL.permit(creators[i]);
+            emit PermitCreator(creators[i]);
         }
     }
 
-    function forbidManagers(address[] calldata managers) external onlyOwner {
-        for (uint256 i = 0; i < managers.length; i++) {
-            managerACL.forbid(managers[i]);
-            emit ForbidManager(managers[i]);
+    function forbidCreators(address[] calldata creators) external onlyOwner {
+        for (uint256 i = 0; i < creators.length; i++) {
+            creatorACL.forbid(creators[i]);
+            emit ForbidCreator(creators[i]);
         }
     }
 
-    function validManager(address manager) external view returns (bool) {
-        return managerACL.canCall(manager);
+    function isValidCreator(address creator) external view returns (bool) {
+        return creatorACL.canCall(creator);
     }
 
     // Asset whitelist

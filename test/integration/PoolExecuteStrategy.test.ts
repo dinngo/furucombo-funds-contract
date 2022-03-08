@@ -40,10 +40,11 @@ import {
   BAT_PROVIDER,
   WETH_PROVIDER,
   USDC_PROVIDER,
+  FEE_BASE,
 } from '../utils/constants';
 
 import {
-  szabo,
+  mwei,
   ether,
   asciiToHex32,
   tokenProviderSushi,
@@ -82,8 +83,8 @@ describe('PoolExecuteStrategy', function () {
   const pFeeRate = 10;
   const execFeePercentage = 200; // 20%
   const pendingExpiration = 86400; // 1 day
-  const crystallizationPeriod = 86400; // 1 day
-  const reserveExecution = szabo('10'); // 10USDC
+  const crystallizationPeriod = 300; // 5m
+  const reserveExecutionRatio = 1000; // 10%
   const shareTokenName = 'TEST';
 
   let owner: Wallet;
@@ -180,6 +181,8 @@ describe('PoolExecuteStrategy', function () {
         [BigNumber.from('10')]
       );
 
+      await comptroller.permitCreators([manager.address]);
+
       await comptroller.permitAssets(level, [
         denominationAddress,
         tokenA.address,
@@ -233,7 +236,7 @@ describe('PoolExecuteStrategy', function () {
         mFeeRate,
         pFeeRate,
         crystallizationPeriod,
-        reserveExecution,
+        reserveExecutionRatio,
         shareTokenName
       );
       await poolProxy.connect(manager).finalize();
@@ -254,7 +257,7 @@ describe('PoolExecuteStrategy', function () {
       );
 
       // Transfer token to investor
-      const initialFunds = szabo('3000');
+      const initialFunds = mwei('3000');
       await denomination
         .connect(denominationProvider)
         .transfer(investor.address, initialFunds);
@@ -278,7 +281,7 @@ describe('PoolExecuteStrategy', function () {
   });
 
   describe('execute strategy in operation', function () {
-    const purchaseAmount = szabo('2000');
+    const purchaseAmount = mwei('2000');
     let ownedShares: BigNumber;
     let tokenAPoolVaultBalance: BigNumber;
     let tokenBPoolVaultBalance: BigNumber;
@@ -303,11 +306,10 @@ describe('PoolExecuteStrategy', function () {
 
     it('quickswap', async function () {
       // Prepare action data
-      const amountIn = szabo('1000');
-      const base = await taskExecutor.FEE_BASE();
+      const amountIn = mwei('1000');
       const actionAmountIn = amountIn
-        .mul(base.sub(execFeePercentage))
-        .div(base);
+        .mul(BigNumber.from(FEE_BASE).sub(execFeePercentage))
+        .div(FEE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -370,7 +372,7 @@ describe('PoolExecuteStrategy', function () {
         (await denomination.balanceOf(collector.address)).sub(
           denominationCollectorBalance
         )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(base));
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(FEE_BASE));
 
       // TODO: check it after refine quickswap handler
       // check asset list will be updated
@@ -387,11 +389,10 @@ describe('PoolExecuteStrategy', function () {
 
     it('sushiswap', async function () {
       // Prepare action data
-      const amountIn = szabo('1000');
-      const base = await taskExecutor.FEE_BASE();
+      const amountIn = mwei('1000');
       const actionAmountIn = amountIn
-        .mul(base.sub(execFeePercentage))
-        .div(base);
+        .mul(BigNumber.from(FEE_BASE).sub(execFeePercentage))
+        .div(FEE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -454,7 +455,7 @@ describe('PoolExecuteStrategy', function () {
         (await denomination.balanceOf(collector.address)).sub(
           denominationCollectorBalance
         )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(base));
+      ).to.be.eq(amountIn.mul(execFeePercentage).div(FEE_BASE));
 
       // TODO: check it after refine sushiswap handler
       // check asset list will be updated

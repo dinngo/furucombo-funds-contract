@@ -18,7 +18,6 @@ abstract contract ShareModule is PoolState {
     uint256 public totalPendingShare;
     uint256 public totalPendingBonus;
     uint256 private constant _PENALTY_BASE = 1e4;
-    uint256 private constant _PENALTY = 100;
 
     event Purchased(
         address indexed user,
@@ -166,8 +165,9 @@ abstract contract ShareModule is PoolState {
     {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
+        uint256 penalty = _getPendingRedemptionPenalty();
         if (state == State.RedemptionPending) {
-            uint256 bonus = (share * (_PENALTY)) / (_PENALTY_BASE - _PENALTY);
+            uint256 bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
@@ -207,7 +207,8 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256)
     {
-        uint256 effectiveShare = (share * (_PENALTY_BASE - _PENALTY)) /
+        uint256 penalty = _getPendingRedemptionPenalty();
+        uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += effectiveShare;
@@ -246,6 +247,15 @@ abstract contract ShareModule is PoolState {
     function _callAfterRedeem(uint256 amount) internal virtual {
         amount;
         return;
+    }
+
+    function _getPendingRedemptionPenalty()
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        return comptroller.pendingRedemptionPenalty();
     }
 
     function __getTotalAssetValue() internal view virtual returns (uint256);

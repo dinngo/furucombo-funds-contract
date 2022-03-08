@@ -1,3 +1,4 @@
+export const FEE_BASE = 10000;
 export const NATIVE_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 /* MATIC */
 export const MATIC_TOKEN = '0x0000000000000000000000000000000000001010';

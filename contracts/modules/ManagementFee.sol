@@ -10,7 +10,7 @@ abstract contract ManagementFee {
     using ABDKMath64x64 for uint256;
 
     int128 private _feeRate64x64;
-    uint256 public constant FEE_BASE = 1e4;
+    uint256 private constant _FEE_BASE = 1e4;
     int128 public constant FEE_BASE64x64 = 1 << 64;
     uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 public lastMFeeClaimTime;
@@ -23,8 +23,8 @@ abstract contract ManagementFee {
         returns (int128)
     {
         // TODO: replace err msg: fee rate should be less than 100%
-        require(feeRate < FEE_BASE, "f");
-        return _setManagementFeeRate(feeRate.divu(FEE_BASE));
+        require(feeRate < _FEE_BASE, "f");
+        return _setManagementFeeRate(feeRate.divu(_FEE_BASE));
     }
 
     /// @dev Calculate the effective fee rate to achieve the fee rate in an

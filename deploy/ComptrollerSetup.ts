@@ -4,7 +4,8 @@ import { FURUCOMBO_HCURVE, WL_ANY_SIG, LEVEL, denominations } from './Config';
 import { assets } from './assets/AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, ethers } = hre;
+  const { deployments, getNamedAccounts, ethers } = hre;
+  const { deployer } = await getNamedAccounts();
   const comptrollerAddress = (await deployments.get('Comptroller')).address;
   const comptroller = await ethers.getContractAt(
     'Comptroller',
@@ -25,6 +26,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
   const dustArray = mappedDenominations.map(([, dust]) => dust);
   await comptroller.permitDenominations(denominationArray, dustArray);
+
+  // Permit creator
+  await comptroller.permitCreators([deployer]);
 
   // Permit asset
   const mappedAssets = Object.keys(assets).map((key) => {

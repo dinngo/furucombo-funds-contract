@@ -12,10 +12,10 @@ abstract contract PerformanceFee {
     using ABDKMath64x64 for uint256;
 
     int128 private _feeRate64x64;
-    uint256 private constant FEE_BASE = 1e4;
+    uint256 private constant _FEE_BASE = 1e4;
     int128 private constant FEE_BASE64x64 = 1 << 64;
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
-    uint256 private constant FEE_DENOMINATOR = FEE_BASE * FEE_PERIOD;
+    uint256 private constant FEE_DENOMINATOR = _FEE_BASE * FEE_PERIOD;
     int128 public hwm64x64; // should be a float point number
     int128 public lastGrossSharePrice64x64;
     uint256 private _feeSum;
@@ -50,8 +50,8 @@ abstract contract PerformanceFee {
         returns (int128)
     {
         // TODO: replace err msg: fee rate should be less than 100%
-        require(feeRate < FEE_BASE, "f");
-        _feeRate64x64 = feeRate.divu(FEE_BASE);
+        require(feeRate < _FEE_BASE, "f");
+        _feeRate64x64 = feeRate.divu(_FEE_BASE);
 
         return _feeRate64x64;
     }
@@ -137,13 +137,15 @@ abstract contract PerformanceFee {
     /// @param amount The share amount being redeemed.
     function _redemptionPayout(uint256 amount) internal virtual {
         IShareToken shareToken = __getShareToken();
-        uint256 totalShare = shareToken.netTotalShare();
-        uint256 payout = (_lastOutstandingShare * amount) / totalShare;
-        uint256 fee = (_feeSum * amount) / totalShare;
-        shareToken.move(_OUTSTANDING_ACCOUNT, _FINALIZED_ACCOUNT, payout);
-        _lastOutstandingShare -= payout;
-        _feeSum -= fee;
-        _feeSet += fee;
+        uint256 totalShare = shareToken.netTotalShare() + amount;
+        if (totalShare != 0) {
+            uint256 payout = (_lastOutstandingShare * amount) / totalShare;
+            uint256 fee = (_feeSum * amount) / totalShare;
+            shareToken.move(_OUTSTANDING_ACCOUNT, _FINALIZED_ACCOUNT, payout);
+            _lastOutstandingShare -= payout;
+            _feeSum -= fee;
+            _feeSet += fee;
+        }
     }
 
     function _canCrystallize() internal virtual returns (bool) {

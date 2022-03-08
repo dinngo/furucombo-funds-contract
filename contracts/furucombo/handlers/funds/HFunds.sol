@@ -56,14 +56,20 @@ contract HFunds is HandlerBase {
         return amounts;
     }
 
-    function sendTokens(
-        address[] calldata tokens,
-        uint256[] calldata amounts,
-        address payable receiver
-    ) external payable {
+    function returnFunds(address[] calldata tokens, uint256[] calldata amounts)
+        external
+        payable
+    {
+        _requireMsg(
+            tokens.length == amounts.length,
+            "returnFunds",
+            "token and amount do not match"
+        );
+
         for (uint256 i = 0; i < tokens.length; i++) {
             // token can't be matic token
             _notMaticToken(tokens[i]);
+            address payable receiver = payable(_getSender());
 
             uint256 amount = _getBalance(tokens[i], amounts[i]);
             if (amount > 0) {
@@ -76,27 +82,6 @@ contract HFunds is HandlerBase {
                     IERC20(tokens[i]).safeTransfer(receiver, amount);
                 }
             }
-        }
-    }
-
-    function send(uint256 amount, address payable receiver) external payable {
-        amount = _getBalance(address(0), amount);
-        if (amount > 0) {
-            receiver.transfer(amount);
-        }
-    }
-
-    function sendToken(
-        address token,
-        uint256 amount,
-        address receiver
-    ) external payable {
-        // token can't be matic token
-        _notMaticToken(token);
-
-        amount = _getBalance(token, amount);
-        if (amount > 0) {
-            IERC20(token).safeTransfer(receiver, amount);
         }
     }
 

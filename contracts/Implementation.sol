@@ -25,6 +25,8 @@ contract Implementation is
     ExecutionModule,
     FeeModule
 {
+    uint256 private constant _RESERVE_BASE = 1e4;
+
     IDSProxyRegistry public immutable dsProxyRegistry;
     ISetupAction public immutable setupAction;
 
@@ -44,7 +46,7 @@ contract Implementation is
     /// @param mFeeRate_ The management fee rate.
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
-    /// @param reserveExecution_ The reserve amount during execution.
+    /// @param reserveExecutionRatio_ The reserve ratio during execution.
     /// @param newOwner The owner to be assigned to the pool.
     function initialize(
         uint256 level_,
@@ -54,7 +56,7 @@ contract Implementation is
         uint256 mFeeRate_,
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
-        uint256 reserveExecution_,
+        uint256 reserveExecutionRatio_,
         address newOwner
     ) external whenState(State.Initializing) {
         _setLevel(level_);
@@ -64,7 +66,7 @@ contract Implementation is
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
-        _setReserveExecution(reserveExecution_);
+        _setReserveExecutionRatio(reserveExecutionRatio_);
         _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
         _setMortgageVault(comptroller_);
@@ -159,13 +161,13 @@ contract Implementation is
         _setCrystallizationPeriod(crystallizationPeriod_);
     }
 
-    /// @notice Set reserve only during reviewing.
-    function setReserveExecution(uint256 reserve_)
+    /// @notice Set reserve ratio only during reviewing.
+    function setReserveExecutionRatio(uint256 reserve_)
         external
         onlyOwner
         whenState(State.Reviewing)
     {
-        _setReserveExecution(reserve_);
+        _setReserveExecutionRatio(reserve_);
     }
 
     /////////////////////////////////////////////////////
@@ -287,7 +289,7 @@ contract Implementation is
         returns (bool)
     {
         // TODO: replace err msg: Insufficient reserve
-        require(__getReserve() >= reserveExecution, "I");
+        require(_isReserveEnough(), "I");
 
         // remove asset from assetList
         address[] memory assetList = getAssetList();
@@ -303,6 +305,14 @@ contract Implementation is
         }
 
         return super._afterExecute(response);
+    }
+
+    /// @notice Check funds reserve ratio is enough or not.
+    /// @return The reserve ratio is enough or not.
+    function _isReserveEnough() internal view returns (bool) {
+        uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
+            __getTotalAssetValue();
+        return reserveRatio >= reserveExecutionRatio;
     }
 
     /////////////////////////////////////////////////////
