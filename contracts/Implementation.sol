@@ -91,6 +91,8 @@ contract Implementation is
         require(isPendingResolvable(true), "reserve not enough");
 
         _settlePendingRedemption(true);
+
+        _resume();
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
@@ -118,12 +120,11 @@ contract Implementation is
     {
         if (state == State.Liquidating) {
             require(isPendingResolvable(false), "reserve not enough");
+
             _settlePendingRedemption(false);
         }
 
         super.close();
-
-        _settlePendingRedemption(false);
         mortgageVault.claim(msg.sender);
     }
 

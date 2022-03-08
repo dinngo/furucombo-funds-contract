@@ -206,6 +206,7 @@ abstract contract ShareModule is PoolState {
         emit Purchased(user, balance, share);
     }
 
+    /// @notice Try settle pending redemption. Will resume to Executing if state is in RedemptionPending
     function trySettleRedemption(bool applyPenalty) internal {
         // if possible, settle pending redemption
         if (
