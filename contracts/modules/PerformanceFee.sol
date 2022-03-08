@@ -87,7 +87,7 @@ abstract contract PerformanceFee {
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
         shareToken.move(_FINALIZED_ACCOUNT, manager, finalizedShare);
         _updateGrossSharePrice();
-        uint256 result = _lastOutstandingShare;
+        uint256 result = _lastOutstandingShare + finalizedShare;
         _lastOutstandingShare = 0;
         _feeSum = 0;
         _feeSet = 0;
