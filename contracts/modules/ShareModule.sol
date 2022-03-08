@@ -51,6 +51,9 @@ abstract contract ShareModule is PoolState {
         when3States(State.Executing, State.RedemptionPending, State.Closed)
         returns (uint256 balance)
     {
+        uint256 userShare = shareToken.balanceOf(msg.sender);
+        require(share <= userShare, "require too much share");
+
         if (state == State.RedemptionPending) {
             balance = _redeemPending(msg.sender, share);
         } else {

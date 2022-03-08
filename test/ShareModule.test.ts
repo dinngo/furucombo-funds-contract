@@ -386,7 +386,7 @@ describe('Share module', function () {
     });
   });
 
-  describe.only('Settle pending', function () {
+  describe('Settle pending', function () {
     const pendingShare = ethers.utils.parseEther('20');
     const pendingAsset = pendingShare;
     const penalty = 100;
@@ -415,12 +415,6 @@ describe('Share module', function () {
       await expect(shareModule.purchase(purchaseAmount))
         .to.emit(shareModule, 'Purchased')
         .to.emit(shareModule, 'Redeemed');
-
-      expect(await shareModule.state()).to.be.eq(2); // Executing
-    });
-
-    it('should resolve RedemptionPending state after exec', async function () {
-      expect(await shareModule.state()).to.be.eq(3); // RedemptionPending
 
       expect(await shareModule.state()).to.be.eq(2); // Executing
     });
