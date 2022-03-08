@@ -31,6 +31,7 @@ import {
   tokenProviderQuick,
   mwei,
   getCallData,
+  increaseNextBlockTimeBy,
 } from './utils/utils';
 
 describe('Implementation', function () {
@@ -45,7 +46,7 @@ describe('Implementation', function () {
   const tokenAAmount = ethers.utils.parseEther('1');
   const tokenBAmount = ethers.utils.parseUnits('1', 8);
   const execFeePercentage = 200; // 20%
-  const pendingExpiration = 86400; // 1 day
+  const pendingExpiration = 43200; // 0.5 day
   const level = 1;
   const reserveBase = FEE_BASE;
 
@@ -611,14 +612,14 @@ describe('Implementation', function () {
   });
 
   describe.only('execute', function () {
-    it('resolve RedemptionPending state after execute', async function () {
+    beforeEach(async function () {
       await transferAssetToVault();
       const currentReserve = await implementation.getReserve();
 
       const redeemAmount = currentReserve.add(mwei('500'));
       await denomination
         .connect(denominationProvider)
-        .transfer(owner.address, redeemAmount.mul(2));
+        .transfer(owner.address, redeemAmount.mul(2)); // Transfer more to owner
 
       // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
       await denomination.connect(owner).approve(implementation.address, 500);
@@ -633,7 +634,9 @@ describe('Implementation', function () {
       await denomination
         .connect(denominationProvider)
         .transfer(vault.address, redeemAmount.mul(2));
+    });
 
+    it('resolve RedemptionPending state after execute', async function () {
       // Prepare task data and execute
       const expectNValue = BigNumber.from('101');
       const actionData = getCallData(fooAction, 'barUint1', [
@@ -659,6 +662,43 @@ describe('Implementation', function () {
         .to.emit(implementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
       expect(await implementation.state()).to.be.eq(2); // Executing
+    });
+
+    it('settle pending redemption after execute when Liquidating', async function () {
+      await increaseNextBlockTimeBy(pendingExpiration);
+      await expect(implementation.liquidate())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(4)
+        .to.emit(implementation, 'OwnershipTransferred')
+        .withArgs(owner.address, liquidator.address);
+      expect(await implementation.pendingStartTime()).to.be.eq(0);
+
+      // Prepare task data and execute
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint1', [
+        foo.address,
+        expectNValue,
+      ]);
+
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      // Permit delegate calls
+      await comptroller.permitDelegateCalls(
+        await implementation.level(),
+        [fooAction.address],
+        [WL_ANY_SIG]
+      );
+
+      expect(await implementation.connect(liquidator).execute(data))
+        .to.emit(implementation, 'Redeemed')
+        .to.emit(denomination, 'Transfer');
+      expect(await implementation.state()).to.be.eq(4); // Liquidating
     });
   });
 });

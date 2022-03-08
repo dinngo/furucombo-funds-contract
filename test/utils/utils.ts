@@ -288,3 +288,13 @@ export async function getTimestampByTx(tx: any) {
 export function decimal6(amount: any) {
   return BigNumber.from(amount).mul(BigNumber.from('1000000'));
 }
+
+export async function increaseNextBlockTimeBy(interval: number) {
+  const blockNumber = await ethers.provider.getBlockNumber();
+  let block = null;
+  for (let i = 0; block == null; i++) {
+    block = await ethers.provider.getBlock(blockNumber - i);
+  }
+  const jsonRpc = new ethers.providers.JsonRpcProvider();
+  await jsonRpc.send('evm_setNextBlockTimestamp', [block.timestamp + interval]);
+}
