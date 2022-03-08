@@ -363,21 +363,18 @@ describe('Implementation', function () {
       it('should succeed when amount = dust ', async function () {
         const dustAmount = await assetRouter.calcAssetValue(
           denomination.address,
-          denominationDust,
-          tokenA.address
-        );
-
-        // add for price deviation from oracle
-        const deviationAmount = await assetRouter.calcAssetValue(
-          denomination.address,
-          mwei('0.000001'),
+          denominationDust.add(mwei('0.000001')),
           tokenA.address
         );
 
         await comptroller.permitAssets(level, [tokenA.address]);
         await tokenA
           .connect(tokenAProvider)
-          .transfer(vault.address, dustAmount.add(deviationAmount));
+          .transfer(vault.address, dustAmount);
+
+        expect(await implementation.getAssetValue(tokenA.address)).to.be.eq(
+          denominationDust
+        );
 
         await implementation.addAsset(tokenA.address);
         expect(await implementation.getAssetList()).to.be.deep.eq([
