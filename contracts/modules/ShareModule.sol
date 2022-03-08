@@ -88,7 +88,7 @@ abstract contract ShareModule is PoolState {
         returns (uint256 balance)
     {
         uint256 assetValue = getTotalAssetValue();
-        uint256 shareAmount = shareToken.totalSupply();
+        uint256 shareAmount = shareToken.grossTotalShare();
         balance = (share * assetValue) / shareAmount;
     }
 
