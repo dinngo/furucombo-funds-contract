@@ -416,7 +416,6 @@ describe('Share module', function () {
         .to.emit(shareModule, 'Purchased')
         .to.emit(shareModule, 'Redeemed');
 
-      console.log('after state:' + (await shareModule.state()));
       expect(await shareModule.state()).to.be.eq(2); // Executing
     });
 

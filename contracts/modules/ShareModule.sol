@@ -6,8 +6,6 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {AssetModule} from "./AssetModule.sol";
 import {PoolState} from "../PoolState.sol";
 
-import "hardhat/console.sol";
-
 /// @title Share module
 abstract contract ShareModule is PoolState {
     using ABDKMath64x64 for uint256;
@@ -104,14 +102,11 @@ abstract contract ShareModule is PoolState {
     }
 
     function isPendingResolvable(bool applyPenalty) public view returns (bool) {
-        console.log("1 isPendingResolvable");
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
-        console.log("2");
         uint256 redeemSharesBalance = calculateBalance(redeemShares);
-        console.log("3");
         uint256 reserve = __getReserve();
         if (reserve < redeemSharesBalance) return false;
-        console.log("4");
+
         return true;
     }
 
@@ -140,7 +135,6 @@ abstract contract ShareModule is PoolState {
         internal
         returns (bool)
     {
-        console.log("5");
         // Might lead to gas insufficient if pending list too long
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
         if (redeemShares == 0) return true;
@@ -149,10 +143,7 @@ abstract contract ShareModule is PoolState {
             totalPendingBonus = 0;
         }
 
-        console.log("6 redeemShares:%d", redeemShares);
         uint256 totalRedemption = _redeem(address(this), redeemShares);
-        console.log("7 totalRedemption:%d", totalRedemption);
-        console.log("8 pendingAccountList:%d", pendingAccountList.length);
 
         uint256 pendingAccountListLength = pendingAccountList.length;
         for (uint256 i = 0; i < pendingAccountListLength; i++) {
@@ -163,8 +154,6 @@ abstract contract ShareModule is PoolState {
             uint256 redemption = (totalRedemption * share) / totalPendingShare;
             pendingRedemptions[user] += redemption;
         }
-
-        console.log("9 totalPendingBonus:%d", totalPendingBonus);
 
         // remove all pending accounts
         delete pendingAccountList;
@@ -196,31 +185,23 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256 share)
     {
-        console.log("1 balance:%d", balance);
         _callBeforePurchase(0);
-        console.log("2");
         share = _addShare(user, balance);
-        console.log("3 share:%d", share);
-        if (state == State.RedemptionPending) {
-            console.log("4");
 
+        if (state == State.RedemptionPending) {
             uint256 penalty = _getPendingRedemptionPenalty();
             uint256 bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
-
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
-            console.log("5 bonus:%d", bonus);
             shareToken.move(address(this), user, bonus);
             share += bonus;
-            console.log("6");
         }
-        console.log("10");
-        denomination.safeTransferFrom(msg.sender, address(vault), balance);
-        console.log("11");
-        trySettleRedemption(true);
-        _callAfterPurchase(share);
 
-        console.log("12");
+        denomination.safeTransferFrom(msg.sender, address(vault), balance);
+
+        trySettleRedemption(true);
+
+        _callAfterPurchase(share);
 
         emit Purchased(user, balance, share);
     }
@@ -231,13 +212,10 @@ abstract contract ShareModule is PoolState {
             _getResolvePendingShares(applyPenalty) > 0 &&
             isPendingResolvable(applyPenalty)
         ) {
-            console.log("7");
             _settlePendingRedemption(applyPenalty);
-            console.log("8");
+
             if (state == State.RedemptionPending) {
-                console.log("9");
                 _resume();
-                console.log("10");
             }
         }
     }
