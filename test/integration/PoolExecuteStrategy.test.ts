@@ -181,9 +181,7 @@ describe('PoolExecuteStrategy', function () {
         [BigNumber.from('10')]
       );
 
-      await comptroller.permitCreators(
-        [manager.address]
-      );
+      await comptroller.permitCreators([manager.address]);
 
       await comptroller.permitAssets(level, [
         denominationAddress,

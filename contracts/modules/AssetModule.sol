@@ -41,10 +41,11 @@ abstract contract AssetModule is PoolState {
     /// @notice Check the remaining asset should be only the denomination asset
     /// when closing the vault.
     function close() public virtual {
+        // TODO: replace err msg: Different asset remaining
         require(
             _assetList.size() == 1 &&
                 _assetList.front() == address(denomination),
-            "Different asset remaining"
+            "D"
         );
         _close();
     }

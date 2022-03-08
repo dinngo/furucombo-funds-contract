@@ -58,14 +58,14 @@ describe('Performance fee', function () {
     it('should success when zero', async function () {
       const feeRate = BigNumber.from('0');
       await performanceFee.setPerformanceFeeRate(feeRate);
-      const result = await performanceFee.callStatic.getFeeRate();
+      const result = await performanceFee.callStatic.getPerformanceFeeRate();
       expect(result).to.be.eq(BigNumber.from('0'));
     });
 
     it('should success in normal range', async function () {
       const feeRate = BigNumber.from('1000');
       await performanceFee.setPerformanceFeeRate(feeRate);
-      const result = await performanceFee.callStatic.getFeeRate();
+      const result = await performanceFee.callStatic.getPerformanceFeeRate();
       expect(result).to.be.eq(BigNumber.from('1844674407370955161'));
     });
 
@@ -228,9 +228,8 @@ describe('Performance fee', function () {
           await increaseNextBlockTimeBy(period.toNumber() * 0.4);
           const highWaterMarkBefore =
             await performanceFee.callStatic.hwm64x64();
-          await expect(performanceFee.crystallize()).to.be.revertedWith(
-            'Not yet'
-          );
+          // TODO: replace err msg: Invalid denomination: Not yet
+          await expect(performanceFee.crystallize()).to.be.revertedWith('N');
           await performanceFee.updatePerformanceFee();
           const shareManager = await tokenS.callStatic.balanceOf(
             manager.address

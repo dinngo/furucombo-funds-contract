@@ -21,11 +21,11 @@ abstract contract FeeModule is PoolState, ManagementFee, PerformanceFee {
     }
 
     /// @notice Get the total value of all the asset of the pool.
-    function __getTotalAssetValue() internal view virtual returns (uint256);
+    function getTotalAssetValue() public view virtual returns (uint256);
 
     /// @notice Get the gross asset value of the pool.
     function __getGrossAssetValue() internal view override returns (uint256) {
-        return __getTotalAssetValue();
+        return getTotalAssetValue();
     }
 
     /// @notice Get the manager address.

@@ -34,7 +34,7 @@ abstract contract PerformanceFee {
         _lastCrystallization = block.timestamp;
     }
 
-    function getFeeRate() public view returns (int128) {
+    function getPerformanceFeeRate() public view returns (int128) {
         return _feeRate64x64;
     }
 
@@ -63,7 +63,8 @@ abstract contract PerformanceFee {
         virtual
         returns (int128)
     {
-        require(feeRate < _FEE_BASE, "rate should be less than 100%");
+        // TODO: replace err msg: fee rate should be less than 100%
+        require(feeRate < _FEE_BASE, "f");
         _feeRate64x64 = feeRate.divu(_FEE_BASE);
 
         return _feeRate64x64;
@@ -72,14 +73,16 @@ abstract contract PerformanceFee {
     /// @notice Set the crystallization period.
     /// @param period The crystallization period to be set in second.
     function _setCrystallizationPeriod(uint256 period) internal virtual {
-        require(period > 0, "period should be greater than 0");
+        // TODO: replace err msg: Crystallization period too short
+        require(period > 0, "C");
         _crystallizationPeriod = period;
     }
 
     /// @notice Crystallize for the performance fee.
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
-        require(isCrystallable(), "Not yet");
+        // TODO: replace err msg: Not yet
+        require(isCrystallable(), "N");
         _updatePerformanceFee();
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
