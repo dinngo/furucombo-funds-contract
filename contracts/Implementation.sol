@@ -187,8 +187,8 @@ contract Implementation is
 
     /// @notice Get the total asset value of the pool.
     /// @return The value of asset.
-    function __getTotalAssetValue()
-        internal
+    function getTotalAssetValue()
+        public
         view
         override(FeeModule, ShareModule)
         returns (uint256)
@@ -311,7 +311,7 @@ contract Implementation is
     /// @return The reserve ratio is enough or not.
     function _isReserveEnough() internal view returns (bool) {
         uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
-            __getTotalAssetValue();
+            getTotalAssetValue();
         return reserveRatio >= reserveExecutionRatio;
     }
 

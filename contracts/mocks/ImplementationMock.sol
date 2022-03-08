@@ -20,13 +20,6 @@ contract ImplementationMock is Implementation {
     }
 
     /////////////////////////////////////////////////////
-    // General
-    /////////////////////////////////////////////////////
-    function getTotalAssetValue() external view returns (uint256) {
-        return __getTotalAssetValue();
-    }
-
-    /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
     function vaultCallMock(address _target, bytes calldata _data)
