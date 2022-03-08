@@ -22,6 +22,8 @@ abstract contract ManagementFee {
         virtual
         returns (int128)
     {
+        // TODO: replace err msg: fee rate should be less than 100%
+        require(feeRate < _FEE_BASE, "f");
         return _setManagementFeeRate(feeRate.divu(_FEE_BASE));
     }
 
