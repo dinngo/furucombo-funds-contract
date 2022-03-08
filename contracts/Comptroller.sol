@@ -148,10 +148,6 @@ contract Comptroller is UpgradeableBeacon {
         nonZeroAddress(collector)
         onlyOwner
     {
-        require(
-            collector != address(0),
-            "Comptroller: shouldn't be zero address"
-        );
         execFeeCollector = collector;
         emit SetExecFeeCollector(collector);
     }
