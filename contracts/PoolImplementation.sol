@@ -16,6 +16,8 @@ import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 import {SetupAction} from "./actions/SetupAction.sol";
 
+import {Errors} from "./utils/Errors.sol";
+
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
