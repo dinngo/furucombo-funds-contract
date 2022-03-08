@@ -312,7 +312,7 @@ contract Comptroller is UpgradeableBeacon {
         }
     }
 
-    function isValidateDealingAsset(uint256 level, address asset)
+    function isValidDealingAsset(uint256 level, address asset)
         public
         view
         returns (bool)
@@ -320,20 +320,20 @@ contract Comptroller is UpgradeableBeacon {
         return assetACL.canCall(level, asset);
     }
 
-    function isValidateDealingAssets(uint256 level, address[] calldata assets)
+    function isValidDealingAssets(uint256 level, address[] calldata assets)
         external
         view
         returns (bool)
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (!isValidateDealingAsset(level, assets[i])) {
+            if (!isValidDealingAsset(level, assets[i])) {
                 return false;
             }
         }
         return true;
     }
 
-    function isValidateInitialAsset(uint256 level, address asset)
+    function isValidInitialAsset(uint256 level, address asset)
         public
         view
         returns (bool)
@@ -345,13 +345,13 @@ contract Comptroller is UpgradeableBeacon {
         return true;
     }
 
-    function isValidateInitialAssets(uint256 level, address[] calldata assets)
+    function isValidInitialAssets(uint256 level, address[] calldata assets)
         external
         view
         returns (bool)
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (!isValidateInitialAsset(level, assets[i])) {
+            if (!isValidInitialAsset(level, assets[i])) {
                 return false;
             }
         }

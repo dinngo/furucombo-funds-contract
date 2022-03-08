@@ -143,7 +143,7 @@ contract TaskExecutor is
         // verify dealing assets
         address[] memory dealingAssets = getDealingAssets();
         require(
-            comptroller.isValidateDealingAssets(level, dealingAssets),
+            comptroller.isValidDealingAssets(level, dealingAssets),
             "TaskExecutor: invalid dealing asset"
         );
         return dealingAssets;
@@ -280,7 +280,7 @@ contract TaskExecutor is
         // Check initial asset from white list
         uint256 level = IPool(msg.sender).level();
         require(
-            comptroller.isValidateInitialAssets(level, tokensIn),
+            comptroller.isValidInitialAssets(level, tokensIn),
             "TaskExecutor: invalid initial asset"
         );
 

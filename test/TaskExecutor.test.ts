@@ -759,7 +759,7 @@ describe('Task Executor', function () {
     beforeEach(async function () {
       await comptroller.permitAssets(await proxy.level(), [tokenA.address]);
       expect(
-        await comptroller.isValidateDealingAsset(
+        await comptroller.isValidDealingAsset(
           await proxy.level(),
           tokenA.address
         )
@@ -1052,7 +1052,7 @@ describe('Task Executor', function () {
       ]);
 
       expect(
-        await comptroller.isValidateInitialAsset(
+        await comptroller.isValidInitialAsset(
           await proxy.level(),
           tokenB.address
         )

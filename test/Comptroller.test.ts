@@ -241,7 +241,7 @@ describe('Comptroller', function () {
         expect(
           await comptroller
             .connect(user)
-            .isValidateDealingAssets(level, [tokenA, tokenB])
+            .isValidDealingAssets(level, [tokenA, tokenB])
         ).to.be.equal(false);
 
         // permit assets
@@ -257,21 +257,21 @@ describe('Comptroller', function () {
 
         // check single asset
         expect(
-          await comptroller.connect(user).isValidateDealingAsset(level, tokenA)
+          await comptroller.connect(user).isValidDealingAsset(level, tokenA)
         ).to.be.equal(true);
 
         // check multiple assets
         expect(
           await comptroller
             .connect(user)
-            .isValidateDealingAssets(level, [tokenA, tokenB])
+            .isValidDealingAssets(level, [tokenA, tokenB])
         ).to.be.equal(true);
 
         // not affect other level assets
         expect(
           await comptroller
             .connect(user)
-            .isValidateDealingAsset(otherLevel, tokenA)
+            .isValidDealingAsset(otherLevel, tokenA)
         ).to.be.equal(false);
       });
 
@@ -282,7 +282,7 @@ describe('Comptroller', function () {
         expect(
           await comptroller
             .connect(user)
-            .isValidateDealingAssets(level, [tokenA, tokenB])
+            .isValidDealingAssets(level, [tokenA, tokenB])
         ).to.be.equal(true);
 
         // forbid asset
@@ -293,25 +293,25 @@ describe('Comptroller', function () {
         // validate dealing asset
         // single asset
         expect(
-          await comptroller.connect(user).isValidateDealingAsset(level, tokenA)
+          await comptroller.connect(user).isValidDealingAsset(level, tokenA)
         ).to.be.equal(false);
 
         expect(
-          await comptroller.connect(user).isValidateDealingAsset(level, tokenB)
+          await comptroller.connect(user).isValidDealingAsset(level, tokenB)
         ).to.be.equal(true);
 
         // check multiple assets
         expect(
           await comptroller
             .connect(user)
-            .isValidateDealingAssets(level, [tokenA, tokenB])
+            .isValidDealingAssets(level, [tokenA, tokenB])
         ).to.be.equal(false);
 
         // not affect other level assets
         expect(
           await comptroller
             .connect(user)
-            .isValidateDealingAsset(otherLevel, tokenA)
+            .isValidDealingAsset(otherLevel, tokenA)
         ).to.be.equal(true);
       });
 
@@ -335,7 +335,7 @@ describe('Comptroller', function () {
         expect(
           await comptroller
             .connect(user)
-            .isValidateInitialAssets(level, [tokenA])
+            .isValidInitialAssets(level, [tokenA])
         ).to.be.equal(true);
       });
 
@@ -366,36 +366,36 @@ describe('Comptroller', function () {
       it('non-authority initial asset', async function () {
         // enable initial asset check
         expect(
-          await comptroller.connect(user).isValidateInitialAsset(level, tokenA)
+          await comptroller.connect(user).isValidInitialAsset(level, tokenA)
         ).to.be.equal(true);
         expect(
-          await comptroller.connect(user).isValidateInitialAsset(level, tokenB)
+          await comptroller.connect(user).isValidInitialAsset(level, tokenB)
         ).to.be.equal(false);
 
         // check multiple assets
         expect(
           await comptroller
             .connect(user)
-            .isValidateInitialAssets(level, [tokenA, tokenB])
+            .isValidInitialAssets(level, [tokenA, tokenB])
         ).to.be.equal(false);
       });
 
       it('authority initial asset', async function () {
         // enable initial asset check
         expect(
-          await comptroller.connect(user).isValidateInitialAsset(level, tokenA)
+          await comptroller.connect(user).isValidInitialAsset(level, tokenA)
         ).to.be.equal(true);
 
         // check multiple assets
         expect(
           await comptroller
             .connect(user)
-            .isValidateInitialAssets(level, [tokenA])
+            .isValidInitialAssets(level, [tokenA])
         ).to.be.equal(true);
         expect(
           await comptroller
             .connect(user)
-            .isValidateInitialAssets(level, [tokenA, tokenB])
+            .isValidInitialAssets(level, [tokenA, tokenB])
         ).to.be.equal(false);
       });
 
@@ -403,14 +403,14 @@ describe('Comptroller', function () {
         await comptroller.setInitialAssetCheck(false);
         // check single asset
         expect(
-          await comptroller.connect(user).isValidateInitialAsset(level, tokenB)
+          await comptroller.connect(user).isValidInitialAsset(level, tokenB)
         ).to.be.equal(true);
 
         // check multiple assets
         expect(
           await comptroller
             .connect(user)
-            .isValidateInitialAssets(level, [tokenA, tokenB])
+            .isValidInitialAssets(level, [tokenA, tokenB])
         ).to.be.equal(true);
       });
 
