@@ -22,12 +22,12 @@ import {
   FEE_BASE,
 } from './utils/constants';
 
-import { simpleEncode, tokenProviderQuick } from './utils/utils';
+import { simpleEncode, tokenProviderQuick, mwei } from './utils/utils';
 
 describe('Implementation', function () {
   const denominationAddress = USDC_TOKEN;
   const denominationAggregator = CHAINLINK_USDC_USD;
-  const denominationDust = ethers.utils.parseUnits('0.1', 6);
+  const denominationDust = mwei('0.1');
   const tokenAAddress = WETH_TOKEN;
   const tokenBAddress = WBTC_TOKEN;
   const tokenCAddress = BAT_TOKEN;
@@ -272,7 +272,7 @@ describe('Implementation', function () {
     });
 
     describe('add asset', function () {
-      it('normal', async function () {
+      it('should succeed when amount > dust', async function () {
         // Permit asset
         await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
 
@@ -282,6 +282,32 @@ describe('Implementation', function () {
           .transfer(vault.address, tokenAAmount);
 
         // Add asset
+        await implementation.addAsset(tokenA.address);
+        expect(await implementation.getAssetList()).to.be.deep.eq([
+          denomination.address,
+          tokenA.address,
+        ]);
+      });
+
+      it('should succeed when amount = dust ', async function () {
+        const dustAmount = await assetRouter.calcAssetValue(
+          denomination.address,
+          denominationDust,
+          tokenA.address
+        );
+
+        // add for price deviation from oracle
+        const deviationAmount = await assetRouter.calcAssetValue(
+          denomination.address,
+          mwei('0.000001'),
+          tokenA.address
+        );
+
+        await comptroller.permitAssets(level, [tokenA.address]);
+        await tokenA
+          .connect(tokenAProvider)
+          .transfer(vault.address, dustAmount.add(deviationAmount));
+
         await implementation.addAsset(tokenA.address);
         expect(await implementation.getAssetList()).to.be.deep.eq([
           denomination.address,
@@ -323,7 +349,7 @@ describe('Implementation', function () {
       it('can not be added: balance of asset < dust ', async function () {
         const dustAmount = await assetRouter.calcAssetValue(
           denomination.address,
-          denominationDust,
+          denominationDust.sub(BigNumber.from('10')),
           tokenA.address
         );
 
@@ -331,6 +357,7 @@ describe('Implementation', function () {
         await tokenA
           .connect(tokenAProvider)
           .transfer(vault.address, dustAmount);
+
         await implementation.addAsset(tokenA.address);
         expect(await implementation.getAssetList()).to.not.include(
           tokenA.address
