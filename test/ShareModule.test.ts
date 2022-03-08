@@ -250,6 +250,7 @@ describe('Share module', function () {
       .div(penaltyBase);
     const actualAsset = actualShare;
     const bonus = pendingShare.mul(penalty).div(penaltyBase);
+    const acceptPending = true;
 
     beforeEach(async function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
@@ -275,7 +276,7 @@ describe('Share module', function () {
 
     it('should fail when insufficient reserve', async function () {
       await expect(shareModule.settlePendingRedemption()).to.be.revertedWith(
-        'InvalidState(3)'
+        'Partial redeem without permission'
       );
     });
 
@@ -332,6 +333,7 @@ describe('Share module', function () {
     const pendingShare = ethers.utils.parseEther('20');
     const pendingAsset = pendingShare;
     const penaltyBase = 10000;
+    const acceptPending = true;
 
     beforeEach(async function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
@@ -363,7 +365,6 @@ describe('Share module', function () {
     });
 
     it('should success when claiming with difference user', async function () {
-      const acceptPending = true;
       // Transfer part of the share to user 2
       const redeemShare = pendingShare.div(2);
       const actualShare = redeemShare
