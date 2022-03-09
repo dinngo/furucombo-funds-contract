@@ -51,7 +51,7 @@ abstract contract PerformanceFee {
 
     /// @notice Returns the earliest time that can be crystallized next
     /// even if more than one period has passed.
-    function getNextCrystallizeTime() public view returns (uint256) {
+    function getNextCrystallizationTime() public view returns (uint256) {
         uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
         return _periodToTime(lastPeriod + 1);
     }

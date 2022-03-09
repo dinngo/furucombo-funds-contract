@@ -84,7 +84,7 @@ describe('Performance fee', function () {
     });
 
     it('should fail when equal to 0', async function () {
-      await expect(performanceFee.setCrystallizationPeriod(0)).to.be.reverted;
+      await expect(performanceFee.setCrystallizationPeriod(0)).to.be.revertedWith('C');
     });
   });
 
@@ -102,7 +102,7 @@ describe('Performance fee', function () {
     it('shoud return next period time before period', async function () {
       await increaseNextBlockTimeBy(period.toNumber() * 0.4);
       const isCrystallizable = await performanceFee.isCrystallizable();
-      const nextCrystallizeTime = await performanceFee.getNextCrystallizeTime();
+      const nextCrystallizeTime = await performanceFee.getNextCrystallizationTime();
       expect(isCrystallizable).to.be.eq(false);
       expect(nextCrystallizeTime).to.be.eq(startTime.add(period));
     });
@@ -110,7 +110,7 @@ describe('Performance fee', function () {
     it('shoud return next period time after period', async function () {
       await increaseNextBlockTimeBy(period.toNumber() * 1.8);
       const isCrystallizable = await performanceFee.isCrystallizable();
-      const nextCrystallizeTime = await performanceFee.getNextCrystallizeTime();
+      const nextCrystallizeTime = await performanceFee.getNextCrystallizationTime();
       expect(isCrystallizable).to.be.eq(true);
       expect(nextCrystallizeTime).to.be.eq(startTime.add(period));
     });
@@ -118,7 +118,7 @@ describe('Performance fee', function () {
     it('shoud return earliest next period time at next period', async function () {
       await increaseNextBlockTimeBy(period.toNumber() * 2.2);
       const isCrystallizable = await performanceFee.isCrystallizable();
-      const nextCrystallizeTime = await performanceFee.getNextCrystallizeTime();
+      const nextCrystallizeTime = await performanceFee.getNextCrystallizationTime();
       expect(isCrystallizable).to.be.eq(true);
       expect(nextCrystallizeTime).to.be.eq(startTime.add(period));
     });
