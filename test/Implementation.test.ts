@@ -334,7 +334,7 @@ describe('Implementation', function () {
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
         // TODO: replace err msg: Invalid denomination
-        await expect(implementation.finalize()).to.be.revertedWith('I');
+        await expect(implementation.finalize()).to.be.revertedWith('');
       });
     });
 
@@ -378,7 +378,7 @@ describe('Implementation', function () {
         await implementation.finalize();
         await expect(implementation.liquidate()).to.be.revertedWith(
           // TODO: replace err msg: Pending does not start
-          'P'
+          ''
         );
       });
 
@@ -387,7 +387,7 @@ describe('Implementation', function () {
         await implementation.pendMock();
         await expect(implementation.liquidate()).to.be.revertedWith(
           // TODO: replace err msg: Pending does not expire
-          'P'
+          ''
         );
       });
     });
@@ -452,7 +452,7 @@ describe('Implementation', function () {
         await expect(
           implementation.addAsset(tokenA.address)
           // TODO: replace err msg: Invalid asset
-        ).to.be.revertedWith('I');
+        ).to.be.revertedWith('');
       });
 
       it('can not be added: zero balance of asset', async function () {
@@ -596,7 +596,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setDenomination(constants.AddressZero)
           // TODO: replace err msg: Invalid denomination
-        ).to.be.revertedWith('I');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -628,7 +628,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setManagementFeeRate(maxRate)
           // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('f');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -658,7 +658,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setPerformanceFeeRate(maxRate)
           // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('f');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -690,7 +690,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setCrystallizationPeriod(shortPeriod)
           // TODO: replace err msg: Crystallization period too short
-        ).to.be.revertedWith('C');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -806,13 +806,16 @@ describe('Implementation', function () {
 
       // Make fund go to RedemptionPending state
       const redeemShare = await implementation.calculateShare(redeemAmount);
+      await shareToken.transfer(owner.address, redeemShare);
       await implementation.redeem(redeemShare);
+
       expect(await implementation.state()).to.be.eq(3); // RedemptionPending
 
       // Transfer some money to vault, so that able to resolve pending redemption
       await denomination
         .connect(denominationProvider)
         .transfer(vault.address, redeemAmount.mul(2));
+      console.log('4.1');
     });
 
     it('resolve RedemptionPending state after execute', async function () {
