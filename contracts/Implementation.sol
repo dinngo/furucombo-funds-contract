@@ -80,9 +80,9 @@ contract Implementation is
 
         // Add denomination to list and never remove
         // TODO: replace err msg: assetList is not empty
-        require(getAssetList().length == 0, "a");
+        require(getAssetList().length == 0);
         // TODO: replace err msg: Invalid denomination
-        require(comptroller.isValidDenomination(address(denomination)), "I");
+        require(comptroller.isValidDenomination(address(denomination)));
         addAsset(address(denomination));
 
         // Set approval for investor to redeem
@@ -92,7 +92,7 @@ contract Implementation is
     /// @notice Resume the pool by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
         // TODO: replace err msg: reserve not enough
-        require(isPendingResolvable(true), "r");
+        require(isPendingResolvable(true));
 
         _settlePendingRedemption(true);
 
@@ -102,12 +102,11 @@ contract Implementation is
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
         // TODO: replace err msg: Pending does not start
-        require(pendingStartTime != 0, "P");
+        require(pendingStartTime != 0);
         // TODO: replace err msg: Pending does not expire
         require(
             block.timestamp >=
-                pendingStartTime + comptroller.pendingExpiration(),
-            "P"
+                pendingStartTime + comptroller.pendingExpiration()
         );
 
         _liquidate();
@@ -126,7 +125,7 @@ contract Implementation is
     {
         if (state == State.Liquidating) {
             // TODO: replace err msg: reserve not enough
-            require(isPendingResolvable(false), "r");
+            require(isPendingResolvable(false));
 
             _settlePendingRedemption(false);
         }
@@ -234,7 +233,7 @@ contract Implementation is
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
         // TODO: replace err msg: Invalid asset
-        require(comptroller.validateDealingAsset(level, asset), "I");
+        require(comptroller.validateDealingAsset(level, asset));
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
@@ -302,7 +301,7 @@ contract Implementation is
         returns (bool)
     {
         // TODO: replace err msg: Insufficient reserve
-        require(_isReserveEnough(), "I");
+        require(_isReserveEnough());
 
         // remove asset from assetList
         address[] memory assetList = getAssetList();

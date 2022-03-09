@@ -52,7 +52,8 @@ abstract contract ShareModule is PoolState {
         returns (uint256 balance)
     {
         uint256 userShare = shareToken.balanceOf(msg.sender);
-        require(share <= userShare, "require too much share");
+        // TODO: replace err msg: require too much share
+        require(share <= userShare);
 
         if (state == State.RedemptionPending) {
             balance = _redeemPending(msg.sender, share);
