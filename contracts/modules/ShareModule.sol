@@ -51,8 +51,7 @@ abstract contract ShareModule is PoolState {
         returns (uint256 balance)
     {
         if (state == State.RedemptionPending) {
-            require(acceptPending, "Redeem in pending without permission");
-            balance = _redeemPending(msg.sender, share);
+            balance = _redeemPending(msg.sender, share, acceptPending);
         } else {
             balance = _redeem(msg.sender, share, acceptPending);
         }
@@ -191,9 +190,8 @@ abstract contract ShareModule is PoolState {
         shareToken.burn(user, shareRedeemed);
 
         if (shareLeft != 0) {
-            require(acceptPending, "Partial redeem without permission");
             _pend();
-            _redeemPending(user, shareLeft);
+            _redeemPending(user, shareLeft, acceptPending);
         }
 
         denomination.safeTransferFrom(address(vault), user, balance);
@@ -203,11 +201,12 @@ abstract contract ShareModule is PoolState {
         return balance;
     }
 
-    function _redeemPending(address user, uint256 share)
-        internal
-        virtual
-        returns (uint256)
-    {
+    function _redeemPending(
+        address user,
+        uint256 share,
+        bool acceptPending
+    ) internal virtual returns (uint256) {
+        require(acceptPending, "Redeem in pending without permission");
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
