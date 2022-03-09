@@ -4,6 +4,8 @@ import { ethers, deployments } from 'hardhat';
 import { PerformanceFeeMock, ShareToken } from '../typechain';
 import { DS_PROXY_REGISTRY } from './utils/constants';
 
+/// @notice increase the block time need mine block, 
+/// the next view function will be correct.
 async function increaseNextBlockTimeBy(interval: number) {
   const blockNumber = await ethers.provider.getBlockNumber();
   let block = null;
@@ -12,6 +14,7 @@ async function increaseNextBlockTimeBy(interval: number) {
   }
   const jsonRpc = new ethers.providers.JsonRpcProvider();
   await jsonRpc.send('evm_setNextBlockTimestamp', [block.timestamp + interval]);
+  await jsonRpc.send('evm_mine', []);
 }
 
 describe('Performance fee', function () {
@@ -78,6 +81,46 @@ describe('Performance fee', function () {
       await performanceFee.setCrystallizationPeriod(period);
       const result = await performanceFee.callStatic.getCrystallizationPeriod();
       expect(result).to.be.eq(period);
+    });
+
+    it('should fail when equal to 0', async function () {
+      await expect(performanceFee.setCrystallizationPeriod(0)).to.be.revertedWith('C');
+    });
+  });
+
+  describe('get crystallize time', function () {
+    const period = BigNumber.from(4 * 30 * 24 * 60 * 60);
+    let startTime: BigNumber;
+
+    beforeEach(async function () {
+      await performanceFee.setCrystallizationPeriod(period);
+      const receipt = await performanceFee.initializePerformanceFee();
+      const block = await ethers.provider.getBlock(receipt.blockNumber!);
+      startTime = BigNumber.from(block.timestamp);
+    });
+
+    it('shoud return next period time before period', async function () {
+      await increaseNextBlockTimeBy(period.toNumber() * 0.4);
+      const isCrystallizable = await performanceFee.isCrystallizable();
+      const nextCrystallizeTime = await performanceFee.getNextCrystallizationTime();
+      expect(isCrystallizable).to.be.eq(false);
+      expect(nextCrystallizeTime).to.be.eq(startTime.add(period));
+    });
+
+    it('shoud return next period time after period', async function () {
+      await increaseNextBlockTimeBy(period.toNumber() * 1.8);
+      const isCrystallizable = await performanceFee.isCrystallizable();
+      const nextCrystallizeTime = await performanceFee.getNextCrystallizationTime();
+      expect(isCrystallizable).to.be.eq(true);
+      expect(nextCrystallizeTime).to.be.eq(startTime.add(period));
+    });
+
+    it('shoud return earliest next period time at next period', async function () {
+      await increaseNextBlockTimeBy(period.toNumber() * 2.2);
+      const isCrystallizable = await performanceFee.isCrystallizable();
+      const nextCrystallizeTime = await performanceFee.getNextCrystallizationTime();
+      expect(isCrystallizable).to.be.eq(true);
+      expect(nextCrystallizeTime).to.be.eq(startTime.add(period));
     });
   });
 
