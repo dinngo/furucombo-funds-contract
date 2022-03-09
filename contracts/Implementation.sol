@@ -221,7 +221,7 @@ contract Implementation is
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
         // TODO: replace err msg: Invalid asset
-        require(comptroller.validateDealingAsset(level, asset), "I");
+        require(comptroller.isValidDealingAsset(level, asset), "I");
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
