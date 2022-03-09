@@ -7,7 +7,7 @@ import {
   SimpleAction,
   SimpleToken,
 } from '../typechain';
-import { DS_PROXY_REGISTRY } from './utils/constants';
+import { DS_PROXY_REGISTRY, POOL_STATE } from './utils/constants';
 
 describe('Execution module', function () {
   let executionModule: ExecutionModuleMock;
@@ -62,7 +62,7 @@ describe('Execution module', function () {
 
   describe('Execute', function () {
     it('should success when executing', async function () {
-      await executionModule.setState(2);
+      await executionModule.setState(POOL_STATE.EXECUTING);
       const executionData = action.interface.encodeFunctionData('foo');
       await executionModule.execute(executionData);
       const result = await action.callStatic.bar();
@@ -70,7 +70,7 @@ describe('Execution module', function () {
     });
 
     it('should success when redeem pending', async function () {
-      await executionModule.setState(3);
+      await executionModule.setState(POOL_STATE.REDEMPTION_PENDING);
       const executionData = action.interface.encodeFunctionData('foo');
       await executionModule.execute(executionData);
       const result = await action.callStatic.bar();
@@ -78,7 +78,7 @@ describe('Execution module', function () {
     });
 
     it('should fail when initializing', async function () {
-      await executionModule.setState(0);
+      await executionModule.setState(POOL_STATE.INITIALIZING);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.be.revertedWith(
         'InvalidState(0)'
@@ -86,7 +86,7 @@ describe('Execution module', function () {
     });
 
     it('should fail when reviewing', async function () {
-      await executionModule.setState(1);
+      await executionModule.setState(POOL_STATE.REVIEWING);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.be.revertedWith(
         'InvalidState(1)'
@@ -94,7 +94,7 @@ describe('Execution module', function () {
     });
 
     it('should fail when closed', async function () {
-      await executionModule.setState(5);
+      await executionModule.setState(POOL_STATE.CLOSED);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.be.revertedWith(
         'InvalidState(5)'
@@ -102,7 +102,7 @@ describe('Execution module', function () {
     });
 
     it('should call before/afterExecute', async function () {
-      await executionModule.setState(2);
+      await executionModule.setState(POOL_STATE.EXECUTING);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData))
         .to.emit(executionModule, 'BeforeExecuteCalled')
