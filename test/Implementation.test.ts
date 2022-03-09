@@ -815,7 +815,6 @@ describe('Implementation', function () {
       await denomination
         .connect(denominationProvider)
         .transfer(vault.address, redeemAmount.mul(2));
-      console.log('4.1');
     });
 
     it('resolve RedemptionPending state after execute', async function () {
