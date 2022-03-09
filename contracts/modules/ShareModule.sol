@@ -146,7 +146,7 @@ abstract contract ShareModule is PoolState {
             totalPendingBonus = 0;
         }
 
-        uint256 totalRedemption = _redeem(address(this), redeemAmount, false);
+        uint256 totalRedemption = _redeem(address(this), redeemShares, false);
         uint256 pendingAccountListLength = pendingAccountList.length;
         for (uint256 i = 0; i < pendingAccountListLength; i++) {
             address user = pendingAccountList[i];
