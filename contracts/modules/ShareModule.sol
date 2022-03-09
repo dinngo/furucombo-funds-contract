@@ -71,7 +71,7 @@ abstract contract ShareModule is PoolState {
             // Handler initial minting
             share = balance;
         } else {
-            uint256 assetValue = __getTotalAssetValue();
+            uint256 assetValue = getTotalAssetValue();
             share = (shareAmount * balance) / assetValue;
         }
     }
@@ -86,8 +86,8 @@ abstract contract ShareModule is PoolState {
         virtual
         returns (uint256 balance)
     {
-        uint256 assetValue = __getTotalAssetValue();
-        uint256 shareAmount = shareToken.totalSupply();
+        uint256 assetValue = getTotalAssetValue();
+        uint256 shareAmount = shareToken.grossTotalShare();
         balance = (share * assetValue) / shareAmount;
     }
 
@@ -249,6 +249,8 @@ abstract contract ShareModule is PoolState {
         return;
     }
 
+    function getTotalAssetValue() public view virtual returns (uint256);
+
     function _getPendingRedemptionPenalty()
         internal
         view
@@ -257,8 +259,6 @@ abstract contract ShareModule is PoolState {
     {
         return comptroller.pendingRedemptionPenalty();
     }
-
-    function __getTotalAssetValue() internal view virtual returns (uint256);
 
     function __getReserve() internal view virtual returns (uint256);
 }
