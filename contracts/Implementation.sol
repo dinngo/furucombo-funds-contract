@@ -234,6 +234,7 @@ contract Implementation is
     function _addAsset(address asset) internal override {
         // TODO: replace err msg: Invalid asset
         require(comptroller.validateDealingAsset(level, asset));
+
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
@@ -242,7 +243,7 @@ contract Implementation is
                 comptroller.getDenominationDust(address(denomination))
             );
 
-            if (value > dust || value < 0) {
+            if (value >= dust || value < 0) {
                 super._addAsset(asset);
             }
         }

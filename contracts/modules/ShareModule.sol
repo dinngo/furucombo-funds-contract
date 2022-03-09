@@ -43,9 +43,8 @@ abstract contract ShareModule is PoolState {
         share = _purchase(msg.sender, balance);
     }
 
-    /// @notice Redeem with the given share amount. Can only redeem when pool
-    /// is not under liquidation.
-    function redeem(uint256 share)
+    /// @notice Redeem with the given share amount. Need to wait when pool is under liquidation
+    function redeem(uint256 share, bool acceptPending)
         public
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Closed)
@@ -56,9 +55,9 @@ abstract contract ShareModule is PoolState {
         require(share <= userShare);
 
         if (state == State.RedemptionPending) {
-            balance = _redeemPending(msg.sender, share);
+            balance = _redeemPending(msg.sender, share, acceptPending);
         } else {
-            balance = _redeem(msg.sender, share);
+            balance = _redeem(msg.sender, share, acceptPending);
         }
     }
 
@@ -92,7 +91,7 @@ abstract contract ShareModule is PoolState {
         returns (uint256 balance)
     {
         uint256 assetValue = getTotalAssetValue();
-        uint256 shareAmount = shareToken.totalSupply();
+        uint256 shareAmount = shareToken.grossTotalShare();
         balance = (share * assetValue) / shareAmount;
     }
 
@@ -147,8 +146,7 @@ abstract contract ShareModule is PoolState {
             totalPendingBonus = 0;
         }
 
-        uint256 totalRedemption = _redeem(address(this), redeemShares);
-
+        uint256 totalRedemption = _redeem(address(this), redeemAmount, false);
         uint256 pendingAccountListLength = pendingAccountList.length;
         for (uint256 i = 0; i < pendingAccountListLength; i++) {
             address user = pendingAccountList[i];
@@ -225,11 +223,11 @@ abstract contract ShareModule is PoolState {
         }
     }
 
-    function _redeem(address user, uint256 share)
-        internal
-        virtual
-        returns (uint256)
-    {
+    function _redeem(
+        address user,
+        uint256 share,
+        bool acceptPending
+    ) internal virtual returns (uint256) {
         _callBeforeRedeem(share);
         (uint256 shareLeft, uint256 balance) = calculateRedeemableBalance(
             share
@@ -239,7 +237,7 @@ abstract contract ShareModule is PoolState {
 
         if (shareLeft != 0) {
             _pend();
-            _redeemPending(user, shareLeft);
+            _redeemPending(user, shareLeft, acceptPending);
         }
 
         denomination.safeTransferFrom(address(vault), user, balance);
@@ -249,11 +247,13 @@ abstract contract ShareModule is PoolState {
         return balance;
     }
 
-    function _redeemPending(address user, uint256 share)
-        internal
-        virtual
-        returns (uint256)
-    {
+    function _redeemPending(
+        address user,
+        uint256 share,
+        bool acceptPending
+    ) internal virtual returns (uint256) {
+        // TODO: replace err msg: Redeem in pending without permission
+        require(acceptPending, "R");
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
