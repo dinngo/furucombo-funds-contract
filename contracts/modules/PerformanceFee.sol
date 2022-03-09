@@ -43,7 +43,7 @@ abstract contract PerformanceFee {
     }
 
     /// @notice Check if it can be crystallized.
-    function isCrystallable() public view virtual returns (bool) {
+    function isCrystallizable() public view virtual returns (bool) {
         uint256 nowPeriod = _timeToPeriod(block.timestamp);
         uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
         return nowPeriod > lastPeriod;
@@ -82,7 +82,7 @@ abstract contract PerformanceFee {
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
         // TODO: replace err msg: Not yet
-        require(isCrystallable(), "N");
+        require(isCrystallizable(), "N");
         _updatePerformanceFee();
         IShareToken shareToken = __getShareToken();
         address manager = __getManager();
