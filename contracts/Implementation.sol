@@ -91,7 +91,8 @@ contract Implementation is
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
-        require(isPendingResolvable(true), "reserve not enough");
+        // TODO: replace err msg: reserve not enough
+        require(isPendingResolvable(true), "r");
 
         _settlePendingRedemption(true);
 
@@ -124,7 +125,8 @@ contract Implementation is
         whenStates(State.Executing, State.Liquidating)
     {
         if (state == State.Liquidating) {
-            require(isPendingResolvable(false), "reserve not enough");
+            // TODO: replace err msg: reserve not enough
+            require(isPendingResolvable(false), "r");
 
             _settlePendingRedemption(false);
         }

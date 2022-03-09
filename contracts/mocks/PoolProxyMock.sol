@@ -11,34 +11,6 @@ contract PoolProxyMock is Implementation {
         Implementation(dsProxyRegistry_)
     {}
 
-    function canContractCall(address to, bytes4 sig)
-        external
-        pure
-        returns (bool)
-    {
-        if (
-            to == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) &&
-            sig == 0x11111111
-        ) {
-            return false;
-        }
-        return true;
-    }
-
-    function canDelegateCall(address to, bytes4 sig)
-        external
-        pure
-        returns (bool)
-    {
-        if (
-            to == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) &&
-            sig == 0x11111111
-        ) {
-            return false;
-        }
-        return true;
-    }
-
     function executeMock(address _target, bytes calldata _data)
         external
         payable
