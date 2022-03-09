@@ -422,7 +422,7 @@ describe('Share module', function () {
       await shareModule.purchase(totalAsset);
       await shareModule.setReserve(totalAsset.sub(pendingAsset));
       await shareModule.setTotalAssetValue(totalAsset);
-      await shareModule.redeem(totalAsset); // Now the pending redemption amount is pendingShare(pendingAsset)
+      await shareModule.redeem(totalAsset, true); // Now the pending redemption amount is pendingShare(pendingAsset)
       await shareModule.setReserve(0);
       await shareModule.setTotalAssetValue(pendingAsset);
     });

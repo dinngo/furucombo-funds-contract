@@ -831,7 +831,7 @@ describe('Implementation', function () {
       // Make fund go to RedemptionPending state
       const redeemShare = await implementation.calculateShare(redeemAmount);
       await shareToken.transfer(owner.address, redeemShare);
-      await implementation.redeem(redeemShare);
+      await implementation.redeem(redeemShare, true);
 
       expect(await implementation.state()).to.be.eq(3); // RedemptionPending
 
