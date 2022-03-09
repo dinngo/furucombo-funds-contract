@@ -333,9 +333,7 @@ describe('Comptroller', function () {
         // check env before execution
         await comptroller.permitAssets(level, [tokenA]);
         expect(
-          await comptroller
-            .connect(user)
-            .isValidInitialAssets(level, [tokenA])
+          await comptroller.connect(user).isValidInitialAssets(level, [tokenA])
         ).to.be.equal(true);
       });
 
@@ -388,9 +386,7 @@ describe('Comptroller', function () {
 
         // check multiple assets
         expect(
-          await comptroller
-            .connect(user)
-            .isValidInitialAssets(level, [tokenA])
+          await comptroller.connect(user).isValidInitialAssets(level, [tokenA])
         ).to.be.equal(true);
         expect(
           await comptroller
@@ -501,15 +497,6 @@ describe('Comptroller', function () {
           .connect(user)
           .permitDenominations([tokenA, tokenB], [dustA, dustB])
       ).to.be.revertedWith('Ownable: caller is not the owner');
-    });
-
-    it('should revert: permit zero address denomination', async function () {
-      await expect(
-        comptroller.permitDenominations(
-          [tokenA, constants.AddressZero, tokenB],
-          [dustA, dustA, dustB]
-        )
-      ).to.be.revertedWith('Denomination should not be zero address');
     });
 
     it('should revert: forbid denominations by non-owner', async function () {
