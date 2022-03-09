@@ -187,7 +187,7 @@ describe('Share module', function () {
       await shareModule.setReserve(partialAsset);
       await expect(
         shareModule.redeem(totalShare, acceptPending)
-      ).to.be.revertedWith('Redeem in pending without permission');
+      ).to.be.revertedWith('R');
     });
 
     it('should succeed when redemption pending with user permission', async function () {
@@ -202,7 +202,7 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.REDEMPTION_PENDING);
       await expect(
         shareModule.redeem(totalAsset, acceptPending)
-      ).to.be.revertedWith('Redeem in pending without permission');
+      ).to.be.revertedWith('R');
     });
 
     it('should fail when liquidating', async function () {

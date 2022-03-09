@@ -206,7 +206,8 @@ abstract contract ShareModule is PoolState {
         uint256 share,
         bool acceptPending
     ) internal virtual returns (uint256) {
-        require(acceptPending, "Redeem in pending without permission");
+        // TODO: replace err msg: Redeem in pending without permission
+        require(acceptPending, "R");
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
