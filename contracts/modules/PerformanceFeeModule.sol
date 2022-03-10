@@ -94,7 +94,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     /// time. The fee will be minted as outstanding share.
     function _updatePerformanceFee() internal virtual {
         // Get accumulated wealth
-        uint256 grossAssetValue = _getGrossAssetValue();
+        uint256 grossAssetValue = getTotalAssetValue();
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
             return;
@@ -126,7 +126,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     /// @notice Update the gross share price as the basis for estimating the
     /// future performance.
     function _updateGrossSharePrice() internal virtual {
-        uint256 grossAssetValue = _getGrossAssetValue();
+        uint256 grossAssetValue = getTotalAssetValue();
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
             lastGrossSharePrice64x64 = FEE_BASE64x64;
@@ -167,9 +167,4 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
 
     /// @notice Get the total value of all the asset of the pool.
     function getTotalAssetValue() public view virtual returns (uint256);
-
-    /// @notice Get the gross asset value of the pool.
-    function _getGrossAssetValue() internal view virtual returns (uint256) {
-        return getTotalAssetValue();
-    }
 }

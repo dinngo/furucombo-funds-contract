@@ -75,8 +75,4 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
     function getTotalAssetValue() public view override returns (uint256) {
         return grossAssetValue;
     }
-
-    function _getGrossAssetValue() internal view override returns (uint256) {
-        return grossAssetValue;
-    }
 }
