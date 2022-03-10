@@ -28,7 +28,6 @@ contract MortgageVault {
         address pool,
         uint256 amount
     ) external {
-        // require(poolAmounts[pool] == 0, "Pool staked");
         Errors._require(
             poolAmounts[pool] == 0,
             Errors.Code.MORTGAGE_VAULT_POOL_STAKED

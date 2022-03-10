@@ -119,24 +119,16 @@ contract PoolImplementation is
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
         // TODO: replace err msg: Pending does not start
-<<<<<<< HEAD
-        require(pendingStartTime != 0);
-=======
         // require(pendingStartTime != 0, "P");
         Errors._require(
             pendingStartTime != 0,
             Errors.Code.IMPLEMENTATION_PENDING_NOT_START
         );
->>>>>>> 450d053 (refactor: use enum as error code)
         // TODO: replace err msg: Pending does not expire
         Errors._require(
             block.timestamp >=
-<<<<<<< HEAD
-                pendingStartTime + comptroller.pendingExpiration()
-=======
                 pendingStartTime + comptroller.pendingExpiration(),
             Errors.Code.IMPLEMENTATION_PENDING_NOT_EXPIRE
->>>>>>> 450d053 (refactor: use enum as error code)
         );
         // require(
         //     block.timestamp >=
@@ -263,15 +255,11 @@ contract PoolImplementation is
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
         // TODO: replace err msg: Invalid asset
-<<<<<<< HEAD
-        require(comptroller.isValidDealingAsset(level, asset));
-=======
         // require(comptroller.validateDealingAsset(level, asset), "I");
         Errors._require(
             comptroller.isValidDealingAsset(level, asset),
             Errors.Code.IMPLEMENTATION_INVALID_ASSET
         );
->>>>>>> 450d053 (refactor: use enum as error code)
 
         if (asset == address(denomination)) {
             super._addAsset(asset);
@@ -342,8 +330,6 @@ contract PoolImplementation is
         override
         returns (uint256)
     {
-<<<<<<< HEAD
-=======
         // TODO: replace err msg: Insufficient reserve
         // require(_isReserveEnough(), "I");
         Errors._require(
@@ -351,7 +337,6 @@ contract PoolImplementation is
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
         );
 
->>>>>>> 450d053 (refactor: use enum as error code)
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {

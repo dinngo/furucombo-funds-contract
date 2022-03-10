@@ -538,6 +538,14 @@ describe('Comptroller', function () {
         comptroller.connect(user).forbidDenominations([tokenA, tokenB])
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
+
+    it('should revert: denomination and dust length are inconsistent', async function () {
+      await expect(
+        comptroller
+          .connect(owner)
+          .permitDenominations([tokenA, tokenB], [dustA])
+      ).to.be.revertedWith('revertCode(4)'); // COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
+    });
   });
 
   // StakedTier management
