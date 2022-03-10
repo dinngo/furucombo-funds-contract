@@ -27,7 +27,7 @@ abstract contract PerformanceFee {
     address private constant _OUTSTANDING_ACCOUNT = address(1);
     address private constant _FINALIZED_ACCOUNT = address(2);
 
-    function initializePerformanceFee() public virtual {
+    function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
         _crystallizationStart = block.timestamp;

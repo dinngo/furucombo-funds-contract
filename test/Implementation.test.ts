@@ -242,9 +242,17 @@ describe('Implementation', function () {
     describe('Finalize', function () {
       it('should success', async function () {
         await implementation.finalize();
+
+        // check add denomication to list
         expect(await implementation.getAssetList()).to.be.deep.eq([
           denomination.address,
         ]);
+
+        // check performance fee initilize
+        const lastGrossSharePrice = await implementation.callStatic.lastGrossSharePrice64x64();
+        const hwm64x64 = await implementation.callStatic.hwm64x64();
+        expect(lastGrossSharePrice).to.be.not.eq(BigNumber.from('0'));
+        expect(hwm64x64).to.be.not.eq(BigNumber.from('0'));
 
         // check vault approval
         const allowance = await denomination.allowance(

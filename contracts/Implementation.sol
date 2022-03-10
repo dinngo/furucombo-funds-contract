@@ -87,6 +87,9 @@ contract Implementation is
 
         // Set approval for investor to redeem
         _setVaultApproval(setupAction);
+
+        // Initialize performance fee parameters
+        _initializePerformanceFee();
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.

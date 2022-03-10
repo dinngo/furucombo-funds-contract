@@ -39,6 +39,10 @@ contract PerformanceFeeMock is PerformanceFee {
         _setCrystallizationPeriod(period);
     }
 
+    function initializePerformanceFee() public {
+        _initializePerformanceFee();
+    }
+
     function updatePerformanceFee() public {
         _updatePerformanceFee();
     }
@@ -59,6 +63,10 @@ contract PerformanceFeeMock is PerformanceFee {
 
     function getFeeBase() public pure returns (uint256) {
         return 1e4;
+    }
+
+    function getFeeBase64x64() public pure returns (uint256) {
+        return 1 << 64;
     }
 
     function getRateBase() public pure returns (int128) {
