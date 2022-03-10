@@ -361,8 +361,9 @@ describe('PoolImplementation', function () {
 
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
-        // TODO: replace err msg: Invalid denomination
-        await expect(poolImplementation.finalize()).to.be.revertedWith('');
+        await expect(poolImplementation.finalize()).to.be.revertedWith(
+          'revertCode(11)' // IMPLEMENTATION_INVALID_DENOMINATION
+        );
       });
     });
 
@@ -405,8 +406,7 @@ describe('PoolImplementation', function () {
       it('should revert: pending does not start', async function () {
         await poolImplementation.finalize();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          // TODO: replace err msg: Pending does not start
-          ''
+          'revertCode(7)' // IMPLEMENTATION_PENDING_NOT_START
         );
       });
 
@@ -414,8 +414,7 @@ describe('PoolImplementation', function () {
         await poolImplementation.finalize();
         await poolImplementation.pendMock();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          // TODO: replace err msg: Pending does not expire
-          ''
+          'revertCode(8)' // IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
       });
     });
@@ -502,8 +501,7 @@ describe('PoolImplementation', function () {
       it('should revert: asset is not permitted', async function () {
         await expect(
           poolImplementation.addAsset(tokenA.address)
-          // TODO: replace err msg: Invalid asset
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(10)'); // IMPLEMENTATION_INVALID_ASSET
       });
 
       it('can not be added: zero balance of asset', async function () {
