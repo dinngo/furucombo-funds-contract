@@ -7,6 +7,7 @@ import {Whitelist} from "./libraries/Whitelist.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {Errors} from "./utils/Errors.sol";
 
 contract ComptrollerImplementation is Ownable, IComptroller {
     using Whitelist for Whitelist.ActionWList;
@@ -92,17 +93,35 @@ contract ComptrollerImplementation is Ownable, IComptroller {
 
     // Modifier
     modifier onlyUnHalted() {
-        require(!fHalt, "Comptroller: Halted");
+        // require(!fHalt, "Comptroller: Halted");
+        Errors._require(!fHalt, Errors.Code.COMPTROLLER_HALTED);
         _;
     }
 
     modifier onlyUnbannedPoolProxy() {
-        require(!bannedPoolProxy[msg.sender], "Comptroller: Banned");
+        // require(!bannedProxy[msg.sender], "Comptroller: Banned");
+        Errors._require(
+            !bannedPoolProxy[msg.sender],
+            Errors.Code.COMPTROLLER_BANNED
+        );
         _;
     }
 
     modifier nonZeroAddress(address newSetter) {
-        require(newSetter != address(0), "Comptroller: Zero address");
+        // require(newSetter != address(0), "Comptroller: Zero address");
+        Errors._require(
+            newSetter != address(0),
+            Errors.Code.COMPTROLLER_ZERO_ADDRESS
+        );
+        _;
+    }
+
+    modifier consistentLength(address[] calldata tos, bytes4[] calldata sigs) {
+        // require(newSetter != address(0), "Comptroller: Zero address");
+        Errors._require(
+            tos.length == sigs.length,
+            Errors.Code.COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
+        );
         _;
     }
 
@@ -218,9 +237,13 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         address[] calldata denominations,
         uint256[] calldata dusts
     ) external onlyOwner {
-        require(
+        // require(
+        //     denominations.length == dusts.length,
+        //     "Comptroller: Invalid length"
+        // );
+        Errors._require(
             denominations.length == dusts.length,
-            "Comptroller: Invalid length"
+            Errors.Code.COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
         );
 
         for (uint256 i = 0; i < denominations.length; i++) {
@@ -392,8 +415,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 level,
         address[] calldata tos,
         bytes4[] calldata sigs
-    ) external onlyOwner {
-        require(tos.length == sigs.length, "Comptroller: Invalid length");
+    ) external consistentLength(tos, sigs) onlyOwner {
+        // require(tos.length == sigs.length, "Comptroller: Invalid length");
+        // Errors._require(!fHalt, Errors.Code.COMPTROLLER_HALTED);
         for (uint256 i = 0; i < tos.length; i++) {
             _delegateCallACL.permit(level, tos[i], sigs[i]);
             emit PermitDelegateCall(level, tos[i], sigs[i]);
@@ -404,8 +428,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 level,
         address[] calldata tos,
         bytes4[] calldata sigs
-    ) external onlyOwner {
-        require(tos.length == sigs.length, "Comptroller: Invalid length");
+    ) external consistentLength(tos, sigs) onlyOwner {
+        // require(tos.length == sigs.length, "Comptroller: Invalid length");
+        // Errors._require(!fHalt, Errors.Code.COMPTROLLER_HALTED);
         for (uint256 i = 0; i < tos.length; i++) {
             _delegateCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidDelegateCall(level, tos[i], sigs[i]);
@@ -417,8 +442,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 level,
         address[] calldata tos,
         bytes4[] calldata sigs
-    ) external onlyOwner {
-        require(tos.length == sigs.length, "Comptroller: Invalid length");
+    ) external consistentLength(tos, sigs) onlyOwner {
+        // require(tos.length == sigs.length, "Comptroller: Invalid length");
+        // Errors._require(!fHalt, Errors.Code.COMPTROLLER_HALTED);
         for (uint256 i = 0; i < tos.length; i++) {
             _contractCallACL.permit(level, tos[i], sigs[i]);
             emit PermitContractCall(level, tos[i], sigs[i]);
@@ -429,8 +455,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 level,
         address[] calldata tos,
         bytes4[] calldata sigs
-    ) external onlyOwner {
-        require(tos.length == sigs.length, "Comptroller: Invalid length");
+    ) external consistentLength(tos, sigs) onlyOwner {
+        // require(tos.length == sigs.length, "Comptroller: Invalid length");
+        // Errors._require(!fHalt, Errors.Code.COMPTROLLER_HALTED);
         for (uint256 i = 0; i < tos.length; i++) {
             _contractCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidContractCall(level, tos[i], sigs[i]);
@@ -450,8 +477,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 level,
         address[] calldata tos,
         bytes4[] calldata sigs
-    ) external onlyOwner {
-        require(tos.length == sigs.length, "Comptroller: Invalid length");
+    ) external consistentLength(tos, sigs) onlyOwner {
+        // require(tos.length == sigs.length, "Comptroller: Invalid length");
+        // Errors._require(!fHalt, Errors.Code.COMPTROLLER_HALTED);
         for (uint256 i = 0; i < tos.length; i++) {
             _handlerCallACL.permit(level, tos[i], sigs[i]);
             emit PermitHandler(level, tos[i], sigs[i]);
@@ -462,8 +490,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 level,
         address[] calldata tos,
         bytes4[] calldata sigs
-    ) external onlyOwner {
-        require(tos.length == sigs.length, "Comptroller: Invalid length");
+    ) external consistentLength(tos, sigs) onlyOwner {
+        // require(tos.length == sigs.length, "Comptroller: Invalid length");
+        // Errors._require(!fHalt, Errors.Code.COMPTROLLER_HALTED);
         for (uint256 i = 0; i < tos.length; i++) {
             _handlerCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidHandler(level, tos[i], sigs[i]);
