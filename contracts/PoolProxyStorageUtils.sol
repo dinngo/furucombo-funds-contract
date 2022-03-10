@@ -2,32 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {PoolProxyStorage} from "./PoolProxyStorage.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
-import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 
-abstract contract PoolState {
-    enum State {
-        Initializing,
-        Reviewing,
-        Executing,
-        RedemptionPending,
-        Liquidating,
-        Closed
-    }
-
-    uint256 public level;
-    State public state;
-    IComptroller public comptroller;
-    IMortgageVault public mortgageVault;
-    IERC20 public denomination;
-    IShareToken public shareToken;
-    IDSProxy public vault; // DSProxy
-    uint256 public reserveExecutionRatio; // reserve ratio, base is 1e4. 100 means 1%
-    uint256 public pendingStartTime;
-
+abstract contract PoolProxyStorageUtils is PoolProxyStorage {
     event StateTransited(State to);
 
     error InvalidState(State current);
@@ -58,7 +39,6 @@ abstract contract PoolState {
     }
 
     // State Changes
-
     function _review() internal whenState(State.Initializing) {
         _enterState(State.Reviewing);
     }
@@ -92,7 +72,6 @@ abstract contract PoolState {
     }
 
     // Setters
-
     function _setLevel(uint256 level_) internal {
         // TODO: replace err msg: Level is set
         require(level == 0, "");
