@@ -288,9 +288,6 @@ contract Implementation is
         override
         returns (bool)
     {
-        // TODO: replace err msg: Insufficient reserve
-        require(_isReserveEnough(), "I");
-
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
@@ -303,6 +300,9 @@ contract Implementation is
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
             addAsset(dealingAssets[i]);
         }
+
+        // TODO: replace err msg: Insufficient reserve
+        require(_isReserveEnough(), "I");
 
         return super._afterExecute(response);
     }
