@@ -9,8 +9,8 @@ library Errors {
         COMPTROLLER_BANNED, // 1: Banned
         COMPTROLLER_ZERO_ADDRESS, // 2: Zero address
         COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT, // 3: tos and sigs length is inconsistent
-        MORTGAGE_VAULT_POOL_STAKED, // 4:
-        SHARE_TOKEN_INVALID_TO, // 5:
+        MORTGAGE_VAULT_POOL_STAKED, // 4: Pool staked
+        SHARE_TOKEN_INVALID_TO, // 5: Invalid to
         IMPLEMENTATION_ASSET_LIST_NOT_EMPTY, // 6: assetList is not empty
         IMPLEMENTATION_PENDING_NOT_START, // 7: Pending does not start
         IMPLEMENTATION_PENDING_NOT_EXPIRE, // 8: Pending does not expire
@@ -18,7 +18,6 @@ library Errors {
         IMPLEMENTATION_INVALID_ASSET, // 10: Invalid asset
         IMPLEMENTATION_INVALID_DENOMINATION, // 11: Invalid denomination
         POOL_PROXY_FACTORY_INVALID_CREATOR, // 12: Invalid creator
-        // POOL_PROXY_,
         POOL_STATE_LEVEL_IS_SET, // 13:
         POOL_STATE_ZERO_LEVEL, // 14:
         POOL_STATE_COMPTROLLER_IS_INITIALIZED, // 15:
