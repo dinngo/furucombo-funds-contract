@@ -7,6 +7,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ITaskExecutor} from "./interfaces/ITaskExecutor.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IPool} from "./interfaces/IPool.sol";
+import {Errors} from "./utils/Errors.sol";
 import {DestructibleAction} from "./utils/DestructibleAction.sol";
 import {DelegateCallAction} from "./utils/DelegateCallAction.sol";
 import {FundQuotaAction} from "./utils/FundQuotaAction.sol";
@@ -77,13 +78,13 @@ contract TaskExecutor is
         bytes32[256] memory localStack;
         uint256 index = 0;
 
-        require(
+        Errors._require(
             tos.length == datas.length,
-            "TaskExecutor: Tos and datas length inconsistent"
+            Errors.Code.TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT
         );
-        require(
+        Errors._require(
             tos.length == configs.length,
-            "TaskExecutor: Tos and configs length inconsistent"
+            Errors.Code.TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT
         );
 
         uint256 level = IPool(msg.sender).level();
@@ -93,13 +94,13 @@ contract TaskExecutor is
 
             if (config.isDelegateCall()) {
                 // check comptroller delegate call
-                require(
+                Errors._require(
                     comptroller.canDelegateCall(
                         level,
                         tos[i],
                         bytes4(datas[i])
                     ),
-                    "TaskExecutor: invalid comptroller delegate call"
+                    Errors.Code.TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
                 );
 
                 // Trim params from local stack depend on config
@@ -108,8 +109,8 @@ contract TaskExecutor is
                 // Execute action by delegate call
                 bytes memory result = tos[i].functionDelegateCall(
                     datas[i],
-                    "TaskExecutor: TaskExecutor: low-level delegate call failed"
-                );
+                    "TaskExecutor: low-level delegate call failed"
+                ); // use openzeppelin address delegate call, use error message directly
 
                 // Store return data from action to local stack
                 index = _parseReturn(result, config, localStack, index);
@@ -120,9 +121,9 @@ contract TaskExecutor is
                 );
 
                 // check comptroller contract call
-                require(
+                Errors._require(
                     comptroller.canContractCall(level, tos[i], bytes4(_data)),
-                    "TaskExecutor: invalid comptroller contract call"
+                    Errors.Code.TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
                 );
 
                 // Trim params from local stack depend on config
@@ -133,7 +134,7 @@ contract TaskExecutor is
                     _data,
                     ethValue,
                     "TaskExecutor: low-level call with value failed"
-                );
+                ); // use openzeppelin address value call, use error message directly
 
                 // Store return data from action to local stack depend on config
                 index = _parseReturn(result, config, localStack, index);
@@ -142,9 +143,9 @@ contract TaskExecutor is
 
         // verify dealing assets
         address[] memory dealingAssets = getDealingAssets();
-        require(
+        Errors._require(
             comptroller.isValidDealingAssets(level, dealingAssets),
-            "TaskExecutor: invalid dealing asset"
+            Errors.Code.TASK_EXECUTOR_INVALID_DEALING_ASSET
         );
         return dealingAssets;
     }
@@ -173,9 +174,9 @@ contract TaskExecutor is
 
         // Trim the data with the reference and parameters
         for (uint256 i = 0; i < refs.length; i++) {
-            require(
+            Errors._require(
                 refs[i] < index,
-                "TaskExecutor: Reference to out of localStack"
+                Errors.Code.TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
             );
             bytes32 ref = localStack[refs[i]];
             uint256 offset = params[i];
@@ -189,7 +190,7 @@ contract TaskExecutor is
                     let p := mul(m, ref)
                     if iszero(eq(div(p, m), ref)) {
                         revert(0, 0)
-                    } // require(p / m == ref)
+                    } // Errors._require(p / m == ref)
                     ref := div(p, base)
                 }
                 mstore(loc, ref)
@@ -214,9 +215,11 @@ contract TaskExecutor is
             // If so, parse the output and place it into local stack
             uint256 num = config.getReturnNum();
             uint256 newIndex = _parse(localStack, ret, index);
-            require(
+            Errors._require(
                 newIndex == index + num,
-                "TaskExecutor: Return num and parsed return num not matched"
+                Errors
+                    .Code
+                    .TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
             );
             index = newIndex;
         }
@@ -236,10 +239,16 @@ contract TaskExecutor is
     ) internal pure returns (uint256 newIndex) {
         uint256 len = ret.length;
         // The return value should be multiple of 32-bytes to be parsed.
-        require(len % 32 == 0, "TaskExecutor: Illegal length for _parse");
+        Errors._require(
+            len % 32 == 0,
+            Errors.Code.TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE
+        );
         // Estimate the tail after the process.
         newIndex = index + len / 32;
-        require(newIndex <= 256, "TaskExecutor: Stack overflow");
+        Errors._require(
+            newIndex <= 256,
+            Errors.Code.TASK_EXECUTOR_STACK_OVERFLOW
+        );
         assembly {
             let offset := shl(5, index)
             // Store the data into localStack
@@ -279,9 +288,9 @@ contract TaskExecutor is
     ) internal {
         // Check initial asset from white list
         uint256 level = IPool(msg.sender).level();
-        require(
+        Errors._require(
             comptroller.isValidInitialAssets(level, tokensIn),
-            "TaskExecutor: invalid initial asset"
+            Errors.Code.TASK_EXECUTOR_INVALID_INITIAL_ASSET
         );
 
         // collect execution fee to collector
@@ -290,9 +299,9 @@ contract TaskExecutor is
 
         for (uint256 i = 0; i < tokensIn.length; i++) {
             // make sure all quota should be zero at the begin
-            require(
+            Errors._require(
                 isFundQuotaZero(tokensIn[i]),
-                "TaskExecutor: quota is not zero"
+                Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA
             );
 
             // send fee to collector

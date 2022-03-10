@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {Errors} from "../utils/Errors.sol";
 
 /// @title Share module
 abstract contract ShareModule is PoolProxyStorageUtils {
@@ -234,8 +235,10 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         uint256 share,
         bool acceptPending
     ) internal virtual returns (uint256) {
-        // TODO: replace err msg: Redeem in pending without permission
-        require(acceptPending, "R");
+        Errors._require(
+            acceptPending,
+            Errors.Code.SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
+        );
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;

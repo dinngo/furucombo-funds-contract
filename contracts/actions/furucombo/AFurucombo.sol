@@ -5,12 +5,12 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {DestructibleAction} from "../../utils/DestructibleAction.sol";
 import {DelegateCallAction} from "../../utils/DelegateCallAction.sol";
 import {ErrorMsg} from "../../utils/ErrorMsg.sol";
+import {Errors} from "../../utils/Errors.sol";
 import {IPool} from "../../interfaces/IPool.sol";
 import {ActionBase} from "../ActionBase.sol";
-import {IFurucombo} from "./IFurucombo.sol";
-
 import {IComptroller} from "../../interfaces/IComptroller.sol";
 import {IDebtToken} from "../../interfaces/IDebtToken.sol";
+import {IFurucombo} from "./IFurucombo.sol";
 
 contract AFurucombo is
     ActionBase,
@@ -99,9 +99,9 @@ contract AFurucombo is
         IDebtToken[] calldata tokens,
         uint256[] calldata amounts
     ) external payable delegateCallOnly {
-        require(
+        Errors._require(
             tokens.length == amounts.length,
-            "token length != amounts length"
+            Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
         );
 
         // approve delegation to furucombo proxy only,
@@ -121,9 +121,9 @@ contract AFurucombo is
         // check comptroller handler call
         uint256 level = IPool(msg.sender).level();
         for (uint256 i = 0; i < tos.length; ++i) {
-            require(
+            Errors._require(
                 comptroller.canHandlerCall(level, tos[i], bytes4(datas[i])),
-                "_checkHandlerCall: invalid comptroller handler call"
+                Errors.Code.AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
             );
         }
     }
