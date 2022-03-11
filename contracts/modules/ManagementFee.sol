@@ -11,7 +11,7 @@ abstract contract ManagementFee {
 
     int128 private _feeRate64x64;
     uint256 private constant _FEE_BASE = 1e4;
-    int128 public constant FEE_BASE64x64 = 1 << 64;
+    int128 private constant FEE_BASE64x64 = 1 << 64;
     uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 public lastMFeeClaimTime;
 
