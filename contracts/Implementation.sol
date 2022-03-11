@@ -28,6 +28,7 @@ contract Implementation is
     PerformanceFeeModule
 {
     uint256 private constant _RESERVE_BASE = 1e4;
+    uint256 private constant _TOLERANCE_BASE = 1e4;
 
     IDSProxyRegistry public immutable dsProxyRegistry;
     ISetupAction public immutable setupAction;
@@ -197,6 +198,7 @@ contract Implementation is
     function getTotalAssetValue()
         public
         view
+        virtual
         override(PerformanceFeeModule, ShareModule)
         returns (uint256)
     {
@@ -284,16 +286,19 @@ contract Implementation is
     // Execution module
     /////////////////////////////////////////////////////
     /// @notice Execute an action on the pool's behalf.
-    /// @param data The execution data to be applied.
+    function _beforeExecute() internal virtual override returns (uint256) {
+        return getTotalAssetValue();
+    }
+
     function execute(bytes calldata data) public override onlyOwner {
         super.execute(data);
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response)
+    function _afterExecute(bytes memory response, uint256 prevAssetValue)
         internal
         override
-        returns (bool)
+        returns (uint256)
     {
         // remove asset from assetList
         address[] memory assetList = getAssetList();
@@ -313,13 +318,12 @@ contract Implementation is
 
         // Check asset value
         uint256 totalAssetValue = getTotalAssetValue();
-        uint256 minTotalAssetValue = (lastTotalAssetValue *
-            comptroller.execAssetValueToleranceRate()) / RATE_BASE;
+        uint256 minTotalAssetValue = (prevAssetValue *
+            comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
         // TODO: replace err msg: Insufficient total value for execution
         require(totalAssetValue >= minTotalAssetValue, "I");
-        lastTotalAssetValue = totalAssetValue;
 
-        return super._afterExecute(response);
+        return totalAssetValue;
     }
 
     /// @notice Check funds reserve ratio is enough or not.

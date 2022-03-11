@@ -9,6 +9,7 @@ import {Implementation} from "../Implementation.sol";
 contract ImplementationMock is Implementation {
     uint256 public totalAssetValueMock;
     bool public totalAssetValueMocked;
+    uint256 public lastTotalAssetValue;
 
     constructor(IDSProxyRegistry dsProxyRegistry_)
         Implementation(dsProxyRegistry_)
@@ -66,6 +67,10 @@ contract ImplementationMock is Implementation {
 
     function setLastTotalAssetValue(uint256 value) external {
         lastTotalAssetValue = value;
+    }
+
+    function _beforeExecute() internal override returns (uint256) {
+        return lastTotalAssetValue;
     }
 }
 
