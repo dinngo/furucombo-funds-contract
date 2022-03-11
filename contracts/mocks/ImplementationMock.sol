@@ -69,7 +69,7 @@ contract ImplementationMock is Implementation {
         lastTotalAssetValue = value;
     }
 
-    function _beforeExecute() internal override returns (uint256) {
+    function _beforeExecute() internal view override returns (uint256) {
         return lastTotalAssetValue;
     }
 }
