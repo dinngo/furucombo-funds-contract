@@ -91,17 +91,17 @@ describe('Performance fee', function () {
 
   describe('Initialize', function () {
     it('should set last gross share price', async function () {
-      await performanceFee.initializePerformanceFee();
-      const feeBase64x64 = await performanceFee.callStatic.getFeeBase64x64();
-      const lastGrossSharePrice = await performanceFee.callStatic.lastGrossSharePrice64x64();
+      await pFeeModule.initializePerformanceFee();
+      const feeBase64x64 = await pFeeModule.callStatic.getFeeBase64x64();
+      const lastGrossSharePrice = await pFeeModule.callStatic.lastGrossSharePrice64x64();
       expect(lastGrossSharePrice).to.be.not.eq(BigNumber.from('0'));
       expect(lastGrossSharePrice).to.be.eq(feeBase64x64);
     });
 
     it('should set hight water mark', async function () {
-      await performanceFee.initializePerformanceFee();
-      const lastGrossSharePrice = await performanceFee.callStatic.lastGrossSharePrice64x64();
-      const hwm64x64 = await performanceFee.callStatic.hwm64x64();
+      await pFeeModule.initializePerformanceFee();
+      const lastGrossSharePrice = await pFeeModule.callStatic.lastGrossSharePrice64x64();
+      const hwm64x64 = await pFeeModule.callStatic.hwm64x64();
       expect(lastGrossSharePrice).to.be.not.eq(BigNumber.from('0'));
       expect(lastGrossSharePrice).to.be.eq(hwm64x64);
     });
