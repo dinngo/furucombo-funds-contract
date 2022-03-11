@@ -4,12 +4,11 @@ pragma solidity ^0.8.0;
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {LibFee} from "../libraries/LibFee.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
-import {PerformanceFee} from "../modules/PerformanceFee.sol";
+import {PerformanceFeeModule} from "../modules/PerformanceFeeModule.sol";
 
-contract PerformanceFeeMock is PerformanceFee {
+contract PerformanceFeeModuleMock is PerformanceFeeModule {
     using ABDKMath64x64 for uint256;
 
-    IShareToken public shareToken;
     uint256 public grossAssetValue;
     address public manager;
 
@@ -77,15 +76,11 @@ contract PerformanceFeeMock is PerformanceFee {
         return 31557600;
     }
 
-    function __getShareToken() internal view override returns (IShareToken) {
-        return shareToken;
-    }
-
-    function __getGrossAssetValue() internal view override returns (uint256) {
-        return grossAssetValue;
-    }
-
-    function __getManager() internal view override returns (address) {
+    function getManager() public view override returns (address) {
         return manager;
+    }
+
+    function getTotalAssetValue() public view override returns (uint256) {
+        return grossAssetValue;
     }
 }

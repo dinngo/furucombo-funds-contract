@@ -3,21 +3,13 @@ pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AssetModule} from "./AssetModule.sol";
-import {PoolState} from "../PoolState.sol";
+import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 
 /// @title Share module
-abstract contract ShareModule is PoolState {
+abstract contract ShareModule is PoolProxyStorageUtils {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
     using SafeERC20 for IERC20;
-
-    mapping(address => uint256) public pendingShares;
-    address[] public pendingAccountList;
-    mapping(address => uint256) public pendingRedemptions;
-    uint256 public totalPendingShare;
-    uint256 public totalPendingBonus;
-    uint256 private constant _PENALTY_BASE = 1e4;
 
     event Purchased(
         address indexed user,

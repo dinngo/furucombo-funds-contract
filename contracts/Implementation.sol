@@ -6,7 +6,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {AssetModule} from "./modules/AssetModule.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
-import {FeeModule, ManagementFee, PerformanceFee} from "./modules/FeeModule.sol";
+import {ManagementFeeModule} from "./modules/ManagementFeeModule.sol";
+import {PerformanceFeeModule} from "./modules/PerformanceFeeModule.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
@@ -23,7 +24,8 @@ contract Implementation is
     AssetModule,
     ShareModule,
     ExecutionModule,
-    FeeModule
+    ManagementFeeModule,
+    PerformanceFeeModule
 {
     uint256 private constant _RESERVE_BASE = 1e4;
 
@@ -181,7 +183,12 @@ contract Implementation is
     /////////////////////////////////////////////////////
     /// @notice Return the manager address.
     /// @return Manager address.
-    function getManager() public view override returns (address) {
+    function getManager()
+        public
+        view
+        override(ManagementFeeModule, PerformanceFeeModule)
+        returns (address)
+    {
         return owner();
     }
 
@@ -196,7 +203,7 @@ contract Implementation is
     function getTotalAssetValue()
         public
         view
-        override(FeeModule, ShareModule)
+        override(PerformanceFeeModule, ShareModule)
         returns (uint256)
     {
         address[] memory assets = getAssetList();
@@ -319,6 +326,19 @@ contract Implementation is
         uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
             getTotalAssetValue();
         return reserveRatio >= reserveExecutionRatio;
+    }
+
+    /////////////////////////////////////////////////////
+    // Management fee module
+    /////////////////////////////////////////////////////
+    /// @notice Manangement fee should only be accumulated in executing state.
+    function _updateManagementFee() internal override returns (uint256) {
+        if (state == State.Executing) {
+            return super._updateManagementFee();
+        } else {
+            lastMFeeClaimTime = block.timestamp;
+            return 0;
+        }
     }
 
     /////////////////////////////////////////////////////
