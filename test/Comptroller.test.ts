@@ -590,7 +590,7 @@ describe('Comptroller', function () {
           factory
             .connect(user)
             .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
-        ).to.be.revertedWith('revertCode(12)'); // POOL_PROXY_FACTORY_INVALID_CREATOR
+        ).to.be.revertedWith('revertCode(13)'); // POOL_PROXY_FACTORY_INVALID_CREATOR
       });
 
       it('should stake for the given tier', async function () {
