@@ -64,7 +64,9 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     {
         Errors._require(
             feeRate < _FEE_BASE,
-            Errors.Code.PERFORMANCE_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
+            Errors
+                .Code
+                .PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
         );
         _pFeeRate64x64 = feeRate.divu(_FEE_BASE);
         return _pFeeRate64x64;
@@ -75,7 +77,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     function _setCrystallizationPeriod(uint256 period) internal virtual {
         Errors._require(
             period > 0,
-            Errors.Code.PERFORMANCE_FEE_CRYSTALLIZATION_PERIOD_TOO_SHORT
+            Errors.Code.PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
         );
         _crystallizationPeriod = period;
     }
@@ -85,7 +87,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     function crystallize() public virtual returns (uint256) {
         Errors._require(
             isCrystallizable(),
-            Errors.Code.PERFORMANCE_FEE_CAN_NOT_CRYSTALLIZED_YET
+            Errors.Code.PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET
         );
         _updatePerformanceFee();
         address manager = getManager();
@@ -166,8 +168,10 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
 
     /// @notice Convert the time to the number of crystallization periods.
     function _timeToPeriod(uint256 timestamp) internal view returns (uint256) {
-        // TODO: replace err msg: time before start
-        require(timestamp >= _crystallizationStart, "t");
+        Errors._require(
+            timestamp >= _crystallizationStart,
+            Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START
+        );
         return (timestamp - _crystallizationStart) / _crystallizationPeriod;
     }
 
