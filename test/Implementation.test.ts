@@ -248,6 +248,10 @@ describe('Implementation', function () {
           denomination.address,
         ]);
 
+        // check management fee initilize
+        const lastMFeeClaimTime = await implementation.callStatic.lastMFeeClaimTime();
+        expect(lastMFeeClaimTime).to.be.not.eq(BigNumber.from('0'));
+
         // check performance fee initilize
         const lastGrossSharePrice = await implementation.callStatic.lastGrossSharePrice64x64();
         const hwm64x64 = await implementation.callStatic.hwm64x64();

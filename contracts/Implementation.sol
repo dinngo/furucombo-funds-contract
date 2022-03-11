@@ -88,6 +88,9 @@ contract Implementation is
         // Set approval for investor to redeem
         _setVaultApproval(setupAction);
 
+        // Initialize management fee parameters
+        _initializeManagementFee();
+
         // Initialize performance fee parameters
         _initializePerformanceFee();
     }

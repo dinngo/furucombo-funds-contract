@@ -27,6 +27,8 @@ abstract contract PerformanceFee {
     address private constant _OUTSTANDING_ACCOUNT = address(1);
     address private constant _FINALIZED_ACCOUNT = address(2);
 
+    /// @notice Initial the performance fee crystallization time 
+    /// and high water mark.
     function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
@@ -34,10 +36,12 @@ abstract contract PerformanceFee {
         _lastCrystallization = block.timestamp;
     }
 
+    /// @notice Get the performance fee rate of the pool.
     function getPerformanceFeeRate() public view returns (int128) {
         return _feeRate64x64;
     }
 
+    /// @notice Get the crystallization period of the pool.
     function getCrystallizationPeriod() public view returns (uint256) {
         return _crystallizationPeriod;
     }

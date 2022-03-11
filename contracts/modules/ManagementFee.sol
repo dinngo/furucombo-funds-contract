@@ -15,6 +15,11 @@ abstract contract ManagementFee {
     uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 public lastMFeeClaimTime;
 
+    /// @notice Initial the management fee claim time.
+    function _initializeManagementFee() internal virtual {
+        lastMFeeClaimTime = block.timestamp;
+    }
+
     /// @notice Set the management fee in a yearly basis.
     /// @param feeRate The fee rate in a 1e4 base.
     function _setManagementFeeRate(uint256 feeRate)

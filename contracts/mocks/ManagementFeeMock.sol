@@ -24,6 +24,10 @@ contract ManagementFeeMock is ManagementFee {
         return _setManagementFeeRate(feeRate);
     }
 
+    function initializeManagementFee() public {
+        _initializeManagementFee();
+    }
+
     function __getShareToken() internal view override returns (IShareToken) {
         return shareToken;
     }

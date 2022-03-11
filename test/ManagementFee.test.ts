@@ -53,6 +53,7 @@ describe('Management fee', function () {
     it('should success when zero', async function () {
       const feeRate = BigNumber.from('0');
       await managementFee.setManagementFeeRate(feeRate);
+      await managementFee.initializeManagementFee();
       const effectiveFeeRate =
         await managementFee.callStatic.getManagementFeeRate();
       expect(effectiveFeeRate).to.eq(BigNumber.from('18446744073709551616'));
@@ -61,6 +62,7 @@ describe('Management fee', function () {
     it('should success in normal range', async function () {
       const feeRate = BigNumber.from('1000');
       await managementFee.setManagementFeeRate(feeRate);
+      await managementFee.initializeManagementFee();
       const effectiveFeeRate =
         await managementFee.callStatic.getManagementFeeRate();
       expect(effectiveFeeRate).to.eq(BigNumber.from('18446744135297203117'));
@@ -68,6 +70,17 @@ describe('Management fee', function () {
 
     it('should fail when equal to 100%', async function () {
       await expect(managementFee.setManagementFeeRate(feeBase)).to.be.reverted;
+    });
+  });
+
+  describe('Initialize', function () {
+    it('should set last management fee claim time', async function () {
+      const receipt = await managementFee.initializeManagementFee();
+      const block = await ethers.provider.getBlock(receipt.blockNumber!);
+      const timestamp = BigNumber.from(block.timestamp);
+      const lastMFeeClaimTime = await managementFee.callStatic.lastMFeeClaimTime();
+      expect(lastMFeeClaimTime).to.be.not.eq(BigNumber.from('0'));
+      expect(lastMFeeClaimTime).to.be.eq(timestamp);
     });
   });
 
@@ -79,6 +92,7 @@ describe('Management fee', function () {
     it('should not generate fee when rate is 0', async function () {
       const feeRate = BigNumber.from('0');
       await managementFee.setManagementFeeRate(feeRate);
+      await managementFee.initializeManagementFee();
       await managementFee.claimManagementFee();
       const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
       expect(feeClaimed).to.be.eq(BigNumber.from('0'));
@@ -91,6 +105,7 @@ describe('Management fee', function () {
         .div(feeBase.sub(feeRate))
         .sub(totalShare);
       await managementFee.setManagementFeeRate(feeRate);
+      await managementFee.initializeManagementFee();
       await increaseNextBlockTimeBy(365.25 * 24 * 60 * 60);
       await managementFee.claimManagementFee();
       const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
@@ -105,6 +120,7 @@ describe('Management fee', function () {
         .div(feeBase.sub(feeRate))
         .sub(totalShare);
       await managementFee.setManagementFeeRate(feeRate);
+      await managementFee.initializeManagementFee();
       await increaseNextBlockTimeBy(365.25 * 6 * 60 * 60);
       await managementFee.claimManagementFee();
       await increaseNextBlockTimeBy(365.25 * 6 * 60 * 60);
