@@ -137,6 +137,9 @@ abstract contract ShareModule is PoolState {
     /// @param applyPenalty apply redemption penalty or not
     /// @param mustSettle true when must be settled, will revert if it can't
     function settleRedemption(bool applyPenalty, bool mustSettle) internal {
+        if (state != State.RedemptionPending && state != State.Liquidating)
+            return;
+
         bool isResolvable = isPendingResolvable(applyPenalty);
         if (mustSettle) {
             // TODO: replace err msg: reserve not enough

@@ -306,7 +306,7 @@ contract Implementation is
             addAsset(dealingAssets[i]);
         }
 
-        settleRedemption(true, true);
+        settleRedemption(true, state != State.Liquidating);
 
         // TODO: replace err msg: Insufficient reserve
         require(_isReserveEnough());
