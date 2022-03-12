@@ -405,38 +405,4 @@ describe('Share module', function () {
         .withArgs(shareModule.address, user2.address, actualAsset);
     });
   });
-
-  describe('Settle pending', function () {
-    const pendingShare = ethers.utils.parseEther('20');
-    const pendingAsset = pendingShare;
-    const penalty = 100;
-    const penaltyBase = 10000;
-    const actualShare = pendingShare
-      .mul(penaltyBase - penalty)
-      .div(penaltyBase);
-    const actualAsset = actualShare;
-    const bonus = pendingShare.mul(penalty).div(penaltyBase);
-
-    beforeEach(async function () {
-      await shareModule.setState(2);
-      await shareModule.purchase(totalAsset);
-      await shareModule.setReserve(totalAsset.sub(pendingAsset));
-      await shareModule.setTotalAssetValue(totalAsset);
-      await shareModule.redeem(totalAsset, true); // Now the pending redemption amount is pendingShare(pendingAsset)
-      await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
-    });
-
-    it('should resolve RedemptionPending state after purchase', async function () {
-      expect(await shareModule.state()).to.be.eq(3); // RedemptionPending
-
-      const purchaseAmount = pendingAsset.mul(3);
-      await shareModule.setReserve(purchaseAmount.sub(pendingAsset)); // Make sure reserve is more than pendingAsset
-      await expect(shareModule.purchase(purchaseAmount))
-        .to.emit(shareModule, 'Purchased')
-        .to.emit(shareModule, 'Redeemed');
-
-      expect(await shareModule.state()).to.be.eq(2); // Executing
-    });
-  });
 });

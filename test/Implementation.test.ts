@@ -25,6 +25,7 @@ import {
   CHAINLINK_WBTC_USD,
   FEE_BASE,
   WL_ANY_SIG,
+  POOL_STATE,
 } from './utils/constants';
 
 import {
@@ -833,7 +834,9 @@ describe('Implementation', function () {
       await shareToken.transfer(owner.address, redeemShare);
       await implementation.redeem(redeemShare, true);
 
-      expect(await implementation.state()).to.be.eq(3); // RedemptionPending
+      expect(await implementation.state()).to.be.eq(
+        POOL_STATE.REDEMPTION_PENDING
+      );
 
       // Transfer some money to vault, so that able to resolve pending redemption
       await denomination
@@ -866,7 +869,20 @@ describe('Implementation', function () {
       expect(await implementation.execute(data))
         .to.emit(implementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
-      expect(await implementation.state()).to.be.eq(2); // Executing
+      expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
+    });
+
+    it('resolve RedemptionPending state after purchase', async function () {
+      // Prepare task data and execute
+      const purchaseAmount = mwei('1');
+      await denomination
+        .connect(owner)
+        .approve(implementation.address, purchaseAmount);
+
+      expect(await implementation.purchase(purchaseAmount))
+        .to.emit(implementation, 'Redeemed')
+        .to.emit(implementation, 'Purchased');
+      expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
     });
 
     it('settle pending redemption after execute when Liquidating', async function () {
@@ -903,7 +919,7 @@ describe('Implementation', function () {
       expect(await implementation.connect(liquidator).execute(data))
         .to.emit(implementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
-      expect(await implementation.state()).to.be.eq(4); // Liquidating
+      expect(await implementation.state()).to.be.eq(POOL_STATE.LIQUIDATING);
     });
   });
 });

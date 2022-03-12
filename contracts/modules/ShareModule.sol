@@ -108,9 +108,8 @@ abstract contract ShareModule is PoolState {
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
         uint256 redeemSharesBalance = calculateBalance(redeemShares);
         uint256 reserve = __getReserve();
-        if (reserve < redeemSharesBalance) return false;
 
-        return true;
+        return reserve >= redeemSharesBalance;
     }
 
     /// @notice Calculate the max redeemable balance of the given share amount.
@@ -134,13 +133,29 @@ abstract contract ShareModule is PoolState {
         }
     }
 
-    function _settlePendingRedemption(bool applyPenalty)
-        internal
-        returns (bool)
-    {
+    /// @notice Settle pending redemption. Will resume to Executing if state is in RedemptionPending
+    /// @param applyPenalty apply redemption penalty or not
+    /// @param mustSettle true when must be settled, will revert if it can't
+    function settleRedemption(bool applyPenalty, bool mustSettle) internal {
+        bool isResolvable = isPendingResolvable(applyPenalty);
+        if (mustSettle) {
+            // TODO: replace err msg: reserve not enough
+            require(isResolvable);
+        }
+
+        if (isResolvable) {
+            _settlePendingRedemption(applyPenalty);
+
+            if (state == State.RedemptionPending) {
+                _resume();
+            }
+        }
+    }
+
+    function _settlePendingRedemption(bool applyPenalty) internal {
         // Might lead to gas insufficient if pending list too long
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
-        if (redeemShares == 0) return true;
+        if (redeemShares == 0) return;
 
         if (!applyPenalty) {
             totalPendingBonus = 0;
@@ -167,7 +182,7 @@ abstract contract ShareModule is PoolState {
             shareToken.burn(address(this), unusedBonus);
         }
 
-        return true;
+        return;
     }
 
     function _getResolvePendingShares(bool applyPenalty)
@@ -201,26 +216,9 @@ abstract contract ShareModule is PoolState {
 
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
 
-        trySettleRedemption(true);
-
         _callAfterPurchase(share);
 
         emit Purchased(user, balance, share);
-    }
-
-    /// @notice Try settle pending redemption. Will resume to Executing if state is in RedemptionPending
-    function trySettleRedemption(bool applyPenalty) internal {
-        // if possible, settle pending redemption
-        if (
-            _getResolvePendingShares(applyPenalty) > 0 &&
-            isPendingResolvable(applyPenalty)
-        ) {
-            _settlePendingRedemption(applyPenalty);
-
-            if (state == State.RedemptionPending) {
-                _resume();
-            }
-        }
     }
 
     function _redeem(
@@ -283,6 +281,7 @@ abstract contract ShareModule is PoolState {
 
     function _callAfterPurchase(uint256 amount) internal virtual {
         amount;
+        settleRedemption(true, false);
         return;
     }
 

@@ -91,12 +91,7 @@ contract Implementation is
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
-        // TODO: replace err msg: reserve not enough
-        require(isPendingResolvable(true));
-
-        _settlePendingRedemption(true);
-
-        _resume();
+        settleRedemption(true, true);
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
@@ -123,14 +118,11 @@ contract Implementation is
         onlyOwner
         whenStates(State.Executing, State.Liquidating)
     {
-        if (state == State.Liquidating) {
-            // TODO: replace err msg: reserve not enough
-            require(isPendingResolvable(false));
-
-            _settlePendingRedemption(false);
-        }
+        // TODO: replace err msg: pending shares not settled
+        require(_getResolvePendingShares(false) == 0);
 
         super.close();
+
         mortgageVault.claim(msg.sender);
     }
 
@@ -301,9 +293,6 @@ contract Implementation is
         override
         returns (bool)
     {
-        // TODO: replace err msg: Insufficient reserve
-        require(_isReserveEnough());
-
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
@@ -317,7 +306,10 @@ contract Implementation is
             addAsset(dealingAssets[i]);
         }
 
-        trySettleRedemption(true);
+        settleRedemption(true, true);
+
+        // TODO: replace err msg: Insufficient reserve
+        require(_isReserveEnough());
 
         return super._afterExecute(response);
     }
@@ -344,6 +336,7 @@ contract Implementation is
     /// @notice Update the gross share price after the purchase.
     function _callAfterPurchase(uint256) internal override {
         _updateGrossSharePrice();
+        super._callAfterPurchase(0); // amount not used for now, place 0.
         return;
     }
 
