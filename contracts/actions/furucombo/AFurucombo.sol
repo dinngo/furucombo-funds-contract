@@ -4,7 +4,6 @@ pragma solidity 0.8.12;
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {DestructibleAction} from "../../utils/DestructibleAction.sol";
 import {DelegateCallAction} from "../../utils/DelegateCallAction.sol";
-import {ErrorMsg} from "../../utils/ErrorMsg.sol";
 import {Errors} from "../../utils/Errors.sol";
 import {IPool} from "../../interfaces/IPool.sol";
 import {ActionBase} from "../ActionBase.sol";
@@ -12,12 +11,7 @@ import {IComptroller} from "../../interfaces/IComptroller.sol";
 import {IDebtToken} from "../../interfaces/IDebtToken.sol";
 import {IFurucombo} from "./IFurucombo.sol";
 
-contract AFurucombo is
-    ActionBase,
-    DestructibleAction,
-    DelegateCallAction,
-    ErrorMsg
-{
+contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
     using SafeERC20 for IERC20;
 
     address payable public immutable proxy;
@@ -68,18 +62,17 @@ contract AFurucombo is
                 addDealingAsset(dealAssets[i]);
             }
         } catch Error(string memory reason) {
-            _revertMsg("injectAndBatchExec", reason);
+            Errors._revertMsg("injectAndBatchExec", reason);
         } catch {
-            _revertMsg("injectAndBatchExec");
+            Errors._revertMsg("injectAndBatchExec");
         }
 
         // Check no remaining input tokens to ensure updateTokens was called
         for (uint256 i = 0; i < tokensIn.length; i++) {
             if (tokensIn[i] != NATIVE_TOKEN_ADDRESS) {
-                _requireMsg(
+                Errors._require(
                     IERC20(tokensIn[i]).balanceOf(proxy) < _TOKEN_DUST,
-                    "injectAndBatchExec",
-                    "Furucombo has remaining tokens"
+                    Errors.Code.AFURUCOMBO_REMAINING_TOKENS
                 );
             }
         }
@@ -107,10 +100,14 @@ contract AFurucombo is
         // approve delegation to furucombo proxy only,
         // otherwise manager can borrow tokens base on the collateral of funds
         for (uint256 i = 0; i < tokens.length; i++) {
-            tokens[i].approveDelegation(proxy, amounts[i]);
-
-            // Update dealing asset
-            addDealingAsset(address(tokens[i]));
+            try tokens[i].approveDelegation(proxy, amounts[i]) {
+                // Update dealing asset
+                addDealingAsset(address(tokens[i]));
+            } catch Error(string memory reason) {
+                Errors._revertMsg("approveDelegation", reason);
+            } catch {
+                Errors._revertMsg("approveDelegation");
+            }
         }
     }
 
@@ -132,10 +129,9 @@ contract AFurucombo is
     function _inject(address[] memory tokensIn, uint256[] memory amountsIn)
         internal
     {
-        _requireMsg(
+        Errors._require(
             tokensIn.length == amountsIn.length,
-            "_inject",
-            "Input tokens and amounts length inconsistent"
+            Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
         );
 
         for (uint256 i = 0; i < tokensIn.length; i++) {

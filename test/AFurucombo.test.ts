@@ -474,9 +474,7 @@ describe('AFurucombo', function () {
 
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith(
-        '_inject: Input tokens and amounts length inconsistent'
-      );
+      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
     it('should revert: remaining tokens >= token dust', async function () {
@@ -504,9 +502,7 @@ describe('AFurucombo', function () {
 
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith(
-        'injectAndBatchExec: Furucombo has remaining tokens'
-      );
+      ).to.be.revertedWith('revertCode(75)'); // AFURUCOMBO_REMAINING_TOKENS
     });
 
     it('should revert: invalid handler', async function () {

@@ -79,10 +79,22 @@ library Errors {
         PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET, // 71: "Can not crystallized yet"
         PERFORMANCE_FEE_MODULE_TIME_BEFORE_START, // 72: "Time before start"
         MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE, // 73: "Fee rate should be less than 100%"
-        SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION // 74: "Redeem in pending without permission"
+        SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION, // 74: "Redeem in pending without permission"
+        AFURUCOMBO_REMAINING_TOKENS // 75: "Furucombo has remaining tokens"
     }
 
     function _require(bool condition, Code errorCode) internal pure {
         if (!condition) revert revertCode(errorCode);
+    }
+
+    function _revertMsg(string memory functionName, string memory reason)
+        internal
+        pure
+    {
+        revert(string(abi.encodePacked(functionName, ": ", reason)));
+    }
+
+    function _revertMsg(string memory functionName) internal pure {
+        _revertMsg(functionName, "Unspecified");
     }
 }
