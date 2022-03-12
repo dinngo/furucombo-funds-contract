@@ -153,7 +153,7 @@ describe('RCurveStable', function () {
             token.address,
             await token.decimals()
           )
-      ).to.be.revertedWith('RCurveStable: zero asset address');
+      ).to.be.revertedWith('revertCode(59)'); // RCURVE_STABLE_ZERO_ASSET_ADDRESS
     });
 
     it('should revert: zero valued asset address', async function () {
@@ -166,15 +166,15 @@ describe('RCurveStable', function () {
             constants.AddressZero,
             await token.decimals()
           )
-      ).to.be.revertedWith('RCurveStable: zero valued asset address');
+      ).to.be.revertedWith('revertCode(61)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS
     });
 
-    it('should revert: zero asset address', async function () {
+    it('should revert: zero asset decimal', async function () {
       await expect(
         resolver
           .connect(owner)
           .setPoolInfo(lpToken.address, liquidityPool.address, token.address, 0)
-      ).to.be.revertedWith('RCurveStable: zero valued asset decimal');
+      ).to.be.revertedWith('revertCode(62)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL
     });
 
     it('should revert: zero pool address', async function () {
@@ -187,7 +187,7 @@ describe('RCurveStable', function () {
             token.address,
             await token.decimals()
           )
-      ).to.be.revertedWith('RCurveStable: zero pool address');
+      ).to.be.revertedWith('revertCode(60)'); // RCURVE_STABLE_ZERO_POOL_ADDRESS
     });
 
     it('should revert: non-owner', async function () {
@@ -240,7 +240,7 @@ describe('RCurveStable', function () {
     it('should revert: not set yet', async function () {
       await expect(
         resolver.connect(owner).removePoolInfo(token.address)
-      ).to.be.revertedWith('RCurveStable: pool info is not set');
+      ).to.be.revertedWith('revertCode(63)'); // RCURVE_STABLE_POOL_INFO_IS_NOT_SET
     });
 
     it('should revert: non-owner', async function () {

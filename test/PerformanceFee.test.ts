@@ -228,8 +228,10 @@ describe('Performance fee', function () {
         it('should not get fee when crystallization before period', async function () {
           await increaseNextBlockTimeBy(period.toNumber() * 0.4);
           const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
-          // TODO: replace err msg: Invalid denomination: Not yet
-          await expect(pFeeModule.crystallize()).to.be.revertedWith('N');
+          await expect(pFeeModule.crystallize()).to.be.revertedWith(
+            'revertCode(71)'
+          ); // PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET;
+
           await pFeeModule.updatePerformanceFee();
           const shareManager = await tokenS.callStatic.balanceOf(
             manager.address

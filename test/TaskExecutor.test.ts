@@ -136,7 +136,7 @@ describe('Task Executor', function () {
         .connect(user)
         .deploy();
       await tokenD.deployed();
-      //initialize
+      // initialize
       await proxy.setComptroller(comptroller.address);
       await comptroller.permitDenominations([tokenD.address], [0]);
       await proxy.setupDenomination(tokenD.address);
@@ -369,7 +369,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('TaskExecutor: Tos and datas length inconsistent');
+      ).to.be.revertedWith('revertCode(29'); // TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT
     });
 
     it('should revert: tos and configs length are inconsistent', async function () {
@@ -395,7 +395,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('TaskExecutor: Tos and configs length inconsistent');
+      ).to.be.revertedWith('revertCode(30)'); // TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT
     });
 
     it('should revert: invalid comptroller delegate call', async function () {
@@ -428,7 +428,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('invalid comptroller delegate call');
+      ).to.be.revertedWith('revertCode(31)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
     });
 
     it('should revert: invalid proxy delegate call', async function () {
@@ -447,7 +447,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('TaskExecutor: invalid comptroller delegate call');
+      ).to.be.revertedWith('revertCode(31'); // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
     });
   });
 
@@ -654,7 +654,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
-      ).to.be.revertedWith('TaskExecutor: invalid comptroller contract call');
+      ).to.be.revertedWith('revertCode(32)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
     });
 
     it('should revert: invalid proxy contract call', async function () {
@@ -679,7 +679,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
-      ).to.be.revertedWith('TaskExecutor: invalid comptroller contract call');
+      ).to.be.revertedWith('revertCode(32)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
     });
   });
 
@@ -960,7 +960,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('TaskExecutor: invalid dealing asset');
+      ).to.be.revertedWith('revertCode(33)'); // TASK_EXECUTOR_INVALID_DEALING_ASSET
     });
   });
 
@@ -1074,7 +1074,7 @@ describe('Task Executor', function () {
         proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('TaskExecutor: invalid initial asset');
+      ).to.be.revertedWith('revertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
     });
 
     it('should revert: insufficient quota', async function () {
@@ -1124,7 +1124,7 @@ describe('Task Executor', function () {
         proxy.connect(user).callStatic.executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('TaskExecutor: quota is not zero');
+      ).to.be.revertedWith('revertCode(39)'); // TASK_EXECUTOR_NON_ZERO_QUOTA
     });
   });
 });

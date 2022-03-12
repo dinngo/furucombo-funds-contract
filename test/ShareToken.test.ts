@@ -4,7 +4,7 @@ import { deployments } from 'hardhat';
 import { ShareToken } from '../typechain';
 import { ether } from './utils/utils';
 
-describe('Share module', function () {
+describe('ShareToken', function () {
   let shareToken: ShareToken;
   let user1: Wallet;
 
@@ -32,7 +32,7 @@ describe('Share module', function () {
           '0x0000000000000000000000000000000000000001',
           ether('1')
         )
-      ).to.be.revertedWith('revertCode(5)'); // SHARE_TOKEN_INVALID_TO
+      ).to.be.revertedWith('revertCode(6)'); // SHARE_TOKEN_INVALID_TO
     });
 
     it('should revert: invalid to address(2) ', async function () {
@@ -41,7 +41,7 @@ describe('Share module', function () {
           '0x0000000000000000000000000000000000000002',
           ether('1')
         )
-      ).to.be.revertedWith('revertCode(5)'); // SHARE_TOKEN_INVALID_TO
+      ).to.be.revertedWith('revertCode(6)'); // SHARE_TOKEN_INVALID_TO
     });
   });
 });

@@ -537,9 +537,7 @@ describe('AFurucombo', function () {
       // const vault = await proxy.vault();
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith(
-        '_checkHandlerCall: invalid comptroller handler call'
-      );
+      ).to.be.revertedWith('revertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
     });
   });
 
@@ -590,7 +588,7 @@ describe('AFurucombo', function () {
 
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith('token length != amounts length');
+      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
 });

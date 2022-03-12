@@ -362,7 +362,7 @@ describe('PoolImplementation', function () {
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
         await expect(poolImplementation.finalize()).to.be.revertedWith(
-          'revertCode(11)' // IMPLEMENTATION_INVALID_DENOMINATION
+          'revertCode(12)' // IMPLEMENTATION_INVALID_DENOMINATION
         );
       });
     });
@@ -406,7 +406,7 @@ describe('PoolImplementation', function () {
       it('should revert: pending does not start', async function () {
         await poolImplementation.finalize();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          'revertCode(7)' // IMPLEMENTATION_PENDING_NOT_START
+          'revertCode(8)' // IMPLEMENTATION_PENDING_NOT_START
         );
       });
 
@@ -414,7 +414,7 @@ describe('PoolImplementation', function () {
         await poolImplementation.finalize();
         await poolImplementation.pendMock();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          'revertCode(8)' // IMPLEMENTATION_PENDING_NOT_EXPIRE
+          'revertCode(9)' // IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
       });
     });
@@ -501,7 +501,7 @@ describe('PoolImplementation', function () {
       it('should revert: asset is not permitted', async function () {
         await expect(
           poolImplementation.addAsset(tokenA.address)
-        ).to.be.revertedWith('revertCode(10)'); // IMPLEMENTATION_INVALID_ASSET
+        ).to.be.revertedWith('revertCode(11)'); // IMPLEMENTATION_INVALID_ASSET
       });
 
       it('can not be added: zero balance of asset', async function () {
@@ -660,6 +660,35 @@ describe('PoolImplementation', function () {
   });
 
   describe('Setters', function () {
+    describe('Denomination', function () {
+      it('set denomination', async function () {
+        await comptroller.permitDenominations([tokenA.address], [tokenAAmount]);
+        await poolImplementation.setDenomination(tokenA.address);
+        expect(await poolImplementation.denomination()).to.be.eq(
+          tokenA.address
+        );
+      });
+
+      it('should revert: set denomination at wrong stage', async function () {
+        await poolImplementation.finalize();
+        await expect(
+          poolImplementation.setDenomination(tokenA.address)
+        ).to.be.revertedWith('InvalidState(2)');
+      });
+
+      it('should revert: set by non-owner', async function () {
+        await expect(
+          poolImplementation.connect(user).setDenomination(tokenA.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: set by zero address', async function () {
+        await expect(
+          poolImplementation.setDenomination(constants.AddressZero)
+        ).to.be.revertedWith('revertCode(18)'); // POOL_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
+      });
+    });
+
     describe('Management Fee Rate', function () {
       const feeRate = BigNumber.from('1000');
 
@@ -687,8 +716,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setManagementFeeRate(maxRate)
-          // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(73)'); // MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
@@ -717,8 +745,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setPerformanceFeeRate(maxRate)
-          // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(69)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
