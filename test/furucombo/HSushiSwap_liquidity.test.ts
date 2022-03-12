@@ -123,7 +123,7 @@ describe('SushiSwap Liquidity', function () {
       uniTokenUserAmount = await uniTokenMatic.balanceOf(user.address);
     });
 
-    it.only('normal', async function () {
+    it('normal', async function () {
       // Prepare handler data
       const tokenAmount = ether('100');
       const minTokenAmount = BigNumber.from('1');
