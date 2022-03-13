@@ -28,6 +28,7 @@ contract Comptroller is UpgradeableBeacon {
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
     uint256 public pendingRedemptionPenalty;
+    // base = 1e4
     uint256 public execAssetValueToleranceRate;
 
     // Map

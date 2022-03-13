@@ -22,6 +22,7 @@ import {
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
   FEE_BASE,
+  TOLERANCE_BASE,
 } from './utils/constants';
 
 import { simpleEncode, tokenProviderQuick, mwei } from './utils/utils';
@@ -540,14 +541,16 @@ describe('Implementation', function () {
     });
 
     it('should success', async function () {
-      const valueCurrent = valueBefore;
+      const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
       await implementation.setTotalAssetValueMock(valueCurrent);
       const executionData = action.interface.encodeFunctionData('fooAddress');
       await implementation.execute(executionData);
     });
 
-    it('should fail when exceed tolerance', async function () {
-      const valueCurrent = valueBefore.mul(89).div(100);
+    it.only('should revert when exceed tolerance', async function () {
+      const valueCurrent = valueBefore
+        .mul(valueTolerance - 1)
+        .div(TOLERANCE_BASE);
       await implementation.setTotalAssetValueMock(valueCurrent);
       const executionData = action.interface.encodeFunctionData('fooAddress');
       await expect(implementation.execute(executionData)).to.be.revertedWith(
