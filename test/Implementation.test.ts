@@ -562,7 +562,7 @@ describe('Implementation', function () {
       await implementation.execute(executionData);
     });
 
-    it.only('should revert when exceed tolerance', async function () {
+    it('should revert when exceed tolerance', async function () {
       const valueCurrent = valueBefore
         .mul(valueTolerance - 1)
         .div(TOLERANCE_BASE);

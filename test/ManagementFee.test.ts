@@ -2,7 +2,7 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { ManagementFeeModuleMock, ShareToken } from '../typechain';
-import { DS_PROXY_REGISTRY } from './utils/constants';
+import { DS_PROXY_REGISTRY, FEE_BASE64x64 } from './utils/constants';
 
 async function increaseNextBlockTimeBy(interval: number) {
   const blockNumber = await ethers.provider.getBlockNumber();
@@ -56,7 +56,7 @@ describe('Management fee', function () {
       await mFeeModule.initializeManagementFee();
       const effectiveFeeRate =
         await mFeeModule.callStatic.getManagementFeeRate();
-      expect(effectiveFeeRate).to.eq(BigNumber.from('18446744073709551616'));
+      expect(effectiveFeeRate).to.eq(BigNumber.from(FEE_BASE64x64));
     });
 
     it('should success in normal range', async function () {
