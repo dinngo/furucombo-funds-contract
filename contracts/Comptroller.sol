@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.12;
 
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {Whitelist} from "./libraries/Whitelist.sol";
@@ -28,6 +28,8 @@ contract Comptroller is UpgradeableBeacon {
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
     uint256 public pendingRedemptionPenalty;
+    // base = 1e4
+    uint256 public execAssetValueToleranceRate;
 
     // Map
     mapping(address => DenominationConfig) public denomination;
@@ -48,6 +50,7 @@ contract Comptroller is UpgradeableBeacon {
     event SetExecFeePercentage(uint256 indexed percentage);
     event SetPendingLiquidator(address indexed liquidator);
     event SetPendingExpiration(uint256 expiration);
+    event SetExecAssetValuetoleranceRate(uint256 tolerance);
     event SetInitialAssetCheck(bool indexed check);
     event ProxyBanned(address indexed proxy);
     event ProxyUnbanned(address indexed proxy);
@@ -108,7 +111,8 @@ contract Comptroller is UpgradeableBeacon {
         uint256 execFeePercentage_,
         address pendingLiquidator_,
         uint256 pendingExpiration_,
-        IMortgageVault mortgageVault_
+        IMortgageVault mortgageVault_,
+        uint256 execAssetValueToleranceRate_
     ) UpgradeableBeacon(implementation_) {
         assetRouter = assetRouter_;
         mortgageVault = mortgageVault_;
@@ -116,6 +120,7 @@ contract Comptroller is UpgradeableBeacon {
         execFeePercentage = execFeePercentage_;
         pendingLiquidator = pendingLiquidator_;
         pendingExpiration = pendingExpiration_;
+        execAssetValueToleranceRate = execAssetValueToleranceRate_;
         fInitialAssetCheck = true;
         pendingRedemptionPenalty = 100;
     }
@@ -176,6 +181,15 @@ contract Comptroller is UpgradeableBeacon {
     // Notice that the penalty's base is 1e4
     function setPendingRedemptionPenalty(uint256 penalty) external onlyOwner {
         pendingRedemptionPenalty = penalty;
+    }
+
+    // Execution asset value tolerance
+    function setExecAssetValueToleranceRate(uint256 tolerance)
+        external
+        onlyOwner
+    {
+        execAssetValueToleranceRate = tolerance;
+        emit SetExecAssetValuetoleranceRate(tolerance);
     }
 
     // input check

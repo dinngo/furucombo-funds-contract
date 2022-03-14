@@ -1,6 +1,10 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { EXEC_FEE_PERCENTAGE, PENDING_EXPIRATION } from './Config';
+import {
+  EXEC_FEE_PERCENTAGE,
+  PENDING_EXPIRATION,
+  VALUE_TOLERANCE,
+} from './Config';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -14,6 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const pendingLiquidator = deployer;
   const pendingExpiration = PENDING_EXPIRATION;
   const mortgageVault = await deployments.get('MortgageVault');
+  const valueTolerance = VALUE_TOLERANCE;
   await deploy('Comptroller', {
     from: deployer,
     args: [
@@ -24,6 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       pendingLiquidator,
       pendingExpiration,
       mortgageVault.address,
+      valueTolerance,
     ],
     log: true,
   });

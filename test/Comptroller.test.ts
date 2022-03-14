@@ -80,7 +80,8 @@ describe('Comptroller', function () {
         0,
         liquidator.address,
         0,
-        mortgageVault.address
+        mortgageVault.address,
+        0
       );
       await comptroller.deployed();
 
