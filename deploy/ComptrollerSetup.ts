@@ -1,7 +1,14 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { FURUCOMBO_HCURVE, WL_ANY_SIG, LEVEL, denominations } from './Config';
-import { assets } from './assets/AssetConfig';
+import {
+  assets,
+  aaveV2Asset,
+  aaveV2Debt,
+  curveStable,
+  quickSwap,
+  sushiSwap,
+} from './assets/AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -16,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const taskExecutor = await deployments.get('TaskExecutor');
   await comptroller.setExecAction(taskExecutor.address);
 
-  // Permit denomination
+  // Permit denomination and dust pair
   const mappedDenominations = Object.keys(denominations).map((denomination) => {
     const dust = denominations[denomination];
     return [denomination, dust] as const;
@@ -31,11 +38,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await comptroller.permitCreators([deployer]);
 
   // Permit asset
-  const mappedAssets = Object.keys(assets).map((key) => {
-    return [assets[key]] as const;
-  });
-  const assetArray = mappedAssets.map(([asset]) => asset);
+  const assetArray = Object.values(assets);
   await comptroller.permitAssets(LEVEL, assetArray);
+
+  // Permit aave v2 asset
+  const aaveV2AssetArray = Object.values(aaveV2Asset);
+  await comptroller.permitAssets(LEVEL, aaveV2AssetArray);
+
+  // Permit aave v2 debt
+  const aaveV2DebtArray = Object.values(aaveV2Debt);
+  await comptroller.permitAssets(LEVEL, aaveV2DebtArray);
+
+  // Permit curve stable
+  const curveStableAddressArray = Object.values(curveStable).map((info) => {
+    return info.address as string;
+  });
+  await comptroller.permitAssets(LEVEL, curveStableAddressArray);
+
+  // Permit quickSwap
+  const quickSwapArray = Object.values(quickSwap);
+  await comptroller.permitAssets(LEVEL, quickSwapArray);
+
+  // Permit sushiSwap
+  const sushiSwapArray = Object.values(sushiSwap);
+  await comptroller.permitAssets(LEVEL, sushiSwapArray);
 
   // Permit delegate call
   const aFurucombo = await deployments.get('AFurucombo');
