@@ -184,8 +184,6 @@ abstract contract ShareModule is PoolState {
             totalPendingBonus = 0;
             shareToken.burn(address(this), unusedBonus);
         }
-
-        return;
     }
 
     function _getResolvePendingShares(bool applyPenalty)
