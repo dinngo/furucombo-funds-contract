@@ -554,7 +554,7 @@ describe('Implementation', function () {
       await implementation.setTotalAssetValueMock(valueCurrent);
       const executionData = action.interface.encodeFunctionData('fooAddress');
       await expect(implementation.execute(executionData)).to.be.revertedWith(
-        'Insufficient total asset value for execution'
+        'I'
       );
     });
   });
