@@ -19,6 +19,8 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     address private constant _OUTSTANDING_ACCOUNT = address(1);
     address private constant _FINALIZED_ACCOUNT = address(2);
 
+    event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
+
     function initializePerformanceFee() public virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
@@ -87,6 +89,8 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
         _pFeeSet = 0;
         _lastCrystallization = block.timestamp;
         hwm64x64 = lastGrossSharePrice64x64;
+        emit PerformanceFeeClaimed(manager, result);
+
         return result;
     }
 
