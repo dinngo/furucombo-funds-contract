@@ -40,7 +40,8 @@ describe('Share module', function () {
         constants.Zero,
         constants.AddressZero,
         constants.Zero,
-        constants.AddressZero
+        constants.AddressZero,
+        constants.Zero
       );
       await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))

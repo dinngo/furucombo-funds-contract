@@ -14,25 +14,23 @@ abstract contract ExecutionModule is PoolProxyStorageUtils {
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Liquidating)
     {
-        _beforeExecute();
+        uint256 lastAmount = _beforeExecute();
 
         address action = comptroller.execAction();
         bytes memory response = vault.execute(action, data);
 
-        _afterExecute(response);
+        _afterExecute(response, lastAmount);
     }
 
-    function _beforeExecute() internal virtual returns (bool) {
-        return true;
+    function _beforeExecute() internal virtual returns (uint256) {
+        return 0;
     }
 
-    /// @param response execution response.
-    function _afterExecute(bytes memory response)
+    function _afterExecute(bytes memory, uint256)
         internal
         virtual
-        returns (bool)
+        returns (uint256)
     {
-        response;
-        return true;
+        return 0;
     }
 }

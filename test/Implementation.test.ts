@@ -10,6 +10,7 @@ import {
   AssetRouter,
   MortgageVault,
   SimpleToken,
+  SimpleAction,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -21,6 +22,7 @@ import {
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
   FEE_BASE,
+  TOLERANCE_BASE,
 } from './utils/constants';
 
 import { simpleEncode, tokenProviderQuick, mwei } from './utils/utils';
@@ -39,6 +41,7 @@ describe('Implementation', function () {
   const execFeePercentage = 200; // 20%
   const managementFeeRate = 0; // 0%
   const performanceFeeRate = 1000; // 10%
+  const valueTolerance = 9000; // 90%
   const pendingExpiration = 86400; // 1 day
   const CRYSTALLIZATION_PERIOD_MIN = 1; // 1 sec
   const crystallizationPeriod = CRYSTALLIZATION_PERIOD_MIN;
@@ -46,6 +49,7 @@ describe('Implementation', function () {
   const reserveExecution = 0;
 
   let comptroller: Comptroller;
+  let action: SimpleAction;
   let implementation: ImplementationMock;
   let vault: IDSProxy;
   let oracle: Chainlink;
@@ -128,8 +132,11 @@ describe('Implementation', function () {
         execFeePercentage,
         liquidator.address,
         pendingExpiration,
-        mortgageVault.address
+        mortgageVault.address,
+        valueTolerance
       );
+      action = await (await ethers.getContractFactory('SimpleAction')).deploy();
+      await action.deployed();
 
       // Initialization
       await comptroller.permitDenominations(
@@ -137,6 +144,7 @@ describe('Implementation', function () {
         [denominationDust]
       );
       await comptroller.permitAssets(level, [denomination.address]);
+      await comptroller.setExecAction(action.address);
 
       shareToken = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -521,6 +529,33 @@ describe('Implementation', function () {
           tokenC.address
         );
       });
+    });
+  });
+
+  describe('Execute module', function () {
+    const valueBefore = ethers.utils.parseEther('1');
+
+    beforeEach(async function () {
+      await implementation.finalize();
+      await implementation.setLastTotalAssetValue(valueBefore);
+    });
+
+    it('should success', async function () {
+      const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
+      await implementation.setTotalAssetValueMock(valueCurrent);
+      const executionData = action.interface.encodeFunctionData('fooAddress');
+      await implementation.execute(executionData);
+    });
+
+    it.only('should revert when exceed tolerance', async function () {
+      const valueCurrent = valueBefore
+        .mul(valueTolerance - 1)
+        .div(TOLERANCE_BASE);
+      await implementation.setTotalAssetValueMock(valueCurrent);
+      const executionData = action.interface.encodeFunctionData('fooAddress');
+      await expect(implementation.execute(executionData)).to.be.revertedWith(
+        'I'
+      );
     });
   });
 

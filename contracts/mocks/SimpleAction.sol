@@ -12,6 +12,12 @@ contract SimpleAction {
         _ac.bar();
     }
 
+    function fooAddress() public returns (address[] memory) {
+        _ac.bar();
+        address[] memory temp;
+        return temp;
+    }
+
     function bar() public view returns (uint256) {
         return _ac.get();
     }

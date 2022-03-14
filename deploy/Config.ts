@@ -10,6 +10,7 @@ export const WL_ANY_SIG = '0xffffffff';
 export const LEVEL = 1;
 export const EXEC_FEE_PERCENTAGE = 200; // 2%
 export const PENDING_EXPIRATION = 86400; // 1 day
+export const VALUE_TOLERANCE = 9000; // 90%
 
 export const denominations: Record<string, BigNumber> = {
   [assets.USDC]: utils.parseUnits('0.01', 6),
