@@ -74,7 +74,7 @@ build:
   script:
     - yarn
     - yarn build
-    - yarn check-compile
+    # - yarn check-compile
 
 test_0:
   <<: *test-configuration
