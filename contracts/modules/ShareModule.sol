@@ -21,7 +21,12 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         uint256 assetAmount,
         uint256 shareAmount
     );
-    event RedemptionPended(address indexed user, uint256 shareAmount);
+    event RedemptionPended(
+        address indexed user,
+        uint256 shareAmount,
+        uint256 penaltyAmount
+    );
+    event RedemptionPendingSettled();
     event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
@@ -137,6 +142,8 @@ abstract contract ShareModule is PoolProxyStorageUtils {
             shareToken.burn(address(this), unusedBonus);
         }
 
+        emit RedemptionPendingSettled();
+
         return true;
     }
 
@@ -203,12 +210,13 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
+        uint256 penaltyShare = share - effectiveShare;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += effectiveShare;
         totalPendingShare += effectiveShare;
-        totalPendingBonus += (share - effectiveShare);
+        totalPendingBonus += penaltyShare;
         shareToken.move(user, address(this), share);
-        emit RedemptionPended(user, share);
+        emit RedemptionPended(user, effectiveShare, penaltyShare);
 
         return 0;
     }
