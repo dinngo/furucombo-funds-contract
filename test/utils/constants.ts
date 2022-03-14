@@ -1,4 +1,5 @@
 export const FEE_BASE = 10000;
+export const FEE_BASE64x64 = '18446744073709551616';
 export const TOLERANCE_BASE = 10000;
 export const NATIVE_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 /* MATIC */

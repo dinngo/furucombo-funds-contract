@@ -21,17 +21,21 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
 
-    function initializePerformanceFee() public virtual {
+    /// @notice Initial the performance fee crystallization time 
+    /// and high water mark.
+    function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
         _crystallizationStart = block.timestamp;
         _lastCrystallization = block.timestamp;
     }
 
+    /// @notice Get the performance fee rate of the pool.
     function getPerformanceFeeRate() public view returns (int128) {
         return _pFeeRate64x64;
     }
 
+    /// @notice Get the crystallization period of the pool.
     function getCrystallizationPeriod() public view returns (uint256) {
         return _crystallizationPeriod;
     }

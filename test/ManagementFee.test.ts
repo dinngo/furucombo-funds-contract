@@ -2,7 +2,7 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { ManagementFeeModuleMock, ShareToken } from '../typechain';
-import { DS_PROXY_REGISTRY } from './utils/constants';
+import { DS_PROXY_REGISTRY, FEE_BASE64x64 } from './utils/constants';
 
 async function increaseNextBlockTimeBy(interval: number) {
   const blockNumber = await ethers.provider.getBlockNumber();
@@ -53,14 +53,16 @@ describe('Management fee', function () {
     it('should success when zero', async function () {
       const feeRate = BigNumber.from('0');
       await mFeeModule.setManagementFeeRate(feeRate);
+      await mFeeModule.initializeManagementFee();
       const effectiveFeeRate =
         await mFeeModule.callStatic.getManagementFeeRate();
-      expect(effectiveFeeRate).to.eq(BigNumber.from('18446744073709551616'));
+      expect(effectiveFeeRate).to.eq(BigNumber.from(FEE_BASE64x64));
     });
 
     it('should success in normal range', async function () {
       const feeRate = BigNumber.from('1000');
       await mFeeModule.setManagementFeeRate(feeRate);
+      await mFeeModule.initializeManagementFee();
       const effectiveFeeRate =
         await mFeeModule.callStatic.getManagementFeeRate();
       expect(effectiveFeeRate).to.eq(BigNumber.from('18446744135297203117'));
@@ -79,6 +81,7 @@ describe('Management fee', function () {
     it('should not generate fee when rate is 0', async function () {
       const feeRate = BigNumber.from('0');
       await mFeeModule.setManagementFeeRate(feeRate);
+      await mFeeModule.initializeManagementFee();
       await mFeeModule.claimManagementFee();
       const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
       expect(feeClaimed).to.be.eq(BigNumber.from('0'));
@@ -91,6 +94,7 @@ describe('Management fee', function () {
         .div(feeBase.sub(feeRate))
         .sub(totalShare);
       await mFeeModule.setManagementFeeRate(feeRate);
+      await mFeeModule.initializeManagementFee();
       await increaseNextBlockTimeBy(365.25 * 24 * 60 * 60);
       await expect(mFeeModule.claimManagementFee()).to.emit(
         mFeeModule,
@@ -109,6 +113,7 @@ describe('Management fee', function () {
         .div(feeBase.sub(feeRate))
         .sub(totalShare);
       await mFeeModule.setManagementFeeRate(feeRate);
+      await mFeeModule.initializeManagementFee();
       await increaseNextBlockTimeBy(365.25 * 6 * 60 * 60);
       await mFeeModule.claimManagementFee();
       await increaseNextBlockTimeBy(365.25 * 6 * 60 * 60);
