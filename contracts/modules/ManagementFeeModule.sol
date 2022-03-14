@@ -11,7 +11,7 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
     using ABDKMath64x64 for uint256;
 
     uint256 private constant _FEE_BASE = 1e4;
-    int128 private constant FEE_BASE64x64 = 1 << 64;
+    int128 private constant _FEE_BASE64x64 = 1 << 64;
     uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
 
     /// @notice Initial the management fee claim time.
@@ -69,7 +69,7 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
 
         uint256 sharesDue = (
             _mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(
-                FEE_BASE64x64
+                _FEE_BASE64x64
             )
         ).mulu(totalShare);
 
