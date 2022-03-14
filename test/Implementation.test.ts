@@ -21,6 +21,7 @@ import {
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
   FEE_BASE,
+  FEE_BASE64x64,
 } from './utils/constants';
 
 import { simpleEncode, tokenProviderQuick, mwei } from './utils/utils';
@@ -192,7 +193,7 @@ describe('Implementation', function () {
       });
       it('should set management fee rate', async function () {
         const feeRate = await implementation.getManagementFeeRate();
-        expect(feeRate).to.be.eq(BigNumber.from('18446744073709551616'));
+        expect(feeRate).to.be.eq(BigNumber.from(FEE_BASE64x64));
       });
       it('should set performance fee rate', async function () {
         const feeRate = await implementation.getPerformanceFeeRate();
@@ -257,7 +258,7 @@ describe('Implementation', function () {
         // check performance fee initilize
         const lastGrossSharePrice = await implementation.callStatic.lastGrossSharePrice64x64();
         const hwm64x64 = await implementation.callStatic.hwm64x64();
-        expect(lastGrossSharePrice).to.be.eq(BigNumber.from('18446744073709551616'));
+        expect(lastGrossSharePrice).to.be.eq(BigNumber.from(FEE_BASE64x64));
         expect(lastGrossSharePrice).to.be.eq(hwm64x64);
 
         // check vault approval
