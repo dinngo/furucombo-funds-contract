@@ -14,7 +14,8 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     event Purchased(
         address indexed user,
         uint256 assetAmount,
-        uint256 shareAmount
+        uint256 shareAmount,
+        uint256 bonusAmount
     );
     event Redeemed(
         address indexed user,
@@ -164,8 +165,9 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
         uint256 penalty = _getPendingRedemptionPenalty();
+        uint256 bonus;
         if (state == State.RedemptionPending) {
-            uint256 bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
+            bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
@@ -173,7 +175,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         }
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
         _callAfterPurchase(share);
-        emit Purchased(user, balance, share);
+        emit Purchased(user, balance, share, bonus);
     }
 
     function _redeem(

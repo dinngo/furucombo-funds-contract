@@ -88,14 +88,14 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'Purchased')
-        .withArgs(user1.address, totalAsset, totalShare);
+        .withArgs(user1.address, totalAsset, totalShare, 0);
     });
 
     it('should succeed when redemption pending', async function () {
       await shareModule.setState(POOL_STATE.REDEMPTION_PENDING);
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'Purchased')
-        .withArgs(user1.address, totalAsset, totalShare);
+        .withArgs(user1.address, totalAsset, totalShare, 0);
     });
 
     it('should fail when liquidating', async function () {
@@ -308,7 +308,7 @@ describe('Share module', function () {
         const purchaseAsset = actualAsset;
         await expect(shareModule.purchase(purchaseAsset))
           .to.emit(shareModule, 'Purchased')
-          .withArgs(user1.address, purchaseAsset, pendingShare);
+          .withArgs(user1.address, purchaseAsset, pendingShare, bonus);
       });
 
       it('should partially receive bonus when purchasing over amount', async function () {
@@ -318,7 +318,8 @@ describe('Share module', function () {
           .withArgs(
             user1.address,
             purchaseAsset,
-            pendingShare.add(actualShare)
+            pendingShare.add(actualShare),
+            bonus
           );
       });
     });
