@@ -241,7 +241,9 @@ describe('Implementation', function () {
 
     describe('Finalize', function () {
       it('should success', async function () {
-        await implementation.finalize();
+        const receipt = await implementation.finalize();
+        const block = await ethers.provider.getBlock(receipt.blockNumber!);
+        const timestamp = BigNumber.from(block.timestamp);
 
         // check add denomication to list
         expect(await implementation.getAssetList()).to.be.deep.eq([
@@ -250,13 +252,13 @@ describe('Implementation', function () {
 
         // check management fee initilize
         const lastMFeeClaimTime = await implementation.callStatic.lastMFeeClaimTime();
-        expect(lastMFeeClaimTime).to.be.not.eq(BigNumber.from('0'));
+        expect(lastMFeeClaimTime).to.be.eq(timestamp);
 
         // check performance fee initilize
         const lastGrossSharePrice = await implementation.callStatic.lastGrossSharePrice64x64();
         const hwm64x64 = await implementation.callStatic.hwm64x64();
-        expect(lastGrossSharePrice).to.be.not.eq(BigNumber.from('0'));
-        expect(hwm64x64).to.be.not.eq(BigNumber.from('0'));
+        expect(lastGrossSharePrice).to.be.eq(BigNumber.from('18446744073709551616'));
+        expect(lastGrossSharePrice).to.be.eq(hwm64x64);
 
         // check vault approval
         const allowance = await denomination.allowance(

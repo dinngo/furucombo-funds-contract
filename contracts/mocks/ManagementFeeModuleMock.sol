@@ -19,7 +19,6 @@ contract ManagementFeeModuleMock is ManagementFeeModule {
     }
 
     function setManagementFeeRate(uint256 feeRate) external returns (int256) {
-        lastMFeeClaimTime = block.timestamp;
         return _setManagementFeeRate(feeRate);
     }
 

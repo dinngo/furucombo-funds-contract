@@ -73,17 +73,6 @@ describe('Management fee', function () {
     });
   });
 
-  describe('Initialize', function () {
-    it('should set last management fee claim time', async function () {
-      const receipt = await mFeeModule.initializeManagementFee();
-      const block = await ethers.provider.getBlock(receipt.blockNumber!);
-      const timestamp = BigNumber.from(block.timestamp);
-      const lastMFeeClaimTime = await mFeeModule.callStatic.lastMFeeClaimTime();
-      expect(lastMFeeClaimTime).to.be.not.eq(BigNumber.from('0'));
-      expect(lastMFeeClaimTime).to.be.eq(timestamp);
-    });
-  });
-
   describe('claim management fee', function () {
     beforeEach(async function () {
       await mFeeModule.mintShareToken(user.address, totalShare);
