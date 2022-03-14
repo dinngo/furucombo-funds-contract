@@ -242,7 +242,10 @@ describe('Performance fee', function () {
         it('should get fee when crystallization after period', async function () {
           await increaseNextBlockTimeBy(period.toNumber());
           const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
-          await pFeeModule.crystallize();
+          await expect(pFeeModule.crystallize()).to.emit(
+            pFeeModule,
+            'PerformanceFeeClaimed'
+          );
           const highWaterMarkAfter = await pFeeModule.callStatic.hwm64x64();
           const shareManager = await tokenS.callStatic.balanceOf(
             manager.address

@@ -14,6 +14,8 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
     int128 private constant _FEE_BASE64x64 = 1 << 64;
     uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
 
+    event ManagementFeeClaimed(address indexed manager, uint256 shareAmount);
+
     /// @notice Initial the management fee claim time.
     function _initializeManagementFee() internal virtual {
         lastMFeeClaimTime = block.timestamp;
@@ -73,9 +75,10 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
             )
         ).mulu(totalShare);
 
-        address receiver = getManager();
-        shareToken.mint(receiver, sharesDue);
+        address manager = getManager();
+        shareToken.mint(manager, sharesDue);
         lastMFeeClaimTime = currentTime;
+        emit ManagementFeeClaimed(manager, sharesDue);
 
         return sharesDue;
     }

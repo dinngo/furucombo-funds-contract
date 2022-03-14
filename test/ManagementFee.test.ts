@@ -96,7 +96,11 @@ describe('Management fee', function () {
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
       await increaseNextBlockTimeBy(365.25 * 24 * 60 * 60);
-      await mFeeModule.claimManagementFee();
+      await expect(mFeeModule.claimManagementFee()).to.emit(
+        mFeeModule,
+        'ManagementFeeClaimed'
+      );
+
       const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
       expect(feeClaimed).to.be.gt(expectAmount.mul(999).div(1000));
       expect(feeClaimed).to.be.lt(expectAmount.mul(1001).div(1000));
