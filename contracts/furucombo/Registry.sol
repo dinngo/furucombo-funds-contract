@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.12;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IRegistry} from "./interface/IRegistry.sol";
+import {IRegistry} from "./interfaces/IRegistry.sol";
 
 /// @notice The registry database for Furucombo
 contract Registry is IRegistry, Ownable {
