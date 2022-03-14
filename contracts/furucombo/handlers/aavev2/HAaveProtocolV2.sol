@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.12;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ILendingPoolV2} from "../../../interfaces/ILendingPoolV2.sol";
 import {DataTypes} from "../../../libraries/AaveV2DataTypes.sol";
 import {ILendingPoolAddressesProviderV2} from "../../../interfaces/ILendingPoolAddressesProviderV2.sol";
-import {IProxy} from "../../interface/IProxy.sol";
+import {IProxy} from "../../interfaces/IProxy.sol";
 import {HandlerBase} from "../HandlerBase.sol";
 import {IFlashLoanReceiver} from "./IFlashLoanReceiver.sol";
 import {IWMATIC} from "./IWMATIC.sol";
