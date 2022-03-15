@@ -75,4 +75,5 @@ func.dependencies = [
   'HFunds',
   'HQuickSwap',
   'HSushiSwap',
+  'HCurve',
 ];

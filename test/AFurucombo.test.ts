@@ -18,6 +18,7 @@ import {
   AssetRegistry,
   IVariableDebtToken,
   SimpleToken,
+  HQuickSwap,
 } from '../typechain';
 
 import {
@@ -27,7 +28,6 @@ import {
   WETH_TOKEN,
   WL_ANY_SIG,
   NATIVE_TOKEN,
-  FURUCOMBO_HQUICKSWAP,
   WMATIC_TOKEN,
   AWETH_V2_DEBT_VARIABLE,
   AAVEPROTOCOL_V2_PROVIDER,
@@ -64,6 +64,7 @@ describe('AFurucombo', function () {
   let aFurucombo: AFurucombo;
   let furuRegistry: Registry;
   let hFunds: HFunds;
+  let hQuickSwap: HQuickSwap;
 
   let token: IERC20;
   let tokenOut: IERC20;
@@ -155,14 +156,19 @@ describe('AFurucombo', function () {
       hFunds = await (await ethers.getContractFactory('HFunds')).deploy();
       await hFunds.deployed();
 
+      hQuickSwap = await (
+        await ethers.getContractFactory('HQuickSwap')
+      ).deploy();
+      await hQuickSwap.deployed();
+
       await furuRegistry.register(
         hFunds.address,
         ethers.utils.hexZeroPad(asciiToHex32('HFunds'), 32)
       );
 
       await furuRegistry.register(
-        FURUCOMBO_HQUICKSWAP,
-        ethers.utils.hexZeroPad(asciiToHex32('FURUCOMBO_HQUICKSWAP'), 32)
+        hQuickSwap.address,
+        ethers.utils.hexZeroPad(asciiToHex32('HQuickswap'), 32)
       );
 
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
@@ -197,7 +203,7 @@ describe('AFurucombo', function () {
       // Permit handler
       comptroller.permitHandlers(
         await proxy.level(),
-        [hFunds.address, FURUCOMBO_HQUICKSWAP],
+        [hFunds.address, hQuickSwap.address],
         [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG]
       );
     }
@@ -216,7 +222,7 @@ describe('AFurucombo', function () {
       const tokensIn = [NATIVE_TOKEN, token.address];
       const amountsIn = [ether('2'), ether('1')];
       const tokensOut = [tokenOut.address];
-      const tos = [hFunds.address, FURUCOMBO_HQUICKSWAP, FURUCOMBO_HQUICKSWAP];
+      const tos = [hFunds.address, hQuickSwap.address, hQuickSwap.address];
       const configs = [
         '0x0004000000000000000000000000000000000000000000000000000000000000', // return size = 4 (uint256[2])
         '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
@@ -318,7 +324,7 @@ describe('AFurucombo', function () {
       const tokensIn = [token.address];
       const amountsIn = [ether('1')];
       const tokensOut = [NATIVE_TOKEN, tokenOut.address];
-      const tos = [hFunds.address, FURUCOMBO_HQUICKSWAP, FURUCOMBO_HQUICKSWAP];
+      const tos = [hFunds.address, hQuickSwap.address, hQuickSwap.address];
       const configs = [
         '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 3 (uint256[1])
         '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
