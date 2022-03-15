@@ -18,7 +18,7 @@ import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
 describe('Comptroller', function () {
-  let comptrollerImpl: ComptrollerImplementation;
+  let comptrollerImplementation: ComptrollerImplementation;
   let comptrollerProxy: ComptrollerProxy;
   let comptroller: ComptrollerImplementation;
   let beacon: UpgradeableBeacon;
@@ -79,12 +79,12 @@ describe('Comptroller', function () {
       ).deploy(tokenM.address);
       await mortgageVault.deployed();
 
-      comptrollerImpl = await (
+      comptrollerImplementation = await (
         await ethers.getContractFactory('ComptrollerImplementation')
       ).deploy();
-      await comptrollerImpl.deployed();
+      await comptrollerImplementation.deployed();
 
-      const compData = comptrollerImpl.interface.encodeFunctionData(
+      const compData = comptrollerImplementation.interface.encodeFunctionData(
         'initialize',
         [
           implementation.address,
@@ -100,7 +100,7 @@ describe('Comptroller', function () {
 
       comptrollerProxy = await (
         await ethers.getContractFactory('ComptrollerProxy')
-      ).deploy(comptrollerImpl.address, admin.address, compData);
+      ).deploy(comptrollerImplementation.address, admin.address, compData);
       await comptrollerProxy.deployed();
 
       comptroller = await (
