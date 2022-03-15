@@ -117,7 +117,7 @@ describe('Asset module', function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close())
           .to.emit(assetModule, 'StateTransited')
-          .withArgs(5);
+          .withArgs(POOL_STATE.CLOSED);
       });
 
       it('should fail when denomination asset is not the only asset', async function () {
@@ -141,7 +141,7 @@ describe('Asset module', function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close())
           .to.emit(assetModule, 'StateTransited')
-          .withArgs(5);
+          .withArgs(POOL_STATE.CLOSED);
       });
 
       it('should fail when denomination asset is not the only asset', async function () {
