@@ -91,7 +91,9 @@ contract Implementation is
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
-        settleRedemption(true, true);
+        require(isPendingResolvable(true));
+        _settlePendingRedemption(true);
+        _resume();
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
@@ -118,8 +120,9 @@ contract Implementation is
         onlyOwner
         whenStates(State.Executing, State.Liquidating)
     {
-        // TODO: replace err msg: pending shares not settled
-        require(_getResolvePendingShares(false) == 0);
+        if (_getResolvePendingShares(false) > 0) {
+            _settlePendingRedemption(false);
+        }
 
         super.close();
 
@@ -306,7 +309,9 @@ contract Implementation is
             addAsset(dealingAssets[i]);
         }
 
-        settleRedemption(true, state != State.Liquidating);
+        if (state == State.RedemptionPending) {
+            resume();
+        }
 
         // TODO: replace err msg: Insufficient reserve
         require(_isReserveEnough());

@@ -133,56 +133,39 @@ abstract contract ShareModule is PoolState {
         }
     }
 
-    /// @notice Settle pending redemption. Will resume to Executing if state is in RedemptionPending
-    /// @param applyPenalty apply redemption penalty or not
-    /// @param mustSettle true when must be settled, will revert if it can't
-    function settleRedemption(bool applyPenalty, bool mustSettle) internal {
-        if (state != State.RedemptionPending && state != State.Liquidating)
-            return;
-
-        bool isResolvable = isPendingResolvable(applyPenalty);
-        if (mustSettle) {
-            // TODO: replace err msg: reserve not enough
-            require(isResolvable);
-        }
-
-        if (isResolvable) {
-            _settlePendingRedemption(applyPenalty);
-
-            if (state == State.RedemptionPending) {
-                _resume();
-            }
-        }
-    }
-
     function _settlePendingRedemption(bool applyPenalty) internal {
         // Might lead to gas insufficient if pending list too long
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
-        if (redeemShares == 0) return;
+        if (redeemShares > 0) {
+            if (!applyPenalty) {
+                totalPendingBonus = 0;
+            }
 
-        if (!applyPenalty) {
-            totalPendingBonus = 0;
-        }
+            uint256 totalRedemption = _redeem(
+                address(this),
+                redeemShares,
+                false
+            );
+            uint256 pendingAccountListLength = pendingAccountList.length;
+            for (uint256 i = 0; i < pendingAccountListLength; i++) {
+                address user = pendingAccountList[i];
 
-        uint256 totalRedemption = _redeem(address(this), redeemShares, false);
-        uint256 pendingAccountListLength = pendingAccountList.length;
-        for (uint256 i = 0; i < pendingAccountListLength; i++) {
-            address user = pendingAccountList[i];
+                uint256 share = pendingShares[user];
+                pendingShares[user] = 0;
+                uint256 redemption = (totalRedemption * share) /
+                    totalPendingShare;
+                pendingRedemptions[user] += redemption;
+            }
 
-            uint256 share = pendingShares[user];
-            pendingShares[user] = 0;
-            uint256 redemption = (totalRedemption * share) / totalPendingShare;
-            pendingRedemptions[user] += redemption;
-        }
+            // remove all pending accounts
+            delete pendingAccountList;
 
-        // remove all pending accounts
-        delete pendingAccountList;
-
-        totalPendingShare = 0;
-        if (totalPendingBonus != 0) {
-            uint256 unusedBonus = totalPendingBonus;
-            totalPendingBonus = 0;
-            shareToken.burn(address(this), unusedBonus);
+            totalPendingShare = 0;
+            if (totalPendingBonus != 0) {
+                uint256 unusedBonus = totalPendingBonus;
+                totalPendingBonus = 0;
+                shareToken.burn(address(this), unusedBonus);
+            }
         }
     }
 
@@ -282,7 +265,10 @@ abstract contract ShareModule is PoolState {
 
     function _callAfterPurchase(uint256 amount) internal virtual {
         amount;
-        settleRedemption(true, false);
+        if (state == State.RedemptionPending && isPendingResolvable(true)) {
+            _settlePendingRedemption(true);
+            _resume();
+        }
         return;
     }
 

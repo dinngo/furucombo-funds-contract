@@ -6,14 +6,12 @@ import {
   ShareModuleMock,
   SimpleToken,
   ShareToken,
-  ExecutionModuleMock,
 } from '../typechain';
 import { DS_PROXY_REGISTRY, POOL_STATE } from './utils/constants';
 
 describe('Share module', function () {
   let comptroller: Comptroller;
   let shareModule: ShareModuleMock;
-  let executionModule: ExecutionModuleMock;
   let shareToken: ShareToken;
   let user1: Wallet;
   let user2: Wallet;
@@ -33,13 +31,6 @@ describe('Share module', function () {
         .connect(user1)
         .deploy(DS_PROXY_REGISTRY);
       await shareModule.deployed();
-
-      executionModule = await (
-        await ethers.getContractFactory('ExecutionModuleMock')
-      )
-        .connect(user1)
-        .deploy(DS_PROXY_REGISTRY);
-      await executionModule.deployed();
 
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
