@@ -20,36 +20,38 @@ abstract contract PoolProxyStorageV1 {
         Closed
     }
 
+    // Slot 0: owner address
+
     // Common
     uint256 public level;
+    uint256 public reserveExecutionRatio; // reserve ratio, base is 1e4. 100 means 1%
+    uint256 public pendingStartTime;
     State public state;
     IComptroller public comptroller;
-    IMortgageVault public mortgageVault;
     IERC20 public denomination;
     IShareToken public shareToken;
     IDSProxy public vault; // DSProxy
-    uint256 public reserveExecutionRatio; // reserve ratio, base is 1e4. 100 means 1%
-    uint256 public pendingStartTime;
+    IMortgageVault public mortgageVault;
 
     // Asset module
     LibUniqueAddressList.List internal _assetList;
 
     // Share module
-    mapping(address => uint256) public pendingShares;
-    address[] public pendingAccountList;
-    mapping(address => uint256) public pendingRedemptions;
     uint256 public totalPendingShare;
     uint256 public totalPendingBonus;
+    address[] public pendingAccountList;
+    mapping(address => uint256) public pendingRedemptions;
+    mapping(address => uint256) public pendingShares;
     uint256 internal constant _PENALTY_BASE = 1e4;
 
     // Management fee module
-    int128 internal _mFeeRate64x64;
     uint256 public lastMFeeClaimTime;
+    int128 internal _mFeeRate64x64;
 
     // Performance fee module
-    int128 internal _pFeeRate64x64;
     int128 public hwm64x64; // should be a float point number
     int128 public lastGrossSharePrice64x64;
+    int128 internal _pFeeRate64x64;
     uint256 internal _pFeeSum;
     uint256 internal _pFeeSet;
     uint256 internal _lastOutstandingShare;
