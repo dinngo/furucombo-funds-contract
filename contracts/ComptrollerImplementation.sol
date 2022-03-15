@@ -5,9 +5,10 @@ import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/Upgradeabl
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Whitelist} from "./libraries/Whitelist.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
+import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
-contract ComptrollerImplementation is Ownable {
+contract ComptrollerImplementation is Ownable, IComptroller {
     using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
     using Whitelist for Whitelist.CreatorWList;
@@ -139,6 +140,15 @@ contract ComptrollerImplementation is Ownable {
         returns (address)
     {
         return beacon.implementation();
+    }
+
+    function owner()
+        public
+        view
+        override(Ownable, IComptroller)
+        returns (address)
+    {
+        return Ownable.owner();
     }
 
     // Halt
