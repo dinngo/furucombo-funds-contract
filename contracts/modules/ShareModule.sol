@@ -265,10 +265,6 @@ abstract contract ShareModule is PoolState {
 
     function _callAfterPurchase(uint256 amount) internal virtual {
         amount;
-        if (state == State.RedemptionPending && isPendingResolvable(true)) {
-            _settlePendingRedemption(true);
-            _resume();
-        }
         return;
     }
 

@@ -341,7 +341,10 @@ contract Implementation is
     /// @notice Update the gross share price after the purchase.
     function _callAfterPurchase(uint256) internal override {
         _updateGrossSharePrice();
-        super._callAfterPurchase(0); // amount not used for now, place 0.
+        if (state == State.RedemptionPending && isPendingResolvable(true)) {
+            _settlePendingRedemption(true);
+            _resume();
+        }
         return;
     }
 
