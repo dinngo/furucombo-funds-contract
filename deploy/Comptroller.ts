@@ -34,6 +34,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const result = await deploy('Comptroller', {
     from: deployer,
+    log: true,
+  });
+  /*
+  await deploy('Comptroller', {
+    from: deployer,
     args: [
       implementation.address,
       assetRouter.address,
@@ -114,6 +119,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
     );
   }
+  */
 };
 
 export default func;

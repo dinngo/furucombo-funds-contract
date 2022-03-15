@@ -3,6 +3,8 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   Comptroller,
+  ComptrollerProxy,
+  UpgradeableBeacon,
   Implementation,
   AssetRouter,
   MortgageVault,
@@ -16,7 +18,10 @@ import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
 describe('Comptroller', function () {
+  let comptrollerImpl: Comptroller;
+  let comptrollerProxy: ComptrollerProxy;
   let comptroller: Comptroller;
+  let beacon: UpgradeableBeacon;
   let implementation: Implementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
@@ -26,6 +31,7 @@ describe('Comptroller', function () {
   let user: Wallet;
   let collector: Wallet;
   let liquidator: Wallet;
+  let admin: Wallet;
 
   let oracle: Chainlink;
   let registry: AssetRegistry;
@@ -36,7 +42,9 @@ describe('Comptroller', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, collector, liquidator] = await (ethers as any).getSigners();
+      [owner, user, collector, liquidator, admin] = await (
+        ethers as any
+      ).getSigners();
 
       tokenM = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -71,19 +79,39 @@ describe('Comptroller', function () {
       ).deploy(tokenM.address);
       await mortgageVault.deployed();
 
+      comptrollerImpl = await (
+        await ethers.getContractFactory('Comptroller')
+      ).deploy();
+      await comptrollerImpl.deployed();
+
+      const compData = comptrollerImpl.interface.encodeFunctionData(
+        'initialize',
+        [
+          implementation.address,
+          assetRouter.address,
+          collector.address,
+          0,
+          liquidator.address,
+          0,
+          mortgageVault.address,
+          0,
+        ]
+      );
+
+      comptrollerProxy = await (
+        await ethers.getContractFactory('ComptrollerProxy')
+      ).deploy(comptrollerImpl.address, admin.address, compData);
+      await comptrollerProxy.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
-      ).deploy(
-        implementation.address,
-        assetRouter.address,
-        collector.address,
-        0,
-        liquidator.address,
-        0,
-        mortgageVault.address,
-        0
-      );
-      await comptroller.deployed();
+      ).attach(comptrollerProxy.address);
+
+      const beaconAddress = await comptroller.callStatic.beacon();
+
+      beacon = await (
+        await ethers.getContractFactory('UpgradeableBeacon')
+      ).attach(beaconAddress);
 
       taskExecutor = await (
         await ethers.getContractFactory('TaskExecutor')
@@ -212,8 +240,8 @@ describe('Comptroller', function () {
       await newImpl.deployed();
 
       // set new implementation
-      await expect(comptroller.upgradeTo(newImpl.address))
-        .to.emit(comptroller, 'Upgraded')
+      await expect(beacon.upgradeTo(newImpl.address))
+        .to.emit(beacon, 'Upgraded')
         .withArgs(newImpl.address);
 
       // check new implementation
@@ -224,7 +252,7 @@ describe('Comptroller', function () {
 
     it('should revert: set implementation by non-owner', async function () {
       await expect(
-        comptroller.connect(user).upgradeTo(implementation.address)
+        beacon.connect(user).upgradeTo(implementation.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });

@@ -2,11 +2,12 @@
 pragma solidity 0.8.12;
 
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Whitelist} from "./libraries/Whitelist.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
-contract Comptroller is UpgradeableBeacon {
+contract Comptroller is Ownable {
     using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
     using Whitelist for Whitelist.CreatorWList;
@@ -30,6 +31,7 @@ contract Comptroller is UpgradeableBeacon {
     uint256 public pendingRedemptionPenalty;
     // base = 1e4
     uint256 public execAssetValueToleranceRate;
+    UpgradeableBeacon public beacon;
 
     // Map
     mapping(address => DenominationConfig) public denomination;
@@ -104,7 +106,7 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Public Function
-    constructor(
+    function initialize(
         address implementation_,
         IAssetRouter assetRouter_,
         address execFeeCollector_,
@@ -113,7 +115,8 @@ contract Comptroller is UpgradeableBeacon {
         uint256 pendingExpiration_,
         IMortgageVault mortgageVault_,
         uint256 execAssetValueToleranceRate_
-    ) UpgradeableBeacon(implementation_) {
+    ) external {
+        require(address(beacon) == address(0));
         assetRouter = assetRouter_;
         mortgageVault = mortgageVault_;
         execFeeCollector = execFeeCollector_;
@@ -123,17 +126,19 @@ contract Comptroller is UpgradeableBeacon {
         execAssetValueToleranceRate = execAssetValueToleranceRate_;
         fInitialAssetCheck = true;
         pendingRedemptionPenalty = 100;
+        _transferOwnership(msg.sender);
+        beacon = new UpgradeableBeacon(implementation_);
+        beacon.transferOwnership(msg.sender);
     }
 
     function implementation()
         public
         view
-        override
         onlyUnHalted
         onlyUnbannedProxy
         returns (address)
     {
-        return UpgradeableBeacon.implementation();
+        return beacon.implementation();
     }
 
     // Halt
