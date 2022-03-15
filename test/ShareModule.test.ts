@@ -183,7 +183,7 @@ describe('Share module', function () {
         .to.emit(shareModule, 'RedemptionPended')
         .withArgs(user1.address, actualShare, penaltyShare)
         .to.emit(shareModule, 'StateTransited')
-        .withArgs(3);
+        .withArgs(POOL_STATE.REDEMPTION_PENDING);
       const block = await ethers.provider.getBlock(receipt.blockNumber!);
       expect(await shareModule.pendingStartTime()).to.be.eq(block.timestamp);
     });

@@ -24,6 +24,7 @@ import {
   FEE_BASE,
   FEE_BASE64x64,
   TOLERANCE_BASE,
+  POOL_STATE,
 } from './utils/constants';
 
 import { simpleEncode, tokenProviderQuick, mwei } from './utils/utils';
@@ -260,11 +261,13 @@ describe('Implementation', function () {
         ]);
 
         // check management fee initilize
-        const lastMFeeClaimTime = await implementation.callStatic.lastMFeeClaimTime();
+        const lastMFeeClaimTime =
+          await implementation.callStatic.lastMFeeClaimTime();
         expect(lastMFeeClaimTime).to.be.eq(timestamp);
 
         // check performance fee initilize
-        const lastGrossSharePrice = await implementation.callStatic.lastGrossSharePrice64x64();
+        const lastGrossSharePrice =
+          await implementation.callStatic.lastGrossSharePrice64x64();
         const hwm64x64 = await implementation.callStatic.hwm64x64();
         expect(lastGrossSharePrice).to.be.eq(BigNumber.from(FEE_BASE64x64));
         expect(lastGrossSharePrice).to.be.eq(hwm64x64);
@@ -295,7 +298,7 @@ describe('Implementation', function () {
       await implementation.pendMock();
       await expect(implementation.resume())
         .to.emit(implementation, 'StateTransited')
-        .withArgs(2);
+        .withArgs(POOL_STATE.EXECUTING);
       expect(await implementation.getAssetList()).to.be.deep.eq([
         denomination.address,
       ]);
@@ -309,7 +312,7 @@ describe('Implementation', function () {
         await network.provider.send('evm_increaseTime', [pendingExpiration]);
         await expect(implementation.liquidate())
           .to.emit(implementation, 'StateTransited')
-          .withArgs(4)
+          .withArgs(POOL_STATE.LIQUIDATING)
           .to.emit(implementation, 'OwnershipTransferred')
           .withArgs(owner.address, liquidator.address);
         expect(await implementation.pendingStartTime()).to.be.eq(0);
@@ -321,7 +324,7 @@ describe('Implementation', function () {
         await network.provider.send('evm_increaseTime', [pendingExpiration]);
         await expect(implementation.connect(user).liquidate())
           .to.emit(implementation, 'StateTransited')
-          .withArgs(4)
+          .withArgs(POOL_STATE.LIQUIDATING)
           .to.emit(implementation, 'OwnershipTransferred')
           .withArgs(owner.address, liquidator.address);
       });
@@ -349,7 +352,7 @@ describe('Implementation', function () {
         await implementation.finalize();
         await expect(implementation.close())
           .to.emit(implementation, 'StateTransited')
-          .withArgs(5);
+          .withArgs(POOL_STATE.CLOSED);
       });
 
       it('should revert: close by non-owner', async function () {
