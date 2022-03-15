@@ -13,6 +13,7 @@ import {
   PoolFoo,
   TaskExecutor,
   SimpleToken,
+  SimpleAction,
 } from '../typechain';
 import {
   DS_PROXY_REGISTRY,
@@ -25,6 +26,8 @@ import {
   CHAINLINK_WBTC_USD,
   FEE_BASE,
   WL_ANY_SIG,
+  FEE_BASE64x64,
+  TOLERANCE_BASE,
   POOL_STATE,
 } from './utils/constants';
 
@@ -51,6 +54,7 @@ describe('Implementation', function () {
   const managementFeeRate = 0; // 0%
   const performanceFeeRate = 1000; // 10%
   const pendingExpiration = 43200; // 0.5 day
+  const valueTolerance = 9000; // 90%
   const CRYSTALLIZATION_PERIOD_MIN = 1; // 1 sec
   const crystallizationPeriod = CRYSTALLIZATION_PERIOD_MIN;
   const level = 1;
@@ -58,6 +62,7 @@ describe('Implementation', function () {
   const reserveBase = FEE_BASE;
 
   let comptroller: Comptroller;
+  let action: SimpleAction;
   let implementation: ImplementationMock;
   let taskExecutor: TaskExecutor;
   let vault: IDSProxy;
@@ -143,8 +148,11 @@ describe('Implementation', function () {
         execFeePercentage,
         liquidator.address,
         pendingExpiration,
-        mortgageVault.address
+        mortgageVault.address,
+        valueTolerance
       );
+      action = await (await ethers.getContractFactory('SimpleAction')).deploy();
+      await action.deployed();
 
       // Initialization
       await comptroller.permitDenominations(
@@ -152,6 +160,7 @@ describe('Implementation', function () {
         [denominationDust]
       );
       await comptroller.permitAssets(level, [denomination.address]);
+      await comptroller.setExecAction(action.address);
 
       shareToken = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -264,7 +273,7 @@ describe('Implementation', function () {
       });
       it('should set management fee rate', async function () {
         const feeRate = await implementation.getManagementFeeRate();
-        expect(feeRate).to.be.eq(BigNumber.from('18446744073709551616'));
+        expect(feeRate).to.be.eq(BigNumber.from(FEE_BASE64x64));
       });
       it('should set performance fee rate', async function () {
         const feeRate = await implementation.getPerformanceFeeRate();
@@ -313,10 +322,26 @@ describe('Implementation', function () {
 
     describe('Finalize', function () {
       it('should success', async function () {
-        await implementation.finalize();
+        const receipt = await implementation.finalize();
+        const block = await ethers.provider.getBlock(receipt.blockNumber!);
+        const timestamp = BigNumber.from(block.timestamp);
+
+        // check add denomication to list
         expect(await implementation.getAssetList()).to.be.deep.eq([
           denomination.address,
         ]);
+
+        // check management fee initilize
+        const lastMFeeClaimTime =
+          await implementation.callStatic.lastMFeeClaimTime();
+        expect(lastMFeeClaimTime).to.be.eq(timestamp);
+
+        // check performance fee initilize
+        const lastGrossSharePrice =
+          await implementation.callStatic.lastGrossSharePrice64x64();
+        const hwm64x64 = await implementation.callStatic.hwm64x64();
+        expect(lastGrossSharePrice).to.be.eq(BigNumber.from(FEE_BASE64x64));
+        expect(lastGrossSharePrice).to.be.eq(hwm64x64);
 
         // check vault approval
         const allowance = await denomination.allowance(
@@ -344,7 +369,7 @@ describe('Implementation', function () {
       await implementation.pendMock();
       await expect(implementation.resume())
         .to.emit(implementation, 'StateTransited')
-        .withArgs(2);
+        .withArgs(POOL_STATE.EXECUTING);
       expect(await implementation.getAssetList()).to.be.deep.eq([
         denomination.address,
       ]);
@@ -358,7 +383,7 @@ describe('Implementation', function () {
         await network.provider.send('evm_increaseTime', [pendingExpiration]);
         await expect(implementation.liquidate())
           .to.emit(implementation, 'StateTransited')
-          .withArgs(4)
+          .withArgs(POOL_STATE.LIQUIDATING)
           .to.emit(implementation, 'OwnershipTransferred')
           .withArgs(owner.address, liquidator.address);
         expect(await implementation.pendingStartTime()).to.be.eq(0);
@@ -370,7 +395,7 @@ describe('Implementation', function () {
         await network.provider.send('evm_increaseTime', [pendingExpiration]);
         await expect(implementation.connect(user).liquidate())
           .to.emit(implementation, 'StateTransited')
-          .withArgs(4)
+          .withArgs(POOL_STATE.LIQUIDATING)
           .to.emit(implementation, 'OwnershipTransferred')
           .withArgs(owner.address, liquidator.address);
       });
@@ -398,7 +423,7 @@ describe('Implementation', function () {
         await implementation.finalize();
         await expect(implementation.close())
           .to.emit(implementation, 'StateTransited')
-          .withArgs(5);
+          .withArgs(POOL_STATE.CLOSED);
       });
 
       it('should revert: close by non-owner', async function () {
@@ -593,6 +618,33 @@ describe('Implementation', function () {
           tokenC.address
         );
       });
+    });
+  });
+
+  describe('Execute module', function () {
+    const valueBefore = ethers.utils.parseEther('1');
+
+    beforeEach(async function () {
+      await implementation.finalize();
+      await implementation.setLastTotalAssetValue(valueBefore);
+    });
+
+    it('should success', async function () {
+      const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
+      await implementation.setTotalAssetValueMock(valueCurrent);
+      const executionData = action.interface.encodeFunctionData('fooAddress');
+      await implementation.execute(executionData);
+    });
+
+    it('should revert when exceed tolerance', async function () {
+      const valueCurrent = valueBefore
+        .mul(valueTolerance - 1)
+        .div(TOLERANCE_BASE);
+      await implementation.setTotalAssetValueMock(valueCurrent);
+      const executionData = action.interface.encodeFunctionData('fooAddress');
+      await expect(implementation.execute(executionData)).to.be.revertedWith(
+        'I'
+      );
     });
   });
 

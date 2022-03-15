@@ -2,13 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
-import {ManagementFee} from "../modules/ManagementFee.sol";
+import {ManagementFeeModule} from "../modules/ManagementFeeModule.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 
-contract ManagementFeeMock is ManagementFee {
+contract ManagementFeeModuleMock is ManagementFeeModule {
     using ABDKMath64x64 for uint256;
 
-    IShareToken public shareToken;
     address public manager;
 
     function setShareToken(IShareToken shareToken_) public {
@@ -20,15 +19,14 @@ contract ManagementFeeMock is ManagementFee {
     }
 
     function setManagementFeeRate(uint256 feeRate) external returns (int256) {
-        lastMFeeClaimTime = block.timestamp;
         return _setManagementFeeRate(feeRate);
     }
 
-    function __getShareToken() internal view override returns (IShareToken) {
-        return shareToken;
+    function initializeManagementFee() public {
+        _initializeManagementFee();
     }
 
-    function __getManager() internal view override returns (address) {
+    function getManager() public view override returns (address) {
         return manager;
     }
 

@@ -2,18 +2,24 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
+import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 
-/// @title Management fee implementation
-abstract contract ManagementFee {
+/// @title Management fee module
+abstract contract ManagementFeeModule is PoolProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
 
-    int128 private _feeRate64x64;
     uint256 private constant _FEE_BASE = 1e4;
-    int128 public constant FEE_BASE64x64 = 1 << 64;
+    int128 private constant _FEE_BASE64x64 = 1 << 64;
     uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
-    uint256 public lastMFeeClaimTime;
+
+    event ManagementFeeClaimed(address indexed manager, uint256 shareAmount);
+
+    /// @notice Initial the management fee claim time.
+    function _initializeManagementFee() internal virtual {
+        lastMFeeClaimTime = block.timestamp;
+    }
 
     /// @notice Set the management fee in a yearly basis.
     /// @param feeRate The fee rate in a 1e4 base.
@@ -33,7 +39,7 @@ abstract contract ManagementFee {
         private
         returns (int128)
     {
-        _feeRate64x64 = uint256(1)
+        _mFeeRate64x64 = uint256(1)
             .fromUInt()
             .sub(feeRate64x64)
             .ln()
@@ -41,7 +47,7 @@ abstract contract ManagementFee {
             .div(FEE_PERIOD.fromUInt())
             .exp();
 
-        return _feeRate64x64;
+        return _mFeeRate64x64;
     }
 
     /// @notice Claim the accumulated management fee.
@@ -52,7 +58,7 @@ abstract contract ManagementFee {
 
     /// @notice Get the calculated effective fee rate.
     function getManagementFeeRate() public view returns (int128 feeRate) {
-        return _feeRate64x64;
+        return _mFeeRate64x64;
     }
 
     /// @notice Update the current management fee and mint to the manager right
@@ -60,26 +66,23 @@ abstract contract ManagementFee {
     /// also.
     /// @return The share being minted this time.
     function _updateManagementFee() internal virtual returns (uint256) {
-        IShareToken shareToken = __getShareToken();
         uint256 currentTime = block.timestamp;
         uint256 totalShare = shareToken.grossTotalShare();
 
         uint256 sharesDue = (
-            _feeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(
-                FEE_BASE64x64
+            _mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(
+                _FEE_BASE64x64
             )
         ).mulu(totalShare);
 
-        address receiver = __getManager();
-        shareToken.mint(receiver, sharesDue);
+        address manager = getManager();
+        shareToken.mint(manager, sharesDue);
         lastMFeeClaimTime = currentTime;
+        emit ManagementFeeClaimed(manager, sharesDue);
 
         return sharesDue;
     }
 
-    /// @notice Get the share token.
-    function __getShareToken() internal view virtual returns (IShareToken);
-
     /// @notice Get the manager address.
-    function __getManager() internal virtual returns (address);
+    function getManager() public virtual returns (address);
 }

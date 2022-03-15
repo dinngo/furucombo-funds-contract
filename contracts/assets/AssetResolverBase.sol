@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity ^0.8.0;
 
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IAssetRouter} from "./interfaces/IAssetRouter.sol";
 import {IAssetOracle} from "./interfaces/IAssetOracle.sol";
 
-contract AssetResolverBase {
+abstract contract AssetResolverBase {
     using SafeCast for uint256;
 
     function _castAssetValue(uint256 amount) internal pure returns (int256) {

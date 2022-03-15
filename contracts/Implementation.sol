@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.12;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {AssetModule} from "./modules/AssetModule.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
-import {FeeModule, ManagementFee, PerformanceFee} from "./modules/FeeModule.sol";
+import {ManagementFeeModule} from "./modules/ManagementFeeModule.sol";
+import {PerformanceFeeModule} from "./modules/PerformanceFeeModule.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
@@ -23,9 +24,11 @@ contract Implementation is
     AssetModule,
     ShareModule,
     ExecutionModule,
-    FeeModule
+    ManagementFeeModule,
+    PerformanceFeeModule
 {
     uint256 private constant _RESERVE_BASE = 1e4;
+    uint256 private constant _TOLERANCE_BASE = 1e4;
 
     IDSProxyRegistry public immutable dsProxyRegistry;
     ISetupAction public immutable setupAction;
@@ -87,6 +90,12 @@ contract Implementation is
 
         // Set approval for investor to redeem
         _setVaultApproval(setupAction);
+
+        // Initialize management fee parameters
+        _initializeManagementFee();
+
+        // Initialize performance fee parameters
+        _initializePerformanceFee();
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
@@ -182,7 +191,12 @@ contract Implementation is
     /////////////////////////////////////////////////////
     /// @notice Return the manager address.
     /// @return Manager address.
-    function getManager() public view override returns (address) {
+    function getManager()
+        public
+        view
+        override(ManagementFeeModule, PerformanceFeeModule)
+        returns (address)
+    {
         return owner();
     }
 
@@ -197,7 +211,8 @@ contract Implementation is
     function getTotalAssetValue()
         public
         view
-        override(FeeModule, ShareModule)
+        virtual
+        override(PerformanceFeeModule, ShareModule)
         returns (uint256)
     {
         address[] memory assets = getAssetList();
@@ -285,16 +300,19 @@ contract Implementation is
     // Execution module
     /////////////////////////////////////////////////////
     /// @notice Execute an action on the pool's behalf.
-    /// @param data The execution data to be applied.
+    function _beforeExecute() internal virtual override returns (uint256) {
+        return getTotalAssetValue();
+    }
+
     function execute(bytes calldata data) public override onlyOwner {
         super.execute(data);
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response)
+    function _afterExecute(bytes memory response, uint256 prevAssetValue)
         internal
         override
-        returns (bool)
+        returns (uint256)
     {
         // remove asset from assetList
         address[] memory assetList = getAssetList();
@@ -316,7 +334,15 @@ contract Implementation is
         // TODO: replace err msg: Insufficient reserve
         require(_isReserveEnough());
 
-        return super._afterExecute(response);
+         // Check asset value
+        uint256 totalAssetValue = getTotalAssetValue();
+        uint256 minTotalAssetValue = (prevAssetValue *
+            comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
+        // TODO: replace err msg: Insufficient total value for execution
+        require(totalAssetValue >= minTotalAssetValue);
+        
+        return totalAssetValue;
+        
     }
 
     /// @notice Check funds reserve ratio is enough or not.
@@ -325,6 +351,19 @@ contract Implementation is
         uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
             getTotalAssetValue();
         return reserveRatio >= reserveExecutionRatio;
+    }
+
+    /////////////////////////////////////////////////////
+    // Management fee module
+    /////////////////////////////////////////////////////
+    /// @notice Manangement fee should only be accumulated in executing state.
+    function _updateManagementFee() internal override returns (uint256) {
+        if (state == State.Executing) {
+            return super._updateManagementFee();
+        } else {
+            lastMFeeClaimTime = block.timestamp;
+            return 0;
+        }
     }
 
     /////////////////////////////////////////////////////

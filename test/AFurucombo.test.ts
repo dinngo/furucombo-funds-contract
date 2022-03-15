@@ -123,7 +123,8 @@ describe('AFurucombo', function () {
         0,
         constants.AddressZero,
         0,
-        mortgageVault.address
+        mortgageVault.address,
+        0
       );
       await comptroller.deployed();
       await comptroller.setInitialAssetCheck(false);

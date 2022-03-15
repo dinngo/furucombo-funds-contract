@@ -34,7 +34,8 @@ describe('Asset module', function () {
         0,
         constants.AddressZero,
         0,
-        constants.AddressZero
+        constants.AddressZero,
+        0
       );
       await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
@@ -116,7 +117,7 @@ describe('Asset module', function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close())
           .to.emit(assetModule, 'StateTransited')
-          .withArgs(5);
+          .withArgs(POOL_STATE.CLOSED);
       });
 
       it('should fail when denomination asset is not the only asset', async function () {
@@ -140,7 +141,7 @@ describe('Asset module', function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close())
           .to.emit(assetModule, 'StateTransited')
-          .withArgs(5);
+          .withArgs(POOL_STATE.CLOSED);
       });
 
       it('should fail when denomination asset is not the only asset', async function () {

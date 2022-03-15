@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 import {LibUniqueAddressList} from "../libraries/LibUniqueAddressList.sol";
-import {PoolState} from "../PoolState.sol";
 
 /// @title Asset module
 /// @notice Define the asset relate policy of the pool.
-abstract contract AssetModule is PoolState {
+abstract contract AssetModule is PoolProxyStorageUtils {
     using LibUniqueAddressList for LibUniqueAddressList.List;
-
-    LibUniqueAddressList.List private _assetList;
 
     event AssetAdded(address asset);
     event AssetRemoved(address asset);

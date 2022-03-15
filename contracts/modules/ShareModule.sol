@@ -3,33 +3,31 @@ pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AssetModule} from "./AssetModule.sol";
-import {PoolState} from "../PoolState.sol";
+import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 
 /// @title Share module
-abstract contract ShareModule is PoolState {
+abstract contract ShareModule is PoolProxyStorageUtils {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
     using SafeERC20 for IERC20;
 
-    mapping(address => uint256) public pendingShares;
-    address[] public pendingAccountList;
-    mapping(address => uint256) public pendingRedemptions;
-    uint256 public totalPendingShare;
-    uint256 public totalPendingBonus;
-    uint256 private constant _PENALTY_BASE = 1e4;
-
     event Purchased(
         address indexed user,
         uint256 assetAmount,
-        uint256 shareAmount
+        uint256 shareAmount,
+        uint256 bonusAmount
     );
     event Redeemed(
         address indexed user,
         uint256 assetAmount,
         uint256 shareAmount
     );
-    event RedemptionPended(address indexed user, uint256 shareAmount);
+    event RedemptionPended(
+        address indexed user,
+        uint256 shareAmount,
+        uint256 penaltyAmount
+    );
+    event RedemptionPendingSettled();
     event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
@@ -189,9 +187,10 @@ abstract contract ShareModule is PoolState {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
 
+        uint256 penalty = _getPendingRedemptionPenalty();
+        uint256 bonus;
         if (state == State.RedemptionPending) {
-            uint256 penalty = _getPendingRedemptionPenalty();
-            uint256 bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
+            bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
             bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
             totalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
@@ -202,7 +201,7 @@ abstract contract ShareModule is PoolState {
 
         _callAfterPurchase(share);
 
-        emit Purchased(user, balance, share);
+        emit Purchased(user, balance, share, bonus);
     }
 
     function _redeem(
@@ -239,12 +238,13 @@ abstract contract ShareModule is PoolState {
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
+        uint256 penaltyShare = share - effectiveShare;
         if (pendingShares[user] == 0) pendingAccountList.push(user);
         pendingShares[user] += effectiveShare;
         totalPendingShare += effectiveShare;
-        totalPendingBonus += (share - effectiveShare);
+        totalPendingBonus += penaltyShare;
         shareToken.move(user, address(this), share);
-        emit RedemptionPended(user, share);
+        emit RedemptionPended(user, effectiveShare, penaltyShare);
 
         return 0;
     }

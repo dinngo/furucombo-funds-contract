@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.12;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -7,12 +7,17 @@ import {IAssetOracle} from "../interfaces/IAssetOracle.sol";
 import {IChainlinkAggregatorV3} from "../interfaces/IChainlinkAggregatorV3.sol";
 
 contract Chainlink is IAssetOracle, Ownable {
-    uint256 public constant STALE_PERIOD = 1 days;
+    uint256 public stalePeriod;
 
     mapping(address => address) public assetToAggregator;
 
+    event StalePeriodUpdated(uint256 period);
     event AssetAdded(address indexed asset, address aggregator);
     event AssetRemoved(address indexed asset);
+
+    constructor() {
+        stalePeriod = 1 days;
+    }
 
     /// @notice Calculate quote amount given the base amount.
     /// @param base The base asset address.
@@ -32,6 +37,11 @@ contract Chainlink is IAssetOracle, Ownable {
         uint256 quotePrice = _getChainlinkPrice(assetToAggregator[quote]);
 
         return (baseAmount * basePrice * quoteUnit) / (baseUnit * quotePrice);
+    }
+
+    function setStalePeriod(uint256 _stalePeriod) external onlyOwner {
+        stalePeriod = _stalePeriod;
+        emit StalePeriodUpdated(_stalePeriod);
     }
 
     /// @notice Add assets with the corresponding aggregators.
@@ -89,7 +99,7 @@ contract Chainlink is IAssetOracle, Ownable {
         ).latestRoundData();
 
         require(price > 0, "Invalid price");
-        require(updatedAt >= block.timestamp - STALE_PERIOD, "Stale price");
+        require(updatedAt >= block.timestamp - stalePeriod, "Stale price");
 
         return uint256(price);
     }

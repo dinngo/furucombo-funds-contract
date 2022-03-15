@@ -80,7 +80,8 @@ describe('Comptroller_Whitelist', function () {
         execFeePercentage,
         constants.AddressZero,
         0,
-        mortgageVault.address
+        mortgageVault.address,
+        0
       );
       await comptroller.deployed();
 

@@ -42,6 +42,28 @@ describe('Chainlink', function () {
     await setupTest();
   });
 
+  describe('Set stale period', function () {
+    let newPeriod: BigNumber;
+
+    beforeEach(async function () {
+      const currentPeriod = await chainlink.stalePeriod();
+      newPeriod = currentPeriod.mul(2);
+    });
+
+    it('normal', async function () {
+      expect(await chainlink.connect(owner).setStalePeriod(newPeriod))
+        .to.emit(chainlink, 'StalePeriodUpdated')
+        .withArgs(newPeriod);
+      expect(await chainlink.stalePeriod()).to.be.eq(newPeriod);
+    });
+
+    it('should revert: not owner', async function () {
+      await expect(
+        chainlink.connect(user).setStalePeriod(newPeriod)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+  });
+
   describe('Add assets', function () {
     it('normal', async function () {
       const receipt = await chainlink
@@ -92,7 +114,7 @@ describe('Chainlink', function () {
     });
 
     it('should revert: stale price', async function () {
-      const stalePeriod = await chainlink.STALE_PERIOD();
+      const stalePeriod = await chainlink.stalePeriod();
       await network.provider.send('evm_increaseTime', [stalePeriod.toNumber()]);
       await network.provider.send('evm_mine', []);
       await expect(
@@ -217,7 +239,7 @@ describe('Chainlink', function () {
     });
 
     it('should revert: stale price', async function () {
-      const stalePeriod = await chainlink.STALE_PERIOD();
+      const stalePeriod = await chainlink.stalePeriod();
       const base = tokenA;
       const baseAmount = utils.parseUnits('1', decimalsA);
       const quote = tokenB;

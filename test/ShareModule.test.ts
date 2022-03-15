@@ -1,4 +1,4 @@
-import { constants, Wallet, BigNumber } from 'ethers';
+import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
@@ -7,7 +7,7 @@ import {
   SimpleToken,
   ShareToken,
 } from '../typechain';
-import { DS_PROXY_REGISTRY, POOL_STATE } from './utils/constants';
+import { FEE_BASE, DS_PROXY_REGISTRY, POOL_STATE } from './utils/constants';
 
 describe('Share module', function () {
   let comptroller: Comptroller;
@@ -22,6 +22,7 @@ describe('Share module', function () {
   const totalShare = totalAsset;
   const acceptPending = false;
   const penalty = 100;
+  const penaltyBase = FEE_BASE;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -41,7 +42,8 @@ describe('Share module', function () {
         constants.Zero,
         constants.AddressZero,
         constants.Zero,
-        constants.AddressZero
+        constants.AddressZero,
+        constants.Zero
       );
       await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
@@ -88,14 +90,14 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'Purchased')
-        .withArgs(user1.address, totalAsset, totalShare);
+        .withArgs(user1.address, totalAsset, totalShare, 0);
     });
 
     it('should succeed when redemption pending', async function () {
       await shareModule.setState(POOL_STATE.REDEMPTION_PENDING);
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'Purchased')
-        .withArgs(user1.address, totalAsset, totalShare);
+        .withArgs(user1.address, totalAsset, totalShare, 0);
     });
 
     it('should fail when liquidating', async function () {
@@ -168,7 +170,11 @@ describe('Share module', function () {
 
     it('should succeed with insufficient reserve with user permission', async function () {
       const acceptPending = true;
-      const remainShare = totalShare.sub(partialShare);
+      const pendingShare = totalShare.sub(partialShare);
+      const actualShare = pendingShare
+        .mul(penaltyBase - penalty)
+        .div(penaltyBase);
+      const penaltyShare = pendingShare.sub(actualShare);
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.setReserve(partialAsset);
       const receipt = await shareModule.redeem(totalShare, acceptPending);
@@ -176,9 +182,9 @@ describe('Share module', function () {
         .to.emit(shareModule, 'Redeemed')
         .withArgs(user1.address, partialAsset, partialShare)
         .to.emit(shareModule, 'RedemptionPended')
-        .withArgs(user1.address, remainShare)
+        .withArgs(user1.address, actualShare, penaltyShare)
         .to.emit(shareModule, 'StateTransited')
-        .withArgs(3);
+        .withArgs(POOL_STATE.REDEMPTION_PENDING);
       const block = await ethers.provider.getBlock(receipt.blockNumber!);
       expect(await shareModule.pendingStartTime()).to.be.eq(block.timestamp);
     });
@@ -193,16 +199,20 @@ describe('Share module', function () {
 
     it('should succeed when redemption pending with user permission', async function () {
       const acceptPending = true;
+      const actualShare = totalShare
+        .mul(penaltyBase - penalty)
+        .div(penaltyBase);
+      const penaltyShare = totalShare.sub(actualShare);
       await shareModule.setState(POOL_STATE.REDEMPTION_PENDING);
-      await expect(shareModule.redeem(totalAsset, acceptPending))
+      await expect(shareModule.redeem(totalShare, acceptPending))
         .to.emit(shareModule, 'RedemptionPended')
-        .withArgs(user1.address, totalShare);
+        .withArgs(user1.address, actualShare, penaltyShare);
     });
 
     it('should fail when redemption pending without user permission', async function () {
       await shareModule.setState(POOL_STATE.REDEMPTION_PENDING);
       await expect(
-        shareModule.redeem(totalAsset, acceptPending)
+        shareModule.redeem(totalShare, acceptPending)
       ).to.be.revertedWith('R');
     });
 
@@ -245,7 +255,6 @@ describe('Share module', function () {
   describe('Pending redemption', function () {
     const pendingShare = ethers.utils.parseEther('20');
     const pendingAsset = pendingShare;
-    const penaltyBase = 10000;
     const actualShare = pendingShare
       .mul(penaltyBase - penalty)
       .div(penaltyBase);
@@ -258,7 +267,7 @@ describe('Share module', function () {
       await shareModule.purchase(totalAsset);
       await shareModule.setReserve(totalAsset.sub(pendingAsset));
       await shareModule.setTotalAssetValue(totalAsset);
-      await shareModule.redeem(totalAsset, acceptPending);
+      await shareModule.redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
       await shareModule.setTotalAssetValue(pendingAsset);
     });
@@ -269,7 +278,8 @@ describe('Share module', function () {
 
       await expect(shareModule.settlePendingRedemption())
         .to.emit(shareModule, 'Redeemed')
-        .withArgs(shareModule.address, actualAsset, actualShare);
+        .withArgs(shareModule.address, actualAsset, actualShare)
+        .to.emit(shareModule, 'RedemptionPendingSettled');
 
       const share = await shareModule.pendingShares(userAddress);
       expect(share).to.be.eq(0);
@@ -300,7 +310,7 @@ describe('Share module', function () {
         const purchaseAsset = actualAsset;
         await expect(shareModule.purchase(purchaseAsset))
           .to.emit(shareModule, 'Purchased')
-          .withArgs(user1.address, purchaseAsset, pendingShare);
+          .withArgs(user1.address, purchaseAsset, pendingShare, bonus);
       });
 
       it('should partially receive bonus when purchasing over amount', async function () {
@@ -310,7 +320,8 @@ describe('Share module', function () {
           .withArgs(
             user1.address,
             purchaseAsset,
-            pendingShare.add(actualShare)
+            pendingShare.add(actualShare),
+            bonus
           );
       });
     });
@@ -333,7 +344,6 @@ describe('Share module', function () {
   describe('Claim pending redemption', function () {
     const pendingShare = ethers.utils.parseEther('20');
     const pendingAsset = pendingShare;
-    const penaltyBase = 10000;
     const acceptPending = true;
 
     beforeEach(async function () {
@@ -374,7 +384,7 @@ describe('Share module', function () {
       const actualAsset = actualShare;
       await shareToken.transfer(user2.address, redeemShare);
       // User 1 redeem
-      await shareModule.redeem(totalAsset.sub(redeemShare), acceptPending);
+      await shareModule.redeem(totalShare.sub(redeemShare), acceptPending);
       await shareModule.setReserve(0);
       await shareModule.setTotalAssetValue(pendingAsset);
       // User 2 redeem

@@ -2,44 +2,56 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
+import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 import {LibFee} from "../libraries/LibFee.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 
-/// @title Performance fee implementation
-abstract contract PerformanceFee {
+/// @title Performance fee module
+abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
 
-    int128 private _feeRate64x64;
     uint256 private constant _FEE_BASE = 1e4;
     int128 private constant FEE_BASE64x64 = 1 << 64;
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 private constant FEE_DENOMINATOR = _FEE_BASE * FEE_PERIOD;
-    int128 public hwm64x64; // should be a float point number
-    int128 public lastGrossSharePrice64x64;
-    uint256 private _feeSum;
-    uint256 private _feeSet;
-    uint256 private _lastOutstandingShare;
-    uint256 private _crystallizationStart;
-    uint256 private _crystallizationPeriod;
-    uint256 private _lastCrystallization;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
     address private constant _FINALIZED_ACCOUNT = address(2);
 
-    function initializePerformanceFee() public virtual {
+    event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
+
+    /// @notice Initial the performance fee crystallization time 
+    /// and high water mark.
+    function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
         _crystallizationStart = block.timestamp;
         _lastCrystallization = block.timestamp;
     }
 
+    /// @notice Get the performance fee rate of the pool.
     function getPerformanceFeeRate() public view returns (int128) {
-        return _feeRate64x64;
+        return _pFeeRate64x64;
     }
 
+    /// @notice Get the crystallization period of the pool.
     function getCrystallizationPeriod() public view returns (uint256) {
         return _crystallizationPeriod;
+    }
+
+    /// @notice Check if it can be crystallized.
+    function isCrystallizable() public view virtual returns (bool) {
+        uint256 nowPeriod = _timeToPeriod(block.timestamp);
+        uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
+        return nowPeriod > lastPeriod;
+    }
+
+    /// @notice Returns the earliest time that can be crystallized next
+    /// even if more than one period has passed.
+    function getNextCrystallizationTime() public view returns (uint256) {
+        uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
+        return _periodToTime(lastPeriod + 1);
     }
 
     /// @notice Set the performance fee rate.
@@ -51,9 +63,9 @@ abstract contract PerformanceFee {
     {
         // TODO: replace err msg: fee rate should be less than 100%
         require(feeRate < _FEE_BASE, "f");
-        _feeRate64x64 = feeRate.divu(_FEE_BASE);
+        _pFeeRate64x64 = feeRate.divu(_FEE_BASE);
 
-        return _feeRate64x64;
+        return _pFeeRate64x64;
     }
 
     /// @notice Set the crystallization period.
@@ -68,29 +80,29 @@ abstract contract PerformanceFee {
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
         // TODO: replace err msg: Not yet
-        require(_canCrystallize(), "N");
+        require(isCrystallizable(), "N");
         _updatePerformanceFee();
-        IShareToken shareToken = __getShareToken();
-        address manager = __getManager();
+        address manager = getManager();
         uint256 finalizedShare = shareToken.balanceOf(_FINALIZED_ACCOUNT);
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
         shareToken.move(_FINALIZED_ACCOUNT, manager, finalizedShare);
         _updateGrossSharePrice();
-        uint256 result = _lastOutstandingShare;
+        uint256 result = _lastOutstandingShare + finalizedShare;
         _lastOutstandingShare = 0;
-        _feeSum = 0;
-        _feeSet = 0;
+        _pFeeSum = 0;
+        _pFeeSet = 0;
         _lastCrystallization = block.timestamp;
         hwm64x64 = lastGrossSharePrice64x64;
+        emit PerformanceFeeClaimed(manager, result);
+
         return result;
     }
 
     /// @notice Update the performance fee base on the performance since last
     /// time. The fee will be minted as outstanding share.
     function _updatePerformanceFee() internal virtual {
-        IShareToken shareToken = __getShareToken();
         // Get accumulated wealth
-        uint256 grossAssetValue = __getGrossAssetValue();
+        uint256 grossAssetValue = getTotalAssetValue();
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
             return;
@@ -100,10 +112,10 @@ abstract contract PerformanceFee {
             ._max64x64(hwm64x64, grossSharePrice64x64)
             .sub(LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64))
             .muli(int256(totalShare));
-        int256 fee = _feeRate64x64.muli(wealth);
-        _feeSum = uint256(LibFee._max(0, int256(_feeSum) + fee));
-        uint256 netAssetValue = grossAssetValue - _feeSum - _feeSet;
-        uint256 outstandingShare = (totalShare * _feeSum) / netAssetValue;
+        int256 fee = _pFeeRate64x64.muli(wealth);
+        _pFeeSum = uint256(LibFee._max(0, int256(_pFeeSum) + fee));
+        uint256 netAssetValue = grossAssetValue - _pFeeSum - _pFeeSet;
+        uint256 outstandingShare = (totalShare * _pFeeSum) / netAssetValue;
         if (outstandingShare > _lastOutstandingShare) {
             shareToken.mint(
                 _OUTSTANDING_ACCOUNT,
@@ -122,8 +134,7 @@ abstract contract PerformanceFee {
     /// @notice Update the gross share price as the basis for estimating the
     /// future performance.
     function _updateGrossSharePrice() internal virtual {
-        IShareToken shareToken = __getShareToken();
-        uint256 grossAssetValue = __getGrossAssetValue();
+        uint256 grossAssetValue = getTotalAssetValue();
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
             lastGrossSharePrice64x64 = FEE_BASE64x64;
@@ -136,36 +147,32 @@ abstract contract PerformanceFee {
     /// crystallization.
     /// @param amount The share amount being redeemed.
     function _redemptionPayout(uint256 amount) internal virtual {
-        IShareToken shareToken = __getShareToken();
         uint256 totalShare = shareToken.netTotalShare() + amount;
         if (totalShare != 0) {
             uint256 payout = (_lastOutstandingShare * amount) / totalShare;
-            uint256 fee = (_feeSum * amount) / totalShare;
+            uint256 fee = (_pFeeSum * amount) / totalShare;
             shareToken.move(_OUTSTANDING_ACCOUNT, _FINALIZED_ACCOUNT, payout);
             _lastOutstandingShare -= payout;
-            _feeSum -= fee;
-            _feeSet += fee;
+            _pFeeSum -= fee;
+            _pFeeSet += fee;
         }
     }
 
-    function _canCrystallize() internal virtual returns (bool) {
-        uint256 nowPeriod = (block.timestamp - _crystallizationStart) /
-            _crystallizationPeriod;
-        uint256 lastPeriod = (_lastCrystallization - _crystallizationStart) /
-            _crystallizationPeriod;
-        if (nowPeriod > lastPeriod) {
-            return true;
-        } else {
-            return false;
-        }
+    /// @notice Convert the time to the number of crystallization periods.
+    function _timeToPeriod(uint256 timestamp) internal view returns (uint256) {
+        // TODO: replace err msg: time before start
+        require(timestamp >= _crystallizationStart, "t");
+        return (timestamp - _crystallizationStart) / _crystallizationPeriod;
     }
 
-    /// @notice Get the share token of the pool.
-    function __getShareToken() internal view virtual returns (IShareToken);
-
-    /// @notice Get the gross asset value of the pool.
-    function __getGrossAssetValue() internal view virtual returns (uint256);
+    /// @notice Convert the number of crystallization periods to time.
+    function _periodToTime(uint256 period) internal view returns (uint256) {
+        return _crystallizationStart + period * _crystallizationPeriod;
+    }
 
     /// @notice Get the pool manager.
-    function __getManager() internal virtual returns (address);
+    function getManager() public virtual returns (address);
+
+    /// @notice Get the total value of all the asset of the pool.
+    function getTotalAssetValue() public view virtual returns (uint256);
 }

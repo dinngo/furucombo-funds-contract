@@ -6,7 +6,7 @@ import {LibCache} from "./lib/LibCache.sol";
 import {LibStack} from "./lib/LibStack.sol";
 
 /// @notice A cache structure composed by a bytes32 array
-contract Storage {
+abstract contract Storage {
     using LibCache for mapping(bytes32 => bytes32);
     using LibStack for bytes32[];
 

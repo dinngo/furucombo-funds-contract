@@ -34,6 +34,13 @@ interface IComptroller is IBeacon {
 
     function pendingExpiration() external view returns (uint256);
 
+    function execAssetValueToleranceRate() external view returns (uint256);
+
+    function validateDealingAsset(uint256 level, address asset)
+        external
+        view
+        returns (bool);
+
     function isValidDealingAsset(uint256 level, address asset)
         external
         view

@@ -92,7 +92,8 @@ export async function deployComptrollerAndPoolProxyFactory(
   execFeePercentage: any,
   liquidatorAddress: string,
   pendingExpiration: number,
-  mortgageVaultAddress: string
+  mortgageVaultAddress: string,
+  totalAssetValueTolerance: number
 ): Promise<any> {
   const implementation = await (
     await ethers.getContractFactory('Implementation')
@@ -109,7 +110,8 @@ export async function deployComptrollerAndPoolProxyFactory(
     execFeePercentage,
     liquidatorAddress,
     pendingExpiration,
-    mortgageVaultAddress
+    mortgageVaultAddress,
+    totalAssetValueTolerance
   );
   await comptroller.deployed();
 

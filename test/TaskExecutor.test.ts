@@ -102,7 +102,8 @@ describe('Task Executor', function () {
         0,
         constants.AddressZero,
         constants.Zero,
-        mortgageVault.address
+        mortgageVault.address,
+        0
       );
       await comptroller.deployed();
 
