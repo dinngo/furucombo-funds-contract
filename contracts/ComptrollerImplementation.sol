@@ -7,7 +7,7 @@ import {Whitelist} from "./libraries/Whitelist.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
-contract Comptroller is Ownable {
+contract ComptrollerImplementation is Ownable {
     using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
     using Whitelist for Whitelist.CreatorWList;

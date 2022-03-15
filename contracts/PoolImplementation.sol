@@ -19,7 +19,7 @@ import {SetupAction} from "./actions/SetupAction.sol";
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
-contract Implementation is
+contract PoolImplementation is
     Ownable,
     AssetModule,
     ShareModule,

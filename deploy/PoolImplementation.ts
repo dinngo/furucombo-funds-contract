@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  await deploy('Implementation', {
+  await deploy('PoolImplementation', {
     from: deployer,
     args: [DS_PROXY_REGISTRY],
     log: true,
@@ -16,4 +16,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func;
 
-func.tags = ['Implementation'];
+func.tags = ['PoolImplementation'];

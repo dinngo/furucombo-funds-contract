@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const implementation = await deployments.get('Implementation');
+  const poolImplementation = await deployments.get('PoolImplementation');
   const assetRouter = await deployments.get('AssetRouter');
   const execFeeCollector = deployer;
   const execFeePercentage = EXEC_FEE_PERCENTAGE;
@@ -32,7 +32,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const mortgageVault = await deployments.get('MortgageVault');
   const valueTolerance = VALUE_TOLERANCE;
 
-  const result = await deploy('Comptroller', {
+  const result = await deploy('ComptrollerImplementation', {
     from: deployer,
     log: true,
   });
@@ -126,7 +126,7 @@ export default func;
 
 func.tags = ['Comptroller'];
 func.dependencies = [
-  'Implementation',
+  'PoolImplementation',
   'AssetRouter',
   'MortgageVault',
   'HAaveProtocolV2',

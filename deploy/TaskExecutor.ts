@@ -7,10 +7,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   const owner = deployer;
-  const comptroller = await deployments.get('Comptroller');
+  const comptrollerImplementation = await deployments.get(
+    'ComptrollerImplementation'
+  );
   await deploy('TaskExecutor', {
     from: deployer,
-    args: [owner, comptroller.address],
+    args: [owner, comptrollerImplementation.address],
     log: true,
   });
 };
@@ -18,4 +20,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['TaskExecutor'];
-func.dependencies = ['Comptroller'];
+func.dependencies = ['ComptrollerImplementation'];

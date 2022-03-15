@@ -2,10 +2,10 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
-  Comptroller,
+  ComptrollerImplementation,
   ComptrollerProxy,
   UpgradeableBeacon,
-  Implementation,
+  PoolImplementation,
   AssetRouter,
   MortgageVault,
   TaskExecutor,
@@ -18,11 +18,11 @@ import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
 describe('Comptroller', function () {
-  let comptrollerImpl: Comptroller;
+  let comptrollerImpl: ComptrollerImplementation;
   let comptrollerProxy: ComptrollerProxy;
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerImplementation;
   let beacon: UpgradeableBeacon;
-  let implementation: Implementation;
+  let implementation: PoolImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
@@ -57,7 +57,7 @@ describe('Comptroller', function () {
       await tokenD.deployed();
 
       implementation = await (
-        await ethers.getContractFactory('Implementation')
+        await ethers.getContractFactory('PoolImplementation')
       ).deploy(DS_PROXY_REGISTRY);
       await implementation.deployed();
 
@@ -80,7 +80,7 @@ describe('Comptroller', function () {
       await mortgageVault.deployed();
 
       comptrollerImpl = await (
-        await ethers.getContractFactory('Comptroller')
+        await ethers.getContractFactory('ComptrollerImplementation')
       ).deploy();
       await comptrollerImpl.deployed();
 
@@ -104,7 +104,7 @@ describe('Comptroller', function () {
       await comptrollerProxy.deployed();
 
       comptroller = await (
-        await ethers.getContractFactory('Comptroller')
+        await ethers.getContractFactory('ComptrollerImplementation')
       ).attach(comptrollerProxy.address);
 
       const beaconAddress = await comptroller.callStatic.beacon();
@@ -235,7 +235,7 @@ describe('Comptroller', function () {
 
       // deploy new implementation
       const newImpl = await (
-        await ethers.getContractFactory('Implementation')
+        await ethers.getContractFactory('PoolImplementation')
       ).deploy(DS_PROXY_REGISTRY);
       await newImpl.deployed();
 
