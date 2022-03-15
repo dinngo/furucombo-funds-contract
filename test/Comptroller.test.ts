@@ -22,7 +22,7 @@ describe('Comptroller', function () {
   let comptrollerProxy: ComptrollerProxy;
   let comptroller: ComptrollerImplementation;
   let beacon: UpgradeableBeacon;
-  let implementation: PoolImplementation;
+  let poolImplementation: PoolImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
@@ -56,10 +56,10 @@ describe('Comptroller', function () {
         .deploy();
       await tokenD.deployed();
 
-      implementation = await (
+      poolImplementation = await (
         await ethers.getContractFactory('PoolImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await implementation.deployed();
+      await poolImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -87,7 +87,7 @@ describe('Comptroller', function () {
       const compData = comptrollerImplementation.interface.encodeFunctionData(
         'initialize',
         [
-          implementation.address,
+          poolImplementation.address,
           assetRouter.address,
           collector.address,
           0,
@@ -137,7 +137,7 @@ describe('Comptroller', function () {
       // check env before execution
       expect(await comptroller.fHalt()).to.equal(false);
       expect(await comptroller.implementation()).to.equal(
-        implementation.address
+        poolImplementation.address
       );
 
       // halt
@@ -160,7 +160,7 @@ describe('Comptroller', function () {
       await expect(comptroller.unHalt()).to.emit(comptroller, 'UnHalted');
       expect(await comptroller.fHalt()).to.equal(false);
       expect(await comptroller.implementation()).to.equal(
-        implementation.address
+        poolImplementation.address
       );
     });
 
@@ -208,7 +208,7 @@ describe('Comptroller', function () {
       // verify unbanned proxy
       expect(await comptroller.bannedProxy(user.address)).to.equal(false);
       expect(await comptroller.connect(user).implementation()).to.be.equal(
-        implementation.address
+        poolImplementation.address
       );
     });
 
@@ -230,7 +230,7 @@ describe('Comptroller', function () {
     it('set implementation', async function () {
       // check env before execution
       expect(await comptroller.connect(user).implementation()).to.be.equal(
-        implementation.address
+        poolImplementation.address
       );
 
       // deploy new implementation
@@ -252,7 +252,7 @@ describe('Comptroller', function () {
 
     it('should revert: set implementation by non-owner', async function () {
       await expect(
-        beacon.connect(user).upgradeTo(implementation.address)
+        beacon.connect(user).upgradeTo(poolImplementation.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
