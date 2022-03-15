@@ -26,11 +26,11 @@ contract ComptrollerImplementation is Ownable {
     uint256 public execFeePercentage;
     address public pendingLiquidator;
     uint256 public pendingExpiration;
-    IAssetRouter public assetRouter;
-    IMortgageVault public mortgageVault;
     uint256 public pendingRedemptionPenalty;
     // base = 1e4
     uint256 public execAssetValueToleranceRate;
+    IAssetRouter public assetRouter;
+    IMortgageVault public mortgageVault;
     UpgradeableBeacon public beacon;
 
     // Map
@@ -39,11 +39,11 @@ contract ComptrollerImplementation is Ownable {
     mapping(uint256 => uint256) public stakedTier;
 
     // ACL
-    Whitelist.CreatorWList private creatorACL;
-    Whitelist.AssetWList private assetACL;
-    Whitelist.ActionWList private delegateCallACL;
-    Whitelist.ActionWList private contractCallACL;
-    Whitelist.ActionWList private handlerCallACL;
+    Whitelist.CreatorWList private _creatorACL;
+    Whitelist.AssetWList private _assetACL;
+    Whitelist.ActionWList private _delegateCallACL;
+    Whitelist.ActionWList private _contractCallACL;
+    Whitelist.ActionWList private _handlerCallACL;
 
     // Event
     event Halted();
@@ -286,20 +286,20 @@ contract ComptrollerImplementation is Ownable {
     // Creator whitelist
     function permitCreators(address[] calldata creators) external onlyOwner {
         for (uint256 i = 0; i < creators.length; i++) {
-            creatorACL.permit(creators[i]);
+            _creatorACL.permit(creators[i]);
             emit PermitCreator(creators[i]);
         }
     }
 
     function forbidCreators(address[] calldata creators) external onlyOwner {
         for (uint256 i = 0; i < creators.length; i++) {
-            creatorACL.forbid(creators[i]);
+            _creatorACL.forbid(creators[i]);
             emit ForbidCreator(creators[i]);
         }
     }
 
     function isValidCreator(address creator) external view returns (bool) {
-        return creatorACL.canCall(creator);
+        return _creatorACL.canCall(creator);
     }
 
     // Asset whitelist
@@ -308,7 +308,7 @@ contract ComptrollerImplementation is Ownable {
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            assetACL.permit(level, assets[i]);
+            _assetACL.permit(level, assets[i]);
             emit PermitAsset(level, assets[i]);
         }
     }
@@ -318,7 +318,7 @@ contract ComptrollerImplementation is Ownable {
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            assetACL.forbid(level, assets[i]);
+            _assetACL.forbid(level, assets[i]);
             emit ForbidAsset(level, assets[i]);
         }
     }
@@ -328,7 +328,7 @@ contract ComptrollerImplementation is Ownable {
         view
         returns (bool)
     {
-        return assetACL.canCall(level, asset);
+        return _assetACL.canCall(level, asset);
     }
 
     function isValidDealingAssets(uint256 level, address[] calldata assets)
@@ -351,7 +351,7 @@ contract ComptrollerImplementation is Ownable {
     {
         // check if input check flag is true
         if (fInitialAssetCheck) {
-            return assetACL.canCall(level, asset);
+            return _assetACL.canCall(level, asset);
         }
         return true;
     }
@@ -375,7 +375,7 @@ contract ComptrollerImplementation is Ownable {
         address to,
         bytes4 sig
     ) external view returns (bool) {
-        return delegateCallACL.canCall(level, to, sig);
+        return _delegateCallACL.canCall(level, to, sig);
     }
 
     function permitDelegateCalls(
@@ -385,7 +385,7 @@ contract ComptrollerImplementation is Ownable {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            delegateCallACL.permit(level, tos[i], sigs[i]);
+            _delegateCallACL.permit(level, tos[i], sigs[i]);
             emit PermitDelegateCall(level, tos[i], sigs[i]);
         }
     }
@@ -397,7 +397,7 @@ contract ComptrollerImplementation is Ownable {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            delegateCallACL.forbid(level, tos[i], sigs[i]);
+            _delegateCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidDelegateCall(level, tos[i], sigs[i]);
         }
     }
@@ -410,7 +410,7 @@ contract ComptrollerImplementation is Ownable {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            contractCallACL.permit(level, tos[i], sigs[i]);
+            _contractCallACL.permit(level, tos[i], sigs[i]);
             emit PermitContractCall(level, tos[i], sigs[i]);
         }
     }
@@ -422,7 +422,7 @@ contract ComptrollerImplementation is Ownable {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            contractCallACL.forbid(level, tos[i], sigs[i]);
+            _contractCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidContractCall(level, tos[i], sigs[i]);
         }
     }
@@ -432,7 +432,7 @@ contract ComptrollerImplementation is Ownable {
         address to,
         bytes4 sig
     ) external view returns (bool) {
-        return contractCallACL.canCall(level, to, sig);
+        return _contractCallACL.canCall(level, to, sig);
     }
 
     // Handler whitelist function
@@ -443,7 +443,7 @@ contract ComptrollerImplementation is Ownable {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            handlerCallACL.permit(level, tos[i], sigs[i]);
+            _handlerCallACL.permit(level, tos[i], sigs[i]);
             emit PermitHandler(level, tos[i], sigs[i]);
         }
     }
@@ -455,7 +455,7 @@ contract ComptrollerImplementation is Ownable {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            handlerCallACL.forbid(level, tos[i], sigs[i]);
+            _handlerCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidHandler(level, tos[i], sigs[i]);
         }
     }
@@ -465,6 +465,6 @@ contract ComptrollerImplementation is Ownable {
         address to,
         bytes4 sig
     ) external view returns (bool) {
-        return handlerCallACL.canCall(level, to, sig);
+        return _handlerCallACL.canCall(level, to, sig);
     }
 }
