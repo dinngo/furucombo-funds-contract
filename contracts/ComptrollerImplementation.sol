@@ -36,7 +36,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
 
     // Map
     mapping(address => DenominationConfig) public denomination;
-    mapping(address => bool) public bannedProxy;
+    mapping(address => bool) public bannedPoolProxy;
     mapping(uint256 => uint256) public stakedTier;
 
     // ACL
@@ -55,8 +55,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event SetPendingExpiration(uint256 expiration);
     event SetExecAssetValuetoleranceRate(uint256 tolerance);
     event SetInitialAssetCheck(bool indexed check);
-    event ProxyBanned(address indexed proxy);
-    event ProxyUnbanned(address indexed proxy);
+    event PoolProxyBanned(address indexed poolProxy);
+    event PoolProxyUnbanned(address indexed poolProxy);
     event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
     event SetDenominationDust(uint256 amount);
@@ -96,8 +96,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         _;
     }
 
-    modifier onlyUnbannedProxy() {
-        require(!bannedProxy[msg.sender], "Comptroller: Banned");
+    modifier onlyUnbannedPoolProxy() {
+        require(!bannedPoolProxy[msg.sender], "Comptroller: Banned");
         _;
     }
 
@@ -136,7 +136,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         public
         view
         onlyUnHalted
-        onlyUnbannedProxy
+        onlyUnbannedPoolProxy
         returns (address)
     {
         return beacon.implementation();
@@ -256,15 +256,15 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return denomination[_denomination].dust;
     }
 
-    // Ban Proxy
-    function banProxy(address proxy) external onlyOwner {
-        bannedProxy[proxy] = true;
-        emit ProxyBanned(proxy);
+    // Ban Pool Proxy
+    function banPoolProxy(address poolProxy) external onlyOwner {
+        bannedPoolProxy[poolProxy] = true;
+        emit PoolProxyBanned(poolProxy);
     }
 
-    function unBanProxy(address proxy) external onlyOwner {
-        bannedProxy[proxy] = false;
-        emit ProxyUnbanned(proxy);
+    function unbanPoolProxy(address poolProxy) external onlyOwner {
+        bannedPoolProxy[poolProxy] = false;
+        emit PoolProxyUnbanned(poolProxy);
     }
 
     // Stake tier amount

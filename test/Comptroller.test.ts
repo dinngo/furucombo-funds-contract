@@ -186,15 +186,15 @@ describe('Comptroller', function () {
   describe('Ban proxy', function () {
     it('ban ', async function () {
       // check env before execution
-      expect(await comptroller.bannedProxy(user.address)).to.equal(false);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(false);
 
       // ban proxy
-      await expect(comptroller.banProxy(user.address))
-        .to.emit(comptroller, 'ProxyBanned')
+      await expect(comptroller.banPoolProxy(user.address))
+        .to.emit(comptroller, 'PoolProxyBanned')
         .withArgs(user.address);
 
       // verify banned proxy
-      expect(await comptroller.bannedProxy(user.address)).to.equal(true);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(true);
       await expect(
         comptroller.connect(user).implementation()
       ).to.be.revertedWith('Comptroller: Banned');
@@ -202,16 +202,16 @@ describe('Comptroller', function () {
 
     it('unBan ', async function () {
       // check env before execution
-      await comptroller.banProxy(user.address);
-      expect(await comptroller.bannedProxy(user.address)).to.equal(true);
+      await comptroller.banPoolProxy(user.address);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(true);
 
       // unban proxy
-      await expect(comptroller.unBanProxy(user.address))
-        .to.emit(comptroller, 'ProxyUnbanned')
+      await expect(comptroller.unbanPoolProxy(user.address))
+        .to.emit(comptroller, 'PoolProxyUnbanned')
         .withArgs(user.address);
 
       // verify unbanned proxy
-      expect(await comptroller.bannedProxy(user.address)).to.equal(false);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(false);
       expect(await comptroller.connect(user).implementation()).to.be.equal(
         poolImplementation.address
       );
@@ -219,13 +219,13 @@ describe('Comptroller', function () {
 
     it('should revert: ban by non-owner', async function () {
       await expect(
-        comptroller.connect(user).banProxy(user.address)
+        comptroller.connect(user).banPoolProxy(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert: unBan by non-owner', async function () {
       await expect(
-        comptroller.connect(user).unBanProxy(user.address)
+        comptroller.connect(user).unbanPoolProxy(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
