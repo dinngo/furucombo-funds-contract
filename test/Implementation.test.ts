@@ -160,7 +160,6 @@ describe('Implementation', function () {
         [denominationDust]
       );
       await comptroller.permitAssets(level, [denomination.address]);
-      await comptroller.setExecAction(action.address);
 
       shareToken = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -623,16 +622,28 @@ describe('Implementation', function () {
 
   describe('Execute module', function () {
     const valueBefore = ethers.utils.parseEther('1');
-
+    let actionData, executionData: any;
     beforeEach(async function () {
       await implementation.finalize();
       await implementation.setLastTotalAssetValue(valueBefore);
+      actionData = getCallData(action, 'fooAddress', []);
+      executionData = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [action.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      await comptroller.permitDelegateCalls(
+        await implementation.level(),
+        [action.address],
+        [WL_ANY_SIG]
+      );
     });
 
     it('should success', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
       await implementation.setTotalAssetValueMock(valueCurrent);
-      const executionData = action.interface.encodeFunctionData('fooAddress');
       await implementation.execute(executionData);
     });
 
@@ -641,9 +652,8 @@ describe('Implementation', function () {
         .mul(valueTolerance - 1)
         .div(TOLERANCE_BASE);
       await implementation.setTotalAssetValueMock(valueCurrent);
-      const executionData = action.interface.encodeFunctionData('fooAddress');
       await expect(implementation.execute(executionData)).to.be.revertedWith(
-        'I'
+        ''
       );
     });
   });
@@ -867,7 +877,7 @@ describe('Implementation', function () {
     });
   });
 
-  describe('execute', function () {
+  describe('Settle pending', function () {
     beforeEach(async function () {
       await transferAssetToVault();
       const currentReserve = await implementation.getReserve();
@@ -918,7 +928,7 @@ describe('Implementation', function () {
         [fooAction.address],
         [WL_ANY_SIG]
       );
-      expect(await implementation.execute(data))
+      await expect(await implementation.execute(data))
         .to.emit(implementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
       expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
@@ -931,47 +941,10 @@ describe('Implementation', function () {
         .connect(owner)
         .approve(implementation.address, purchaseAmount);
 
-      expect(await implementation.purchase(purchaseAmount))
+      await expect(implementation.purchase(purchaseAmount))
         .to.emit(implementation, 'Redeemed')
         .to.emit(implementation, 'Purchased');
       expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
-    });
-
-    it('settle pending redemption after execute when Liquidating', async function () {
-      await increaseNextBlockTimeBy(pendingExpiration);
-      await expect(implementation.liquidate())
-        .to.emit(implementation, 'StateTransited')
-        .withArgs(4)
-        .to.emit(implementation, 'OwnershipTransferred')
-        .withArgs(owner.address, liquidator.address);
-      expect(await implementation.pendingStartTime()).to.be.eq(0);
-
-      // Prepare task data and execute
-      const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint1', [
-        foo.address,
-        expectNValue,
-      ]);
-
-      const data = getCallData(taskExecutor, 'batchExec', [
-        [],
-        [],
-        [fooAction.address],
-        [constants.HashZero],
-        [actionData],
-      ]);
-
-      // Permit delegate calls
-      await comptroller.permitDelegateCalls(
-        await implementation.level(),
-        [fooAction.address],
-        [WL_ANY_SIG]
-      );
-
-      expect(await implementation.connect(liquidator).execute(data))
-        .to.emit(implementation, 'Redeemed')
-        .to.emit(denomination, 'Transfer');
-      expect(await implementation.state()).to.be.eq(POOL_STATE.LIQUIDATING);
     });
   });
 });
