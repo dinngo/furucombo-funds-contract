@@ -14,6 +14,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   if (result.newlyDeployed) {
+    console.log('executing "Chainlink" newly deployed setup');
+
     const chainlink = await ethers.getContractAt('Chainlink', result.address);
 
     // Add asset and aggregator pairs

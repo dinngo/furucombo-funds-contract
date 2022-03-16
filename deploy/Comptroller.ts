@@ -48,6 +48,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   if (result.newlyDeployed) {
+    console.log('executing "Comptroller" newly deployed setup');
+
     const comptroller = await ethers.getContractAt(
       'Comptroller',
       result.address

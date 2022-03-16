@@ -21,6 +21,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   if (result.newlyDeployed) {
+    console.log('executing "AssetRegistry" newly deployed setup');
+
     const assetRegistry = await ethers.getContractAt(
       'AssetRegistry',
       result.address

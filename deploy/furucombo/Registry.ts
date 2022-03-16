@@ -14,6 +14,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   if (result.newlyDeployed) {
+    console.log('executing "Registry" newly deployed setup');
+
     const registry = await ethers.getContractAt('Registry', result.address);
 
     // Register handler
