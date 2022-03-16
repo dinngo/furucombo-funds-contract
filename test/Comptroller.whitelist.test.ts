@@ -34,7 +34,6 @@ describe('ComptrollerImplementation_Whitelist', function () {
   let owner: Wallet;
   let user: Wallet;
   let collector: Wallet;
-  let admin: Wallet;
 
   let oracle: Chainlink;
   let registry: AssetRegistry;
@@ -43,7 +42,7 @@ describe('ComptrollerImplementation_Whitelist', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(); // ensure you start from a fresh deployments
-      [owner, user, collector, admin] = await (ethers as any).getSigners();
+      [owner, user, collector] = await (ethers as any).getSigners();
 
       tokenM = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -96,7 +95,7 @@ describe('ComptrollerImplementation_Whitelist', function () {
 
       comptrollerProxy = await (
         await ethers.getContractFactory('ComptrollerProxy')
-      ).deploy(comptrollerImplementation.address, admin.address, compData);
+      ).deploy(comptrollerImplementation.address, compData);
       await comptrollerProxy.deployed();
 
       comptroller = await (

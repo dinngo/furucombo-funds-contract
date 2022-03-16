@@ -71,7 +71,6 @@ describe('PoolImplementation', function () {
   let owner: Wallet;
   let user: Wallet;
   let liquidator: Wallet;
-  let admin: Wallet;
 
   let denomination: ERC20;
   let denominationProvider: Signer;
@@ -91,7 +90,7 @@ describe('PoolImplementation', function () {
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture();
-      [owner, user, liquidator, admin] = await (ethers as any).getSigners();
+      [owner, user, liquidator] = await (ethers as any).getSigners();
 
       denomination = await ethers.getContractAt('ERC20', denominationAddress);
       denominationProvider = await tokenProviderQuick(denomination.address);
