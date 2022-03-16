@@ -32,15 +32,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const mortgageVault = await deployments.get('MortgageVault');
   const valueTolerance = VALUE_TOLERANCE;
 
-  const result = await deploy('ComptrollerImplementation', {
+  const resultImplementation = await deploy('ComptrollerImplementation', {
     from: deployer,
     log: true,
   });
-  /*
-  await deploy('Comptroller', {
-    from: deployer,
-    args: [
-      implementation.address,
+
+  const comptrollerImplementation = await ethers.getContractAt(
+    'ComptrollerImplementation',
+    resultImplementation.address
+  );
+
+  const compData = comptrollerImplementation.interface.encodeFunctionData(
+    'initialize',
+    [
+      poolImplementation.address,
       assetRouter.address,
       execFeeCollector,
       execFeePercentage,
@@ -48,7 +53,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       pendingExpiration,
       mortgageVault.address,
       valueTolerance,
-    ],
+    ]
+  );
+
+  const result = await deploy('ComptrollerProxy', {
+    from: deployer,
+    args: [comptrollerImplementation.address, compData],
     log: true,
   });
 
@@ -56,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log('executing "Comptroller" newly deployed setup');
 
     const comptroller = await ethers.getContractAt(
-      'Comptroller',
+      'ComptrollerImplementation',
       result.address
     );
 
@@ -119,7 +129,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
     );
   }
-  */
 };
 
 export default func;
