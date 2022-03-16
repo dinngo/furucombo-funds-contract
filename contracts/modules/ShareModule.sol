@@ -164,6 +164,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
                 totalPendingBonus = 0;
                 shareToken.burn(address(this), unusedBonus);
             }
+            emit RedemptionPendingSettled();
         }
     }
 
