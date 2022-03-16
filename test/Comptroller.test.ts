@@ -4,6 +4,7 @@ import { ethers, deployments } from 'hardhat';
 import {
   ComptrollerImplementation,
   ComptrollerProxy,
+  ComptrollerProxyAdmin,
   UpgradeableBeacon,
   PoolImplementation,
   AssetRouter,
@@ -20,6 +21,7 @@ import { getEventArgs } from './utils/utils';
 describe('Comptroller', function () {
   let comptrollerImplementation: ComptrollerImplementation;
   let comptrollerProxy: ComptrollerProxy;
+  let comptrollerProxyAdmin: ComptrollerProxyAdmin;
   let comptroller: ComptrollerImplementation;
   let beacon: UpgradeableBeacon;
   let poolImplementation: PoolImplementation;
@@ -99,6 +101,12 @@ describe('Comptroller', function () {
         await ethers.getContractFactory('ComptrollerProxy')
       ).deploy(comptrollerImplementation.address, compData);
       await comptrollerProxy.deployed();
+      const receiptAdmin = comptrollerProxy.deployTransaction;
+      const args = await getEventArgs(receiptAdmin, 'AdminChanged');
+
+      comptrollerProxyAdmin = await (
+        await ethers.getContractFactory('ComptrollerProxyAdmin')
+      ).attach(args.newAdmin);
 
       comptroller = await (
         await ethers.getContractFactory('ComptrollerImplementation')
@@ -792,6 +800,37 @@ describe('Comptroller', function () {
       await expect(
         comptroller.setExecAction(constants.AddressZero)
       ).to.be.revertedWith('Comptroller: Zero address');
+    });
+  });
+
+  describe('Comptroller Proxy', function () {
+    describe('Upgrade implementation', function () {
+      let newImplementation: ComptrollerImplementation;
+
+      beforeEach(async function () {
+        newImplementation = await (
+          await ethers.getContractFactory('ComptrollerImplementation')
+        ).deploy();
+        await newImplementation.deployed();
+      });
+
+      it('normal', async function () {
+        expect(
+          await comptrollerProxyAdmin.callStatic.getProxyImplementation()
+        ).to.be.eq(comptrollerImplementation.address);
+        await expect(comptrollerProxyAdmin.upgrade(newImplementation.address))
+          .to.emit(comptrollerProxy, 'Upgraded')
+          .withArgs(newImplementation.address);
+        expect(
+          await comptrollerProxyAdmin.callStatic.getProxyImplementation()
+        ).to.be.eq(newImplementation.address);
+      });
+
+      it('should revert: send by non owner', async function () {
+        await expect(
+          comptrollerProxyAdmin.connect(user).upgrade(newImplementation.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
     });
   });
 });
