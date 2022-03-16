@@ -50,8 +50,10 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         returns (uint256 balance)
     {
         uint256 userShare = shareToken.balanceOf(msg.sender);
-        // TODO: replace err msg: require too much share
-        require(share <= userShare);
+        Errors._require(
+            share <= userShare,
+            Errors.Code.SHARE_MODULE_INSUFFICIENT_SHARES
+        );
 
         if (state == State.RedemptionPending) {
             balance = _redeemPending(msg.sender, share, acceptPending);

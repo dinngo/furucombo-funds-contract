@@ -655,7 +655,9 @@ describe('PoolImplementation', function () {
       await poolImplementation.setTotalAssetValueMock(valueCurrent);
       await expect(
         poolImplementation.execute(executionData)
-      ).to.be.revertedWith('');
+      ).to.be.revertedWith(
+        'revertCode(77)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+      );
     });
   });
 
@@ -776,8 +778,7 @@ describe('PoolImplementation', function () {
         const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
         await expect(
           poolImplementation.setCrystallizationPeriod(shortPeriod)
-          // TODO: replace err msg: Crystallization period too short
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(70)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
       });
     });
 

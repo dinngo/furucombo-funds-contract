@@ -107,7 +107,7 @@ contract Chainlink is IAssetOracle, Ownable {
 
         Errors._require(price > 0, Errors.Code.CHAINLINK_INVALID_PRICE);
         Errors._require(
-            updatedAt >= block.timestamp - STALE_PERIOD,
+            updatedAt >= block.timestamp - stalePeriod,
             Errors.Code.CHAINLINK_STALE_PRICE
         );
 

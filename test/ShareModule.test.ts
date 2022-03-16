@@ -169,6 +169,13 @@ describe('Share module', function () {
         .withArgs(user1.address, totalAsset, totalShare);
     });
 
+    it('should fail with insufficient share', async function () {
+      await shareModule.setState(POOL_STATE.EXECUTING);
+      await expect(
+        shareModule.redeem(totalShare.mul(2), acceptPending)
+      ).to.be.revertedWith('revertCode(78)'); // SHARE_MODULE_INSUFFICIENT_SHARES
+    });
+
     it('should succeed with insufficient reserve with user permission', async function () {
       const acceptPending = true;
       const pendingShare = totalShare.sub(partialShare);

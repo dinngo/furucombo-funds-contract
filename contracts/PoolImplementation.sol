@@ -84,15 +84,11 @@ contract PoolImplementation is
         _finalize();
 
         // Add denomination to list and never remove
-        // TODO: replace err msg: assetList is not empty
-        // require(getAssetList().length == 0, "a");
         Errors._require(
             getAssetList().length == 0,
             Errors.Code.IMPLEMENTATION_ASSET_LIST_NOT_EMPTY
         );
 
-        // TODO: replace err msg: Invalid denomination
-        // require(comptroller.isValidDenomination(address(denomination)), "I");
         Errors._require(
             comptroller.isValidDenomination(address(denomination)),
             Errors.Code.IMPLEMENTATION_INVALID_DENOMINATION
@@ -111,30 +107,25 @@ contract PoolImplementation is
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
-        require(isPendingResolvable(true));
+        Errors._require(
+            isPendingResolvable(true),
+            Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
+        );
         _settlePendingRedemption(true);
         _resume();
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
-        // TODO: replace err msg: Pending does not start
-        // require(pendingStartTime != 0, "P");
         Errors._require(
             pendingStartTime != 0,
             Errors.Code.IMPLEMENTATION_PENDING_NOT_START
         );
-        // TODO: replace err msg: Pending does not expire
         Errors._require(
             block.timestamp >=
                 pendingStartTime + comptroller.pendingExpiration(),
             Errors.Code.IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
-        // require(
-        //     block.timestamp >=
-        //         pendingStartTime + comptroller.pendingExpiration(),
-        //     "P"
-        // );
 
         _liquidate();
 
@@ -254,8 +245,6 @@ contract PoolImplementation is
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
-        // TODO: replace err msg: Invalid asset
-        // require(comptroller.validateDealingAsset(level, asset), "I");
         Errors._require(
             comptroller.isValidDealingAsset(level, asset),
             Errors.Code.IMPLEMENTATION_INVALID_ASSET
@@ -330,8 +319,6 @@ contract PoolImplementation is
         override
         returns (uint256)
     {
-        // TODO: replace err msg: Insufficient reserve
-        // require(_isReserveEnough(), "I");
         Errors._require(
             _isReserveEnough(),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
@@ -354,15 +341,20 @@ contract PoolImplementation is
             resume();
         }
 
-        // TODO: replace err msg: Insufficient reserve
-        require(_isReserveEnough());
+        Errors._require(
+            _isReserveEnough(),
+            Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
+        );
 
         // Check asset value
         uint256 totalAssetValue = getTotalAssetValue();
         uint256 minTotalAssetValue = (prevAssetValue *
             comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
-        // TODO: replace err msg: Insufficient total value for execution
-        require(totalAssetValue >= minTotalAssetValue);
+
+        Errors._require(
+            totalAssetValue >= minTotalAssetValue,
+            Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+        );
 
         return totalAssetValue;
     }
