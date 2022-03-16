@@ -83,9 +83,9 @@ contract Implementation is
 
         // Add denomination to list and never remove
         // TODO: replace err msg: assetList is not empty
-        require(getAssetList().length == 0, "a");
+        require(getAssetList().length == 0);
         // TODO: replace err msg: Invalid denomination
-        require(comptroller.isValidDenomination(address(denomination)), "I");
+        require(comptroller.isValidDenomination(address(denomination)));
         addAsset(address(denomination));
 
         // Set approval for investor to redeem
@@ -99,21 +99,20 @@ contract Implementation is
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
-    function resume() public {
-        _resume();
-
+    function resume() public whenState(State.RedemptionPending) {
+        require(isPendingResolvable(true));
         _settlePendingRedemption(true);
+        _resume();
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
         // TODO: replace err msg: Pending does not start
-        require(pendingStartTime != 0, "P");
+        require(pendingStartTime != 0);
         // TODO: replace err msg: Pending does not expire
         require(
             block.timestamp >=
-                pendingStartTime + comptroller.pendingExpiration(),
-            "P"
+                pendingStartTime + comptroller.pendingExpiration()
         );
 
         _liquidate();
@@ -124,10 +123,18 @@ contract Implementation is
 
     /// @notice Close the pool. The pending redemption will be settled
     /// without penalty.
-    function close() public override onlyOwner {
+    function close()
+        public
+        override
+        onlyOwner
+        whenStates(State.Executing, State.Liquidating)
+    {
+        if (_getResolvePendingShares(false) > 0) {
+            _settlePendingRedemption(false);
+        }
+
         super.close();
 
-        _settlePendingRedemption(false);
         mortgageVault.claim(msg.sender);
     }
 
@@ -236,7 +243,8 @@ contract Implementation is
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
         // TODO: replace err msg: Invalid asset
-        require(comptroller.isValidDealingAsset(level, asset), "I");
+        require(comptroller.isValidDealingAsset(level, asset));
+
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
@@ -319,17 +327,22 @@ contract Implementation is
             addAsset(dealingAssets[i]);
         }
 
-        // TODO: replace err msg: Insufficient reserve
-        require(_isReserveEnough(), "I");
+        if (state == State.RedemptionPending) {
+            resume();
+        }
 
-        // Check asset value
+        // TODO: replace err msg: Insufficient reserve
+        require(_isReserveEnough());
+
+         // Check asset value
         uint256 totalAssetValue = getTotalAssetValue();
         uint256 minTotalAssetValue = (prevAssetValue *
             comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
         // TODO: replace err msg: Insufficient total value for execution
-        require(totalAssetValue >= minTotalAssetValue, "I");
-
+        require(totalAssetValue >= minTotalAssetValue);
+        
         return totalAssetValue;
+        
     }
 
     /// @notice Check funds reserve ratio is enough or not.
@@ -367,6 +380,10 @@ contract Implementation is
     /// @notice Update the gross share price after the purchase.
     function _callAfterPurchase(uint256) internal override {
         _updateGrossSharePrice();
+        if (state == State.RedemptionPending && isPendingResolvable(true)) {
+            _settlePendingRedemption(true);
+            _resume();
+        }
         return;
     }
 

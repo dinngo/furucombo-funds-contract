@@ -9,6 +9,9 @@ import {
   ERC20,
   AssetRouter,
   MortgageVault,
+  PoolFooAction,
+  PoolFoo,
+  TaskExecutor,
   SimpleToken,
   SimpleAction,
 } from '../typechain';
@@ -22,12 +25,19 @@ import {
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
   FEE_BASE,
+  WL_ANY_SIG,
   FEE_BASE64x64,
   TOLERANCE_BASE,
   POOL_STATE,
 } from './utils/constants';
 
-import { simpleEncode, tokenProviderQuick, mwei } from './utils/utils';
+import {
+  simpleEncode,
+  tokenProviderQuick,
+  mwei,
+  getCallData,
+  increaseNextBlockTimeBy,
+} from './utils/utils';
 
 describe('Implementation', function () {
   const denominationAddress = USDC_TOKEN;
@@ -43,16 +53,18 @@ describe('Implementation', function () {
   const execFeePercentage = 200; // 20%
   const managementFeeRate = 0; // 0%
   const performanceFeeRate = 1000; // 10%
+  const pendingExpiration = 43200; // 0.5 day
   const valueTolerance = 9000; // 90%
-  const pendingExpiration = 86400; // 1 day
   const CRYSTALLIZATION_PERIOD_MIN = 1; // 1 sec
   const crystallizationPeriod = CRYSTALLIZATION_PERIOD_MIN;
   const level = 1;
   const reserveExecution = 0;
+  const reserveBase = FEE_BASE;
 
   let comptroller: Comptroller;
   let action: SimpleAction;
   let implementation: ImplementationMock;
+  let taskExecutor: TaskExecutor;
   let vault: IDSProxy;
   let oracle: Chainlink;
 
@@ -72,6 +84,8 @@ describe('Implementation', function () {
 
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
+  let fooAction: PoolFooAction;
+  let foo: PoolFoo;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -146,7 +160,6 @@ describe('Implementation', function () {
         [denominationDust]
       );
       await comptroller.permitAssets(level, [denomination.address]);
-      await comptroller.setExecAction(action.address);
 
       shareToken = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -171,8 +184,65 @@ describe('Implementation', function () {
         'IDSProxy',
         await implementation.vault()
       );
+
+      taskExecutor = await (
+        await ethers.getContractFactory('TaskExecutor')
+      ).deploy(owner.address, comptroller.address);
+      await taskExecutor.deployed();
+      await comptroller.setExecAction(taskExecutor.address);
+
+      fooAction = await (
+        await ethers.getContractFactory('PoolFooAction')
+      ).deploy();
+      await fooAction.deployed();
+
+      foo = await (await ethers.getContractFactory('PoolFoo')).deploy();
+      await foo.deployed();
     }
   );
+
+  async function transferAssetToVault() {
+    await implementation.finalize();
+
+    // Transfer asset to vault
+    const expectedA = await oracle.calcConversionAmount(
+      tokenA.address,
+      tokenAAmount,
+      denomination.address
+    );
+    const expectedB = await oracle.calcConversionAmount(
+      tokenB.address,
+      tokenBAmount,
+      denomination.address
+    );
+
+    // Permit asset
+    await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
+
+    // Transfer assets to vault
+    await tokenA.connect(tokenAProvider).transfer(vault.address, tokenAAmount);
+    await tokenB.connect(tokenBProvider).transfer(vault.address, tokenBAmount);
+
+    // Add assets to tracking list
+    await implementation.addAsset(tokenA.address);
+    await implementation.addAsset(tokenB.address);
+
+    const value = await implementation.getTotalAssetValue();
+    expect(value).to.be.eq(expectedA.add(expectedB));
+
+    // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
+    const denominationReserve = value.div(10);
+    await denomination
+      .connect(denominationProvider)
+      .transfer(vault.address, denominationReserve);
+
+    const totalAssetValue = await implementation.getTotalAssetValue();
+    const currentReserveRatio = denominationReserve
+      .mul(reserveBase)
+      .div(totalAssetValue);
+
+    return currentReserveRatio;
+  }
 
   beforeEach(async function () {
     await setupTest();
@@ -289,7 +359,7 @@ describe('Implementation', function () {
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
         // TODO: replace err msg: Invalid denomination
-        await expect(implementation.finalize()).to.be.revertedWith('I');
+        await expect(implementation.finalize()).to.be.revertedWith('');
       });
     });
 
@@ -333,7 +403,7 @@ describe('Implementation', function () {
         await implementation.finalize();
         await expect(implementation.liquidate()).to.be.revertedWith(
           // TODO: replace err msg: Pending does not start
-          'P'
+          ''
         );
       });
 
@@ -342,7 +412,7 @@ describe('Implementation', function () {
         await implementation.pendMock();
         await expect(implementation.liquidate()).to.be.revertedWith(
           // TODO: replace err msg: Pending does not expire
-          'P'
+          ''
         );
       });
     });
@@ -430,7 +500,7 @@ describe('Implementation', function () {
         await expect(
           implementation.addAsset(tokenA.address)
           // TODO: replace err msg: Invalid asset
-        ).to.be.revertedWith('I');
+        ).to.be.revertedWith('');
       });
 
       it('can not be added: zero balance of asset', async function () {
@@ -552,16 +622,28 @@ describe('Implementation', function () {
 
   describe('Execute module', function () {
     const valueBefore = ethers.utils.parseEther('1');
-
+    let actionData, executionData: any;
     beforeEach(async function () {
       await implementation.finalize();
       await implementation.setLastTotalAssetValue(valueBefore);
+      actionData = getCallData(action, 'fooAddress', []);
+      executionData = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [action.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+      await comptroller.permitDelegateCalls(
+        await implementation.level(),
+        [action.address],
+        [WL_ANY_SIG]
+      );
     });
 
     it('should success', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
       await implementation.setTotalAssetValueMock(valueCurrent);
-      const executionData = action.interface.encodeFunctionData('fooAddress');
       await implementation.execute(executionData);
     });
 
@@ -570,9 +652,8 @@ describe('Implementation', function () {
         .mul(valueTolerance - 1)
         .div(TOLERANCE_BASE);
       await implementation.setTotalAssetValueMock(valueCurrent);
-      const executionData = action.interface.encodeFunctionData('fooAddress');
       await expect(implementation.execute(executionData)).to.be.revertedWith(
-        'I'
+        ''
       );
     });
   });
@@ -602,7 +683,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setDenomination(constants.AddressZero)
           // TODO: replace err msg: Invalid denomination
-        ).to.be.revertedWith('I');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -634,7 +715,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setManagementFeeRate(maxRate)
           // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('f');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -664,7 +745,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setPerformanceFeeRate(maxRate)
           // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('f');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -696,7 +777,7 @@ describe('Implementation', function () {
         await expect(
           implementation.setCrystallizationPeriod(shortPeriod)
           // TODO: replace err msg: Crystallization period too short
-        ).to.be.revertedWith('C');
+        ).to.be.revertedWith('');
       });
     });
 
@@ -768,60 +849,12 @@ describe('Implementation', function () {
   });
 
   describe('Reserve', function () {
-    const reserveBase = FEE_BASE;
-    let currentReserve = constants.Zero;
+    let currentReserveRatio = constants.Zero;
 
     beforeEach(async function () {
-      currentReserve = await transferAssetToVault();
+      currentReserveRatio = await transferAssetToVault();
       implementation.reviewingMock();
     });
-
-    async function transferAssetToVault() {
-      await implementation.finalize();
-
-      // Transfer asset to vault
-      const expectedA = await oracle.calcConversionAmount(
-        tokenA.address,
-        tokenAAmount,
-        denomination.address
-      );
-      const expectedB = await oracle.calcConversionAmount(
-        tokenB.address,
-        tokenBAmount,
-        denomination.address
-      );
-
-      // Permit asset
-      await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
-
-      // Transfer assets to vault
-      await tokenA
-        .connect(tokenAProvider)
-        .transfer(vault.address, tokenAAmount);
-      await tokenB
-        .connect(tokenBProvider)
-        .transfer(vault.address, tokenBAmount);
-
-      // Add assets to tracking list
-      await implementation.addAsset(tokenA.address);
-      await implementation.addAsset(tokenB.address);
-
-      const value = await implementation.getTotalAssetValue();
-      expect(value).to.be.eq(expectedA.add(expectedB));
-
-      // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
-      const denominationReserve = value.div(10);
-      await denomination
-        .connect(denominationProvider)
-        .transfer(vault.address, denominationReserve);
-
-      const totalAssetValue = await implementation.getTotalAssetValue();
-      const currentReserve = denominationReserve
-        .mul(reserveBase)
-        .div(totalAssetValue);
-
-      return currentReserve;
-    }
 
     it('reserve is totally enough', async function () {
       await implementation.setReserveExecutionRatio(100); // 1%
@@ -829,7 +862,7 @@ describe('Implementation', function () {
     });
 
     it('reserve is a little bit more than setting', async function () {
-      await implementation.setReserveExecutionRatio(currentReserve.sub(5)); // reserveExecution is 0.05% below currentReserve
+      await implementation.setReserveExecutionRatio(currentReserveRatio.sub(5)); // reserveExecution is 0.05% below currentReserve
       expect(await implementation.isReserveEnough()).to.be.eq(true);
     });
 
@@ -839,8 +872,97 @@ describe('Implementation', function () {
     });
 
     it('reserve is a little bit less than setting', async function () {
-      await implementation.setReserveExecutionRatio(currentReserve.add(5)); // reserveExecution is 0.05% above currentReserve
+      await implementation.setReserveExecutionRatio(currentReserveRatio.add(5)); // reserveExecution is 0.05% above currentReserve
       expect(await implementation.isReserveEnough()).to.be.eq(false);
+    });
+  });
+
+  describe('Settle pending', function () {
+    beforeEach(async function () {
+      await implementation.finalize();
+      const currentReserve = await implementation.getReserve();
+
+      const redeemAmount = currentReserve.add(mwei('500'));
+      await denomination
+        .connect(denominationProvider)
+        .transfer(owner.address, redeemAmount.mul(2)); // Transfer more to owner
+
+      // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
+      await implementation.setTotalAssetValueMock(mwei('5000'));
+      await denomination.connect(owner).approve(implementation.address, 500);
+      await implementation.purchase(500);
+
+      // Make fund go to RedemptionPending state
+      const redeemShare = await implementation.calculateShare(redeemAmount);
+      await shareToken.transfer(owner.address, redeemShare);
+      await implementation.redeem(redeemShare, true);
+
+      expect(await implementation.state()).to.be.eq(
+        POOL_STATE.REDEMPTION_PENDING
+      );
+
+      // Transfer some money to vault, so that able to resolve pending redemption
+      await denomination
+        .connect(denominationProvider)
+        .transfer(vault.address, redeemAmount.mul(2));
+    });
+
+    it('resolve RedemptionPending state after execute', async function () {
+      // Prepare task data and execute
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint1', [
+        foo.address,
+        expectNValue,
+      ]);
+
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      // Permit delegate calls
+      await comptroller.permitDelegateCalls(
+        await implementation.level(),
+        [fooAction.address],
+        [WL_ANY_SIG]
+      );
+      await expect(await implementation.execute(data))
+        .to.emit(implementation, 'Redeemed')
+        .to.emit(denomination, 'Transfer');
+      expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
+    });
+
+    it('resolve RedemptionPending state after purchase', async function () {
+      // Prepare task data and execute
+      const purchaseAmount = mwei('1');
+      await denomination
+        .connect(owner)
+        .approve(implementation.address, purchaseAmount);
+
+      await expect(implementation.purchase(purchaseAmount))
+        .to.emit(implementation, 'Redeemed')
+        .to.emit(implementation, 'Purchased');
+      expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
+    });
+
+    it('settle pending when close', async function () {
+      // Go to liquidating state
+      await increaseNextBlockTimeBy(pendingExpiration);
+      await expect(implementation.liquidate())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(4)
+        .to.emit(implementation, 'OwnershipTransferred')
+        .withArgs(owner.address, liquidator.address);
+
+      // Close
+      await expect(await implementation.connect(liquidator).close())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(POOL_STATE.CLOSED)
+        .to.emit(implementation, 'Redeemed')
+        .to.emit(denomination, 'Transfer');
     });
   });
 });

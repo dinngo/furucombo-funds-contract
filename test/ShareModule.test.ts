@@ -32,6 +32,7 @@ describe('Share module', function () {
         .connect(user1)
         .deploy(DS_PROXY_REGISTRY);
       await shareModule.deployed();
+
       comptroller = await (
         await ethers.getContractFactory('Comptroller')
       ).deploy(

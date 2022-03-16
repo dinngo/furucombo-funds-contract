@@ -48,6 +48,10 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         when3States(State.Executing, State.RedemptionPending, State.Closed)
         returns (uint256 balance)
     {
+        uint256 userShare = shareToken.balanceOf(msg.sender);
+        // TODO: replace err msg: require too much share
+        require(share <= userShare);
+
         if (state == State.RedemptionPending) {
             balance = _redeemPending(msg.sender, share, acceptPending);
         } else {
@@ -89,6 +93,23 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         balance = (share * assetValue) / shareAmount;
     }
 
+    /// @notice Claim the settled pending redemption.
+    /// @return balance The balance being claimed.
+    function claimPendingRedemption() public virtual returns (uint256 balance) {
+        balance = pendingRedemptions[msg.sender];
+        pendingRedemptions[msg.sender] = 0;
+        denomination.safeTransfer(msg.sender, balance);
+        emit RedemptionClaimed(msg.sender, balance);
+    }
+
+    function isPendingResolvable(bool applyPenalty) public view returns (bool) {
+        uint256 redeemShares = _getResolvePendingShares(applyPenalty);
+        uint256 redeemSharesBalance = calculateBalance(redeemShares);
+        uint256 reserve = __getReserve();
+
+        return reserve >= redeemSharesBalance;
+    }
+
     /// @notice Calculate the max redeemable balance of the given share amount.
     /// @param share The share amount to be queried.
     /// @return shareLeft The share amount left due to insufficient reserve.
@@ -110,51 +131,53 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         }
     }
 
-    function _settlePendingRedemption(bool applyPenalty)
-        internal
-        returns (bool)
-    {
-        if (totalPendingShare == 0) return false;
-
+    function _settlePendingRedemption(bool applyPenalty) internal {
         // Might lead to gas insufficient if pending list too long
-        uint256 redeemAmount;
-        if (applyPenalty) {
-            redeemAmount = totalPendingShare;
-        } else {
-            redeemAmount = totalPendingShare + totalPendingBonus;
-            totalPendingBonus = 0;
-        }
-        uint256 totalRedemption = _redeem(address(this), redeemAmount, false);
-        uint256 pendingAccountListLength = pendingAccountList.length;
-        for (uint256 i = 0; i < pendingAccountListLength; i++) {
-            address user = pendingAccountList[i];
-            uint256 share = pendingShares[user];
-            pendingShares[user] = 0;
-            uint256 redemption = (totalRedemption * share) / totalPendingShare;
-            pendingRedemptions[user] += redemption;
-        }
-        // remove all pending accounts
-        delete pendingAccountList;
+        uint256 redeemShares = _getResolvePendingShares(applyPenalty);
+        if (redeemShares > 0) {
+            if (!applyPenalty) {
+                totalPendingBonus = 0;
+            }
 
-        totalPendingShare = 0;
-        if (totalPendingBonus != 0) {
-            uint256 unusedBonus = totalPendingBonus;
-            totalPendingBonus = 0;
-            shareToken.burn(address(this), unusedBonus);
+            uint256 totalRedemption = _redeem(
+                address(this),
+                redeemShares,
+                false
+            );
+            uint256 pendingAccountListLength = pendingAccountList.length;
+            for (uint256 i = 0; i < pendingAccountListLength; i++) {
+                address user = pendingAccountList[i];
+
+                uint256 share = pendingShares[user];
+                pendingShares[user] = 0;
+                uint256 redemption = (totalRedemption * share) /
+                    totalPendingShare;
+                pendingRedemptions[user] += redemption;
+            }
+
+            // remove all pending accounts
+            delete pendingAccountList;
+
+            totalPendingShare = 0;
+            if (totalPendingBonus != 0) {
+                uint256 unusedBonus = totalPendingBonus;
+                totalPendingBonus = 0;
+                shareToken.burn(address(this), unusedBonus);
+            }
+            emit RedemptionPendingSettled();
         }
-
-        emit RedemptionPendingSettled();
-
-        return true;
     }
 
-    /// @notice Claim the settled pending redemption.
-    /// @return balance The balance being claimed.
-    function claimPendingRedemption() public virtual returns (uint256 balance) {
-        balance = pendingRedemptions[msg.sender];
-        pendingRedemptions[msg.sender] = 0;
-        denomination.safeTransfer(msg.sender, balance);
-        emit RedemptionClaimed(msg.sender, balance);
+    function _getResolvePendingShares(bool applyPenalty)
+        internal
+        view
+        returns (uint256)
+    {
+        if (applyPenalty) {
+            return totalPendingShare;
+        } else {
+            return totalPendingShare + totalPendingBonus;
+        }
     }
 
     function _purchase(address user, uint256 balance)
@@ -164,6 +187,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     {
         _callBeforePurchase(0);
         share = _addShare(user, balance);
+
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 bonus;
         if (state == State.RedemptionPending) {
@@ -173,8 +197,11 @@ abstract contract ShareModule is PoolProxyStorageUtils {
             shareToken.move(address(this), user, bonus);
             share += bonus;
         }
+
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
+
         _callAfterPurchase(share);
+
         emit Purchased(user, balance, share, bonus);
     }
 
