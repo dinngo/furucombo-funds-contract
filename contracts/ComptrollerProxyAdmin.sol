@@ -46,7 +46,7 @@ contract ComptrollerProxyAdmin is Ownable {
     }
 
     /**
-     * @dev Changes the admin of `proxy` to `newAdmin`.
+     * @dev Changes the admin of `proxy` to `newAdmin_`.
      *
      * Requirements:
      *
@@ -57,7 +57,7 @@ contract ComptrollerProxyAdmin is Ownable {
     }
 
     /**
-     * @dev Upgrades `proxy` to `implementation`. See {TransparentUpgradeableProxy-upgradeTo}.
+     * @dev Upgrades `proxy` to `implementation_`. See {TransparentUpgradeableProxy-upgradeTo}.
      *
      * Requirements:
      *
@@ -68,12 +68,12 @@ contract ComptrollerProxyAdmin is Ownable {
     }
 
     /**
-     * @dev Upgrades `proxy_` to `implementation_` and calls a function on the new implementation. See
+     * @dev Upgrades `proxy` to `implementation_` and calls a function on the new implementation. See
      * {TransparentUpgradeableProxy-upgradeToAndCall}.
      *
      * Requirements:
      *
-     * - This contract must be the admin of `proxy_`.
+     * - This contract must be the admin of `proxy`.
      */
     function upgradeAndCall(address implementation_, bytes memory data_)
         public

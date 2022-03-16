@@ -6,13 +6,12 @@ import {ComptrollerProxyAdmin} from "./ComptrollerProxyAdmin.sol";
 
 contract ComptrollerProxy is TransparentUpgradeableProxy {
     constructor(address logic_, bytes memory data_)
-        payable
         TransparentUpgradeableProxy(logic_, msg.sender, data_)
     {
-        ComptrollerProxyAdmin admin = new ComptrollerProxyAdmin(
+        ComptrollerProxyAdmin compAdmin = new ComptrollerProxyAdmin(
             TransparentUpgradeableProxy(this)
         );
-        admin.transferOwnership(msg.sender);
-        _changeAdmin(address(admin));
+        compAdmin.transferOwnership(msg.sender);
+        _changeAdmin(address(compAdmin));
     }
 }
