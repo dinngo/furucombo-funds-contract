@@ -879,7 +879,7 @@ describe('Implementation', function () {
 
   describe('Settle pending', function () {
     beforeEach(async function () {
-      await transferAssetToVault();
+      await implementation.finalize();
       const currentReserve = await implementation.getReserve();
 
       const redeemAmount = currentReserve.add(mwei('500'));
@@ -888,6 +888,7 @@ describe('Implementation', function () {
         .transfer(owner.address, redeemAmount.mul(2)); // Transfer more to owner
 
       // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
+      await implementation.setTotalAssetValueMock(mwei('5000'));
       await denomination.connect(owner).approve(implementation.address, 500);
       await implementation.purchase(500);
 
@@ -945,6 +946,23 @@ describe('Implementation', function () {
         .to.emit(implementation, 'Redeemed')
         .to.emit(implementation, 'Purchased');
       expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
+    });
+
+    it('settle pending when close', async function () {
+      // Go to liquidating state
+      await increaseNextBlockTimeBy(pendingExpiration);
+      await expect(implementation.liquidate())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(4)
+        .to.emit(implementation, 'OwnershipTransferred')
+        .withArgs(owner.address, liquidator.address);
+
+      // Close
+      await expect(await implementation.connect(liquidator).close())
+        .to.emit(implementation, 'StateTransited')
+        .withArgs(POOL_STATE.CLOSED)
+        .to.emit(implementation, 'Redeemed')
+        .to.emit(denomination, 'Transfer');
     });
   });
 });
