@@ -10,6 +10,9 @@ contract Registry is IRegistry, Ownable {
     mapping(address => bytes32) public override handlers;
     mapping(address => bytes32) public override callers;
     mapping(address => uint256) public override bannedAgents;
+    mapping(address => mapping(address => bool))
+        public
+        override handlerCalleeWhiteList;
     bool public override fHalt;
 
     bytes32 public constant DEPRECATED = bytes10(0x64657072656361746564);
@@ -150,5 +153,21 @@ contract Registry is IRegistry, Ownable {
     function unhalt() external isHalted onlyOwner {
         fHalt = false;
         emit Unhalted();
+    }
+
+    function setHandlerCalleeWhitelist(
+        address handler,
+        address callee,
+        bool isValid
+    ) external onlyOwner {
+        handlerCalleeWhiteList[handler][callee] = isValid;
+    }
+
+    function isValidHandlerCallee(address handler, address callee)
+        external
+        view
+        returns (bool)
+    {
+        return handlerCalleeWhiteList[handler][callee];
     }
 }

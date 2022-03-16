@@ -9,6 +9,12 @@ import "./ICurveHandler.sol";
 contract HCurve is HandlerBase {
     using SafeERC20 for IERC20;
 
+    address private immutable self;
+
+    constructor() {
+        self = address(this);
+    }
+
     function getContractName() public pure override returns (string memory) {
         return "HCurve";
     }
@@ -22,7 +28,7 @@ contract HCurve is HandlerBase {
         int128 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable returns (uint256) {
+    ) external payable validCallee(self, handler) returns (uint256) {
         (
             uint256 _amount,
             uint256 balanceBefore,

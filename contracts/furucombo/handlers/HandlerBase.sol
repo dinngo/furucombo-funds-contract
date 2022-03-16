@@ -7,6 +7,8 @@ import {IERC20Usdt} from "../../interfaces/IERC20Usdt.sol";
 import {Config} from "../Config.sol";
 import {Storage, LibStack} from "../Storage.sol";
 
+import {IRegistry} from "../interface/IRegistry.sol";
+
 abstract contract HandlerBase is Storage, Config {
     using SafeERC20 for IERC20;
     using LibStack for bytes32[];
@@ -15,6 +17,16 @@ abstract contract HandlerBase is Storage, Config {
     address public constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     // prettier-ignore
     address private constant MATIC_TOKEN = 0x0000000000000000000000000000000000001010;
+
+    constructor(IRegistry registry_) Storage(registry_) {}
+
+    modifier validCallee(address handler, address callee) {
+        require(
+            registry.isValidHandlerCallee(handler, callee),
+            "invalid callee"
+        );
+        _;
+    }
 
     function postProcess() external payable virtual {
         revert("Invalid post process");

@@ -4,11 +4,14 @@ pragma solidity ^0.8.0;
 
 import {LibCache} from "./lib/LibCache.sol";
 import {LibStack} from "./lib/LibStack.sol";
+import {IRegistry} from "./interface/IRegistry.sol";
 
 /// @notice A cache structure composed by a bytes32 array
 abstract contract Storage {
     using LibCache for mapping(bytes32 => bytes32);
     using LibStack for bytes32[];
+
+    IRegistry public immutable registry;
 
     bytes32[] public stack;
     mapping(bytes32 => bytes32) public cache;
@@ -16,6 +19,10 @@ abstract contract Storage {
     // keccak256 hash of "msg.sender"
     // prettier-ignore
     bytes32 public constant MSG_SENDER_KEY = 0xb2f2618cecbbb6e7468cc0f2aa43858ad8d153e0280b22285e28e853bb9d453a;
+
+    constructor(IRegistry registry_) {
+        registry = registry_;
+    }
 
     modifier isStackEmpty() {
         require(stack.length == 0, "Stack not empty");
