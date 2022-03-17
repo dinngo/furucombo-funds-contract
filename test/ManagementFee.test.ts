@@ -1,9 +1,11 @@
 import { Wallet, BigNumber } from 'ethers';
+import { BigNumber as BigNumberJs } from 'bignumber.js';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { increaseNextBlockTimeBy } from './utils/utils';
+import { expectEqWithinBps, increaseNextBlockTimeBy } from './utils/utils';
+import { FEE_BASE } from './utils/constants';
+
 import { ManagementFeeModuleMock, ShareToken } from '../typechain';
-import { FEE_BASE64x64 } from './utils/constants';
 
 describe('Management fee', function () {
   let mFeeModule: ManagementFeeModuleMock;
@@ -13,6 +15,7 @@ describe('Management fee', function () {
   let feeBase: BigNumber;
 
   const totalShare = ethers.utils.parseEther('100');
+  const FEE_BASE64x64 = BigNumber.from(2).pow(64);
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -40,23 +43,38 @@ describe('Management fee', function () {
     feeBase = await mFeeModule.callStatic.getFeeBase();
   });
 
+  // Lack of precision
+  function getEffectiveFeeRate(feeRate: any) {
+    const effRate = new BigNumberJs(
+      Math.exp((-1 * Math.log(1 - feeRate)) / (365.25 * 24 * 60 * 60))
+    );
+    return BigNumber.from(
+      effRate
+        .times(new BigNumberJs(FEE_BASE64x64.toString()))
+        .toFixed(0)
+        .toString()
+    );
+  }
+
   describe('set management fee rate', function () {
     it('should success when zero', async function () {
       const feeRate = BigNumber.from('0');
+      const result = FEE_BASE64x64;
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
       const effectiveFeeRate =
         await mFeeModule.callStatic.getManagementFeeRate();
-      expect(effectiveFeeRate).to.eq(BigNumber.from(FEE_BASE64x64));
+      expect(effectiveFeeRate).to.eq(result);
     });
 
     it('should success in normal range', async function () {
       const feeRate = BigNumber.from('1000');
+      const result = getEffectiveFeeRate(feeRate.toNumber() / FEE_BASE);
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
       const effectiveFeeRate =
         await mFeeModule.callStatic.getManagementFeeRate();
-      expect(effectiveFeeRate).to.eq(BigNumber.from('18446744135297203117'));
+      expectEqWithinBps(effectiveFeeRate, result, 1, 15);
     });
 
     it('should fail when equal to 100%', async function () {

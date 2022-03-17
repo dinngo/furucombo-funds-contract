@@ -30,9 +30,10 @@ export async function profileGas(receipt: any) {
 export function expectEqWithinBps(
   actual: BigNumber,
   expected: BigNumber,
-  bps: number = 1
+  bps: number = 1,
+  exponent: number = 4
 ) {
-  const base = BigNumber.from('10000');
+  const base = BigNumber.from(10).pow(exponent);
   const upper = expected.mul(base.add(BigNumber.from(bps))).div(base);
   const lower = expected.mul(base.sub(BigNumber.from(bps))).div(base);
   expect(actual).to.be.lte(upper);
