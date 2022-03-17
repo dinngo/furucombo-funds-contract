@@ -26,7 +26,7 @@ describe('Management fee', function () {
       await mFeeModule.deployed();
       tokenS = await (await ethers.getContractFactory('ShareToken'))
         .connect(user)
-        .deploy('ShareToken', 'SHT');
+        .deploy('ShareToken', 'SHT', 18);
       await tokenS.deployed();
       // initialize
       await mFeeModule.setShareToken(tokenS.address);
