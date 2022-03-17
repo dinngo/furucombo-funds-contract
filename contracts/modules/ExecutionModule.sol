@@ -6,6 +6,8 @@ import {Whitelist} from "../libraries/Whitelist.sol";
 
 /// @title Execution module
 abstract contract ExecutionModule is PoolProxyStorageUtils {
+    event Executed();
+
     /// @notice Execute on the pool's behalf. Execution is valid during
     /// Executing and Redemption Pending state.
     /// @param data The data to be applied to the execution.
@@ -20,6 +22,8 @@ abstract contract ExecutionModule is PoolProxyStorageUtils {
         bytes memory response = vault.execute(action, data);
 
         _afterExecute(response, lastAmount);
+
+        emit Executed();
     }
 
     function _beforeExecute() internal virtual returns (uint256) {
