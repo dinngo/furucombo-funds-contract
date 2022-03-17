@@ -65,7 +65,10 @@ describe('Execution module', function () {
     it('should success when executing', async function () {
       await executionModule.setState(POOL_STATE.EXECUTING);
       const executionData = action.interface.encodeFunctionData('foo');
-      await executionModule.execute(executionData);
+      await expect(executionModule.execute(executionData)).to.emit(
+        executionModule,
+        'Executed'
+      );
       const result = await action.callStatic.bar();
       expect(result).to.eq(BigNumber.from('1'));
     });
