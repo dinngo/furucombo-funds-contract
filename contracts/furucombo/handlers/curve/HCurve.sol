@@ -36,12 +36,7 @@ contract HCurve is HandlerBase {
             amount
         );
         try
-            ICurveHandler(handler).exchange{value: ethAmount}(
-                i,
-                j,
-                _amount,
-                minAmount
-            )
+            ICurveHandler(handler).exchange(i, j, _amount, minAmount)
         {} catch Error(string memory reason) {
             _revertMsg("exchange", reason);
         } catch {
@@ -61,54 +56,18 @@ contract HCurve is HandlerBase {
         uint256 amount,
         uint256 minAmount
     ) external payable validCallee(self, handler) returns (uint256) {
-        (
-            uint256 _amount,
-            uint256 balanceBefore,
-            uint256 ethAmount
-        ) = _exchangeBefore(handler, tokenI, tokenJ, amount);
+        (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
+            handler,
+            tokenI,
+            tokenJ,
+            amount
+        );
         try
-            ICurveHandler(handler).exchange{value: ethAmount}(
-                i,
-                j,
-                _amount,
-                minAmount
-            )
+            ICurveHandler(handler).exchange(i, j, _amount, minAmount)
         {} catch Error(string memory reason) {
             _revertMsg("exchangeUint256", reason);
         } catch {
             _revertMsg("exchangeUint256");
-        }
-
-        return _exchangeAfter(handler, tokenI, tokenJ, balanceBefore);
-    }
-
-    /// @notice Curve exchange with uint256 ij and ether flag
-    function exchangeUint256Ether(
-        address handler,
-        address tokenI,
-        address tokenJ,
-        uint256 i,
-        uint256 j,
-        uint256 amount,
-        uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
-        (
-            uint256 _amount,
-            uint256 balanceBefore,
-            uint256 ethAmount
-        ) = _exchangeBefore(handler, tokenI, tokenJ, amount);
-        try
-            ICurveHandler(handler).exchange{value: ethAmount}(
-                i,
-                j,
-                _amount,
-                minAmount,
-                true
-            )
-        {} catch Error(string memory reason) {
-            _revertMsg("exchangeUint256Ether", reason);
-        } catch {
-            _revertMsg("exchangeUint256Ether");
         }
 
         return _exchangeAfter(handler, tokenI, tokenJ, balanceBefore);
@@ -124,18 +83,14 @@ contract HCurve is HandlerBase {
         uint256 amount,
         uint256 minAmount
     ) external payable validCallee(self, handler) returns (uint256) {
-        (
-            uint256 _amount,
-            uint256 balanceBefore,
-            uint256 ethAmount
-        ) = _exchangeBefore(handler, tokenI, tokenJ, amount);
+        (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
+            handler,
+            tokenI,
+            tokenJ,
+            amount
+        );
         try
-            ICurveHandler(handler).exchange_underlying{value: ethAmount}(
-                i,
-                j,
-                _amount,
-                minAmount
-            )
+            ICurveHandler(handler).exchange_underlying(i, j, _amount, minAmount)
         {} catch Error(string memory reason) {
             _revertMsg("exchangeUnderlying", reason);
         } catch {
@@ -155,18 +110,14 @@ contract HCurve is HandlerBase {
         uint256 amount,
         uint256 minAmount
     ) external payable validCallee(self, handler) returns (uint256) {
-        (
-            uint256 _amount,
-            uint256 balanceBefore,
-            uint256 ethAmount
-        ) = _exchangeBefore(handler, tokenI, tokenJ, amount);
+        (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
+            handler,
+            tokenI,
+            tokenJ,
+            amount
+        );
         try
-            ICurveHandler(handler).exchange_underlying{value: ethAmount}(
-                i,
-                j,
-                _amount,
-                minAmount
-            )
+            ICurveHandler(handler).exchange_underlying(i, j, _amount, minAmount)
         {} catch Error(string memory reason) {
             _revertMsg("exchangeUnderlyingUint256", reason);
         } catch {
@@ -228,18 +179,14 @@ contract HCurve is HandlerBase {
     ) external payable validCallee(self, handler) returns (uint256) {
         (
             uint256[] memory _amounts,
-            uint256 balanceBefore,
-            uint256 ethAmount
+            uint256 balanceBefore
         ) = _addLiquidityBefore(handler, pool, tokens, amounts);
 
         // Execute add_liquidity according to amount array size
         if (_amounts.length == 2) {
             uint256[2] memory amts = [_amounts[0], _amounts[1]];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidity", reason);
             } catch {
@@ -248,10 +195,7 @@ contract HCurve is HandlerBase {
         } else if (_amounts.length == 3) {
             uint256[3] memory amts = [_amounts[0], _amounts[1], _amounts[2]];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidity", reason);
             } catch {
@@ -265,10 +209,7 @@ contract HCurve is HandlerBase {
                 _amounts[3]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidity", reason);
             } catch {
@@ -283,10 +224,7 @@ contract HCurve is HandlerBase {
                 _amounts[4]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidity", reason);
             } catch {
@@ -302,10 +240,7 @@ contract HCurve is HandlerBase {
                 _amounts[5]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidity", reason);
             } catch {
@@ -329,19 +264,14 @@ contract HCurve is HandlerBase {
     ) external payable validCallee(self, handler) returns (uint256) {
         (
             uint256[] memory _amounts,
-            uint256 balanceBefore,
-            uint256 ethAmount
+            uint256 balanceBefore
         ) = _addLiquidityBefore(handler, pool, tokens, amounts);
 
         // Execute add_liquidity according to amount array size
         if (_amounts.length == 2) {
             uint256[2] memory amts = [_amounts[0], _amounts[1]];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount,
-                    true
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount, true)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityUnderlying", reason);
             } catch {
@@ -350,11 +280,7 @@ contract HCurve is HandlerBase {
         } else if (_amounts.length == 3) {
             uint256[3] memory amts = [_amounts[0], _amounts[1], _amounts[2]];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount,
-                    true
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount, true)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityUnderlying", reason);
             } catch {
@@ -368,11 +294,7 @@ contract HCurve is HandlerBase {
                 _amounts[3]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount,
-                    true
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount, true)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityUnderlying", reason);
             } catch {
@@ -387,11 +309,7 @@ contract HCurve is HandlerBase {
                 _amounts[4]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount,
-                    true
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount, true)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityUnderlying", reason);
             } catch {
@@ -407,11 +325,7 @@ contract HCurve is HandlerBase {
                 _amounts[5]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    amts,
-                    minPoolAmount,
-                    true
-                )
+                ICurveHandler(handler).add_liquidity(amts, minPoolAmount, true)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityUnderlying", reason);
             } catch {
@@ -435,19 +349,14 @@ contract HCurve is HandlerBase {
     ) external payable validCallee(self, handler) returns (uint256) {
         (
             uint256[] memory _amounts,
-            uint256 balanceBefore,
-            uint256 ethAmount
+            uint256 balanceBefore
         ) = _addLiquidityBefore(handler, pool, tokens, amounts);
 
         // Execute add_liquidity according to amount array size
         if (_amounts.length == 3) {
             uint256[3] memory amts = [_amounts[0], _amounts[1], _amounts[2]];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    pool,
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(pool, amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityFactoryZap", reason);
             } catch {
@@ -461,11 +370,7 @@ contract HCurve is HandlerBase {
                 _amounts[3]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    pool,
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(pool, amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityFactoryZap", reason);
             } catch {
@@ -480,11 +385,7 @@ contract HCurve is HandlerBase {
                 _amounts[4]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    pool,
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(pool, amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityFactoryZap", reason);
             } catch {
@@ -500,11 +401,7 @@ contract HCurve is HandlerBase {
                 _amounts[5]
             ];
             try
-                ICurveHandler(handler).add_liquidity{value: ethAmount}(
-                    pool,
-                    amts,
-                    minPoolAmount
-                )
+                ICurveHandler(handler).add_liquidity(pool, amts, minPoolAmount)
             {} catch Error(string memory reason) {
                 _revertMsg("addLiquidityFactoryZap", reason);
             } catch {
@@ -523,30 +420,17 @@ contract HCurve is HandlerBase {
         address pool,
         address[] memory tokens,
         uint256[] memory amounts
-    )
-        internal
-        returns (
-            uint256[] memory,
-            uint256,
-            uint256
-        )
-    {
+    ) internal returns (uint256[] memory, uint256) {
         _notMaticToken(tokens);
         uint256 balanceBefore = IERC20(pool).balanceOf(address(this));
 
-        // Approve non-zero amount erc20 token and set eth amount
-        uint256 ethAmount;
         for (uint256 i = 0; i < amounts.length; i++) {
             if (amounts[i] == 0) continue;
             amounts[i] = _getBalance(tokens[i], amounts[i]);
-            if (tokens[i] == NATIVE_TOKEN_ADDRESS) {
-                ethAmount = amounts[i];
-                continue;
-            }
             _tokenApprove(tokens[i], handler, amounts[i]);
         }
 
-        return (amounts, balanceBefore, ethAmount);
+        return (amounts, balanceBefore);
     }
 
     function _addLiquidityAfter(
@@ -565,8 +449,7 @@ contract HCurve is HandlerBase {
 
         for (uint256 i = 0; i < amounts.length; i++) {
             if (amounts[i] == 0) continue;
-            if (tokens[i] != NATIVE_TOKEN_ADDRESS)
-                _tokenApproveZero(tokens[i], handler);
+            _tokenApproveZero(tokens[i], handler);
         }
 
         // Update post process
@@ -751,7 +634,7 @@ contract HCurve is HandlerBase {
         );
 
         // Update post process
-        if (tokenI != NATIVE_TOKEN_ADDRESS) _updateToken(tokenI);
+        _updateToken(tokenI);
 
         return balance - balanceBefore;
     }
