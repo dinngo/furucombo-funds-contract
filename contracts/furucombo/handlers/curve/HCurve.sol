@@ -132,14 +132,7 @@ contract HCurve is HandlerBase {
         address tokenI,
         address tokenJ,
         uint256 amount
-    )
-        internal
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    ) internal returns (uint256, uint256) {
         _notMaticToken(tokenI);
         amount = _getBalance(tokenI, amount);
         uint256 balanceBefore = _getBalance(tokenJ, type(uint256).max);
