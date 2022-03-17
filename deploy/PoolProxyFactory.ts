@@ -6,12 +6,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const comptrollerImplementation = await deployments.get(
-    'ComptrollerImplementation'
-  );
+  const comptrollerProxy = await deployments.get('ComptrollerProxy');
   await deploy('PoolProxyFactory', {
     from: deployer,
-    args: [comptrollerImplementation.address],
+    args: [comptrollerProxy.address],
     log: true,
   });
 };
@@ -19,4 +17,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['PoolProxyFactory'];
-func.dependencies = ['ComptrollerImplementation'];
+func.dependencies = ['Comptroller'];

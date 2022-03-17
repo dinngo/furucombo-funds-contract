@@ -8,12 +8,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const owner = deployer;
   const furucomboProxy = await deployments.get('FurucomboProxy');
-  const comptrollerImplementation = await deployments.get(
-    'ComptrollerImplementation'
-  );
+  const comptrollerProxy = await deployments.get('ComptrollerProxy');
   await deploy('AFurucombo', {
     from: deployer,
-    args: [owner, furucomboProxy.address, comptrollerImplementation.address],
+    args: [owner, furucomboProxy.address, comptrollerProxy.address],
     log: true,
   });
 };
@@ -21,4 +19,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['AFurucombo'];
-func.dependencies = ['FurucomboProxy', 'ComptrollerImplementation'];
+func.dependencies = ['FurucomboProxy', 'Comptroller'];

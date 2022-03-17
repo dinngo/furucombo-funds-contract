@@ -40,9 +40,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['ComptrollerPostSetup'];
-func.dependencies = [
-  'ComptrollerImplementation',
-  'ComptrollerProxy',
-  'TaskExecutor',
-  'AFurucombo',
-];
+func.dependencies = ['Comptroller', 'TaskExecutor', 'AFurucombo'];

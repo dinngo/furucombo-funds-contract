@@ -101,20 +101,33 @@ export async function deployComptrollerAndPoolProxyFactory(
   await poolImplementation.deployed();
 
   // comptroller
-  const comptroller = await (
+  const comptrollerImplementation = await (
     await ethers.getContractFactory('ComptrollerImplementation')
   ).deploy();
-  await comptroller.deployed();
-  await comptroller.initialize(
-    poolImplementation.address,
-    assetRouterAddress,
-    collectorAddress,
-    execFeePercentage,
-    liquidatorAddress,
-    pendingExpiration,
-    mortgageVaultAddress,
-    totalAssetValueTolerance
+  await comptrollerImplementation.deployed();
+
+  const compData = comptrollerImplementation.interface.encodeFunctionData(
+    'initialize',
+    [
+      poolImplementation.address,
+      assetRouterAddress,
+      collectorAddress,
+      execFeePercentage,
+      liquidatorAddress,
+      pendingExpiration,
+      mortgageVaultAddress,
+      totalAssetValueTolerance,
+    ]
   );
+
+  const comptrollerProxy = await (
+    await ethers.getContractFactory('ComptrollerProxy')
+  ).deploy(comptrollerImplementation.address, compData);
+  await comptrollerProxy.deployed();
+
+  const comptroller = await (
+    await ethers.getContractFactory('ComptrollerImplementation')
+  ).attach(comptrollerProxy.address);
 
   // PoolProxyFactory
   const poolProxyFactory = await (
