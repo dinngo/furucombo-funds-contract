@@ -15,7 +15,7 @@ interface IRegistry {
 
     function isValidCaller(address handler) external view returns (bool);
 
-    function isValidHandlerCallee(address handler, address callee)
+    function handlerCalleeWhiteList(address handler, address callee)
         external
         view
         returns (bool);

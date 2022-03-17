@@ -42,7 +42,9 @@ contract FurucomboProxy is IProxy, Storage, Config {
         _;
     }
 
-    constructor(address registry_) Storage(registry_) {}
+    constructor(IRegistry registry_) {
+        registry = registry_;
+    }
 
     /**
      * @notice Direct transfer from EOA should be reverted.

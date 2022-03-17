@@ -18,11 +18,9 @@ abstract contract HandlerBase is Storage, Config {
     // prettier-ignore
     address private constant MATIC_TOKEN = 0x0000000000000000000000000000000000001010;
 
-    constructor(IRegistry registry_) Storage(registry_) {}
-
     modifier validCallee(address handler, address callee) {
         require(
-            registry.isValidHandlerCallee(handler, callee),
+            registry.handlerCalleeWhiteList(handler, callee),
             "invalid callee"
         );
         _;

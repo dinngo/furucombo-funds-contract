@@ -160,14 +160,7 @@ contract Registry is IRegistry, Ownable {
         address callee,
         bool isValid
     ) external onlyOwner {
+        require(handler != address(0) && callee != address(0), "zero address");
         handlerCalleeWhiteList[handler][callee] = isValid;
-    }
-
-    function isValidHandlerCallee(address handler, address callee)
-        external
-        view
-        returns (bool)
-    {
-        return handlerCalleeWhiteList[handler][callee];
     }
 }

@@ -3,11 +3,12 @@ pragma solidity ^0.8.0;
 
 import {FurucomboProxy, LibStack} from "../../furucombo/Proxy.sol";
 import {GasProfiler} from "../debug/GasProfiler.sol";
+import "../../furucombo/interface/IRegistry.sol";
 
 contract FurucomboProxyMock is FurucomboProxy, GasProfiler {
     using LibStack for bytes32[];
 
-    constructor(address registry) FurucomboProxy(registry) {}
+    constructor(IRegistry registry) FurucomboProxy(registry) {}
 
     event RecordHandlerResult(bytes value);
 
