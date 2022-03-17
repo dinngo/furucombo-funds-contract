@@ -2,8 +2,8 @@ import { ethers, deployments, network } from 'hardhat';
 import { Wallet, Signer, BigNumber, constants } from 'ethers';
 import { expect } from 'chai';
 import {
-  Comptroller,
-  ImplementationMock,
+  ComptrollerImplementation,
+  PoolImplementationMock,
   IDSProxy,
   Chainlink,
   ERC20,
@@ -39,7 +39,7 @@ import {
   increaseNextBlockTimeBy,
 } from './utils/utils';
 
-describe('Implementation', function () {
+describe('PoolImplementation', function () {
   const denominationAddress = USDC_TOKEN;
   const denominationAggregator = CHAINLINK_USDC_USD;
   const denominationDust = mwei('0.1');
@@ -61,9 +61,9 @@ describe('Implementation', function () {
   const reserveExecution = 0;
   const reserveBase = FEE_BASE;
 
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerImplementation;
   let action: SimpleAction;
-  let implementation: ImplementationMock;
+  let poolImplementation: PoolImplementationMock;
   let taskExecutor: TaskExecutor;
   let vault: IDSProxy;
   let oracle: Chainlink;
@@ -101,8 +101,8 @@ describe('Implementation', function () {
       tokenC = await ethers.getContractAt('ERC20', tokenCAddress);
       tokenCProvider = await tokenProviderQuick(tokenC.address);
 
-      implementation = await (
-        await ethers.getContractFactory('ImplementationMock')
+      poolImplementation = await (
+        await ethers.getContractFactory('PoolImplementationMock')
       ).deploy(DS_PROXY_REGISTRY);
 
       const canonicalResolver = await (
@@ -140,9 +140,11 @@ describe('Implementation', function () {
       await mortgageVault.deployed();
 
       comptroller = await (
-        await ethers.getContractFactory('Comptroller')
-      ).deploy(
-        implementation.address,
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).deploy();
+      await comptroller.deployed();
+      await comptroller.initialize(
+        poolImplementation.address,
         assetRouter.address,
         owner.address,
         execFeePercentage,
@@ -151,6 +153,7 @@ describe('Implementation', function () {
         mortgageVault.address,
         valueTolerance
       );
+
       action = await (await ethers.getContractFactory('SimpleAction')).deploy();
       await action.deployed();
 
@@ -166,7 +169,7 @@ describe('Implementation', function () {
         .deploy();
       await shareToken.deployed();
 
-      await implementation
+      await poolImplementation
         .connect(owner)
         .initialize(
           level,
@@ -182,7 +185,7 @@ describe('Implementation', function () {
 
       vault = await ethers.getContractAt(
         'IDSProxy',
-        await implementation.vault()
+        await poolImplementation.vault()
       );
 
       taskExecutor = await (
@@ -202,7 +205,7 @@ describe('Implementation', function () {
   );
 
   async function transferAssetToVault() {
-    await implementation.finalize();
+    await poolImplementation.finalize();
 
     // Transfer asset to vault
     const expectedA = await oracle.calcConversionAmount(
@@ -224,10 +227,10 @@ describe('Implementation', function () {
     await tokenB.connect(tokenBProvider).transfer(vault.address, tokenBAmount);
 
     // Add assets to tracking list
-    await implementation.addAsset(tokenA.address);
-    await implementation.addAsset(tokenB.address);
+    await poolImplementation.addAsset(tokenA.address);
+    await poolImplementation.addAsset(tokenB.address);
 
-    const value = await implementation.getTotalAssetValue();
+    const value = await poolImplementation.getTotalAssetValue();
     expect(value).to.be.eq(expectedA.add(expectedB));
 
     // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
@@ -236,12 +239,12 @@ describe('Implementation', function () {
       .connect(denominationProvider)
       .transfer(vault.address, denominationReserve);
 
-    const totalAssetValue = await implementation.getTotalAssetValue();
-    const currentReserveRatio = denominationReserve
+    const totalAssetValue = await poolImplementation.getTotalAssetValue();
+    const currentReserve = denominationReserve
       .mul(reserveBase)
       .div(totalAssetValue);
 
-    return currentReserveRatio;
+    return currentReserve;
   }
 
   beforeEach(async function () {
@@ -251,58 +254,58 @@ describe('Implementation', function () {
   describe('State changes', function () {
     describe('Initialize', function () {
       it('should set level', async function () {
-        const _level = await implementation.level();
+        const _level = await poolImplementation.level();
         expect(_level).to.be.gt(0);
         expect(_level).to.be.eq(level);
       });
       it('should set comptroller', async function () {
-        const comptrollerAddr = await implementation.comptroller();
+        const comptrollerAddr = await poolImplementation.comptroller();
         expect(comptrollerAddr).to.be.not.eq(constants.AddressZero);
         expect(comptrollerAddr).to.be.eq(comptroller.address);
       });
       it('should set denomination', async function () {
-        const denominationAddr = await implementation.denomination();
+        const denominationAddr = await poolImplementation.denomination();
         expect(denominationAddr).to.be.not.eq(constants.AddressZero);
         expect(denominationAddr).to.be.eq(denomination.address);
       });
       it('should set share token', async function () {
-        const shareTokenAddr = await implementation.shareToken();
+        const shareTokenAddr = await poolImplementation.shareToken();
         expect(shareTokenAddr).to.be.not.eq(constants.AddressZero);
         expect(shareTokenAddr).to.be.eq(shareToken.address);
       });
       it('should set management fee rate', async function () {
-        const feeRate = await implementation.getManagementFeeRate();
+        const feeRate = await poolImplementation.getManagementFeeRate();
         expect(feeRate).to.be.eq(BigNumber.from(FEE_BASE64x64));
       });
       it('should set performance fee rate', async function () {
-        const feeRate = await implementation.getPerformanceFeeRate();
+        const feeRate = await poolImplementation.getPerformanceFeeRate();
         expect(feeRate).to.be.eq(BigNumber.from('1844674407370955161'));
       });
       it('should set crystallization period', async function () {
         const _crystallizationPeriod =
-          await implementation.getCrystallizationPeriod();
+          await poolImplementation.getCrystallizationPeriod();
         expect(_crystallizationPeriod).to.be.gte(CRYSTALLIZATION_PERIOD_MIN);
         expect(_crystallizationPeriod).to.be.eq(crystallizationPeriod);
       });
       it('should set vault', async function () {
-        expect(await implementation.vault()).to.be.not.eq(
+        expect(await poolImplementation.vault()).to.be.not.eq(
           constants.AddressZero
         );
       });
       it('should set owner', async function () {
-        const _owner = await implementation.owner();
+        const _owner = await poolImplementation.owner();
         expect(_owner).to.be.not.eq(constants.AddressZero);
         expect(_owner).to.be.eq(owner.address);
       });
       it('should set mortgage vault', async function () {
         const mortgageVault = await comptroller.mortgageVault();
-        const _mortgageVault = await implementation.mortgageVault();
+        const _mortgageVault = await poolImplementation.mortgageVault();
         expect(_mortgageVault).to.be.not.eq(constants.AddressZero);
         expect(_mortgageVault).to.be.eq(mortgageVault);
       });
       it('should revert: twice initialization', async function () {
         await expect(
-          implementation
+          poolImplementation
             .connect(owner)
             .initialize(
               0,
@@ -321,96 +324,96 @@ describe('Implementation', function () {
 
     describe('Finalize', function () {
       it('should success', async function () {
-        const receipt = await implementation.finalize();
+        const receipt = await poolImplementation.finalize();
         const block = await ethers.provider.getBlock(receipt.blockNumber!);
         const timestamp = BigNumber.from(block.timestamp);
 
         // check add denomication to list
-        expect(await implementation.getAssetList()).to.be.deep.eq([
+        expect(await poolImplementation.getAssetList()).to.be.deep.eq([
           denomination.address,
         ]);
 
         // check management fee initilize
         const lastMFeeClaimTime =
-          await implementation.callStatic.lastMFeeClaimTime();
+          await poolImplementation.callStatic.lastMFeeClaimTime();
         expect(lastMFeeClaimTime).to.be.eq(timestamp);
 
         // check performance fee initilize
         const lastGrossSharePrice =
-          await implementation.callStatic.lastGrossSharePrice64x64();
-        const hwm64x64 = await implementation.callStatic.hwm64x64();
+          await poolImplementation.callStatic.lastGrossSharePrice64x64();
+        const hwm64x64 = await poolImplementation.callStatic.hwm64x64();
         expect(lastGrossSharePrice).to.be.eq(BigNumber.from(FEE_BASE64x64));
         expect(lastGrossSharePrice).to.be.eq(hwm64x64);
 
         // check vault approval
         const allowance = await denomination.allowance(
           vault.address,
-          implementation.address
+          poolImplementation.address
         );
         expect(allowance).to.be.eq(constants.MaxUint256);
       });
 
       it('should revert: finalize by non-owner', async function () {
         await expect(
-          implementation.connect(user).finalize()
+          poolImplementation.connect(user).finalize()
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
         // TODO: replace err msg: Invalid denomination
-        await expect(implementation.finalize()).to.be.revertedWith('');
+        await expect(poolImplementation.finalize()).to.be.revertedWith('');
       });
     });
 
     it('resume', async function () {
-      await implementation.finalize();
-      await implementation.pendMock();
-      await expect(implementation.resume())
-        .to.emit(implementation, 'StateTransited')
+      await poolImplementation.finalize();
+      await poolImplementation.pendMock();
+      await expect(poolImplementation.resume())
+        .to.emit(poolImplementation, 'StateTransited')
         .withArgs(POOL_STATE.EXECUTING);
-      expect(await implementation.getAssetList()).to.be.deep.eq([
+      expect(await poolImplementation.getAssetList()).to.be.deep.eq([
         denomination.address,
       ]);
-      expect(await implementation.pendingStartTime()).to.be.eq(0);
+      expect(await poolImplementation.pendingStartTime()).to.be.eq(0);
     });
 
     describe('Liquidate', function () {
       it('liquidate', async function () {
-        await implementation.finalize();
-        await implementation.pendMock();
+        await poolImplementation.finalize();
+        await poolImplementation.pendMock();
         await network.provider.send('evm_increaseTime', [pendingExpiration]);
-        await expect(implementation.liquidate())
-          .to.emit(implementation, 'StateTransited')
+        await expect(poolImplementation.liquidate())
+          .to.emit(poolImplementation, 'StateTransited')
           .withArgs(POOL_STATE.LIQUIDATING)
-          .to.emit(implementation, 'OwnershipTransferred')
+          .to.emit(poolImplementation, 'OwnershipTransferred')
           .withArgs(owner.address, liquidator.address);
-        expect(await implementation.pendingStartTime()).to.be.eq(0);
+        expect(await poolImplementation.pendingStartTime()).to.be.eq(0);
       });
 
       it('liquidate by user', async function () {
-        await implementation.finalize();
-        await implementation.pendMock();
+        await poolImplementation.finalize();
+        await poolImplementation.pendMock();
         await network.provider.send('evm_increaseTime', [pendingExpiration]);
-        await expect(implementation.connect(user).liquidate())
-          .to.emit(implementation, 'StateTransited')
+        await expect(poolImplementation.connect(user).liquidate())
+          .to.emit(poolImplementation, 'StateTransited')
           .withArgs(POOL_STATE.LIQUIDATING)
-          .to.emit(implementation, 'OwnershipTransferred')
+          .to.emit(poolImplementation, 'OwnershipTransferred')
           .withArgs(owner.address, liquidator.address);
       });
 
       it('should revert: pending does not start', async function () {
-        await implementation.finalize();
-        await expect(implementation.liquidate()).to.be.revertedWith(
+        await poolImplementation.finalize();
+        await expect(poolImplementation.liquidate()).to.be.revertedWith(
           // TODO: replace err msg: Pending does not start
           ''
         );
       });
 
       it('should revert: pending does not expire', async function () {
-        await implementation.finalize();
-        await implementation.pendMock();
-        await expect(implementation.liquidate()).to.be.revertedWith(
+        await poolImplementation.finalize();
+        await poolImplementation.pendMock();
+        await expect(poolImplementation.liquidate()).to.be.revertedWith(
           // TODO: replace err msg: Pending does not expire
           ''
         );
@@ -419,23 +422,23 @@ describe('Implementation', function () {
 
     describe('Close', function () {
       it('close when executing', async function () {
-        await implementation.finalize();
-        await expect(implementation.close())
-          .to.emit(implementation, 'StateTransited')
+        await poolImplementation.finalize();
+        await expect(poolImplementation.close())
+          .to.emit(poolImplementation, 'StateTransited')
           .withArgs(POOL_STATE.CLOSED);
       });
 
       it('should revert: close by non-owner', async function () {
-        await expect(implementation.connect(user).close()).to.be.revertedWith(
-          'Ownable: caller is not the owner'
-        );
+        await expect(
+          poolImplementation.connect(user).close()
+        ).to.be.revertedWith('Ownable: caller is not the owner');
       });
     });
   });
 
   describe('Asset module', function () {
     beforeEach(async function () {
-      await implementation.finalize();
+      await poolImplementation.finalize();
     });
 
     describe('add asset', function () {
@@ -449,8 +452,8 @@ describe('Implementation', function () {
           .transfer(vault.address, tokenAAmount);
 
         // Add asset
-        await implementation.addAsset(tokenA.address);
-        expect(await implementation.getAssetList()).to.be.deep.eq([
+        await poolImplementation.addAsset(tokenA.address);
+        expect(await poolImplementation.getAssetList()).to.be.deep.eq([
           denomination.address,
           tokenA.address,
         ]);
@@ -468,12 +471,12 @@ describe('Implementation', function () {
           .connect(tokenAProvider)
           .transfer(vault.address, dustAmount);
 
-        expect(await implementation.getAssetValue(tokenA.address)).to.be.eq(
+        expect(await poolImplementation.getAssetValue(tokenA.address)).to.be.eq(
           denominationDust
         );
 
-        await implementation.addAsset(tokenA.address);
-        expect(await implementation.getAssetList()).to.be.deep.eq([
+        await poolImplementation.addAsset(tokenA.address);
+        expect(await poolImplementation.getAssetList()).to.be.deep.eq([
           denomination.address,
           tokenA.address,
         ]);
@@ -484,29 +487,29 @@ describe('Implementation', function () {
         await tokenC
           .connect(tokenCProvider)
           .transfer(vault.address, BigNumber.from('1'));
-        await implementation.addAsset(tokenC.address);
-        expect(await implementation.getAssetList()).to.deep.include(
+        await poolImplementation.addAsset(tokenC.address);
+        expect(await poolImplementation.getAssetList()).to.deep.include(
           tokenC.address
         );
       });
 
       it('should revert: add by non-owner', async function () {
         await expect(
-          implementation.connect(user).addAsset(tokenA.address)
+          poolImplementation.connect(user).addAsset(tokenA.address)
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('should revert: asset is not permitted', async function () {
         await expect(
-          implementation.addAsset(tokenA.address)
+          poolImplementation.addAsset(tokenA.address)
           // TODO: replace err msg: Invalid asset
         ).to.be.revertedWith('');
       });
 
       it('can not be added: zero balance of asset', async function () {
         await comptroller.permitAssets(level, [tokenA.address]);
-        await implementation.addAsset(tokenA.address);
-        expect(await implementation.getAssetList()).to.not.include(
+        await poolImplementation.addAsset(tokenA.address);
+        expect(await poolImplementation.getAssetList()).to.not.include(
           tokenA.address
         );
       });
@@ -523,8 +526,8 @@ describe('Implementation', function () {
           .connect(tokenAProvider)
           .transfer(vault.address, dustAmount);
 
-        await implementation.addAsset(tokenA.address);
-        expect(await implementation.getAssetList()).to.not.include(
+        await poolImplementation.addAsset(tokenA.address);
+        expect(await poolImplementation.getAssetList()).to.not.include(
           tokenA.address
         );
       });
@@ -552,9 +555,9 @@ describe('Implementation', function () {
           .transfer(vault.address, denominationDust.mul(2));
 
         // Add asset
-        await implementation.addAsset(tokenA.address);
-        await implementation.addAsset(tokenC.address);
-        await implementation.addAsset(denomination.address);
+        await poolImplementation.addAsset(tokenA.address);
+        await poolImplementation.addAsset(tokenC.address);
+        await poolImplementation.addAsset(denomination.address);
       });
 
       it('normal', async function () {
@@ -564,9 +567,9 @@ describe('Implementation', function () {
           owner.address,
           amount,
         ]);
-        await implementation.vaultCallMock(tokenA.address, data);
-        await implementation.removeAsset(tokenA.address);
-        expect(await implementation.getAssetList()).to.not.include(
+        await poolImplementation.vaultCallMock(tokenA.address, data);
+        await poolImplementation.removeAsset(tokenA.address);
+        expect(await poolImplementation.getAssetList()).to.not.include(
           tokenA.address
         );
       });
@@ -583,37 +586,37 @@ describe('Implementation', function () {
           owner.address,
           tokenAAmount.sub(dustAmount.div(2)),
         ]);
-        await implementation.vaultCallMock(tokenA.address, data);
-        await implementation.removeAsset(tokenA.address);
+        await poolImplementation.vaultCallMock(tokenA.address, data);
+        await poolImplementation.removeAsset(tokenA.address);
 
-        expect(await implementation.getAssetList()).to.not.include(
+        expect(await poolImplementation.getAssetList()).to.not.include(
           tokenA.address
         );
       });
 
       it('should revert: remove by non-owner', async function () {
         await expect(
-          implementation.connect(user).removeAsset(tokenA.address)
+          poolImplementation.connect(user).removeAsset(tokenA.address)
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('can not be removed: balance of asset > dust ', async function () {
-        await implementation.removeAsset(tokenA.address);
-        expect(await implementation.getAssetList()).to.deep.include(
+        await poolImplementation.removeAsset(tokenA.address);
+        expect(await poolImplementation.getAssetList()).to.deep.include(
           tokenA.address
         );
       });
 
       it('can not be removed: denomination', async function () {
-        await implementation.removeAsset(denomination.address);
-        expect(await implementation.getAssetList()).to.deep.include(
+        await poolImplementation.removeAsset(denomination.address);
+        expect(await poolImplementation.getAssetList()).to.deep.include(
           denomination.address
         );
       });
 
       it('can not be removed: debt < zero', async function () {
-        await implementation.removeAsset(tokenC.address);
-        expect(await implementation.getAssetList()).to.deep.include(
+        await poolImplementation.removeAsset(tokenC.address);
+        expect(await poolImplementation.getAssetList()).to.deep.include(
           tokenC.address
         );
       });
@@ -624,8 +627,8 @@ describe('Implementation', function () {
     const valueBefore = ethers.utils.parseEther('1');
     let actionData, executionData: any;
     beforeEach(async function () {
-      await implementation.finalize();
-      await implementation.setLastTotalAssetValue(valueBefore);
+      await poolImplementation.finalize();
+      await poolImplementation.setLastTotalAssetValue(valueBefore);
       actionData = getCallData(action, 'fooAddress', []);
       executionData = getCallData(taskExecutor, 'batchExec', [
         [],
@@ -635,7 +638,7 @@ describe('Implementation', function () {
         [actionData],
       ]);
       await comptroller.permitDelegateCalls(
-        await implementation.level(),
+        await poolImplementation.level(),
         [action.address],
         [WL_ANY_SIG]
       );
@@ -643,18 +646,18 @@ describe('Implementation', function () {
 
     it('should success', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
-      await implementation.setTotalAssetValueMock(valueCurrent);
-      await implementation.execute(executionData);
+      await poolImplementation.setTotalAssetValueMock(valueCurrent);
+      await poolImplementation.execute(executionData);
     });
 
     it('should revert when exceed tolerance', async function () {
       const valueCurrent = valueBefore
         .mul(valueTolerance - 1)
         .div(TOLERANCE_BASE);
-      await implementation.setTotalAssetValueMock(valueCurrent);
-      await expect(implementation.execute(executionData)).to.be.revertedWith(
-        ''
-      );
+      await poolImplementation.setTotalAssetValueMock(valueCurrent);
+      await expect(
+        poolImplementation.execute(executionData)
+      ).to.be.revertedWith('');
     });
   });
 
@@ -662,26 +665,28 @@ describe('Implementation', function () {
     describe('Denomination', function () {
       it('set denomination', async function () {
         await comptroller.permitDenominations([tokenA.address], [tokenAAmount]);
-        await implementation.setDenomination(tokenA.address);
-        expect(await implementation.denomination()).to.be.eq(tokenA.address);
+        await poolImplementation.setDenomination(tokenA.address);
+        expect(await poolImplementation.denomination()).to.be.eq(
+          tokenA.address
+        );
       });
 
       it('should revert: set denomination at wrong stage', async function () {
-        await implementation.finalize();
+        await poolImplementation.finalize();
         await expect(
-          implementation.setDenomination(tokenA.address)
+          poolImplementation.setDenomination(tokenA.address)
         ).to.be.revertedWith('InvalidState(2)');
       });
 
       it('should revert: set by non-owner', async function () {
         await expect(
-          implementation.connect(user).setDenomination(tokenA.address)
+          poolImplementation.connect(user).setDenomination(tokenA.address)
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('should revert: set by zero address', async function () {
         await expect(
-          implementation.setDenomination(constants.AddressZero)
+          poolImplementation.setDenomination(constants.AddressZero)
           // TODO: replace err msg: Invalid denomination
         ).to.be.revertedWith('');
       });
@@ -691,29 +696,29 @@ describe('Implementation', function () {
       const feeRate = BigNumber.from('1000');
 
       it('set management fee rate', async function () {
-        await implementation.setManagementFeeRate(feeRate);
-        expect(await implementation.getManagementFeeRate()).to.be.eq(
+        await poolImplementation.setManagementFeeRate(feeRate);
+        expect(await poolImplementation.getManagementFeeRate()).to.be.eq(
           BigNumber.from('18446744135297203117')
         );
       });
 
       it('should revert: set management fee rate at wrong stage', async function () {
-        await implementation.finalize();
+        await poolImplementation.finalize();
         await expect(
-          implementation.setManagementFeeRate(feeRate)
+          poolImplementation.setManagementFeeRate(feeRate)
         ).to.be.revertedWith('InvalidState(2)');
       });
 
       it('should revert: set by non-owner', async function () {
         await expect(
-          implementation.connect(user).setManagementFeeRate(feeRate)
+          poolImplementation.connect(user).setManagementFeeRate(feeRate)
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('should revert: set by max value', async function () {
         const maxRate = 1e4;
         await expect(
-          implementation.setManagementFeeRate(maxRate)
+          poolImplementation.setManagementFeeRate(maxRate)
           // TODO: replace err msg: fee rate should be less than 100%
         ).to.be.revertedWith('');
       });
@@ -723,27 +728,27 @@ describe('Implementation', function () {
       const feeRate = 0;
 
       it('set performance fee rate', async function () {
-        await implementation.setPerformanceFeeRate(feeRate);
-        expect(await implementation.getPerformanceFeeRate()).to.be.eq(0);
+        await poolImplementation.setPerformanceFeeRate(feeRate);
+        expect(await poolImplementation.getPerformanceFeeRate()).to.be.eq(0);
       });
 
       it('should revert: set performance fee rate at wrong stage', async function () {
-        await implementation.finalize();
+        await poolImplementation.finalize();
         await expect(
-          implementation.setPerformanceFeeRate(feeRate)
+          poolImplementation.setPerformanceFeeRate(feeRate)
         ).to.be.revertedWith('InvalidState(2)');
       });
 
       it('should revert: set by non-owner', async function () {
         await expect(
-          implementation.connect(user).setPerformanceFeeRate(feeRate)
+          poolImplementation.connect(user).setPerformanceFeeRate(feeRate)
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('should revert: set by max value', async function () {
         const maxRate = 1e4;
         await expect(
-          implementation.setPerformanceFeeRate(maxRate)
+          poolImplementation.setPerformanceFeeRate(maxRate)
           // TODO: replace err msg: fee rate should be less than 100%
         ).to.be.revertedWith('');
       });
@@ -753,29 +758,29 @@ describe('Implementation', function () {
       const period = CRYSTALLIZATION_PERIOD_MIN + 1000;
 
       it('set crystallization period', async function () {
-        await implementation.setCrystallizationPeriod(period);
-        expect(await implementation.getCrystallizationPeriod()).to.be.eq(
+        await poolImplementation.setCrystallizationPeriod(period);
+        expect(await poolImplementation.getCrystallizationPeriod()).to.be.eq(
           period
         );
       });
 
       it('should revert: set crystallization period at wrong stage', async function () {
-        await implementation.finalize();
+        await poolImplementation.finalize();
         await expect(
-          implementation.setCrystallizationPeriod(period)
+          poolImplementation.setCrystallizationPeriod(period)
         ).to.be.revertedWith('InvalidState(2)');
       });
 
       it('should revert: set by non-owner', async function () {
         await expect(
-          implementation.connect(user).setCrystallizationPeriod(period)
+          poolImplementation.connect(user).setCrystallizationPeriod(period)
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('should revert: set by too short period', async function () {
         const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
         await expect(
-          implementation.setCrystallizationPeriod(shortPeriod)
+          poolImplementation.setCrystallizationPeriod(shortPeriod)
           // TODO: replace err msg: Crystallization period too short
         ).to.be.revertedWith('');
       });
@@ -783,22 +788,22 @@ describe('Implementation', function () {
 
     describe('Reserve Execution', function () {
       it('set reserve execution', async function () {
-        await implementation.setReserveExecutionRatio(denominationDust);
-        expect(await implementation.reserveExecutionRatio()).to.be.eq(
+        await poolImplementation.setReserveExecutionRatio(denominationDust);
+        expect(await poolImplementation.reserveExecutionRatio()).to.be.eq(
           denominationDust
         );
       });
 
       it('should revert: set reserve execution at wrong stage', async function () {
-        await implementation.finalize();
+        await poolImplementation.finalize();
         await expect(
-          implementation.setReserveExecutionRatio(denominationDust)
+          poolImplementation.setReserveExecutionRatio(denominationDust)
         ).to.be.revertedWith('InvalidState(2)');
       });
 
       it('should revert: set by non-owner', async function () {
         await expect(
-          implementation
+          poolImplementation
             .connect(user)
             .setReserveExecutionRatio(denominationDust)
         ).to.be.revertedWith('Ownable: caller is not the owner');
@@ -808,7 +813,7 @@ describe('Implementation', function () {
 
   describe('Getters', function () {
     beforeEach(async function () {
-      await implementation.finalize();
+      await poolImplementation.finalize();
     });
 
     it('get asset total value', async function () {
@@ -836,15 +841,15 @@ describe('Implementation', function () {
         .transfer(vault.address, tokenBAmount);
 
       // Add assets to tracking list
-      await implementation.addAsset(tokenA.address);
-      await implementation.addAsset(tokenB.address);
+      await poolImplementation.addAsset(tokenA.address);
+      await poolImplementation.addAsset(tokenB.address);
 
-      const value = await implementation.getTotalAssetValue();
+      const value = await poolImplementation.getTotalAssetValue();
       expect(value).to.be.eq(expectedA.add(expectedB));
     });
 
     it('zero total value', async function () {
-      expect(await implementation.getTotalAssetValue()).to.be.eq(0);
+      expect(await poolImplementation.getTotalAssetValue()).to.be.eq(0);
     });
   });
 
@@ -853,34 +858,38 @@ describe('Implementation', function () {
 
     beforeEach(async function () {
       currentReserveRatio = await transferAssetToVault();
-      implementation.reviewingMock();
+      poolImplementation.reviewingMock();
     });
 
     it('reserve is totally enough', async function () {
-      await implementation.setReserveExecutionRatio(100); // 1%
-      expect(await implementation.isReserveEnough()).to.be.eq(true);
+      await poolImplementation.setReserveExecutionRatio(100); // 1%
+      expect(await poolImplementation.isReserveEnough()).to.be.eq(true);
     });
 
     it('reserve is a little bit more than setting', async function () {
-      await implementation.setReserveExecutionRatio(currentReserveRatio.sub(5)); // reserveExecution is 0.05% below currentReserve
-      expect(await implementation.isReserveEnough()).to.be.eq(true);
+      await poolImplementation.setReserveExecutionRatio(
+        currentReserveRatio.sub(5)
+      ); // reserveExecution is 0.05% below currentReserve
+      expect(await poolImplementation.isReserveEnough()).to.be.eq(true);
     });
 
     it('reserve is totally not enough', async function () {
-      await implementation.setReserveExecutionRatio(1500); // 15%
-      expect(await implementation.isReserveEnough()).to.be.eq(false);
+      await poolImplementation.setReserveExecutionRatio(1500); // 15%
+      expect(await poolImplementation.isReserveEnough()).to.be.eq(false);
     });
 
     it('reserve is a little bit less than setting', async function () {
-      await implementation.setReserveExecutionRatio(currentReserveRatio.add(5)); // reserveExecution is 0.05% above currentReserve
-      expect(await implementation.isReserveEnough()).to.be.eq(false);
+      await poolImplementation.setReserveExecutionRatio(
+        currentReserveRatio.add(5)
+      ); // reserveExecution is 0.05% above currentReserve
+      expect(await poolImplementation.isReserveEnough()).to.be.eq(false);
     });
   });
 
   describe('Settle pending', function () {
     beforeEach(async function () {
-      await implementation.finalize();
-      const currentReserve = await implementation.getReserve();
+      await poolImplementation.finalize();
+      const currentReserve = await poolImplementation.getReserve();
 
       const redeemAmount = currentReserve.add(mwei('500'));
       await denomination
@@ -888,16 +897,18 @@ describe('Implementation', function () {
         .transfer(owner.address, redeemAmount.mul(2)); // Transfer more to owner
 
       // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
-      await implementation.setTotalAssetValueMock(mwei('5000'));
-      await denomination.connect(owner).approve(implementation.address, 500);
-      await implementation.purchase(500);
+      await poolImplementation.setTotalAssetValueMock(mwei('5000'));
+      await denomination
+        .connect(owner)
+        .approve(poolImplementation.address, 500);
+      await poolImplementation.purchase(500);
 
       // Make fund go to RedemptionPending state
-      const redeemShare = await implementation.calculateShare(redeemAmount);
+      const redeemShare = await poolImplementation.calculateShare(redeemAmount);
       await shareToken.transfer(owner.address, redeemShare);
-      await implementation.redeem(redeemShare, true);
+      await poolImplementation.redeem(redeemShare, true);
 
-      expect(await implementation.state()).to.be.eq(
+      expect(await poolImplementation.state()).to.be.eq(
         POOL_STATE.REDEMPTION_PENDING
       );
 
@@ -925,14 +936,14 @@ describe('Implementation', function () {
 
       // Permit delegate calls
       await comptroller.permitDelegateCalls(
-        await implementation.level(),
+        await poolImplementation.level(),
         [fooAction.address],
         [WL_ANY_SIG]
       );
-      await expect(await implementation.execute(data))
-        .to.emit(implementation, 'Redeemed')
+      await expect(await poolImplementation.execute(data))
+        .to.emit(poolImplementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
-      expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
+      expect(await poolImplementation.state()).to.be.eq(POOL_STATE.EXECUTING);
     });
 
     it('resolve RedemptionPending state after purchase', async function () {
@@ -940,28 +951,28 @@ describe('Implementation', function () {
       const purchaseAmount = mwei('1');
       await denomination
         .connect(owner)
-        .approve(implementation.address, purchaseAmount);
+        .approve(poolImplementation.address, purchaseAmount);
 
-      await expect(implementation.purchase(purchaseAmount))
-        .to.emit(implementation, 'Redeemed')
-        .to.emit(implementation, 'Purchased');
-      expect(await implementation.state()).to.be.eq(POOL_STATE.EXECUTING);
+      await expect(poolImplementation.purchase(purchaseAmount))
+        .to.emit(poolImplementation, 'Redeemed')
+        .to.emit(poolImplementation, 'Purchased');
+      expect(await poolImplementation.state()).to.be.eq(POOL_STATE.EXECUTING);
     });
 
     it('settle pending when close', async function () {
       // Go to liquidating state
       await increaseNextBlockTimeBy(pendingExpiration);
-      await expect(implementation.liquidate())
-        .to.emit(implementation, 'StateTransited')
+      await expect(poolImplementation.liquidate())
+        .to.emit(poolImplementation, 'StateTransited')
         .withArgs(4)
-        .to.emit(implementation, 'OwnershipTransferred')
+        .to.emit(poolImplementation, 'OwnershipTransferred')
         .withArgs(owner.address, liquidator.address);
 
       // Close
-      await expect(await implementation.connect(liquidator).close())
-        .to.emit(implementation, 'StateTransited')
+      await expect(await poolImplementation.connect(liquidator).close())
+        .to.emit(poolImplementation, 'StateTransited')
         .withArgs(POOL_STATE.CLOSED)
-        .to.emit(implementation, 'Redeemed')
+        .to.emit(poolImplementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
     });
   });

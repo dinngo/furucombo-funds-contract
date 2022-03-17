@@ -13,9 +13,9 @@ import {
   HFunds,
   AFurucombo,
   TaskExecutor,
-  Comptroller,
+  ComptrollerImplementation,
   PoolProxyFactory,
-  Implementation,
+  PoolImplementation,
   ShareToken,
   IUniswapV2Router02,
 } from '../../typechain';
@@ -111,10 +111,10 @@ describe('PoolExecuteStrategy', function () {
   let assetRegistry: AssetRegistry;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
-  let implementation: Implementation;
-  let comptroller: Comptroller;
+  let implementation: PoolImplementation;
+  let comptroller: ComptrollerImplementation;
   let poolProxyFactory: PoolProxyFactory;
-  let poolProxy: Implementation;
+  let poolProxy: PoolImplementation;
   let poolVault: string;
 
   let quickRouter: IUniswapV2Router02;

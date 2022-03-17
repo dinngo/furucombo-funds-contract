@@ -2,8 +2,11 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
-  Comptroller,
-  Implementation,
+  ComptrollerImplementation,
+  ComptrollerProxy,
+  ComptrollerProxyAdmin,
+  UpgradeableBeacon,
+  PoolImplementation,
   AssetRouter,
   MortgageVault,
   TaskExecutor,
@@ -16,8 +19,12 @@ import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
 describe('Comptroller', function () {
-  let comptroller: Comptroller;
-  let implementation: Implementation;
+  let comptrollerImplementation: ComptrollerImplementation;
+  let comptrollerProxy: ComptrollerProxy;
+  let comptrollerProxyAdmin: ComptrollerProxyAdmin;
+  let comptroller: ComptrollerImplementation;
+  let beacon: UpgradeableBeacon;
+  let poolImplementation: PoolImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
@@ -48,10 +55,10 @@ describe('Comptroller', function () {
         .deploy();
       await tokenD.deployed();
 
-      implementation = await (
-        await ethers.getContractFactory('Implementation')
+      poolImplementation = await (
+        await ethers.getContractFactory('PoolImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await implementation.deployed();
+      await poolImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -71,19 +78,45 @@ describe('Comptroller', function () {
       ).deploy(tokenM.address);
       await mortgageVault.deployed();
 
-      comptroller = await (
-        await ethers.getContractFactory('Comptroller')
-      ).deploy(
-        implementation.address,
-        assetRouter.address,
-        collector.address,
-        0,
-        liquidator.address,
-        0,
-        mortgageVault.address,
-        0
+      comptrollerImplementation = await (
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).deploy();
+      await comptrollerImplementation.deployed();
+
+      const compData = comptrollerImplementation.interface.encodeFunctionData(
+        'initialize',
+        [
+          poolImplementation.address,
+          assetRouter.address,
+          collector.address,
+          0,
+          liquidator.address,
+          0,
+          mortgageVault.address,
+          0,
+        ]
       );
-      await comptroller.deployed();
+
+      comptrollerProxy = await (
+        await ethers.getContractFactory('ComptrollerProxy')
+      ).deploy(comptrollerImplementation.address, compData);
+      await comptrollerProxy.deployed();
+      const receiptAdmin = comptrollerProxy.deployTransaction;
+      const args = await getEventArgs(receiptAdmin, 'AdminChanged');
+
+      comptrollerProxyAdmin = await (
+        await ethers.getContractFactory('ComptrollerProxyAdmin')
+      ).attach(args.newAdmin);
+
+      comptroller = await (
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).attach(comptrollerProxy.address);
+
+      const beaconAddress = await comptroller.callStatic.beacon();
+
+      beacon = await (
+        await ethers.getContractFactory('UpgradeableBeacon')
+      ).attach(beaconAddress);
 
       taskExecutor = await (
         await ethers.getContractFactory('TaskExecutor')
@@ -109,7 +142,7 @@ describe('Comptroller', function () {
       // check env before execution
       expect(await comptroller.fHalt()).to.equal(false);
       expect(await comptroller.implementation()).to.equal(
-        implementation.address
+        poolImplementation.address
       );
 
       // halt
@@ -132,7 +165,7 @@ describe('Comptroller', function () {
       await expect(comptroller.unHalt()).to.emit(comptroller, 'UnHalted');
       expect(await comptroller.fHalt()).to.equal(false);
       expect(await comptroller.implementation()).to.equal(
-        implementation.address
+        poolImplementation.address
       );
     });
 
@@ -153,15 +186,15 @@ describe('Comptroller', function () {
   describe('Ban proxy', function () {
     it('ban ', async function () {
       // check env before execution
-      expect(await comptroller.bannedProxy(user.address)).to.equal(false);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(false);
 
       // ban proxy
-      await expect(comptroller.banProxy(user.address))
-        .to.emit(comptroller, 'ProxyBanned')
+      await expect(comptroller.banPoolProxy(user.address))
+        .to.emit(comptroller, 'PoolProxyBanned')
         .withArgs(user.address);
 
       // verify banned proxy
-      expect(await comptroller.bannedProxy(user.address)).to.equal(true);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(true);
       await expect(
         comptroller.connect(user).implementation()
       ).to.be.revertedWith('Comptroller: Banned');
@@ -169,30 +202,30 @@ describe('Comptroller', function () {
 
     it('unBan ', async function () {
       // check env before execution
-      await comptroller.banProxy(user.address);
-      expect(await comptroller.bannedProxy(user.address)).to.equal(true);
+      await comptroller.banPoolProxy(user.address);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(true);
 
       // unban proxy
-      await expect(comptroller.unBanProxy(user.address))
-        .to.emit(comptroller, 'ProxyUnbanned')
+      await expect(comptroller.unbanPoolProxy(user.address))
+        .to.emit(comptroller, 'PoolProxyUnbanned')
         .withArgs(user.address);
 
       // verify unbanned proxy
-      expect(await comptroller.bannedProxy(user.address)).to.equal(false);
+      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(false);
       expect(await comptroller.connect(user).implementation()).to.be.equal(
-        implementation.address
+        poolImplementation.address
       );
     });
 
     it('should revert: ban by non-owner', async function () {
       await expect(
-        comptroller.connect(user).banProxy(user.address)
+        comptroller.connect(user).banPoolProxy(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert: unBan by non-owner', async function () {
       await expect(
-        comptroller.connect(user).unBanProxy(user.address)
+        comptroller.connect(user).unbanPoolProxy(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
@@ -202,18 +235,18 @@ describe('Comptroller', function () {
     it('set implementation', async function () {
       // check env before execution
       expect(await comptroller.connect(user).implementation()).to.be.equal(
-        implementation.address
+        poolImplementation.address
       );
 
       // deploy new implementation
       const newImpl = await (
-        await ethers.getContractFactory('Implementation')
+        await ethers.getContractFactory('PoolImplementation')
       ).deploy(DS_PROXY_REGISTRY);
       await newImpl.deployed();
 
       // set new implementation
-      await expect(comptroller.upgradeTo(newImpl.address))
-        .to.emit(comptroller, 'Upgraded')
+      await expect(beacon.upgradeTo(newImpl.address))
+        .to.emit(beacon, 'Upgraded')
         .withArgs(newImpl.address);
 
       // check new implementation
@@ -224,7 +257,7 @@ describe('Comptroller', function () {
 
     it('should revert: set implementation by non-owner', async function () {
       await expect(
-        comptroller.connect(user).upgradeTo(implementation.address)
+        beacon.connect(user).upgradeTo(poolImplementation.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
@@ -767,6 +800,37 @@ describe('Comptroller', function () {
       await expect(
         comptroller.setExecAction(constants.AddressZero)
       ).to.be.revertedWith('Comptroller: Zero address');
+    });
+  });
+
+  describe('Comptroller Proxy', function () {
+    describe('Upgrade implementation', function () {
+      let newImplementation: ComptrollerImplementation;
+
+      beforeEach(async function () {
+        newImplementation = await (
+          await ethers.getContractFactory('ComptrollerImplementation')
+        ).deploy();
+        await newImplementation.deployed();
+      });
+
+      it('normal', async function () {
+        expect(
+          await comptrollerProxyAdmin.callStatic.getProxyImplementation()
+        ).to.be.eq(comptrollerImplementation.address);
+        await expect(comptrollerProxyAdmin.upgrade(newImplementation.address))
+          .to.emit(comptrollerProxy, 'Upgraded')
+          .withArgs(newImplementation.address);
+        expect(
+          await comptrollerProxyAdmin.callStatic.getProxyImplementation()
+        ).to.be.eq(newImplementation.address);
+      });
+
+      it('should revert: send by non owner', async function () {
+        await expect(
+          comptrollerProxyAdmin.connect(user).upgrade(newImplementation.address)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
     });
   });
 });

@@ -95,25 +95,39 @@ export async function deployComptrollerAndPoolProxyFactory(
   mortgageVaultAddress: string,
   totalAssetValueTolerance: number
 ): Promise<any> {
-  const implementation = await (
-    await ethers.getContractFactory('Implementation')
+  const poolImplementation = await (
+    await ethers.getContractFactory('PoolImplementation')
   ).deploy(dsProxyRegistry);
-  await implementation.deployed();
+  await poolImplementation.deployed();
 
   // comptroller
-  const comptroller = await (
-    await ethers.getContractFactory('Comptroller')
-  ).deploy(
-    implementation.address,
-    assetRouterAddress,
-    collectorAddress,
-    execFeePercentage,
-    liquidatorAddress,
-    pendingExpiration,
-    mortgageVaultAddress,
-    totalAssetValueTolerance
+  const comptrollerImplementation = await (
+    await ethers.getContractFactory('ComptrollerImplementation')
+  ).deploy();
+  await comptrollerImplementation.deployed();
+
+  const compData = comptrollerImplementation.interface.encodeFunctionData(
+    'initialize',
+    [
+      poolImplementation.address,
+      assetRouterAddress,
+      collectorAddress,
+      execFeePercentage,
+      liquidatorAddress,
+      pendingExpiration,
+      mortgageVaultAddress,
+      totalAssetValueTolerance,
+    ]
   );
-  await comptroller.deployed();
+
+  const comptrollerProxy = await (
+    await ethers.getContractFactory('ComptrollerProxy')
+  ).deploy(comptrollerImplementation.address, compData);
+  await comptrollerProxy.deployed();
+
+  const comptroller = await (
+    await ethers.getContractFactory('ComptrollerImplementation')
+  ).attach(comptrollerProxy.address);
 
   // PoolProxyFactory
   const poolProxyFactory = await (
@@ -121,7 +135,7 @@ export async function deployComptrollerAndPoolProxyFactory(
   ).deploy(comptroller.address);
   await poolProxyFactory.deployed();
 
-  return [implementation, comptroller, poolProxyFactory];
+  return [poolImplementation, comptroller, poolProxyFactory];
 }
 
 export async function createPoolProxy(
@@ -149,7 +163,7 @@ export async function createPoolProxy(
   const eventArgs = await getEventArgs(receipt, 'PoolCreated');
   console.log('args.newPool', eventArgs.newPool);
   const poolProxy = await ethers.getContractAt(
-    'Implementation',
+    'PoolImplementation',
     eventArgs.newPool
   );
   return poolProxy;

@@ -2,11 +2,13 @@
 pragma solidity 0.8.12;
 
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Whitelist} from "./libraries/Whitelist.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
+import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
-contract Comptroller is UpgradeableBeacon {
+contract ComptrollerImplementation is Ownable, IComptroller {
     using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
     using Whitelist for Whitelist.CreatorWList;
@@ -25,23 +27,24 @@ contract Comptroller is UpgradeableBeacon {
     uint256 public execFeePercentage;
     address public pendingLiquidator;
     uint256 public pendingExpiration;
-    IAssetRouter public assetRouter;
-    IMortgageVault public mortgageVault;
     uint256 public pendingRedemptionPenalty;
     // base = 1e4
     uint256 public execAssetValueToleranceRate;
+    IAssetRouter public assetRouter;
+    IMortgageVault public mortgageVault;
+    UpgradeableBeacon public beacon;
 
     // Map
     mapping(address => DenominationConfig) public denomination;
-    mapping(address => bool) public bannedProxy;
+    mapping(address => bool) public bannedPoolProxy;
     mapping(uint256 => uint256) public stakedTier;
 
     // ACL
-    Whitelist.CreatorWList private creatorACL;
-    Whitelist.AssetWList private assetACL;
-    Whitelist.ActionWList private delegateCallACL;
-    Whitelist.ActionWList private contractCallACL;
-    Whitelist.ActionWList private handlerCallACL;
+    Whitelist.CreatorWList private _creatorACL;
+    Whitelist.AssetWList private _assetACL;
+    Whitelist.ActionWList private _delegateCallACL;
+    Whitelist.ActionWList private _contractCallACL;
+    Whitelist.ActionWList private _handlerCallACL;
 
     // Event
     event Halted();
@@ -52,8 +55,8 @@ contract Comptroller is UpgradeableBeacon {
     event SetPendingExpiration(uint256 expiration);
     event SetExecAssetValuetoleranceRate(uint256 tolerance);
     event SetInitialAssetCheck(bool indexed check);
-    event ProxyBanned(address indexed proxy);
-    event ProxyUnbanned(address indexed proxy);
+    event PoolProxyBanned(address indexed poolProxy);
+    event PoolProxyUnbanned(address indexed poolProxy);
     event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
     event SetDenominationDust(uint256 amount);
@@ -93,8 +96,8 @@ contract Comptroller is UpgradeableBeacon {
         _;
     }
 
-    modifier onlyUnbannedProxy() {
-        require(!bannedProxy[msg.sender], "Comptroller: Banned");
+    modifier onlyUnbannedPoolProxy() {
+        require(!bannedPoolProxy[msg.sender], "Comptroller: Banned");
         _;
     }
 
@@ -104,7 +107,7 @@ contract Comptroller is UpgradeableBeacon {
     }
 
     // Public Function
-    constructor(
+    function initialize(
         address implementation_,
         IAssetRouter assetRouter_,
         address execFeeCollector_,
@@ -113,7 +116,8 @@ contract Comptroller is UpgradeableBeacon {
         uint256 pendingExpiration_,
         IMortgageVault mortgageVault_,
         uint256 execAssetValueToleranceRate_
-    ) UpgradeableBeacon(implementation_) {
+    ) external {
+        require(address(beacon) == address(0));
         assetRouter = assetRouter_;
         mortgageVault = mortgageVault_;
         execFeeCollector = execFeeCollector_;
@@ -123,17 +127,28 @@ contract Comptroller is UpgradeableBeacon {
         execAssetValueToleranceRate = execAssetValueToleranceRate_;
         fInitialAssetCheck = true;
         pendingRedemptionPenalty = 100;
+        _transferOwnership(msg.sender);
+        beacon = new UpgradeableBeacon(implementation_);
+        beacon.transferOwnership(msg.sender);
     }
 
     function implementation()
         public
         view
-        override
         onlyUnHalted
-        onlyUnbannedProxy
+        onlyUnbannedPoolProxy
         returns (address)
     {
-        return UpgradeableBeacon.implementation();
+        return beacon.implementation();
+    }
+
+    function owner()
+        public
+        view
+        override(Ownable, IComptroller)
+        returns (address)
+    {
+        return Ownable.owner();
     }
 
     // Halt
@@ -241,15 +256,15 @@ contract Comptroller is UpgradeableBeacon {
         return denomination[_denomination].dust;
     }
 
-    // Ban Proxy
-    function banProxy(address proxy) external onlyOwner {
-        bannedProxy[proxy] = true;
-        emit ProxyBanned(proxy);
+    // Ban Pool Proxy
+    function banPoolProxy(address poolProxy) external onlyOwner {
+        bannedPoolProxy[poolProxy] = true;
+        emit PoolProxyBanned(poolProxy);
     }
 
-    function unBanProxy(address proxy) external onlyOwner {
-        bannedProxy[proxy] = false;
-        emit ProxyUnbanned(proxy);
+    function unbanPoolProxy(address poolProxy) external onlyOwner {
+        bannedPoolProxy[poolProxy] = false;
+        emit PoolProxyUnbanned(poolProxy);
     }
 
     // Stake tier amount
@@ -281,20 +296,20 @@ contract Comptroller is UpgradeableBeacon {
     // Creator whitelist
     function permitCreators(address[] calldata creators) external onlyOwner {
         for (uint256 i = 0; i < creators.length; i++) {
-            creatorACL.permit(creators[i]);
+            _creatorACL.permit(creators[i]);
             emit PermitCreator(creators[i]);
         }
     }
 
     function forbidCreators(address[] calldata creators) external onlyOwner {
         for (uint256 i = 0; i < creators.length; i++) {
-            creatorACL.forbid(creators[i]);
+            _creatorACL.forbid(creators[i]);
             emit ForbidCreator(creators[i]);
         }
     }
 
     function isValidCreator(address creator) external view returns (bool) {
-        return creatorACL.canCall(creator);
+        return _creatorACL.canCall(creator);
     }
 
     // Asset whitelist
@@ -303,7 +318,7 @@ contract Comptroller is UpgradeableBeacon {
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            assetACL.permit(level, assets[i]);
+            _assetACL.permit(level, assets[i]);
             emit PermitAsset(level, assets[i]);
         }
     }
@@ -313,7 +328,7 @@ contract Comptroller is UpgradeableBeacon {
         onlyOwner
     {
         for (uint256 i = 0; i < assets.length; i++) {
-            assetACL.forbid(level, assets[i]);
+            _assetACL.forbid(level, assets[i]);
             emit ForbidAsset(level, assets[i]);
         }
     }
@@ -323,7 +338,7 @@ contract Comptroller is UpgradeableBeacon {
         view
         returns (bool)
     {
-        return assetACL.canCall(level, asset);
+        return _assetACL.canCall(level, asset);
     }
 
     function isValidDealingAssets(uint256 level, address[] calldata assets)
@@ -346,7 +361,7 @@ contract Comptroller is UpgradeableBeacon {
     {
         // check if input check flag is true
         if (fInitialAssetCheck) {
-            return assetACL.canCall(level, asset);
+            return _assetACL.canCall(level, asset);
         }
         return true;
     }
@@ -370,7 +385,7 @@ contract Comptroller is UpgradeableBeacon {
         address to,
         bytes4 sig
     ) external view returns (bool) {
-        return delegateCallACL.canCall(level, to, sig);
+        return _delegateCallACL.canCall(level, to, sig);
     }
 
     function permitDelegateCalls(
@@ -380,7 +395,7 @@ contract Comptroller is UpgradeableBeacon {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            delegateCallACL.permit(level, tos[i], sigs[i]);
+            _delegateCallACL.permit(level, tos[i], sigs[i]);
             emit PermitDelegateCall(level, tos[i], sigs[i]);
         }
     }
@@ -392,7 +407,7 @@ contract Comptroller is UpgradeableBeacon {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            delegateCallACL.forbid(level, tos[i], sigs[i]);
+            _delegateCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidDelegateCall(level, tos[i], sigs[i]);
         }
     }
@@ -405,7 +420,7 @@ contract Comptroller is UpgradeableBeacon {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            contractCallACL.permit(level, tos[i], sigs[i]);
+            _contractCallACL.permit(level, tos[i], sigs[i]);
             emit PermitContractCall(level, tos[i], sigs[i]);
         }
     }
@@ -417,7 +432,7 @@ contract Comptroller is UpgradeableBeacon {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            contractCallACL.forbid(level, tos[i], sigs[i]);
+            _contractCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidContractCall(level, tos[i], sigs[i]);
         }
     }
@@ -427,7 +442,7 @@ contract Comptroller is UpgradeableBeacon {
         address to,
         bytes4 sig
     ) external view returns (bool) {
-        return contractCallACL.canCall(level, to, sig);
+        return _contractCallACL.canCall(level, to, sig);
     }
 
     // Handler whitelist function
@@ -438,7 +453,7 @@ contract Comptroller is UpgradeableBeacon {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            handlerCallACL.permit(level, tos[i], sigs[i]);
+            _handlerCallACL.permit(level, tos[i], sigs[i]);
             emit PermitHandler(level, tos[i], sigs[i]);
         }
     }
@@ -450,7 +465,7 @@ contract Comptroller is UpgradeableBeacon {
     ) external onlyOwner {
         require(tos.length == sigs.length, "Comptroller: Invalid length");
         for (uint256 i = 0; i < tos.length; i++) {
-            handlerCallACL.forbid(level, tos[i], sigs[i]);
+            _handlerCallACL.forbid(level, tos[i], sigs[i]);
             emit ForbidHandler(level, tos[i], sigs[i]);
         }
     }
@@ -460,6 +475,6 @@ contract Comptroller is UpgradeableBeacon {
         address to,
         bytes4 sig
     ) external view returns (bool) {
-        return handlerCallACL.canCall(level, to, sig);
+        return _handlerCallACL.canCall(level, to, sig);
     }
 }

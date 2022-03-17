@@ -2,7 +2,7 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
-  Comptroller,
+  ComptrollerImplementation,
   ExecutionModuleMock,
   SimpleAction,
   SimpleToken,
@@ -11,7 +11,7 @@ import { DS_PROXY_REGISTRY, POOL_STATE } from './utils/constants';
 
 describe('Execution module', function () {
   let executionModule: ExecutionModuleMock;
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerImplementation;
   let action: SimpleAction;
   let user: Wallet;
   let tokenD: SimpleToken;
@@ -29,8 +29,10 @@ describe('Execution module', function () {
       await executionModule.deployed();
 
       comptroller = await (
-        await ethers.getContractFactory('Comptroller')
-      ).deploy(
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).deploy();
+      await comptroller.deployed();
+      await comptroller.initialize(
         executionModule.address,
         constants.AddressZero,
         constants.AddressZero,
@@ -40,7 +42,6 @@ describe('Execution module', function () {
         constants.AddressZero,
         constants.Zero
       );
-      await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
         .deploy();

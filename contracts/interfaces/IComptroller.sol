@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IBeacon} from "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 import {IAssetRouter} from "../assets/interfaces/IAssetRouter.sol";
 import {IMortgageVault} from "./IMortgageVault.sol";
 
-interface IComptroller is IBeacon {
+interface IComptroller {
     function owner() external view returns (address);
 
     function canDelegateCall(
@@ -35,11 +34,6 @@ interface IComptroller is IBeacon {
     function pendingExpiration() external view returns (uint256);
 
     function execAssetValueToleranceRate() external view returns (uint256);
-
-    function validateDealingAsset(uint256 level, address asset)
-        external
-        view
-        returns (bool);
 
     function isValidDealingAsset(uint256 level, address asset)
         external

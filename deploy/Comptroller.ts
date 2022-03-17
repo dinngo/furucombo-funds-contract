@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const implementation = await deployments.get('Implementation');
+  const poolImplementation = await deployments.get('PoolImplementation');
   const assetRouter = await deployments.get('AssetRouter');
   const execFeeCollector = deployer;
   const execFeePercentage = EXEC_FEE_PERCENTAGE;
@@ -32,10 +32,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const mortgageVault = await deployments.get('MortgageVault');
   const valueTolerance = VALUE_TOLERANCE;
 
-  const result = await deploy('Comptroller', {
+  const resultImplementation = await deploy('ComptrollerImplementation', {
     from: deployer,
-    args: [
-      implementation.address,
+    log: true,
+  });
+
+  const comptrollerImplementation = await ethers.getContractAt(
+    'ComptrollerImplementation',
+    resultImplementation.address
+  );
+
+  const compData = comptrollerImplementation.interface.encodeFunctionData(
+    'initialize',
+    [
+      poolImplementation.address,
       assetRouter.address,
       execFeeCollector,
       execFeePercentage,
@@ -43,7 +53,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       pendingExpiration,
       mortgageVault.address,
       valueTolerance,
-    ],
+    ]
+  );
+
+  const result = await deploy('ComptrollerProxy', {
+    from: deployer,
+    args: [comptrollerImplementation.address, compData],
     log: true,
   });
 
@@ -51,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log('executing "Comptroller" newly deployed setup');
 
     const comptroller = await ethers.getContractAt(
-      'Comptroller',
+      'ComptrollerImplementation',
       result.address
     );
 
@@ -120,7 +135,7 @@ export default func;
 
 func.tags = ['Comptroller'];
 func.dependencies = [
-  'Implementation',
+  'PoolImplementation',
   'AssetRouter',
   'MortgageVault',
   'HAaveProtocolV2',

@@ -2,8 +2,8 @@ import { Wallet, BigNumber, Signer, constants } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
-  Comptroller,
-  Implementation,
+  ComptrollerImplementation,
+  PoolImplementation,
   AssetRouter,
   MortgageVault,
   TaskExecutorMock,
@@ -48,8 +48,8 @@ import {
 describe('AFurucombo', function () {
   const debtTokenAddress = AWETH_V2_DEBT_VARIABLE;
 
-  let comptroller: Comptroller;
-  let implementation: Implementation;
+  let comptroller: ComptrollerImplementation;
+  let poolImplementation: PoolImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutorMock;
@@ -91,10 +91,10 @@ describe('AFurucombo', function () {
       );
 
       // Setup contracts
-      implementation = await (
-        await ethers.getContractFactory('Implementation')
+      poolImplementation = await (
+        await ethers.getContractFactory('PoolImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await implementation.deployed();
+      await poolImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -115,9 +115,11 @@ describe('AFurucombo', function () {
       await mortgageVault.deployed();
 
       comptroller = await (
-        await ethers.getContractFactory('Comptroller')
-      ).deploy(
-        implementation.address,
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).deploy();
+      await comptroller.deployed();
+      await comptroller.initialize(
+        poolImplementation.address,
         assetRouter.address,
         collector.address,
         0,
@@ -126,7 +128,6 @@ describe('AFurucombo', function () {
         mortgageVault.address,
         0
       );
-      await comptroller.deployed();
       await comptroller.setInitialAssetCheck(false);
 
       taskExecutor = await (

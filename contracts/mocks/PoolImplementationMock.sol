@@ -4,15 +4,15 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDSProxy, IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
 import {IComptroller} from "../interfaces/IComptroller.sol";
-import {Implementation} from "../Implementation.sol";
+import {PoolImplementation} from "../PoolImplementation.sol";
 
-contract ImplementationMock is Implementation {
+contract PoolImplementationMock is PoolImplementation {
     uint256 public totalAssetValueMock;
     bool public totalAssetValueMocked;
     uint256 public lastTotalAssetValue;
 
     constructor(IDSProxyRegistry dsProxyRegistry_)
-        Implementation(dsProxyRegistry_)
+        PoolImplementation(dsProxyRegistry_)
     {}
 
     function reviewingMock() external {
@@ -34,7 +34,7 @@ contract ImplementationMock is Implementation {
     function getTotalAssetValue()
         public
         view
-        override(Implementation)
+        override(PoolImplementation)
         returns (uint256)
     {
         if (totalAssetValueMocked) {

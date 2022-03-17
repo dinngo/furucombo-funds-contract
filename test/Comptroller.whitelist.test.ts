@@ -2,8 +2,9 @@ import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { deployments } from 'hardhat';
 import {
-  Comptroller,
-  Implementation,
+  ComptrollerImplementation,
+  ComptrollerProxy,
+  PoolImplementation,
   AssetRouter,
   MortgageVault,
   AMock,
@@ -18,9 +19,11 @@ import {
   WL_ANY_ADDRESS,
 } from './utils/constants';
 
-describe('Comptroller_Whitelist', function () {
-  let comptroller: Comptroller;
-  let implementation: Implementation;
+describe('ComptrollerImplementation_Whitelist', function () {
+  let comptrollerImplementation: ComptrollerImplementation;
+  let comptrollerProxy: ComptrollerProxy;
+  let comptroller: ComptrollerImplementation;
+  let poolImplementation: PoolImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let actionMockA: AMock;
@@ -46,10 +49,10 @@ describe('Comptroller_Whitelist', function () {
         .deploy();
       await tokenM.deployed();
 
-      implementation = await (
-        await ethers.getContractFactory('Implementation')
+      poolImplementation = await (
+        await ethers.getContractFactory('PoolImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await implementation.deployed();
+      await poolImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -71,19 +74,33 @@ describe('Comptroller_Whitelist', function () {
       ).deploy(tokenM.address);
       await mortgageVault.deployed();
 
-      comptroller = await (
-        await ethers.getContractFactory('Comptroller')
-      ).deploy(
-        implementation.address,
-        assetRouter.address,
-        collector.address,
-        execFeePercentage,
-        constants.AddressZero,
-        0,
-        mortgageVault.address,
-        0
+      comptrollerImplementation = await (
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).deploy();
+      await comptrollerImplementation.deployed();
+
+      const compData = comptrollerImplementation.interface.encodeFunctionData(
+        'initialize',
+        [
+          poolImplementation.address,
+          assetRouter.address,
+          collector.address,
+          execFeePercentage,
+          constants.AddressZero,
+          0,
+          mortgageVault.address,
+          0,
+        ]
       );
-      await comptroller.deployed();
+
+      comptrollerProxy = await (
+        await ethers.getContractFactory('ComptrollerProxy')
+      ).deploy(comptrollerImplementation.address, compData);
+      await comptrollerProxy.deployed();
+
+      comptroller = await (
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).attach(comptrollerProxy.address);
 
       actionMockA = await (await ethers.getContractFactory('AMock')).deploy();
       await actionMockA.deployed();

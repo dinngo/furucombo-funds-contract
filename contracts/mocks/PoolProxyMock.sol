@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDSProxy, IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
-import {Implementation} from "../Implementation.sol";
+import {PoolImplementation} from "../PoolImplementation.sol";
 import {IComptroller} from "../interfaces/IComptroller.sol";
 
-contract PoolProxyMock is Implementation {
+contract PoolProxyMock is PoolImplementation {
     constructor(IDSProxyRegistry dsProxyRegistry_)
-        Implementation(dsProxyRegistry_)
+        PoolImplementation(dsProxyRegistry_)
     {}
 
     function executeMock(address _target, bytes calldata _data)

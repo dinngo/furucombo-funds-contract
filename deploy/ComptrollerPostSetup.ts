@@ -7,28 +7,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('executing "ComptrollerPostSetup"');
 
   const { deployments, ethers } = hre;
-  const comptrollerAddress = (await deployments.get('Comptroller')).address;
-  const comptroller = await ethers.getContractAt(
-    'Comptroller',
+  const comptrollerAddress = (await deployments.get('ComptrollerProxy'))
+    .address;
+  const comptrollerProxy = await ethers.getContractAt(
+    'ComptrollerImplementation',
     comptrollerAddress
   );
 
   // Set task executor
-  const execAction = await comptroller.execAction();
+  const execAction = await comptrollerProxy.execAction();
   if (execAction === constants.AddressZero) {
     const taskExecutor = await deployments.get('TaskExecutor');
-    await comptroller.setExecAction(taskExecutor.address);
+    await comptrollerProxy.setExecAction(taskExecutor.address);
   }
 
   // Permit delegate call
   const aFurucombo = await deployments.get('AFurucombo');
-  const canCall = await comptroller.canDelegateCall(
+  const canCall = await comptrollerProxy.canDelegateCall(
     LEVEL,
     aFurucombo.address,
     WL_ANY_SIG
   );
   if (!canCall) {
-    await comptroller.permitDelegateCalls(
+    await comptrollerProxy.permitDelegateCalls(
       LEVEL,
       [aFurucombo.address],
       [WL_ANY_SIG]

@@ -2,7 +2,7 @@ import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
-  Comptroller,
+  ComptrollerImplementation,
   ShareModuleMock,
   SimpleToken,
   ShareToken,
@@ -10,7 +10,7 @@ import {
 import { FEE_BASE, DS_PROXY_REGISTRY, POOL_STATE } from './utils/constants';
 
 describe('Share module', function () {
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerImplementation;
   let shareModule: ShareModuleMock;
   let shareToken: ShareToken;
   let user1: Wallet;
@@ -34,8 +34,10 @@ describe('Share module', function () {
       await shareModule.deployed();
 
       comptroller = await (
-        await ethers.getContractFactory('Comptroller')
-      ).deploy(
+        await ethers.getContractFactory('ComptrollerImplementation')
+      ).deploy();
+      await comptroller.deployed();
+      await comptroller.initialize(
         shareModule.address,
         constants.AddressZero,
         constants.AddressZero,
@@ -45,7 +47,6 @@ describe('Share module', function () {
         constants.AddressZero,
         constants.Zero
       );
-      await comptroller.deployed();
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user1)
         .deploy();
