@@ -31,6 +31,12 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     event RedemptionPendingSettled();
     event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
+    /// @notice the length of pendingRoundList, means current pending round
+    /// @return share The share amount being purchased.
+    function currentPendingRound() public view returns (uint256) {
+        return pendingRoundList.length;
+    }
+
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
     /// @return share The share amount being purchased.
     function purchase(uint256 balance)
@@ -49,16 +55,25 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         when3States(State.Executing, State.RedemptionPending, State.Closed)
         returns (uint256 balance)
     {
-        uint256 userShare = shareToken.balanceOf(msg.sender);
+        address user = msg.sender;
+        uint256 userShare = shareToken.balanceOf(user);
+
+        // Check redeem shares need to greater than user shares they own
         Errors._require(
             share <= userShare,
             Errors.Code.SHARE_MODULE_INSUFFICIENT_SHARES
         );
 
+        // Claim pending redemption if need
+        if (isPendingRedemptionClaimable(user)) {
+            _claimPendingRedemption(user);
+        }
+
+        // Execute redeem operation
         if (state == State.RedemptionPending) {
-            balance = _redeemPending(msg.sender, share, acceptPending);
+            balance = _redeemPending(user, share, acceptPending);
         } else {
-            balance = _redeem(msg.sender, share, acceptPending);
+            balance = _redeem(user, share, acceptPending);
         }
     }
 
@@ -96,15 +111,37 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         balance = (share * assetValue) / shareAmount;
     }
 
-    /// @notice Claim the settled pending redemption.
-    /// @return balance The balance being claimed.
-    function claimPendingRedemption() public virtual returns (uint256 balance) {
-        balance = pendingRedemptions[msg.sender];
-        pendingRedemptions[msg.sender] = 0;
-        denomination.safeTransfer(msg.sender, balance);
-        emit RedemptionClaimed(msg.sender, balance);
+    /// @notice Determine user could claim pending redemption or not
+    /// @param user address could be claimable
+    /// @return true if claimable otherwise false
+    function isPendingRedemptionClaimable(address user)
+        public
+        view
+        returns (bool)
+    {
+        return
+            pendingUsers[user].pendingRound < currentPendingRound() &&
+            pendingUsers[user].pendingShares > 0;
     }
 
+    /// @notice Claim the settled pending redemption.
+    /// @param user address want to be claim
+    /// @return balance The balance being claimed.
+    function claimPendingRedemption(address user)
+        public
+        virtual
+        returns (uint256 balance)
+    {
+        require(
+            isPendingRedemptionClaimable(user),
+            "could not claim pending redemption"
+        );
+        balance = _claimPendingRedemption(user);
+    }
+
+    /// @notice determine pending statue could be resolvable or not
+    /// @param applyPenalty true if enable penalty otherwise false
+    /// @return true if resolvable otherwise false
     function isPendingResolvable(bool applyPenalty) public view returns (bool) {
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
         uint256 redeemSharesBalance = calculateBalance(redeemShares);
@@ -135,38 +172,34 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     }
 
     function _settlePendingRedemption(bool applyPenalty) internal {
-        // Might lead to gas insufficient if pending list too long
+        // Get total shares for the settle
         uint256 redeemShares = _getResolvePendingShares(applyPenalty);
-        if (redeemShares > 0) {
-            if (!applyPenalty) {
-                totalPendingBonus = 0;
-            }
 
+        if (redeemShares > 0) {
+            // Calculate the total redemptions depending on the redeemShares
             uint256 totalRedemption = _redeem(
                 address(this),
                 redeemShares,
                 false
             );
-            uint256 pendingAccountListLength = pendingAccountList.length;
-            for (uint256 i = 0; i < pendingAccountListLength; i++) {
-                address user = pendingAccountList[i];
 
-                uint256 share = pendingShares[user];
-                pendingShares[user] = 0;
-                uint256 redemption = (totalRedemption * share) /
-                    totalPendingShare;
-                pendingRedemptions[user] += redemption;
-            }
+            // Settle this round and store settle info to round list
+            pendingRoundList.push(
+                pendingRoundInfo({
+                    totalPendingShare: totalPendingShare,
+                    totalRedemption: totalRedemption
+                })
+            );
 
-            // remove all pending accounts
-            delete pendingAccountList;
-
-            totalPendingShare = 0;
-            if (totalPendingBonus != 0) {
+            // Burn bonus if needed
+            if (applyPenalty && totalPendingBonus != 0) {
                 uint256 unusedBonus = totalPendingBonus;
-                totalPendingBonus = 0;
                 shareToken.burn(address(this), unusedBonus);
             }
+
+            // Reset pending info
+            totalPendingBonus = 0;
+            totalPendingShare = 0;
             emit RedemptionPendingSettled();
         }
     }
@@ -217,6 +250,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         (uint256 shareLeft, uint256 balance) = calculateRedeemableBalance(
             share
         );
+
         uint256 shareRedeemed = share - shareLeft;
         shareToken.burn(user, shareRedeemed);
 
@@ -241,12 +275,18 @@ abstract contract ShareModule is PoolProxyStorageUtils {
             acceptPending,
             Errors.Code.SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
         );
+
+        // Add the current pending round to pending user info for the first redeem
+        if (pendingUsers[user].pendingShares == 0) {
+            pendingUsers[user].pendingRound = currentPendingRound();
+        }
+
+        // Calculate and update pending information
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
         uint256 penaltyShare = share - effectiveShare;
-        if (pendingShares[user] == 0) pendingAccountList.push(user);
-        pendingShares[user] += effectiveShare;
+        pendingUsers[user].pendingShares += effectiveShare;
         totalPendingShare += effectiveShare;
         totalPendingBonus += penaltyShare;
         shareToken.move(user, address(this), share);
@@ -293,6 +333,36 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         returns (uint256)
     {
         return comptroller.pendingRedemptionPenalty();
+    }
+
+    function _calcPendingRedemption(address user)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 share = pendingUsers[user].pendingShares;
+        uint256 pendingRound = pendingUsers[user].pendingRound;
+        uint256 totalPendingShare = pendingRoundList[pendingRound]
+            .totalPendingShare;
+        uint256 totalRedemption = pendingRoundList[pendingRound]
+            .totalRedemption;
+        uint256 redemption = (totalRedemption * share) / totalPendingShare;
+        return redemption;
+    }
+
+    function _claimPendingRedemption(address user)
+        internal
+        returns (uint256 balance)
+    {
+        balance = _calcPendingRedemption(user);
+
+        // reset pending user to zero value
+        delete pendingUsers[user];
+
+        if (balance > 0) {
+            denomination.safeTransfer(user, balance);
+        }
+        emit RedemptionClaimed(user, balance);
     }
 
     function __getReserve() internal view virtual returns (uint256);
