@@ -1,4 +1,4 @@
-import { Wallet } from 'ethers';
+import { BigNumber, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { deployments } from 'hardhat';
 import { ShareToken } from '../typechain';
@@ -15,7 +15,7 @@ describe('ShareToken', function () {
 
       shareToken = await (
         await ethers.getContractFactory('ShareToken')
-      ).deploy('share token', 'SHARE');
+      ).deploy('share token', 'SHARE', BigNumber.from(18));
       await shareToken.deployed();
       await shareToken.mint(user1.address, ether('100'));
     }
