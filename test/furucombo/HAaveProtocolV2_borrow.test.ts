@@ -223,46 +223,6 @@ describe('Aave V2 Borrow', function () {
       profileGas(receipt);
     });
 
-    it('borrow matic', async function () {
-      const borrowAmount = ether('2');
-      const to = hAaveV2.address;
-      const data = simpleEncode('borrowETH(uint256,uint256)', [
-        borrowAmount,
-        rateMode,
-      ]);
-      await debtWMATIC
-        .connect(user)
-        .approveDelegation(proxy.address, borrowAmount);
-      const balancerUserBefore = (userBalance =
-        await ethers.provider.getBalance(user.address));
-      const receipt = await proxy.connect(user).execMock(to, data, {
-        value: ether('0.1'),
-      });
-
-      const balancerUserAfter = (userBalance = await ethers.provider.getBalance(
-        user.address
-      ));
-      const debtWMATICUserAfter = await debtWMATIC.balanceOf(user.address);
-      // Verify proxy balance
-      expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
-      expect(await debtToken.balanceOf(proxy.address)).to.be.eq(0);
-
-      // Verify user balance
-      expect(balancerUserAfter.sub(balancerUserBefore)).to.be.eq(borrowAmount);
-
-      //  borrowAmount <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
-      const interestMax = borrowAmount
-        .mul(BigNumber.from(1))
-        .div(BigNumber.from(10000));
-      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.gte(
-        borrowAmount
-      );
-      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.lt(
-        borrowAmount.add(interestMax)
-      );
-      profileGas(receipt);
-    });
-
     it('should revert: borrow token over the collateral value', async function () {
       const borrowAmount = ether('20000');
       const to = hAaveV2.address;

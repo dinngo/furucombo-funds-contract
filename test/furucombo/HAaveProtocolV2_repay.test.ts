@@ -184,44 +184,6 @@ describe('Aave V2 Repay', function () {
       profileGas(receipt);
     });
 
-    it('partial by MATIC', async function () {
-      const value = borrowAmount.div(BigNumber.from('2'));
-      const to = hAaveV2.address;
-      const data = simpleEncode('repayETH(uint256,uint256)', [value, rateMode]);
-      userBalance = await ethers.provider.getBalance(user.address);
-      // const debtTokenUserBefore = await debtToken.balanceOf(user.address);
-      const receipt = await proxy.connect(user).execMock(to, data, {
-        value: value,
-      });
-
-      // Get handler return result
-      const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
-      const debtTokenUserAfter = await debtToken.balanceOf(user.address);
-      const interestMax = borrowAmount
-        .mul(BigNumber.from(1))
-        .div(BigNumber.from(10000));
-
-      // Verify handler return
-      // (borrowAmount - repayAmount -1) <= remainBorrowAmount < (borrowAmount + interestMax - repayAmount)
-      // NOTE: handlerReturn == (borrowAmount - repayAmount -1) (sometime, Ganache bug maybe)
-      expect(handlerReturn).to.be.gte(
-        borrowAmount.sub(value.add(BigNumber.from(1)))
-      );
-      expect(handlerReturn).to.be.lt(borrowAmount.sub(value).add(interestMax));
-      // Verify proxy balance
-      expect(await borrowToken.balanceOf(proxy.address)).to.be.eq(0);
-      // Verify user balance
-      // (borrow - repay) <= debtTokenUserAfter < (borrow + interestMax - repay)
-      expect(debtTokenUserAfter).to.be.gte(borrowAmount.sub(value));
-      expect(debtTokenUserAfter).to.be.lt(
-        borrowAmount.add(interestMax).sub(value)
-      );
-      expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(value)
-      );
-      profileGas(receipt);
-    });
-
     it('whole', async function () {
       const extraNeed = ether('1');
       const value = borrowAmount.add(extraNeed);
@@ -264,48 +226,6 @@ describe('Aave V2 Repay', function () {
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
         ether('0')
       );
-      profileGas(receipt);
-    });
-
-    it('whole by MATIC', async function () {
-      const extraNeed = ether('1');
-      const value = borrowAmount.add(extraNeed);
-      const to = hAaveV2.address;
-      const data = simpleEncode('repayETH(uint256,uint256)', [value, rateMode]);
-      userBalance = await ethers.provider.getBalance(user.address);
-      const borrowTokenUserBalance = await borrowToken.balanceOf(user.address);
-
-      const receipt = await proxy.connect(user).execMock(to, data, {
-        value: value,
-      });
-
-      // Get handler return result
-      const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
-      const debtTokenUserAfter = await debtToken.balanceOf(user.address);
-      const interestMax = borrowAmount
-        .mul(BigNumber.from(1))
-        .div(BigNumber.from(10000));
-
-      // Verify handler return
-      expect(handlerReturn).to.be.eq(0);
-      // Verify proxy balance
-      expect(await borrowToken.balanceOf(proxy.address)).to.be.eq(0);
-      // Verify user balance
-      expect(debtTokenUserAfter).to.be.eq(0);
-      // (repay - borrow - interestMax) < borrowTokenUserAfter <= (repay - borrow)
-
-      const userBalanceDelta = await balanceDelta(user.address, userBalance);
-      const borrowTokenUserDelta = (
-        await borrowToken.balanceOf(user.address)
-      ).sub(borrowTokenUserBalance);
-
-      const repayAmount = userBalanceDelta.add(borrowTokenUserDelta);
-
-      expect(repayAmount).to.be.lte(ether('0').sub(borrowAmount));
-      expect(repayAmount).to.be.gt(
-        ether('0').sub(borrowAmount).sub(interestMax)
-      );
-
       profileGas(receipt);
     });
 
