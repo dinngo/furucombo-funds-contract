@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { BigNumber, Signer } from 'ethers';
+import { BigNumber, Signer, constants } from 'ethers';
 import { ethers } from 'hardhat';
 import {
   RecordActionResultSig,
@@ -10,6 +10,7 @@ import {
   QUICKSWAP_FACTORY,
   SUSHISWAP_FACTORY,
   RecordHandlerResultSig,
+  CURVE_ADDRESS_PROVIDER,
 } from './constants';
 const hre = require('hardhat');
 
@@ -207,6 +208,38 @@ export async function tokenProviderSushi(
     token1 = USDC_TOKEN;
   }
   return _tokenProviderUniLike(token0, token1, factoryAddress);
+}
+
+export async function tokenProviderCurveGauge(lpToken: string) {
+  // Get curve registry
+  const addressProvider = await ethers.getContractAt(
+    ['function get_registry() view returns (address)'],
+    CURVE_ADDRESS_PROVIDER
+  );
+  const registryAddress = await addressProvider.get_registry();
+
+  // Get curve gauge
+  const registry = await ethers.getContractAt(
+    [
+      'function get_pool_from_lp_token(address) view returns (address)',
+      'function get_gauges(address) view returns (address[10], int128[10])',
+    ],
+    registryAddress
+  );
+  const poolAddress = await registry.get_pool_from_lp_token(lpToken);
+  const gauges = await registry.get_gauges(poolAddress);
+
+  // Return non-zero gauge
+  let gauge;
+  for (let element of gauges[0]) {
+    if (element != constants.AddressZero) {
+      gauge = element;
+      break;
+    }
+  }
+  _impersonateAndInjectEther(gauge);
+
+  return gauge;
 }
 
 export async function _tokenProviderUniLike(

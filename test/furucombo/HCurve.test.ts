@@ -21,6 +21,8 @@ import {
   AWMATIC_V2,
   AAVEPROTOCOL_V2_PROVIDER,
   CURVE_AAVE_SWAP,
+  CURVE_AAVECRV,
+  MATIC_TOKEN,
 } from '../utils/constants';
 
 import {
@@ -34,6 +36,7 @@ import {
   expectEqWithinBps,
   tokenProviderQuick,
   getCallData,
+  tokenProviderCurveGauge,
 } from '../utils/utils';
 
 describe('HCurve', function () {
@@ -130,7 +133,11 @@ describe('HCurve', function () {
     }
   );
 
-  beforeEach(async function () {
+  before(async function () {
+    await setupTest();
+  });
+
+  afterEach(async function () {
     await setupTest();
   });
 
@@ -142,24 +149,29 @@ describe('HCurve', function () {
     let token1User: BigNumber;
     let providerAddress: any;
     let token0: IERC20, token1: IERC20;
+    const value = BigNumber.from('1000000');
+    let answer: BigNumber;
     before(async function () {
       providerAddress = await tokenProviderQuick(token0Address);
       token0 = await ethers.getContractAt('IERC20', token0Address);
       token1 = await ethers.getContractAt('IERC20', token1Address);
+
+      answer = await aaveSwap['get_dy_underlying(int128,int128,uint256)'](
+        2,
+        0,
+        value
+      );
     });
 
     beforeEach(async function () {
       token0User = await token0.balanceOf(user.address);
       token1User = await token1.balanceOf(user.address);
+      await token0.connect(providerAddress).transfer(proxy.address, value);
+      await proxy.updateTokenMock(token0.address);
     });
 
     describe('aave pool', function () {
       it('Exact input swap USDT to DAI by exchangeUnderlying', async function () {
-        const value = BigNumber.from('1000000');
-        const answer = await aaveSwap[
-          'get_dy_underlying(int128,int128,uint256)'
-        ](2, 0, value);
-
         const data = getCallData(
           hCurve,
           'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
@@ -173,8 +185,6 @@ describe('HCurve', function () {
             mulPercent(answer, BigNumber.from('100').sub(slippage)),
           ]
         );
-        await token0.connect(providerAddress).transfer(proxy.address, value);
-        await proxy.updateTokenMock(token0.address);
 
         const receipt = await proxy
           .connect(user)
@@ -200,11 +210,6 @@ describe('HCurve', function () {
         );
       });
       it('Exact input swap USDT to DAI by exchangeUnderlying with max amount', async function () {
-        const value = BigNumber.from('1000000');
-        const answer = await aaveSwap[
-          'get_dy_underlying(int128,int128,uint256)'
-        ](2, 0, value);
-
         const data = getCallData(
           hCurve,
           'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
@@ -218,8 +223,6 @@ describe('HCurve', function () {
             mulPercent(answer, BigNumber.from('100').sub(slippage)),
           ]
         );
-        await token0.connect(providerAddress).transfer(proxy.address, value);
-        await proxy.updateTokenMock(token0.address);
 
         const receipt = await proxy
           .connect(user)
@@ -245,11 +248,11 @@ describe('HCurve', function () {
         );
       });
       it('should revert: not support MRC20', async function () {
-        const value = BigNumber.from('1000000');
+        // const value = BigNumber.from('1000000');
         const data = getCallData(
           hCurve,
           'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
-          [aaveSwap.address, token0.address, token1.address, 2, 0, value, 0]
+          [aaveSwap.address, MATIC_TOKEN, token1.address, 2, 0, value, 0]
         );
 
         await expect(
@@ -257,6 +260,106 @@ describe('HCurve', function () {
             value: value,
           })
         ).revertedWith('Not support matic token');
+      });
+    });
+  });
+
+  describe('Liquidity Underlying', function () {
+    describe('aave pool', function () {
+      const token0Address = DAI_TOKEN;
+      const token1Address = USDT_TOKEN;
+      const poolTokenAddress = CURVE_AAVECRV;
+
+      let token0User: BigNumber,
+        token1User: BigNumber,
+        poolTokenUser: BigNumber;
+      let provider0Address: string, provider1Address: string;
+      let poolTokenProvider;
+      let token0: IERC20, token1: IERC20, poolToken: IERC20;
+
+      before(async function () {
+        provider0Address = await tokenProviderQuick(token0Address);
+        provider1Address = await tokenProviderQuick(token1Address);
+        poolTokenProvider = await tokenProviderCurveGauge(poolTokenAddress);
+
+        token0 = await ethers.getContractAt('IERC20', token0Address);
+        token1 = await ethers.getContractAt('IERC20', token1Address);
+        poolToken = await ethers.getContractAt('IERC20', poolTokenAddress);
+      });
+
+      beforeEach(async function () {
+        token0User = await token0.balanceOf(user.address);
+        token1User = await this.token1.balanceOf(user.address);
+        poolTokenUser = await this.poolToken.balanceOf(user.address);
+      });
+
+      it('add DAI and USDT to pool by addLiquidityUnderlying', async function () {
+        const token0Amount = ether('1');
+        const token1Amount = BigNumber.from('2000000');
+        const tokens = [token0.address, constants.AddressZero, token1.address];
+        const amounts = [token0Amount, BigNumber.from('0'), token1Amount];
+
+        // Get expected answer
+        const answer = await aaveSwap['calc_token_amount(uint256[3],bool)'](
+          amounts,
+          true
+        );
+
+        // Execute handler
+        await this.token0.transfer(this.proxy.address, token0Amount, {
+          from: provider0Address,
+        });
+        await this.token1.transfer(this.proxy.address, token1Amount, {
+          from: provider1Address,
+        });
+        await this.proxy.updateTokenMock(this.token0.address);
+        await this.proxy.updateTokenMock(this.token1.address);
+        const minMintAmount = mulPercent(answer, new BN('100').sub(slippage));
+        const data = abi.simpleEncode(
+          'addLiquidityUnderlying(address,address,address[],uint256[],uint256)',
+          this.aaveSwap.address,
+          this.poolToken.address,
+          tokens,
+          amounts,
+          minMintAmount
+        );
+        const receipt = await this.proxy.execMock(this.hCurve.address, data, {
+          from: user,
+          value: ether('1'),
+        });
+
+        // Get handler return result
+        const handlerReturn = utils.toBN(
+          getHandlerReturn(receipt, ['uint256'])[0]
+        );
+        const poolTokenUserEnd = await this.poolToken.balanceOf.call(user);
+        expect(handlerReturn).to.be.bignumber.eq(
+          poolTokenUserEnd.sub(poolTokenUser)
+        );
+
+        // Check proxy balance
+        expect(await this.token0.balanceOf.call(this.proxy.address)).to.be
+          .bignumber.zero;
+        expect(await this.token1.balanceOf.call(this.proxy.address)).to.be
+          .bignumber.zero;
+        expect(await this.poolToken.balanceOf.call(this.proxy.address)).to.be
+          .bignumber.zero;
+
+        // Check user balance
+        expect(await this.token0.balanceOf.call(user)).to.be.bignumber.eq(
+          token0User
+        );
+        expect(await this.token1.balanceOf.call(user)).to.be.bignumber.eq(
+          token1User
+        );
+        // poolToken amount should be greater than answer * 0.999 which is
+        // referenced from tests in curve contract.
+        expect(poolTokenUserEnd).to.be.bignumber.gte(
+          answer.mul(new BN('999')).div(new BN('1000'))
+        );
+        expect(poolTokenUserEnd).to.be.bignumber.lte(answer);
+
+        profileGas(receipt);
       });
     });
   });
