@@ -9,7 +9,6 @@ import {ILendingPoolAddressesProviderV2} from "../../../interfaces/ILendingPoolA
 import {IProxy} from "../../interfaces/IProxy.sol";
 import {HandlerBase} from "../HandlerBase.sol";
 import {IFlashLoanReceiver} from "./IFlashLoanReceiver.sol";
-import {IWMATIC} from "./IWMATIC.sol";
 
 contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
     using SafeERC20 for IERC20;
