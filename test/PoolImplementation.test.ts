@@ -662,36 +662,6 @@ describe('PoolImplementation', function () {
   });
 
   describe('Setters', function () {
-    describe('Denomination', function () {
-      it('set denomination', async function () {
-        await comptroller.permitDenominations([tokenA.address], [tokenAAmount]);
-        await poolImplementation.setDenomination(tokenA.address);
-        expect(await poolImplementation.denomination()).to.be.eq(
-          tokenA.address
-        );
-      });
-
-      it('should revert: set denomination at wrong stage', async function () {
-        await poolImplementation.finalize();
-        await expect(
-          poolImplementation.setDenomination(tokenA.address)
-        ).to.be.revertedWith('InvalidState(2)');
-      });
-
-      it('should revert: set by non-owner', async function () {
-        await expect(
-          poolImplementation.connect(user).setDenomination(tokenA.address)
-        ).to.be.revertedWith('Ownable: caller is not the owner');
-      });
-
-      it('should revert: set by zero address', async function () {
-        await expect(
-          poolImplementation.setDenomination(constants.AddressZero)
-          // TODO: replace err msg: Invalid denomination
-        ).to.be.revertedWith('');
-      });
-    });
-
     describe('Management Fee Rate', function () {
       const feeRate = BigNumber.from('1000');
 

@@ -40,7 +40,7 @@ describe('Performance fee', function () {
       await pFeeModule.deployed();
       tokenS = await (await ethers.getContractFactory('ShareToken'))
         .connect(user)
-        .deploy('ShareToken', 'SHT');
+        .deploy('ShareToken', 'SHT', 18);
       await tokenS.deployed();
       // initialize
       await pFeeModule.setShareToken(tokenS.address);

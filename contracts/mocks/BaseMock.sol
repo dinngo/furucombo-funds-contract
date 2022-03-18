@@ -36,7 +36,7 @@ contract BaseMock is PoolProxyStorageUtils {
     }
 
     function setShare() external returns (address) {
-        ShareToken token = new ShareToken("TST", "Test share");
+        ShareToken token = new ShareToken("TST", "Test share", 18);
         _setShareToken(IShareToken(address(token)));
         return address(token);
     }

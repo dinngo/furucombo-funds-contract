@@ -141,15 +141,6 @@ contract PoolImplementation is
     /////////////////////////////////////////////////////
     // Setters
     /////////////////////////////////////////////////////
-    /// @notice Set denomination only during reviewing.
-    function setDenomination(IERC20 denomination_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
-        _setDenomination(denomination_);
-    }
-
     /// @notice Set management fee rate only during reviewing.
     function setManagementFeeRate(uint256 mFeeRate_)
         external
@@ -334,15 +325,14 @@ contract PoolImplementation is
         // TODO: replace err msg: Insufficient reserve
         require(_isReserveEnough());
 
-         // Check asset value
+        // Check asset value
         uint256 totalAssetValue = getTotalAssetValue();
         uint256 minTotalAssetValue = (prevAssetValue *
             comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
         // TODO: replace err msg: Insufficient total value for execution
         require(totalAssetValue >= minTotalAssetValue);
-        
+
         return totalAssetValue;
-        
     }
 
     /// @notice Check funds reserve ratio is enough or not.

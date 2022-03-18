@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {PoolProxy} from "./PoolProxy.sol";
 import {ShareToken} from "./ShareToken.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
@@ -23,7 +23,7 @@ contract PoolProxyFactory {
     }
 
     function createPool(
-        IERC20 denomination,
+        IERC20Metadata denomination,
         uint256 level,
         uint256 mFeeRate,
         uint256 pFeeRate,
@@ -35,7 +35,11 @@ contract PoolProxyFactory {
         IMortgageVault mortgageVault = comptroller.mortgageVault();
         uint256 mortgageAmount = comptroller.stakedTier(level);
         // Can be customized
-        ShareToken share = new ShareToken(shareTokenName, "FFST");
+        ShareToken share = new ShareToken(
+            shareTokenName,
+            "FFST",
+            denomination.decimals()
+        );
         bytes memory data = abi.encodeWithSignature(
             "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
             level,
