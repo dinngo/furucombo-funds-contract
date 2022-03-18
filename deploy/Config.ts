@@ -8,31 +8,29 @@ export const FURUCOMBO_HCURVE = '0xf0830115E60e11e02E980B063c3E88FcFDA598d1';
 export const WL_ANY_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 export const WL_ANY_SIG = '0xffffffff';
 export const WL_AAVE_V2_SIGS = [
-  '0x47e7ef24', //deposit(address,uint256)
-  '0xf3fef3a3', //withdraw(address,uint256)
-  '0x8cd2e0c7', //repay(address,uint256,uint256)
-  '0xc1bce0b7', //borrow(address,uint256,uint256)
-  '0x54296154', //flashLoan(address[],uint256[],uint256[],bytes)
-  '0x920f5c84', //executeOperation(address[],uint256[],uint256[],address,bytes)
+  '0x47e7ef24', // deposit(address,uint256)
+  '0xf3fef3a3', // withdraw(address,uint256)
+  '0x8cd2e0c7', // repay(address,uint256,uint256)
+  '0xc1bce0b7', // borrow(address,uint256,uint256)
+  '0x54296154', // flashLoan(address[],uint256[],uint256[],bytes)
+  '0x920f5c84', // executeOperation(address[],uint256[],uint256[],address,bytes)
 ];
 export const WL_FUNDS_SIGS = [
-  '0xde41691c', //updateTokens(address[])
-  '0xd0797f84', //inject(address[],uint256[])
-  '0xb3e38f16', //returnFunds(address[],uint256[])
-  '0xdb71410e', //checkSlippage(address[],uint256[])
-  '0xf8b2cb4f', //getBalance(address)
+  '0xd0797f84', // inject(address[],uint256[])
+  '0xb3e38f16', // returnFunds(address[],uint256[])
+  '0xdb71410e', // checkSlippage(address[],uint256[])
 ];
 export const WL_QUICKSWAP_SIGS = [
-  '0x3351733f', //addLiquidity(address,address,uint256,uint256,uint256,uint256)
-  '0xe2dc85dc', //removeLiquidity(address,address,uint256,uint256,uint256)
-  '0x86818f26', //swapExactTokensForTokens(uint256,uint256,address[])
-  '0x397d4b4a', //swapTokensForExactTokens(uint256,uint256,address[])
+  '0x3351733f', // addLiquidity(address,address,uint256,uint256,uint256,uint256)
+  '0xe2dc85dc', // removeLiquidity(address,address,uint256,uint256,uint256)
+  '0x86818f26', // swapExactTokensForTokens(uint256,uint256,address[])
+  '0x397d4b4a', // swapTokensForExactTokens(uint256,uint256,address[])
 ];
 export const WL_SUSHISWAP_SIGS = [
-  '0x3351733f', //addLiquidity(address,address,uint256,uint256,uint256,uint256)
-  '0xe2dc85dc', //removeLiquidity(address,address,uint256,uint256,uint256)
-  '0x86818f26', //swapExactTokensForTokens(uint256,uint256,address[])
-  '0x397d4b4a', //swapTokensForExactTokens(uint256,uint256,address[])
+  '0x3351733f', // addLiquidity(address,address,uint256,uint256,uint256,uint256)
+  '0xe2dc85dc', // removeLiquidity(address,address,uint256,uint256,uint256)
+  '0x86818f26', // swapExactTokensForTokens(uint256,uint256,address[])
+  '0x397d4b4a', // swapTokensForExactTokens(uint256,uint256,address[])
 ];
 export const LEVEL = 1;
 export const EXEC_FEE_PERCENTAGE = 200; // 2%
