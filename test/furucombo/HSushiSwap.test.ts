@@ -292,9 +292,7 @@ describe('Sushiswap Swap', function () {
         const buyAmt = ether('100');
         const to = hSushiSwap.address;
         const path = [WMATIC_TOKEN, tokenAddress];
-        const result = await router
-          .connect(user)
-          .callStatic.getAmountsIn(buyAmt, path);
+        const result = await router.connect(user).getAmountsIn(buyAmt, path);
         const value = result[0].sub(ether('0.01'));
         const data = simpleEncode(
           'swapETHForExactTokens(uint256,uint256,address[])',
@@ -482,9 +480,7 @@ describe('Sushiswap Swap', function () {
         const buyAmt = ether('0.1');
         const to = hSushiSwap.address;
         const path = [tokenAddress, WMATIC_TOKEN];
-        const result = await router
-          .connect(someone)
-          .callStatic.getAmountsIn(buyAmt, path);
+        const result = await router.connect(someone).getAmountsIn(buyAmt, path);
         const data = simpleEncode(
           'swapTokensForExactETH(uint256,uint256,address[])',
           [
@@ -987,9 +983,7 @@ describe('Sushiswap Swap', function () {
         const value = ether('1');
         const path = [token0Address, WMATIC_TOKEN];
 
-        const result = await router
-          .connect(someone)
-          .callStatic.getAmountsOut(value, path);
+        const result = await router.connect(someone).getAmountsOut(value, path);
 
         const data = simpleEncode(
           'swapExactTokensForETH(uint256,uint256,address[])',
@@ -1025,9 +1019,7 @@ describe('Sushiswap Swap', function () {
         const value = ether('1');
         const buyAmt = ether('1');
         const path = [token0Address, WMATIC_TOKEN];
-        const result = await router
-          .connect(someone)
-          .callStatic.getAmountsIn(buyAmt, path);
+        const result = await router.connect(someone).getAmountsIn(buyAmt, path);
         const data = simpleEncode(
           'swapTokensForExactETH(uint256,uint256,address[])',
           [

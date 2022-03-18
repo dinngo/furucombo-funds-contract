@@ -230,7 +230,6 @@ describe('SushiSwap Liquidity', function () {
 
       const tokenAUserAmountEnd = await tokenA.balanceOf(user.address);
       const uniTokenUserAmountEnd = await uniTokenMatic.balanceOf(user.address);
-      userBalance = await ethers.provider.getBalance(user.address);
       const userBalanceDelta = await balanceDelta(user.address, userBalance);
 
       expect(handlerReturn[0]).to.be.eq(
@@ -583,7 +582,6 @@ describe('SushiSwap Liquidity', function () {
         'uint256',
       ]);
       const tokenAUserAmountEnd = await tokenA.balanceOf(user.address);
-      userBalance = await ethers.provider.getBalance(user.address);
       const userBalanceDelta = await balanceDelta(user.address, userBalance);
       expect(handlerReturn[0]).to.be.eq(
         tokenAUserAmountEnd.sub(tokenAUserAmount)
@@ -654,7 +652,6 @@ describe('SushiSwap Liquidity', function () {
         'uint256',
       ]);
       const tokenAUserAmountEnd = await tokenA.balanceOf(user.address);
-      userBalance = await ethers.provider.getBalance(user.address);
       const userBalanceDelta = await balanceDelta(user.address, userBalance);
       expect(handlerReturn[0]).to.be.eq(
         tokenAUserAmountEnd.sub(tokenAUserAmount)
