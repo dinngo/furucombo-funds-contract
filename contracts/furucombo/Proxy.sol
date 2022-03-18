@@ -260,7 +260,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
         bool success;
         assembly {
             success := delegatecall(
-                sub(gas(), 5000),
+                gas(),
                 _to,
                 add(_data, 0x20),
                 mload(_data),
