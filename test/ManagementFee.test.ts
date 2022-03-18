@@ -2,9 +2,12 @@ import { Wallet, BigNumber } from 'ethers';
 import { BigNumber as BigNumberJs } from 'bignumber.js';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { expectEqWithinBps, increaseNextBlockTimeBy } from './utils/utils';
+import {
+  expectEqWithinBps,
+  get64x64FromBig,
+  increaseNextBlockTimeBy,
+} from './utils/utils';
 import { FEE_BASE } from './utils/constants';
-
 import { ManagementFeeModuleMock, ShareToken } from '../typechain';
 
 describe('Management fee', function () {
@@ -44,16 +47,11 @@ describe('Management fee', function () {
   });
 
   // Lack of precision
-  function getEffectiveFeeRate(feeRate: any) {
+  function getEffectiveFeeRate(feeRate: any): BigNumber {
     const effRate = new BigNumberJs(
       Math.exp((-1 * Math.log(1 - feeRate)) / (365.25 * 24 * 60 * 60))
     );
-    return BigNumber.from(
-      effRate
-        .times(new BigNumberJs(FEE_BASE64x64.toString()))
-        .toFixed(0)
-        .toString()
-    );
+    return get64x64FromBig(effRate);
   }
 
   describe('set management fee rate', function () {
@@ -74,6 +72,8 @@ describe('Management fee', function () {
       await mFeeModule.initializeManagementFee();
       const effectiveFeeRate =
         await mFeeModule.callStatic.getManagementFeeRate();
+      console.log(effectiveFeeRate.toString());
+      console.log(result.toString());
       expectEqWithinBps(effectiveFeeRate, result, 1, 15);
     });
 
