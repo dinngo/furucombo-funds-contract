@@ -289,16 +289,19 @@ describe('HCurve', function () {
 
       beforeEach(async function () {
         token0User = await token0.balanceOf(user.address);
-        token1User = await this.token1.balanceOf(user.address);
-        poolTokenUser = await this.poolToken.balanceOf(user.address);
+        token1User = await token1.balanceOf(user.address);
+        poolTokenUser = await poolToken.balanceOf(user.address);
       });
 
       it('add DAI and USDT to pool by addLiquidityUnderlying', async function () {
         const token0Amount = ether('1');
         const token1Amount = BigNumber.from('2000000');
         const tokens = [token0.address, constants.AddressZero, token1.address];
-        const amounts = [token0Amount, BigNumber.from('0'), token1Amount];
-
+        const amounts: [BigNumber, BigNumber, BigNumber] = [
+          token0Amount,
+          BigNumber.from('0'),
+          token1Amount,
+        ];
         // Get expected answer
         const answer = await aaveSwap['calc_token_amount(uint256[3],bool)'](
           amounts,
@@ -306,60 +309,50 @@ describe('HCurve', function () {
         );
 
         // Execute handler
-        await this.token0.transfer(this.proxy.address, token0Amount, {
-          from: provider0Address,
-        });
-        await this.token1.transfer(this.proxy.address, token1Amount, {
-          from: provider1Address,
-        });
-        await this.proxy.updateTokenMock(this.token0.address);
-        await this.proxy.updateTokenMock(this.token1.address);
-        const minMintAmount = mulPercent(answer, new BN('100').sub(slippage));
-        const data = abi.simpleEncode(
-          'addLiquidityUnderlying(address,address,address[],uint256[],uint256)',
-          this.aaveSwap.address,
-          this.poolToken.address,
-          tokens,
-          amounts,
-          minMintAmount
+        await token0
+          .connect(provider0Address)
+          .transfer(proxy.address, token0Amount);
+        await token1
+          .connect(provider1Address)
+          .transfer(proxy.address, token1Amount);
+
+        await proxy.updateTokenMock(token0.address);
+        await proxy.updateTokenMock(token1.address);
+        const minMintAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
         );
-        const receipt = await this.proxy.execMock(this.hCurve.address, data, {
-          from: user,
-          value: ether('1'),
-        });
+        const data = getCallData(
+          hCurve,
+          'addLiquidityUnderlying(address,address,address[],uint256[],uint256)',
+          [aaveSwap.address, poolToken.address, tokens, amounts, minMintAmount]
+        );
+        const receipt = await proxy
+          .connect(user)
+          .execMock(hCurve.address, data, {
+            value: ether('1'),
+          });
 
         // Get handler return result
-        const handlerReturn = utils.toBN(
-          getHandlerReturn(receipt, ['uint256'])[0]
-        );
-        const poolTokenUserEnd = await this.poolToken.balanceOf.call(user);
-        expect(handlerReturn).to.be.bignumber.eq(
-          poolTokenUserEnd.sub(poolTokenUser)
-        );
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+
+        const poolTokenUserEnd = await poolToken.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(poolTokenUserEnd.sub(poolTokenUser));
 
         // Check proxy balance
-        expect(await this.token0.balanceOf.call(this.proxy.address)).to.be
-          .bignumber.zero;
-        expect(await this.token1.balanceOf.call(this.proxy.address)).to.be
-          .bignumber.zero;
-        expect(await this.poolToken.balanceOf.call(this.proxy.address)).to.be
-          .bignumber.zero;
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await poolToken.balanceOf(proxy.address)).to.be.eq(0);
 
         // Check user balance
-        expect(await this.token0.balanceOf.call(user)).to.be.bignumber.eq(
-          token0User
-        );
-        expect(await this.token1.balanceOf.call(user)).to.be.bignumber.eq(
-          token1User
-        );
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+        expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
         // poolToken amount should be greater than answer * 0.999 which is
         // referenced from tests in curve contract.
-        expect(poolTokenUserEnd).to.be.bignumber.gte(
-          answer.mul(new BN('999')).div(new BN('1000'))
+        expect(poolTokenUserEnd).to.be.gte(
+          answer.mul(BigNumber.from('999')).div(BigNumber.from('1000'))
         );
-        expect(poolTokenUserEnd).to.be.bignumber.lte(answer);
-
-        profileGas(receipt);
+        expect(poolTokenUserEnd).to.be.lte(answer);
       });
     });
   });
