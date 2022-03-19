@@ -88,7 +88,7 @@ describe('Chainlink', function () {
     it('should revert: invalid length', async function () {
       await expect(
         chainlink.connect(owner).addAssets([], [aggregatorA])
-      ).to.be.revertedWith('Invalid length');
+      ).to.be.revertedWith('revertCode(43)'); // CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT
     });
 
     it('should revert: zero address asset', async function () {
@@ -96,13 +96,13 @@ describe('Chainlink', function () {
         chainlink
           .connect(owner)
           .addAssets([constants.AddressZero], [aggregatorA])
-      ).to.be.reverted.revertedWith('Zero address');
+      ).to.be.reverted.revertedWith('revertCode(44)'); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: zero address aggregator', async function () {
       await expect(
         chainlink.connect(owner).addAssets([tokenA], [constants.AddressZero])
-      ).to.be.reverted.revertedWith('Zero address');
+      ).to.be.reverted.revertedWith('revertCode(44)'); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: existing asset', async function () {
@@ -110,7 +110,7 @@ describe('Chainlink', function () {
         chainlink
           .connect(owner)
           .addAssets([tokenA, tokenA], [aggregatorA, aggregatorB])
-      ).to.be.revertedWith('Existing asset');
+      ).to.be.revertedWith('revertCode(45)'); // CHAINLINK_EXISTING_ASSET
     });
 
     it('should revert: stale price', async function () {
@@ -119,7 +119,7 @@ describe('Chainlink', function () {
       await network.provider.send('evm_mine', []);
       await expect(
         chainlink.connect(owner).addAssets([tokenA], [aggregatorA])
-      ).to.be.revertedWith('Stale price');
+      ).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   });
 
@@ -153,7 +153,7 @@ describe('Chainlink', function () {
     it('should revert: non-existent asset', async function () {
       await expect(
         chainlink.removeAssets([unsupportedToken])
-      ).to.be.revertedWith('Non-existent asset');
+      ).to.be.revertedWith('revertCode(46)'); // CHAINLINK_NON_EXISTENT_ASSET
     });
   });
 
@@ -225,7 +225,7 @@ describe('Chainlink', function () {
 
       await expect(
         chainlink.calcConversionAmount(base, baseAmount, quote)
-      ).to.be.reverted.revertedWith('Zero amount');
+      ).to.be.reverted.revertedWith('revertCode(42)'); // CHAINLINK_ZERO_AMOUNT
     });
 
     it('should revert: unsupported asset', async function () {
@@ -235,7 +235,7 @@ describe('Chainlink', function () {
 
       await expect(
         chainlink.calcConversionAmount(base, baseAmount, quote)
-      ).to.be.reverted.revertedWith('Zero address');
+      ).to.be.reverted.revertedWith('revertCode(44)'); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: stale price', async function () {
@@ -248,7 +248,7 @@ describe('Chainlink', function () {
       await network.provider.send('evm_mine', []);
       await expect(
         chainlink.calcConversionAmount(base, baseAmount, quote)
-      ).to.be.revertedWith('Stale price');
+      ).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   });
 });

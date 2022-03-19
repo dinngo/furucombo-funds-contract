@@ -70,7 +70,7 @@ describe('MortgageVault', function () {
       await mortgageVault.stake(user.address, pool.address, stakingAmount);
       await expect(
         mortgageVault.stake(user.address, pool.address, stakingAmount)
-      ).to.be.revertedWith('Pool staked');
+      ).to.be.revertedWith('revertCode(5)'); // MORTGAGE_VAULT_POOL_STAKED
     });
   });
 

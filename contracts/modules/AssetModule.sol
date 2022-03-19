@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {Errors} from "../utils/Errors.sol";
 import {LibUniqueAddressList} from "../libraries/LibUniqueAddressList.sol";
 
 /// @title Asset module
@@ -38,11 +39,10 @@ abstract contract AssetModule is PoolProxyStorageUtils {
     /// @notice Check the remaining asset should be only the denomination asset
     /// when closing the vault.
     function close() public virtual {
-        // TODO: replace err msg: Different asset remaining
-        require(
+        Errors._require(
             _assetList.size() == 1 &&
                 _assetList.front() == address(denomination),
-            "D"
+            Errors.Code.ASSET_MODULE_DIFFERENT_ASSET_REMAINING
         );
         _close();
     }
