@@ -229,7 +229,7 @@ describe('Performance fee', function () {
           await increaseNextBlockTimeBy(period.toNumber() * 0.4);
           const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
           await expect(pFeeModule.crystallize()).to.be.revertedWith(
-            'revertCode(71)'
+            'revertCode(67)'
           ); // PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET;
 
           await pFeeModule.updatePerformanceFee();

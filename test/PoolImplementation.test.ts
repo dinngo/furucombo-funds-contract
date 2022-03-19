@@ -656,7 +656,7 @@ describe('PoolImplementation', function () {
       await expect(
         poolImplementation.execute(executionData)
       ).to.be.revertedWith(
-        'revertCode(77)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+        'revertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
       );
     });
   });
@@ -689,7 +689,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setManagementFeeRate(maxRate)
-        ).to.be.revertedWith('revertCode(73)'); // MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
+        ).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
@@ -718,7 +718,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setPerformanceFeeRate(maxRate)
-        ).to.be.revertedWith('revertCode(69)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
+        ).to.be.revertedWith('revertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
@@ -749,7 +749,7 @@ describe('PoolImplementation', function () {
         const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
         await expect(
           poolImplementation.setCrystallizationPeriod(shortPeriod)
-        ).to.be.revertedWith('revertCode(70)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
+        ).to.be.revertedWith('revertCode(66)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
       });
     });
 

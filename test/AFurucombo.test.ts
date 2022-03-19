@@ -502,7 +502,7 @@ describe('AFurucombo', function () {
 
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith('revertCode(75)'); // AFURUCOMBO_REMAINING_TOKENS
+      ).to.be.revertedWith('revertCode(71)'); // AFURUCOMBO_REMAINING_TOKENS
     });
 
     it('should revert: invalid handler', async function () {
