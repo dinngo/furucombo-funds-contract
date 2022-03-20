@@ -239,7 +239,7 @@ export async function tokenProviderCurveGauge(lpToken: string) {
   }
   _impersonateAndInjectEther(gauge);
 
-  return gauge;
+  return await (ethers as any).getSigner(gauge);
 }
 
 export async function _tokenProviderUniLike(

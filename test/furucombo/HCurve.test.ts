@@ -274,14 +274,13 @@ describe('HCurve', function () {
         token1User: BigNumber,
         poolTokenUser: BigNumber;
       let provider0Address: string, provider1Address: string;
-      let poolTokenProvider;
+      let poolTokenProvider: Signer;
       let token0: IERC20, token1: IERC20, poolToken: IERC20;
 
       before(async function () {
         provider0Address = await tokenProviderQuick(token0Address);
         provider1Address = await tokenProviderQuick(token1Address);
         poolTokenProvider = await tokenProviderCurveGauge(poolTokenAddress);
-
         token0 = await ethers.getContractAt('IERC20', token0Address);
         token1 = await ethers.getContractAt('IERC20', token1Address);
         poolToken = await ethers.getContractAt('IERC20', poolTokenAddress);
@@ -353,6 +352,55 @@ describe('HCurve', function () {
           answer.mul(BigNumber.from('999')).div(BigNumber.from('1000'))
         );
         expect(poolTokenUserEnd).to.be.lte(answer);
+      });
+      it('remove from pool to USDT by removeLiquidityOneCoinUnderlying', async function () {
+        const poolTokenUser = ether('0.1');
+        const token1UserBefore = await token1.balanceOf(user.address);
+        const answer = await aaveSwap['calc_withdraw_one_coin(uint256,int128)'](
+          poolTokenUser,
+          2
+        );
+
+        await poolToken
+          .connect(poolTokenProvider)
+          .transfer(proxy.address, poolTokenUser);
+
+        await proxy.updateTokenMock(poolToken.address);
+
+        const minAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
+        );
+        const data = getCallData(
+          hCurve,
+          'removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)',
+          [
+            aaveSwap.address,
+            poolToken.address,
+            token1.address,
+            poolTokenUser,
+            2,
+            minAmount,
+          ]
+        );
+
+        const receipt = await proxy
+          .connect(user)
+          .execMock(hCurve.address, data, {
+            value: ether('1'),
+          });
+
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1UserBefore));
+
+        // Check proxy balance
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await poolToken.balanceOf(proxy.address)).to.be.eq(0);
+
+        // Check user
+        expect(token1UserEnd).to.be.eq(token1UserBefore.add(answer));
       });
     });
   });
