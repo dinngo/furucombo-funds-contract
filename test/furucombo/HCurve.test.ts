@@ -16,10 +16,8 @@ import {
 import {
   DAI_TOKEN,
   USDT_TOKEN,
-  WMATIC_TOKEN,
   ADAI_V2_TOKEN,
   AWMATIC_V2,
-  AAVEPROTOCOL_V2_PROVIDER,
   CURVE_AAVE_SWAP,
   CURVE_AAVECRV,
   MATIC_TOKEN,
@@ -28,44 +26,20 @@ import {
 import {
   ether,
   mulPercent,
-  profileGas,
-  simpleEncode,
   asciiToHex32,
-  balanceDelta,
   getHandlerReturn,
-  expectEqWithinBps,
   tokenProviderQuick,
   getCallData,
   tokenProviderCurveGauge,
 } from '../utils/utils';
 
 describe('HCurve', function () {
-  const aTokenAddress = ADAI_V2_TOKEN;
-
-  const awmaticAddress = AWMATIC_V2;
-  const ATOKEN_DUST = ether('0.00001');
-
   let owner: Wallet;
   let user: Wallet;
-
   let aaveSwap: ICurveHandler;
   let hCurve: HCurve;
-  let token: IERC20;
-  let wmatic: IERC20;
-  let aToken: IATokenV2;
-  let awmatic: IATokenV2;
-  let mockToken: SimpleToken;
-  let providerAddress: Signer;
-  let wmaticProviderAddress: Signer;
-
   let proxy: FurucomboProxyMock;
   let registry: Registry;
-  let hAaveV2: HAaveProtocolV2;
-
-  let lendingPool: ILendingPoolV2;
-
-  let userBalance: BigNumber;
-  let proxyBalance: BigNumber;
   const slippage = BigNumber.from('3');
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -93,43 +67,6 @@ describe('HCurve', function () {
         aaveSwap.address,
         true
       );
-
-      // Setup token and unlock provider
-      // providerAddress = await tokenProviderQuick(tokenAddress);
-      // wmaticProviderAddress = await tokenProviderQuick(WMATIC_TOKEN);
-      // token = await ethers.getContractAt('IERC20', tokenAddress);
-      // aToken = await ethers.getContractAt('IATokenV2', aTokenAddress);
-      // wmatic = await ethers.getContractAt('IERC20', WMATIC_TOKEN);
-      // awmatic = await ethers.getContractAt('IATokenV2', awmaticAddress);
-      // mockToken = await (
-      //   await ethers.getContractFactory('SimpleToken')
-      // ).deploy();
-      // await mockToken.deployed();
-
-      // // Setup proxy and Aproxy
-      // registry = await (await ethers.getContractFactory('Registry')).deploy();
-      // await registry.deployed();
-
-      // proxy = await (
-      //   await ethers.getContractFactory('FurucomboProxyMock')
-      // ).deploy(registry.address);
-      // await proxy.deployed();
-
-      // hAaveV2 = await (
-      //   await ethers.getContractFactory('HAaveProtocolV2')
-      // ).deploy();
-      // await hAaveV2.deployed();
-      // await registry.register(hAaveV2.address, asciiToHex32('HAaveProtocolV2'));
-
-      // const provider = await ethers.getContractAt(
-      //   'ILendingPoolAddressesProviderV2',
-      //   AAVEPROTOCOL_V2_PROVIDER
-      // );
-
-      // lendingPool = await ethers.getContractAt(
-      //   'ILendingPoolV2',
-      //   await provider.getLendingPool()
-      // );
     }
   );
 
@@ -248,7 +185,6 @@ describe('HCurve', function () {
         );
       });
       it('should revert: not support MRC20', async function () {
-        // const value = BigNumber.from('1000000');
         const data = getCallData(
           hCurve,
           'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
@@ -260,6 +196,26 @@ describe('HCurve', function () {
             value: value,
           })
         ).revertedWith('Not support matic token');
+      });
+      it('should revert: invalid callee', async function () {
+        // unregister callee
+        await registry.setHandlerCalleeWhitelist(
+          hCurve.address,
+          aaveSwap.address,
+          false
+        );
+
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
+          [aaveSwap.address, MATIC_TOKEN, token1.address, 2, 0, value, 0]
+        );
+
+        await expect(
+          proxy.connect(user).execMock(hCurve.address, data, {
+            value: value,
+          })
+        ).revertedWith('invalid callee');
       });
     });
   });
