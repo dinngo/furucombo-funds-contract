@@ -13,7 +13,6 @@ export const WL_AAVE_V2_SIGS = [
   '0x8cd2e0c7', // repay(address,uint256,uint256)
   '0xc1bce0b7', // borrow(address,uint256,uint256)
   '0x54296154', // flashLoan(address[],uint256[],uint256[],bytes)
-  '0x920f5c84', // executeOperation(address[],uint256[],uint256[],address,bytes)
 ];
 export const WL_FUNDS_SIGS = [
   '0xd0797f84', // inject(address[],uint256[])
