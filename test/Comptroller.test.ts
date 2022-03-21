@@ -593,6 +593,15 @@ describe('Comptroller', function () {
         ).to.be.revertedWith('revertCode(13)'); // POOL_PROXY_FACTORY_INVALID_CREATOR
       });
 
+      it('should revert: invalid staked tier', async function () {
+        await comptroller.permitCreators([user.address]);
+        await expect(
+          factory
+            .connect(user)
+            .createPool(tokenD.address, 2, 0, 0, 300, 0, 'TEST')
+        ).to.be.revertedWith('revertCode(75)'); // POOL_PROXY_FACTORY_INVALID_STAKED_TIER
+      });
+
       it('should stake for the given tier', async function () {
         const tokenMUserBefore = await tokenM.callStatic.balanceOf(
           user.address
