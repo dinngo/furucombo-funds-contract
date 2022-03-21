@@ -555,7 +555,9 @@ describe('Comptroller', function () {
     const stakeAmount = 5000;
     it('set staking tier', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).stakedTier(level)).to.be.equal(0);
+      let stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.false;
+      expect(stakedTierConfig[1]).to.be.equal(0);
 
       // set staked tier amount
       await expect(comptroller.setStakedTier(level, stakeAmount))
@@ -563,12 +565,12 @@ describe('Comptroller', function () {
         .withArgs(level, stakeAmount);
 
       // check staked tier
-      expect(await comptroller.connect(user).stakedTier(level)).to.be.equal(
-        stakeAmount
-      );
+      stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.true;
+      expect(stakedTierConfig[1]).to.be.equal(stakeAmount);
 
       expect(
-        await comptroller.connect(user).stakedTier(otherLevel)
+        (await comptroller.connect(user).stakedTier(otherLevel))[1]
       ).to.be.equal(0);
     });
 
