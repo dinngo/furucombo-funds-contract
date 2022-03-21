@@ -5,10 +5,6 @@ import {
   FurucomboProxyMock,
   Registry,
   IERC20,
-  HAaveProtocolV2,
-  IATokenV2,
-  SimpleToken,
-  ILendingPoolV2,
   ICurveHandler,
   HCurve,
 } from '../../typechain';
@@ -16,11 +12,10 @@ import {
 import {
   DAI_TOKEN,
   USDT_TOKEN,
-  ADAI_V2_TOKEN,
-  AWMATIC_V2,
   CURVE_AAVE_SWAP,
   CURVE_AAVECRV,
   MATIC_TOKEN,
+  NATIVE_TOKEN,
 } from '../utils/constants';
 
 import {
@@ -216,6 +211,32 @@ describe('HCurve', function () {
             value: value,
           })
         ).revertedWith('invalid callee');
+      });
+      it('should revert: input token not support native token', async function () {
+        const inputAmount = ether('5');
+        const answer = await aaveSwap[
+          'get_dy_underlying(int128,int128,uint256)'
+        ](2, 0, inputAmount);
+
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
+          [
+            aaveSwap.address,
+            NATIVE_TOKEN,
+            token0.address,
+            2,
+            0,
+            inputAmount,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
+
+        await expect(
+          proxy.connect(user).execMock(hCurve.address, data, {
+            value: 0,
+          })
+        ).to.be.revertedWith('_exec');
       });
     });
   });
