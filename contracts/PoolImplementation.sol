@@ -16,6 +16,8 @@ import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 import {SetupAction} from "./actions/SetupAction.sol";
 
+import {Errors} from "./utils/Errors.sol";
+
 /// @title The implementation contract for pool.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
@@ -82,10 +84,15 @@ contract PoolImplementation is
         _finalize();
 
         // Add denomination to list and never remove
-        // TODO: replace err msg: assetList is not empty
-        require(getAssetList().length == 0);
-        // TODO: replace err msg: Invalid denomination
-        require(comptroller.isValidDenomination(address(denomination)));
+        Errors._require(
+            getAssetList().length == 0,
+            Errors.Code.IMPLEMENTATION_ASSET_LIST_NOT_EMPTY
+        );
+
+        Errors._require(
+            comptroller.isValidDenomination(address(denomination)),
+            Errors.Code.IMPLEMENTATION_INVALID_DENOMINATION
+        );
         addAsset(address(denomination));
 
         // Set approval for investor to redeem
@@ -100,19 +107,24 @@ contract PoolImplementation is
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
-        require(isPendingResolvable(true));
+        Errors._require(
+            isPendingResolvable(true),
+            Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
+        );
         _settlePendingRedemption(true);
         _resume();
     }
 
     /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
     function liquidate() public {
-        // TODO: replace err msg: Pending does not start
-        require(pendingStartTime != 0);
-        // TODO: replace err msg: Pending does not expire
-        require(
+        Errors._require(
+            pendingStartTime != 0,
+            Errors.Code.IMPLEMENTATION_PENDING_NOT_START
+        );
+        Errors._require(
             block.timestamp >=
-                pendingStartTime + comptroller.pendingExpiration()
+                pendingStartTime + comptroller.pendingExpiration(),
+            Errors.Code.IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
 
         _liquidate();
@@ -233,8 +245,10 @@ contract PoolImplementation is
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
-        // TODO: replace err msg: Invalid asset
-        require(comptroller.isValidDealingAsset(level, asset));
+        Errors._require(
+            comptroller.isValidDealingAsset(level, asset),
+            Errors.Code.IMPLEMENTATION_INVALID_ASSET
+        );
 
         if (asset == address(denomination)) {
             super._addAsset(asset);
@@ -305,6 +319,11 @@ contract PoolImplementation is
         override
         returns (uint256)
     {
+        Errors._require(
+            _isReserveEnough(),
+            Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
+        );
+
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
@@ -322,15 +341,20 @@ contract PoolImplementation is
             resume();
         }
 
-        // TODO: replace err msg: Insufficient reserve
-        require(_isReserveEnough());
+        Errors._require(
+            _isReserveEnough(),
+            Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
+        );
 
         // Check asset value
         uint256 totalAssetValue = getTotalAssetValue();
         uint256 minTotalAssetValue = (prevAssetValue *
             comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
-        // TODO: replace err msg: Insufficient total value for execution
-        require(totalAssetValue >= minTotalAssetValue);
+
+        Errors._require(
+            totalAssetValue >= minTotalAssetValue,
+            Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+        );
 
         return totalAssetValue;
     }

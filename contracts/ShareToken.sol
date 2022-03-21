@@ -4,6 +4,7 @@ pragma solidity 0.8.12;
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
+import {Errors} from "./utils/Errors.sol";
 
 contract ShareToken is ERC20Permit, Ownable, IShareToken {
     uint8 private immutable _decimals;
@@ -50,13 +51,15 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         uint256 amount
     ) internal virtual override {
         if (to == address(1)) {
-            if (from != address(0)) {
-                revert("invalid to");
-            }
+            Errors._require(
+                from == address(0),
+                Errors.Code.SHARE_TOKEN_INVALID_TO
+            );
         } else if (to == address(2)) {
-            if (from != address(1)) {
-                revert("invalid to");
-            }
+            Errors._require(
+                from == address(1),
+                Errors.Code.SHARE_TOKEN_INVALID_TO
+            );
         }
         super._beforeTokenTransfer(from, to, amount);
     }

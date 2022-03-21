@@ -474,9 +474,7 @@ describe('AFurucombo', function () {
 
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith(
-        '_inject: Input tokens and amounts length inconsistent'
-      );
+      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
     it('should revert: remaining tokens >= token dust', async function () {
@@ -504,9 +502,7 @@ describe('AFurucombo', function () {
 
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith(
-        'injectAndBatchExec: Furucombo has remaining tokens'
-      );
+      ).to.be.revertedWith('revertCode(71)'); // AFURUCOMBO_REMAINING_TOKENS
     });
 
     it('should revert: invalid handler', async function () {
@@ -537,9 +533,7 @@ describe('AFurucombo', function () {
       // const vault = await proxy.vault();
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith(
-        '_checkHandlerCall: invalid comptroller handler call'
-      );
+      ).to.be.revertedWith('revertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
     });
   });
 
@@ -590,7 +584,7 @@ describe('AFurucombo', function () {
 
       await expect(
         proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith('token length != amounts length');
+      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
 });

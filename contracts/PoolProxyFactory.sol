@@ -7,6 +7,7 @@ import {ShareToken} from "./ShareToken.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {Errors} from "./utils/Errors.sol";
 
 contract PoolProxyFactory {
     event PoolCreated(
@@ -31,7 +32,10 @@ contract PoolProxyFactory {
         uint256 reserveExecutionRatio,
         string memory shareTokenName
     ) external returns (address) {
-        require(comptroller.isValidCreator(msg.sender), "Invalid creator");
+        Errors._require(
+            comptroller.isValidCreator(msg.sender),
+            Errors.Code.POOL_PROXY_FACTORY_INVALID_CREATOR
+        );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
         uint256 mortgageAmount = comptroller.stakedTier(level);
         // Can be customized

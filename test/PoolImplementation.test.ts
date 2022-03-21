@@ -361,8 +361,9 @@ describe('PoolImplementation', function () {
 
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
-        // TODO: replace err msg: Invalid denomination
-        await expect(poolImplementation.finalize()).to.be.revertedWith('');
+        await expect(poolImplementation.finalize()).to.be.revertedWith(
+          'revertCode(12)' // IMPLEMENTATION_INVALID_DENOMINATION
+        );
       });
     });
 
@@ -405,8 +406,7 @@ describe('PoolImplementation', function () {
       it('should revert: pending does not start', async function () {
         await poolImplementation.finalize();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          // TODO: replace err msg: Pending does not start
-          ''
+          'revertCode(8)' // IMPLEMENTATION_PENDING_NOT_START
         );
       });
 
@@ -414,8 +414,7 @@ describe('PoolImplementation', function () {
         await poolImplementation.finalize();
         await poolImplementation.pendMock();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          // TODO: replace err msg: Pending does not expire
-          ''
+          'revertCode(9)' // IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
       });
     });
@@ -502,8 +501,7 @@ describe('PoolImplementation', function () {
       it('should revert: asset is not permitted', async function () {
         await expect(
           poolImplementation.addAsset(tokenA.address)
-          // TODO: replace err msg: Invalid asset
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(11)'); // IMPLEMENTATION_INVALID_ASSET
       });
 
       it('can not be added: zero balance of asset', async function () {
@@ -657,7 +655,9 @@ describe('PoolImplementation', function () {
       await poolImplementation.setTotalAssetValueMock(valueCurrent);
       await expect(
         poolImplementation.execute(executionData)
-      ).to.be.revertedWith('');
+      ).to.be.revertedWith(
+        'revertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+      );
     });
   });
 
@@ -689,8 +689,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setManagementFeeRate(maxRate)
-          // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
@@ -719,8 +718,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setPerformanceFeeRate(maxRate)
-          // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
@@ -751,8 +749,7 @@ describe('PoolImplementation', function () {
         const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
         await expect(
           poolImplementation.setCrystallizationPeriod(shortPeriod)
-          // TODO: replace err msg: Crystallization period too short
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(66)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
       });
     });
 

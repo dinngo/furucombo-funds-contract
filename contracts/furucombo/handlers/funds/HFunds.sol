@@ -66,10 +66,10 @@ contract HFunds is HandlerBase {
             "token and amount do not match"
         );
 
+        address payable receiver = payable(_getSender());
         for (uint256 i = 0; i < tokens.length; i++) {
             // token can't be matic token
             _notMaticToken(tokens[i]);
-            address payable receiver = payable(_getSender());
 
             uint256 amount = _getBalance(tokens[i], amounts[i]);
             if (amount > 0) {

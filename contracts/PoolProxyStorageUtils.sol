@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Errors} from "./utils/Errors.sol";
 import {PoolProxyStorage} from "./PoolProxyStorage.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
@@ -73,64 +74,100 @@ abstract contract PoolProxyStorageUtils is PoolProxyStorage {
 
     // Setters
     function _setLevel(uint256 level_) internal {
-        // TODO: replace err msg: Level is set
-        require(level == 0);
-        // TODO: replace err msg: Level should not be 0
-        require(level_ > 0);
+        Errors._require(
+            level == 0,
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_LEVEL_IS_SET
+        );
+        Errors._require(
+            level_ > 0,
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_ZERO_LEVEL
+        );
         level = level_;
     }
 
     function _setComptroller(IComptroller comptroller_) internal {
-        // TODO: replace err msg: Comptroller is initialized
-        require(address(comptroller) == address(0));
-        // TODO: replace err msg: Comptroller should not be zero address
-        require(address(comptroller_) != address(0));
+        Errors._require(
+            address(comptroller) == address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_COMPTROLLER_IS_INITIALIZED
+        );
+        Errors._require(
+            address(comptroller_) != address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
+        );
         comptroller = comptroller_;
     }
 
     function _setDenomination(IERC20 denomination_) internal {
-        // TODO: replace err msg: Invalid denomination
-        require(comptroller.isValidDenomination(address(denomination_)));
+        Errors._require(
+            comptroller.isValidDenomination(address(denomination_)),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
+        );
         denomination = denomination_;
     }
 
     function _setShareToken(IShareToken shareToken_) internal {
-        // TODO: replace err msg: Share token is initialized
-        require(address(shareToken) == address(0));
-        // TODO: replace err msg: Share token should not be zero address
-        require(address(shareToken_) != address(0));
+        Errors._require(
+            address(shareToken) == address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_SHARE_TOKEN_IS_INITIALIZED
+        );
+        Errors._require(
+            address(shareToken_) != address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_ZERO_SHARE_TOKEN_ADDRESS
+        );
         shareToken = shareToken_;
     }
 
     function _setMortgageVault(IComptroller comptroller_) internal {
-        // TODO: replace err msg: MortgageVault is initialized
-        require(address(mortgageVault) == address(0));
-        // TODO: replace err msg: Comptroller should not be zero address
-        require(address(comptroller_) != address(0));
+        Errors._require(
+            address(mortgageVault) == address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
+        );
+        Errors._require(
+            address(comptroller_) != address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
+        );
+
         mortgageVault = comptroller_.mortgageVault();
-        // TODO: replace err msg: MortgageVault is not initialized
-        require(address(mortgageVault) != address(0));
+        Errors._require(
+            address(mortgageVault) != address(0),
+            Errors
+                .Code
+                .POOL_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED
+        );
     }
 
     function _setVault(IDSProxyRegistry dsProxyRegistry) internal {
-        // TODO: replace err msg: Vault is initialized
-        require(address(vault) == address(0));
-        // TODO: replace err msg: Registry should not be zero address
-        require(address(dsProxyRegistry) != address(0));
+        Errors._require(
+            address(vault) == address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED
+        );
+
+        Errors._require(
+            address(dsProxyRegistry) != address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_ZERO_REGISTRY
+        );
 
         // deploy vault
         vault = IDSProxy(dsProxyRegistry.build());
-        // TODO: replace err msg: Vault is not initialized
-        require(address(vault) != address(0));
+        Errors._require(
+            address(vault) != address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED
+        );
     }
 
     function _setVaultApproval(ISetupAction setupAction) internal {
-        // TODO: replace err msg: Vault should not be zero address
-        require(address(vault) != address(0));
-        // TODO: replace err msg: Setup should not be zero address
-        require(address(setupAction) != address(0));
-        // TODO: replace err msg: Invalid denomination
-        require(comptroller.isValidDenomination(address(denomination)));
+        Errors._require(
+            address(vault) != address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_ZERO_VAULT
+        );
+        Errors._require(
+            address(setupAction) != address(0),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
+        );
+        Errors._require(
+            comptroller.isValidDenomination(address(denomination)),
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
+        );
 
         // set vault approval
         bytes memory data = abi.encodeWithSignature(
@@ -139,10 +176,10 @@ abstract contract PoolProxyStorageUtils is PoolProxyStorage {
         );
         vault.execute(address(setupAction), data);
 
-        // TODO: replace err msg: Wrong allowance
-        require(
+        Errors._require(
             denomination.allowance(address(vault), address(this)) ==
-                type(uint256).max
+                type(uint256).max,
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_WRONG_ALLOWANCE
         );
     }
 
