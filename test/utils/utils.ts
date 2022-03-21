@@ -69,7 +69,7 @@ export async function getTaskExecutorDealingAssets(
   proxy: any,
   taskExecutor: any
 ) {
-  const returnData = await proxy.executeMock(
+  const returnData = await proxy.callStatic.executeMock(
     taskExecutor.address,
     getCallData(taskExecutor, 'getDealingAssetList', [])
   );
