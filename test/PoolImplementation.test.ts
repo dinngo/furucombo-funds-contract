@@ -26,7 +26,6 @@ import {
   CHAINLINK_WBTC_USD,
   FEE_BASE,
   WL_ANY_SIG,
-  FEE_BASE64x64,
   TOLERANCE_BASE,
   POOL_STATE,
 } from './utils/constants';
@@ -35,6 +34,7 @@ import {
   simpleEncode,
   tokenProviderQuick,
   mwei,
+  get64x64FromNumber,
   getCallData,
   increaseNextBlockTimeBy,
 } from './utils/utils';
@@ -274,12 +274,14 @@ describe('PoolImplementation', function () {
         expect(shareTokenAddr).to.be.eq(shareToken.address);
       });
       it('should set management fee rate', async function () {
+        const rate = get64x64FromNumber(1);
         const feeRate = await poolImplementation.getManagementFeeRate();
-        expect(feeRate).to.be.eq(BigNumber.from(FEE_BASE64x64));
+        expect(feeRate).to.be.eq(rate);
       });
       it('should set performance fee rate', async function () {
+        const rate = get64x64FromNumber(performanceFeeRate / FEE_BASE);
         const feeRate = await poolImplementation.getPerformanceFeeRate();
-        expect(feeRate).to.be.eq(BigNumber.from('1844674407370955161'));
+        expect(feeRate).to.be.eq(rate);
       });
       it('should set crystallization period', async function () {
         const _crystallizationPeriod =
@@ -327,6 +329,7 @@ describe('PoolImplementation', function () {
         const receipt = await poolImplementation.finalize();
         const block = await ethers.provider.getBlock(receipt.blockNumber!);
         const timestamp = BigNumber.from(block.timestamp);
+        const price = get64x64FromNumber(1);
 
         // check add denomication to list
         expect(await poolImplementation.getAssetList()).to.be.deep.eq([
@@ -342,7 +345,7 @@ describe('PoolImplementation', function () {
         const lastGrossSharePrice =
           await poolImplementation.callStatic.lastGrossSharePrice64x64();
         const hwm64x64 = await poolImplementation.callStatic.hwm64x64();
-        expect(lastGrossSharePrice).to.be.eq(BigNumber.from(FEE_BASE64x64));
+        expect(lastGrossSharePrice).to.be.eq(BigNumber.from(price));
         expect(lastGrossSharePrice).to.be.eq(hwm64x64);
 
         // check vault approval
