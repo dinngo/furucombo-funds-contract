@@ -10,6 +10,8 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 
 abstract contract PoolProxyStorageUtils is PoolProxyStorage {
+    uint256 private constant FEE_BASE = 1e4;
+
     event StateTransited(State to);
 
     error InvalidState(State current);
@@ -186,6 +188,7 @@ abstract contract PoolProxyStorageUtils is PoolProxyStorage {
     function _setReserveExecutionRatio(uint256 reserveExecutionRatio_)
         internal
     {
+        require(reserveExecutionRatio_ < FEE_BASE, "");
         reserveExecutionRatio = reserveExecutionRatio_;
     }
 }
