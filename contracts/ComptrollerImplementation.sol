@@ -54,7 +54,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event SetExecFeePercentage(uint256 indexed percentage);
     event SetPendingLiquidator(address indexed liquidator);
     event SetPendingExpiration(uint256 expiration);
-    event SetExecAssetValuetoleranceRate(uint256 tolerance);
+    event SetExecAssetValueToleranceRate(uint256 tolerance);
     event SetInitialAssetCheck(bool indexed check);
     event PoolProxyBanned(address indexed poolProxy);
     event PoolProxyUnbanned(address indexed poolProxy);
@@ -222,7 +222,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         onlyOwner
     {
         execAssetValueToleranceRate = tolerance;
-        emit SetExecAssetValuetoleranceRate(tolerance);
+        emit SetExecAssetValueToleranceRate(tolerance);
     }
 
     // input check
