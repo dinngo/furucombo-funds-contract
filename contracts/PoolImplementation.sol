@@ -319,11 +319,6 @@ contract PoolImplementation is
         override
         returns (uint256)
     {
-        Errors._require(
-            _isReserveEnough(),
-            Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
-        );
-
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
