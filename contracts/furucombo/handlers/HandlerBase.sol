@@ -7,7 +7,7 @@ import {IERC20Usdt} from "../../interfaces/IERC20Usdt.sol";
 import {Config} from "../Config.sol";
 import {Storage, LibStack} from "../Storage.sol";
 
-import {IRegistry} from "../interface/IRegistry.sol";
+import {IRegistry} from "../interfaces/IRegistry.sol";
 
 abstract contract HandlerBase is Storage, Config {
     using SafeERC20 for IERC20;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {LibCache} from "./lib/LibCache.sol";
 import {LibStack} from "./lib/LibStack.sol";
-import {IRegistry} from "./interface/IRegistry.sol";
+import {IRegistry} from "./interfaces/IRegistry.sol";
 
 /// @notice A cache structure composed by a bytes32 array
 abstract contract Storage {

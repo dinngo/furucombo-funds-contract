@@ -30,6 +30,23 @@ export const WL_SUSHISWAP_SIGS = [
   '0x86818f26', // swapExactTokensForTokens(uint256,uint256,address[])
   '0x397d4b4a', // swapTokensForExactTokens(uint256,uint256,address[])
 ];
+export const WL_CURVE_SIGS = [
+  '0x8337782d', // exchange(address,address,address,int128,int128,uint256,uint256)
+  '0xff2e5c43', // exchangeUint256(address,address,address,uint256,uint256,uint256,uint256)
+  '0xfef6074e', // exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)
+  '0x51c6312e', // exchangeUnderlyingUint256(address,address,address,uint256,uint256,uint256,uint256)
+
+  '0x51a34ca5', // addLiquidity(address,address,address[],uint256[],uint256)
+  '0x7ad0fd49', // addLiquidityUnderlying(address,address,address[],uint256[],uint256)
+  '0xec075daf', // addLiquidityFactoryZap(address,address,address[],uint256[],uint256)
+  '0x301ee996', // removeLiquidityOneCoin(address,address,address,uint256,int128,uint256)
+
+  '0x349a0635', // removeLiquidityOneCoinUint256(address,address,address,uint256,uint256,uint256)
+  '0xdf5f2889', // removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)
+  '0xf9c1a8ee', // removeLiquidityOneCoinUnderlyingUint256(address,address,address,uint256,uint256,uint256)
+
+  '0x7eb32418', // removeLiquidityOneCoinFactoryZap(address,address,address,uint256,int128,uint256)
+];
 export const LEVEL = 1;
 export const EXEC_FEE_PERCENTAGE = 200; // 2%
 export const PENDING_EXPIRATION = 86400; // 1 day
