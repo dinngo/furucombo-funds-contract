@@ -17,61 +17,6 @@ contract HQuickSwap is HandlerBase {
         return "HQuickSwap";
     }
 
-    function addLiquidityETH(
-        uint256 value,
-        address token,
-        uint256 amountTokenDesired,
-        uint256 amountTokenMin,
-        uint256 amountETHMin
-    )
-        external
-        payable
-        returns (
-            uint256 amountToken,
-            uint256 amountETH,
-            uint256 liquidity
-        )
-    {
-        _notMaticToken(token);
-
-        // Get uniswapV2 router
-        IUniswapV2Router02 router = IUniswapV2Router02(UNISWAPV2_ROUTER);
-
-        // Approve token
-        value = _getBalance(address(0), value);
-        amountTokenDesired = _getBalance(token, amountTokenDesired);
-        _tokenApprove(token, UNISWAPV2_ROUTER, amountTokenDesired);
-
-        // Add liquidity ETH
-        try
-            router.addLiquidityETH{value: value}(
-                token,
-                amountTokenDesired,
-                amountTokenMin,
-                amountETHMin,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256 ret1, uint256 ret2, uint256 ret3) {
-            amountToken = ret1;
-            amountETH = ret2;
-            liquidity = ret3;
-        } catch Error(string memory reason) {
-            _revertMsg("addLiquidityETH", reason);
-        } catch {
-            _revertMsg("addLiquidityETH");
-        }
-        _tokenApproveZero(token, UNISWAPV2_ROUTER);
-
-        // Update involved token
-        address pair = UniswapV2Library.pairFor(
-            router.factory(),
-            token,
-            router.WETH()
-        );
-        _updateToken(pair);
-    }
-
     function addLiquidity(
         address tokenA,
         address tokenB,
@@ -133,48 +78,6 @@ contract HQuickSwap is HandlerBase {
         _updateToken(pair);
     }
 
-    function removeLiquidityETH(
-        address token,
-        uint256 liquidity,
-        uint256 amountTokenMin,
-        uint256 amountETHMin
-    ) external payable returns (uint256 amountToken, uint256 amountETH) {
-        // Get uniswapV2 router
-        IUniswapV2Router02 router = IUniswapV2Router02(UNISWAPV2_ROUTER);
-        address pair = UniswapV2Library.pairFor(
-            router.factory(),
-            token,
-            router.WETH()
-        );
-
-        // Approve token
-        liquidity = _getBalance(pair, liquidity);
-        _tokenApprove(pair, UNISWAPV2_ROUTER, liquidity);
-
-        // remove liquidityETH
-        try
-            router.removeLiquidityETH(
-                token,
-                liquidity,
-                amountTokenMin,
-                amountETHMin,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256 ret1, uint256 ret2) {
-            amountToken = ret1;
-            amountETH = ret2;
-        } catch Error(string memory reason) {
-            _revertMsg("removeLiquidityETH", reason);
-        } catch {
-            _revertMsg("removeLiquidityETH");
-        }
-        _tokenApproveZero(pair, UNISWAPV2_ROUTER);
-
-        // Update involved token
-        _updateToken(token);
-    }
-
     function removeLiquidity(
         address tokenA,
         address tokenB,
@@ -220,153 +123,6 @@ contract HQuickSwap is HandlerBase {
         _updateToken(tokenB);
     }
 
-    function swapExactETHForTokens(
-        uint256 value,
-        uint256 amountOutMin,
-        address[] calldata path
-    ) external payable returns (uint256 amount) {
-        _requireMsg(path.length >= 2, "swapExactETHForTokens", "invalid path");
-
-        // Get uniswapV2 router
-        IUniswapV2Router02 router = IUniswapV2Router02(UNISWAPV2_ROUTER);
-        value = _getBalance(address(0), value);
-        try
-            router.swapExactETHForTokens{value: value}(
-                amountOutMin,
-                path,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256[] memory amounts) {
-            amount = amounts[amounts.length - 1];
-        } catch Error(string memory reason) {
-            _revertMsg("swapExactETHForTokens", reason);
-        } catch {
-            _revertMsg("swapExactETHForTokens");
-        }
-
-        // From the 2nd token of path, because path[0] will be update by previous cubes
-        for (uint256 i = 0; i < path.length; i++) {
-            _updateToken(path[i]);
-        }
-    }
-
-    function swapETHForExactTokens(
-        uint256 value,
-        uint256 amountOut,
-        address[] calldata path
-    ) external payable returns (uint256 amount) {
-        _requireMsg(path.length >= 2, "swapETHForExactTokens", "invalid path");
-
-        // Get uniswapV2 router
-        IUniswapV2Router02 router = IUniswapV2Router02(UNISWAPV2_ROUTER);
-
-        // if amount == type(uint256).max return balance of Proxy
-        value = _getBalance(address(0), value);
-
-        try
-            router.swapETHForExactTokens{value: value}(
-                amountOut,
-                path,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256[] memory amounts) {
-            amount = amounts[0];
-        } catch Error(string memory reason) {
-            _revertMsg("swapETHForExactTokens", reason);
-        } catch {
-            _revertMsg("swapETHForExactTokens");
-        }
-
-        // From the 2nd token of path, because path[0] will be update by previous cubes
-        for (uint256 i = 0; i < path.length; i++) {
-            _updateToken(path[i]);
-        }
-    }
-
-    function swapExactTokensForETH(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path
-    ) external payable returns (uint256 amount) {
-        _requireMsg(path.length >= 2, "swapExactTokensForETH", "invalid path");
-        address tokenIn = path[0];
-        _notMaticToken(tokenIn);
-
-        // Get uniswapV2 router
-        IUniswapV2Router02 router = IUniswapV2Router02(UNISWAPV2_ROUTER);
-
-        // Approve token
-        amountIn = _getBalance(tokenIn, amountIn);
-        _tokenApprove(tokenIn, UNISWAPV2_ROUTER, amountIn);
-
-        try
-            router.swapExactTokensForETH(
-                amountIn,
-                amountOutMin,
-                path,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256[] memory amounts) {
-            amount = amounts[amounts.length - 1];
-        } catch Error(string memory reason) {
-            _revertMsg("swapExactTokensForETH", reason);
-        } catch {
-            _revertMsg("swapExactTokensForETH");
-        }
-        _tokenApproveZero(tokenIn, UNISWAPV2_ROUTER);
-
-        // From the 2nd token of path, because path[0] will be update by previous cubes
-        // the last token is ETH, don't need to update it
-        for (uint256 i = 0; i < path.length; i++) {
-            _updateToken(path[i]);
-        }
-    }
-
-    function swapTokensForExactETH(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path
-    ) external payable returns (uint256 amount) {
-        _requireMsg(path.length >= 2, "swapTokensForExactETH", "invalid path");
-        address tokenIn = path[0];
-        _notMaticToken(tokenIn);
-
-        // Get uniswapV2 router
-        IUniswapV2Router02 router = IUniswapV2Router02(UNISWAPV2_ROUTER);
-
-        // if amount == type(uint256).max return balance of Proxy
-        amountInMax = _getBalance(tokenIn, amountInMax);
-
-        // Approve token
-        _tokenApprove(tokenIn, UNISWAPV2_ROUTER, amountInMax);
-
-        try
-            router.swapTokensForExactETH(
-                amountOut,
-                amountInMax,
-                path,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256[] memory amounts) {
-            amount = amounts[0];
-        } catch Error(string memory reason) {
-            _revertMsg("swapTokensForExactETH", reason);
-        } catch {
-            _revertMsg("swapTokensForExactETH");
-        }
-        _tokenApproveZero(tokenIn, UNISWAPV2_ROUTER);
-
-        // From the 2nd token of path, because path[0] will be update by previous cubes
-        // the last token is ETH, don't need to update it
-        for (uint256 i = 0; i < path.length; i++) {
-            _updateToken(path[i]);
-        }
-    }
-
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -405,7 +161,7 @@ contract HQuickSwap is HandlerBase {
         _tokenApproveZero(tokenIn, UNISWAPV2_ROUTER);
 
         // From the 2nd token of path, because path[0] will be update by previous cubes
-        for (uint256 i = 0; i < path.length; i++) {
+        for (uint256 i = 1; i < path.length; i++) {
             _updateToken(path[i]);
         }
     }
@@ -450,7 +206,7 @@ contract HQuickSwap is HandlerBase {
         _tokenApproveZero(tokenIn, UNISWAPV2_ROUTER);
 
         // From the 2nd token of path, because path[0] will be update by previous cubes
-        for (uint256 i = 0; i < path.length; i++) {
+        for (uint256 i = 1; i < path.length; i++) {
             _updateToken(path[i]);
         }
     }

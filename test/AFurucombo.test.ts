@@ -218,24 +218,17 @@ describe('AFurucombo', function () {
 
   describe('inject and batchExec', function () {
     const furucomboTokenDust = BigNumber.from('10');
-    it('swap native and token to token', async function () {
-      const tokensIn = [NATIVE_TOKEN, token.address];
-      const amountsIn = [ether('2'), ether('1')];
+    it.only('swap token to token', async function () {
+      const tokensIn = [token.address];
+      const amountsIn = [ether('1')];
       const tokensOut = [tokenOut.address];
-      const tos = [hFunds.address, hQuickSwap.address, hQuickSwap.address];
+      const tos = [hFunds.address, hQuickSwap.address];
       const configs = [
-        '0x0004000000000000000000000000000000000000000000000000000000000000', // return size = 4 (uint256[2])
+        '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 4 (uint256[2])
         '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
-        '0x0100000000000000000103ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[3]
       ];
-
       const datas = [
         simpleEncode('updateTokens(address[])', [tokensIn]),
-        simpleEncode('swapExactETHForTokens(uint256,uint256,address[])', [
-          0, // amountIn: 100% return data
-          1, // amountOutMin
-          [WMATIC_TOKEN, tokenOut.address], // path
-        ]),
         simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
           0, // amountIn: 100% return data
           1, // amountOutMin
@@ -260,14 +253,12 @@ describe('AFurucombo', function () {
 
       // send token to vault
       const vault = await proxy.vault();
-      await token.connect(tokenProvider).transfer(vault, amountsIn[1]);
+      await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
       // Execute
       const receipt = await proxy
         .connect(user)
-        .executeMock(taskExecutor.address, data, {
-          value: amountsIn[0],
-        });
+        .executeMock(taskExecutor.address, data);
 
       // Record after balance
       const balanceAfter = await ethers.provider.getBalance(vault);
@@ -296,7 +287,6 @@ describe('AFurucombo', function () {
       expect(actionReturn[0]).to.be.eq(tokenOutAfter);
 
       // Verify user dsproxy
-      expect(balanceAfter).to.be.eq(0);
       expect(tokenAfter).to.be.eq(0);
       expect(tokenOutAfter).to.be.gt(0);
 
@@ -314,7 +304,14 @@ describe('AFurucombo', function () {
 
       // Verify dealing asset
       for (let i = 0; i < dealingAssets.length; i++) {
-        expect(dealingAssets[i]).to.be.eq(tokensOut[i]);
+        console.log('i:' + i);
+        console.log('dealingAssets[i]:' + dealingAssets[i]);
+        console.log('tokensOut[i]:' + tokensOut[i]);
+
+        // expect(dealingAssets[i]).to.be.eq(tokensOut[i]);
+        expect(tokensOut[i]).to.be.eq(
+          dealingAssets[dealingAssets.length - (i + 1)]
+        );
       }
 
       await profileGas(receipt);
