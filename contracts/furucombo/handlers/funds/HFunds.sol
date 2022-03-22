@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {HandlerBase} from "../HandlerBase.sol";
@@ -66,10 +66,10 @@ contract HFunds is HandlerBase {
             "token and amount do not match"
         );
 
+        address payable receiver = payable(_getSender());
         for (uint256 i = 0; i < tokens.length; i++) {
             // token can't be matic token
             _notMaticToken(tokens[i]);
-            address payable receiver = payable(_getSender());
 
             uint256 amount = _getBalance(tokens[i], amounts[i]);
             if (amount > 0) {

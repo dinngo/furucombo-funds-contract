@@ -149,7 +149,7 @@ describe('Comptroller', function () {
       await expect(comptroller.halt()).to.emit(comptroller, 'Halted');
       expect(await comptroller.fHalt()).to.equal(true);
       await expect(comptroller.implementation()).to.be.revertedWith(
-        'Comptroller: Halted'
+        'revertCode(0)' // COMPTROLLER_HALTED
       );
     });
 
@@ -158,7 +158,7 @@ describe('Comptroller', function () {
       await comptroller.halt();
       expect(await comptroller.fHalt()).to.equal(true);
       await expect(comptroller.implementation()).to.be.revertedWith(
-        'Comptroller: Halted'
+        'revertCode(0)' // COMPTROLLER_HALTED
       );
 
       // unHalt
@@ -197,7 +197,7 @@ describe('Comptroller', function () {
       expect(await comptroller.bannedPoolProxy(user.address)).to.equal(true);
       await expect(
         comptroller.connect(user).implementation()
-      ).to.be.revertedWith('Comptroller: Banned');
+      ).to.be.revertedWith('revertCode(1)'); // COMPTROLLER_BANNED
     });
 
     it('unBan ', async function () {
@@ -538,6 +538,14 @@ describe('Comptroller', function () {
         comptroller.connect(user).forbidDenominations([tokenA, tokenB])
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
+
+    it('should revert: denomination and dust length are inconsistent', async function () {
+      await expect(
+        comptroller
+          .connect(owner)
+          .permitDenominations([tokenA, tokenB], [dustA])
+      ).to.be.revertedWith('revertCode(4)'); // COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
+    });
   });
 
   // StakedTier management
@@ -582,7 +590,7 @@ describe('Comptroller', function () {
           factory
             .connect(user)
             .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
-        ).to.be.revertedWith('Invalid creator');
+        ).to.be.revertedWith('revertCode(13)'); // POOL_PROXY_FACTORY_INVALID_CREATOR
       });
 
       it('should stake for the given tier', async function () {
@@ -646,7 +654,7 @@ describe('Comptroller', function () {
     it('should revert: set zero asset router', async function () {
       await expect(
         comptroller.connect(owner).setAssetRouter(constants.AddressZero)
-      ).to.be.revertedWith('Comptroller: Zero address');
+      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
   });
 
@@ -678,7 +686,7 @@ describe('Comptroller', function () {
     it('should revert: set zero address fee collector', async function () {
       await expect(
         comptroller.setFeeCollector(constants.AddressZero)
-      ).to.be.revertedWith('Comptroller: Zero address');
+      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
 
     it('set fee percentage', async function () {
@@ -733,7 +741,7 @@ describe('Comptroller', function () {
     it('should revert: set zero address liquidator', async function () {
       await expect(
         comptroller.setPendingLiquidator(constants.AddressZero)
-      ).to.be.revertedWith('Comptroller: Zero address');
+      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
 
     it('set expiration', async function () {
@@ -799,7 +807,7 @@ describe('Comptroller', function () {
     it('should revert: set zero address execution action', async function () {
       await expect(
         comptroller.setExecAction(constants.AddressZero)
-      ).to.be.revertedWith('Comptroller: Zero address');
+      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
   });
 

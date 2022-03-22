@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Errors} from "../utils/Errors.sol";
 import {IAssetRegistry} from "./interfaces/IAssetRegistry.sol";
 
 /// @notice The registry database for asset router
@@ -27,15 +28,21 @@ contract AssetRegistry is IAssetRegistry, Ownable {
         override
         onlyOwner
     {
-        require(resolver != address(0), "AssetRegistry: resolver zero address");
-        require(asset != address(0), "AssetRegistry: asset zero address");
-        require(
-            !bannedResolvers[resolver],
-            "AssetRegistry: resolver has been banned"
+        Errors._require(
+            resolver != address(0),
+            Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
         );
-        require(
+        Errors._require(
+            asset != address(0),
+            Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS
+        );
+        Errors._require(
+            !bannedResolvers[resolver],
+            Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER
+        );
+        Errors._require(
             _resolvers[asset] == address(0),
-            "AssetRegistry: resolver is registered"
+            Errors.Code.ASSET_REGISTRY_REGISTERED_RESOLVER
         );
 
         _resolvers[asset] = resolver;
@@ -47,10 +54,13 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @param asset The asset to be unregistered.
      */
     function unregister(address asset) external override onlyOwner {
-        require(asset != address(0), "AssetRegistry: asset zero address");
-        require(
+        Errors._require(
+            asset != address(0),
+            Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS
+        );
+        Errors._require(
             _resolvers[asset] != address(0),
-            "AssetRegistry: asset not registered"
+            Errors.Code.ASSET_REGISTRY_NON_REGISTERED_RESOLVER
         );
         _resolvers[asset] = address(0);
         emit Unregistered(asset);
@@ -61,10 +71,13 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @param resolver The resolver to be banned.
      */
     function banResolver(address resolver) external override onlyOwner {
-        require(resolver != address(0), "AssetRegistry: resolver zero address");
-        require(
+        Errors._require(
+            resolver != address(0),
+            Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
+        );
+        Errors._require(
             !bannedResolvers[resolver],
-            "AssetRegistry: resolver is banned"
+            Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER
         );
         bannedResolvers[resolver] = true;
         emit BannedResolver(resolver);
@@ -75,10 +88,13 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @param resolver The resolver to be banned.
      */
     function unbanResolver(address resolver) external override onlyOwner {
-        require(resolver != address(0), "AssetRegistry: resolver zero address");
-        require(
+        Errors._require(
+            resolver != address(0),
+            Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
+        );
+        Errors._require(
             bannedResolvers[resolver],
-            "AssetRegistry: resolver is not banned"
+            Errors.Code.ASSET_REGISTRY_NON_BANNED_RESOLVER
         );
         bannedResolvers[resolver] = false;
         emit UnbannedResolver(resolver);
@@ -90,10 +106,13 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      */
     function resolvers(address asset) external view override returns (address) {
         address resolver = _resolvers[asset];
-        require(resolver != address(0), "AssetRegistry: unregistered");
-        require(
+        Errors._require(
+            resolver != address(0),
+            Errors.Code.ASSET_REGISTRY_UNREGISTERED
+        );
+        Errors._require(
             !bannedResolvers[resolver],
-            "AssetRegistry: resolver is banned"
+            Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER
         );
         return resolver;
     }

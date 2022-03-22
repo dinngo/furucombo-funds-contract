@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {PoolProxy} from "./PoolProxy.sol";
 import {ShareToken} from "./ShareToken.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {Errors} from "./utils/Errors.sol";
 
 contract PoolProxyFactory {
     event PoolCreated(
@@ -23,7 +24,7 @@ contract PoolProxyFactory {
     }
 
     function createPool(
-        IERC20 denomination,
+        IERC20Metadata denomination,
         uint256 level,
         uint256 mFeeRate,
         uint256 pFeeRate,
@@ -31,11 +32,18 @@ contract PoolProxyFactory {
         uint256 reserveExecutionRatio,
         string memory shareTokenName
     ) external returns (address) {
-        require(comptroller.isValidCreator(msg.sender), "Invalid creator");
+        Errors._require(
+            comptroller.isValidCreator(msg.sender),
+            Errors.Code.POOL_PROXY_FACTORY_INVALID_CREATOR
+        );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
         uint256 mortgageAmount = comptroller.stakedTier(level);
         // Can be customized
-        ShareToken share = new ShareToken(shareTokenName, "FFST");
+        ShareToken share = new ShareToken(
+            shareTokenName,
+            "FFST",
+            denomination.decimals()
+        );
         bytes memory data = abi.encodeWithSignature(
             "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
             level,

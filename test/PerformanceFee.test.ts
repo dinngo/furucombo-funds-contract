@@ -2,7 +2,8 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { PerformanceFeeModuleMock, ShareToken } from '../typechain';
-import { DS_PROXY_REGISTRY } from './utils/constants';
+import { DS_PROXY_REGISTRY, FEE_BASE } from './utils/constants';
+import { get64x64FromNumber } from './utils/utils';
 
 /// @notice increase the block time need mine block,
 /// the next view function will be correct.
@@ -40,7 +41,7 @@ describe('Performance fee', function () {
       await pFeeModule.deployed();
       tokenS = await (await ethers.getContractFactory('ShareToken'))
         .connect(user)
-        .deploy('ShareToken', 'SHT');
+        .deploy('ShareToken', 'SHT', 18);
       await tokenS.deployed();
       // initialize
       await pFeeModule.setShareToken(tokenS.address);
@@ -55,34 +56,36 @@ describe('Performance fee', function () {
   });
 
   describe('set performance fee rate', function () {
-    it('should success when zero', async function () {
+    it('zero', async function () {
       const feeRate = BigNumber.from('0');
       await pFeeModule.setPerformanceFeeRate(feeRate);
       const result = await pFeeModule.callStatic.getPerformanceFeeRate();
       expect(result).to.be.eq(BigNumber.from('0'));
     });
 
-    it('should success in normal range', async function () {
+    it('in normal range', async function () {
       const feeRate = BigNumber.from('1000');
       await pFeeModule.setPerformanceFeeRate(feeRate);
       const result = await pFeeModule.callStatic.getPerformanceFeeRate();
-      expect(result).to.be.eq(BigNumber.from('1844674407370955161'));
+      expect(result).to.be.eq(
+        get64x64FromNumber(feeRate.toNumber() / FEE_BASE)
+      );
     });
 
-    it('should fail when equal to 100%', async function () {
+    it('should revert: equal to 100%', async function () {
       await expect(pFeeModule.setPerformanceFeeRate(feeBase)).to.be.reverted;
     });
   });
 
   describe('set crystallization period', function () {
-    it('should success', async function () {
+    it('in normal range', async function () {
       const period = BigNumber.from(30 * 24 * 60 * 60);
       await pFeeModule.setCrystallizationPeriod(period);
       const result = await pFeeModule.callStatic.getCrystallizationPeriod();
       expect(result).to.be.eq(period);
     });
 
-    it('should fail when equal to 0', async function () {
+    it('should revert: equal to 0', async function () {
       await expect(pFeeModule.setCrystallizationPeriod(0)).to.be.revertedWith(
         'C'
       );
@@ -154,7 +157,7 @@ describe('Performance fee', function () {
         expect(outstandingShare).to.be.eq(BigNumber.from('0'));
       });
 
-      it('should update fee when fee rate is valid', async function () {
+      it('update fee when fee rate is valid', async function () {
         feeRate = BigNumber.from('1000');
         growth = grossAssetValue;
         currentGrossAssetValue = grossAssetValue.add(growth);
@@ -184,7 +187,7 @@ describe('Performance fee', function () {
           await pFeeModule.setGrossAssetValue(currentGrossAssetValue);
         });
 
-        it('should get fee when user redeem', async function () {
+        it('get fee when user redeem', async function () {
           const redeemShare = totalShare;
           await pFeeModule.redemptionPayout(redeemShare);
           const finalizedShare = await tokenS.callStatic.balanceOf(
@@ -198,7 +201,7 @@ describe('Performance fee', function () {
           expect(finalizedShare).to.be.lt(expectShare.mul(1001).div(1000));
         });
 
-        it('should get fee when user redeem separately', async function () {
+        it('get fee when user redeem separately', async function () {
           const redeemShare = totalShare.div(2);
           await pFeeModule.redemptionPayout(redeemShare);
           await pFeeModule.redemptionPayout(redeemShare);
@@ -227,35 +230,31 @@ describe('Performance fee', function () {
 
         it('should not get fee when crystallization before period', async function () {
           await increaseNextBlockTimeBy(period.toNumber() * 0.4);
-          const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
-          // TODO: replace err msg: Invalid denomination: Not yet
-          await expect(pFeeModule.crystallize()).to.be.revertedWith('N');
+          const highWaterMarkBefore = await pFeeModule.hwm64x64();
+          await expect(pFeeModule.crystallize()).to.be.revertedWith(
+            'revertCode(67)'
+          ); // PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET;
           await pFeeModule.updatePerformanceFee();
-          const shareManager = await tokenS.callStatic.balanceOf(
-            manager.address
-          );
+          const shareManager = await tokenS.balanceOf(manager.address);
           expect(shareManager).to.be.eq(BigNumber.from(0));
-          const highWaterMarkAfter = await pFeeModule.callStatic.hwm64x64();
+          const highWaterMarkAfter = await pFeeModule.hwm64x64();
           expect(highWaterMarkAfter).to.be.eq(highWaterMarkBefore);
         });
 
         it('should get fee when crystallization after period', async function () {
           await increaseNextBlockTimeBy(period.toNumber());
-          const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
+          const highWaterMarkBefore = await pFeeModule.hwm64x64();
           await expect(pFeeModule.crystallize()).to.emit(
             pFeeModule,
             'PerformanceFeeClaimed'
           );
-          const highWaterMarkAfter = await pFeeModule.callStatic.hwm64x64();
-          const shareManager = await tokenS.callStatic.balanceOf(
-            manager.address
-          );
+          const highWaterMarkAfter = await pFeeModule.hwm64x64();
+          const shareManager = await tokenS.balanceOf(manager.address);
           const fee = growth.mul(feeRate).div(feeBase);
           const expectShare = fee
             .mul(totalShare)
             .div(currentGrossAssetValue.sub(fee));
-          const lastPrice =
-            await pFeeModule.callStatic.lastGrossSharePrice64x64();
+          const lastPrice = await pFeeModule.lastGrossSharePrice64x64();
           const expectPrice = highWaterMarkBefore
             .mul(feeBase.mul(2).sub(feeRate))
             .div(feeBase);

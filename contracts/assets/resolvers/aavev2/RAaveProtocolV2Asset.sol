@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import {IATokenV2} from "../../../interfaces/IATokenV2.sol";
 import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";

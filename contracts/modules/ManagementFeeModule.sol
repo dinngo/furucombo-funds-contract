@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
+import {Errors} from "../utils/Errors.sol";
 
 /// @title Management fee module
 abstract contract ManagementFeeModule is PoolProxyStorageUtils {
@@ -28,8 +29,10 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
         virtual
         returns (int128)
     {
-        // TODO: replace err msg: fee rate should be less than 100%
-        require(feeRate < _FEE_BASE, "f");
+        Errors._require(
+            feeRate < _FEE_BASE,
+            Errors.Code.MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
+        );
         return _setManagementFeeRate(feeRate.divu(_FEE_BASE));
     }
 

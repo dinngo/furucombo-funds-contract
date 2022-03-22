@@ -1,14 +1,25 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IShareToken} from "./interfaces/IShareToken.sol";
+import {Errors} from "./utils/Errors.sol";
 
-contract ShareToken is ERC20Permit, Ownable {
-    constructor(string memory name_, string memory symbol_)
-        ERC20Permit(name_)
-        ERC20(name_, symbol_)
-    {}
+contract ShareToken is ERC20Permit, Ownable, IShareToken {
+    uint8 private immutable _decimals;
+
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_
+    ) ERC20Permit(name_) ERC20(name_, symbol_) {
+        _decimals = decimals_;
+    }
+
+    function decimals() public view override returns (uint8) {
+        return _decimals;
+    }
 
     function mint(address account, uint256 amount) external onlyOwner {
         _mint(account, amount);
@@ -40,13 +51,15 @@ contract ShareToken is ERC20Permit, Ownable {
         uint256 amount
     ) internal virtual override {
         if (to == address(1)) {
-            if (from != address(0)) {
-                revert("invalid to");
-            }
+            Errors._require(
+                from == address(0),
+                Errors.Code.SHARE_TOKEN_INVALID_TO
+            );
         } else if (to == address(2)) {
-            if (from != address(1)) {
-                revert("invalid to");
-            }
+            Errors._require(
+                from == address(1),
+                Errors.Code.SHARE_TOKEN_INVALID_TO
+            );
         }
         super._beforeTokenTransfer(from, to, amount);
     }

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Errors} from "../../../utils/Errors.sol";
 import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
 import {ICurveLiquidityPool} from "./ICurveLiquidityPool.sol";
@@ -30,15 +31,21 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         address _valuedAsset,
         uint256 _valuedAssetDecimals
     ) external onlyOwner {
-        require(_asset != address(0), "RCurveStable: zero asset address");
-        require(_pool != address(0), "RCurveStable: zero pool address");
-        require(
-            _valuedAsset != address(0),
-            "RCurveStable: zero valued asset address"
+        Errors._require(
+            _asset != address(0),
+            Errors.Code.RCURVE_STABLE_ZERO_ASSET_ADDRESS
         );
-        require(
+        Errors._require(
+            _pool != address(0),
+            Errors.Code.RCURVE_STABLE_ZERO_POOL_ADDRESS
+        );
+        Errors._require(
+            _valuedAsset != address(0),
+            Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS
+        );
+        Errors._require(
             _valuedAssetDecimals > 0,
-            "RCurveStable: zero valued asset decimal"
+            Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL
         );
 
         assetToPoolInfo[_asset] = PoolInfo({
@@ -51,9 +58,9 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     }
 
     function removePoolInfo(address _asset) external onlyOwner {
-        require(
+        Errors._require(
             assetToPoolInfo[_asset].pool != address(0),
-            "RCurveStable: pool info is not set"
+            Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET
         );
         assetToPoolInfo[_asset] = PoolInfo(address(0), address(0), 0);
         emit PoolInfoRemoved(_asset);
@@ -66,7 +73,10 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     ) external view override returns (int256) {
         // Get pool info
         PoolInfo memory info = assetToPoolInfo[asset];
-        require(info.pool != address(0), "RCurveStable: pool info is not set");
+        Errors._require(
+            info.pool != address(0),
+            Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET
+        );
 
         // Calculate value
         uint256 underlyingAmount;

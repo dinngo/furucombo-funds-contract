@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Errors} from "../../utils/Errors.sol";
 import {IAssetOracle} from "../interfaces/IAssetOracle.sol";
 import {IChainlinkAggregatorV3} from "../interfaces/IChainlinkAggregatorV3.sol";
 
@@ -29,7 +30,7 @@ contract Chainlink is IAssetOracle, Ownable {
         uint256 baseAmount,
         address quote
     ) external view returns (uint256) {
-        require(baseAmount > 0, "Zero amount");
+        Errors._require(baseAmount > 0, Errors.Code.CHAINLINK_ZERO_AMOUNT);
 
         uint256 baseUnit = 10**uint256(IERC20Metadata(base).decimals());
         uint256 quoteUnit = 10**uint256(IERC20Metadata(quote).decimals());
@@ -52,16 +53,19 @@ contract Chainlink is IAssetOracle, Ownable {
         address[] calldata assets,
         address[] calldata aggregators
     ) external onlyOwner {
-        require(assets.length == aggregators.length, "Invalid length");
+        Errors._require(
+            assets.length == aggregators.length,
+            Errors.Code.CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT
+        );
 
         for (uint256 i; i < assets.length; i++) {
-            require(
+            Errors._require(
                 assets[i] != address(0) && aggregators[i] != address(0),
-                "Zero address"
+                Errors.Code.CHAINLINK_ZERO_ADDRESS
             );
-            require(
+            Errors._require(
                 assetToAggregator[assets[i]] == address(0),
-                "Existing asset"
+                Errors.Code.CHAINLINK_EXISTING_ASSET
             );
 
             _getChainlinkPrice(aggregators[i]); // Try it out
@@ -75,9 +79,9 @@ contract Chainlink is IAssetOracle, Ownable {
     /// @param assets The asset list to be removed.
     function removeAssets(address[] calldata assets) external onlyOwner {
         for (uint256 i; i < assets.length; i++) {
-            require(
+            Errors._require(
                 assetToAggregator[assets[i]] != address(0),
-                "Non-existent asset"
+                Errors.Code.CHAINLINK_NON_EXISTENT_ASSET
             );
             delete assetToAggregator[assets[i]];
 
@@ -92,14 +96,20 @@ contract Chainlink is IAssetOracle, Ownable {
         view
         returns (uint256)
     {
-        require(aggregator != address(0), "Zero address");
+        Errors._require(
+            aggregator != address(0),
+            Errors.Code.CHAINLINK_ZERO_ADDRESS
+        );
 
         (, int256 price, , uint256 updatedAt, ) = IChainlinkAggregatorV3(
             aggregator
         ).latestRoundData();
 
-        require(price > 0, "Invalid price");
-        require(updatedAt >= block.timestamp - stalePeriod, "Stale price");
+        Errors._require(price > 0, Errors.Code.CHAINLINK_INVALID_PRICE);
+        Errors._require(
+            updatedAt >= block.timestamp - stalePeriod,
+            Errors.Code.CHAINLINK_STALE_PRICE
+        );
 
         return uint256(price);
     }

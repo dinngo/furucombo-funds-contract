@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Errors} from "../utils/Errors.sol";
 import {IAssetRegistry} from "./interfaces/IAssetRegistry.sol";
 import {IAssetOracle} from "./interfaces/IAssetOracle.sol";
 import {IAssetRouter} from "./interfaces/IAssetRouter.sol";
@@ -32,9 +33,9 @@ contract AssetRouter is IAssetRouter, Ownable {
         uint256[] calldata amounts,
         address quote
     ) external view override returns (uint256) {
-        require(
+        Errors._require(
             assets.length == amounts.length,
-            "AssetRouter: assets length != amounts length"
+            Errors.Code.ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT
         );
 
         int256 totalValue;
@@ -42,7 +43,10 @@ contract AssetRouter is IAssetRouter, Ownable {
             totalValue += calcAssetValue(assets[i], amounts[i], quote);
         }
 
-        require(totalValue >= 0, "AssetRouter: negative value");
+        Errors._require(
+            totalValue >= 0,
+            Errors.Code.ASSET_ROUTER_NEGATIVE_VALUE
+        );
         return uint256(totalValue);
     }
 

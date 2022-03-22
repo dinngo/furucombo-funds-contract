@@ -220,7 +220,7 @@ describe('AssetRouter', function () {
         router
           .connect(user)
           .callStatic.calcAssetsTotalValue(assets, amounts, quote)
-      ).to.be.revertedWith('AssetRouter: negative value');
+      ).to.be.revertedWith('revertCode(50)'); // ASSET_ROUTER_NEGATIVE_VALUE
     });
 
     it('should revert: assets length and amounts length are different', async function () {
@@ -232,7 +232,7 @@ describe('AssetRouter', function () {
         router
           .connect(user)
           .callStatic.calcAssetsTotalValue(assets, amounts, quote)
-      ).to.be.revertedWith('AssetRouter: assets length != amounts length');
+      ).to.be.revertedWith('revertCode(49)'); // ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
     it('should revert: asset resolver is not registered', async function () {
@@ -244,7 +244,7 @@ describe('AssetRouter', function () {
         router
           .connect(user)
           .callStatic.calcAssetsTotalValue(assets, amounts, quote)
-      ).to.be.revertedWith('AssetRegistry: unregistered');
+      ).to.be.revertedWith('revertCode(57)'); // ASSET_REGISTRY_UNREGISTERED
     });
 
     it('should revert: asset vale overflow', async function () {

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
 import {LibFee} from "../libraries/LibFee.sol";
+import {Errors} from "../utils/Errors.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 
 /// @title Performance fee module
@@ -21,7 +22,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
 
-    /// @notice Initial the performance fee crystallization time 
+    /// @notice Initial the performance fee crystallization time
     /// and high water mark.
     function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = FEE_BASE64x64;
@@ -61,26 +62,33 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
         virtual
         returns (int128)
     {
-        // TODO: replace err msg: fee rate should be less than 100%
-        require(feeRate < _FEE_BASE, "f");
+        Errors._require(
+            feeRate < _FEE_BASE,
+            Errors
+                .Code
+                .PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
+        );
         _pFeeRate64x64 = feeRate.divu(_FEE_BASE);
-
         return _pFeeRate64x64;
     }
 
     /// @notice Set the crystallization period.
     /// @param period The crystallization period to be set in second.
     function _setCrystallizationPeriod(uint256 period) internal virtual {
-        // TODO: replace err msg: Crystallization period too short
-        require(period > 0, "C");
+        Errors._require(
+            period > 0,
+            Errors.Code.PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
+        );
         _crystallizationPeriod = period;
     }
 
     /// @notice Crystallize for the performance fee.
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
-        // TODO: replace err msg: Not yet
-        require(isCrystallizable(), "N");
+        Errors._require(
+            isCrystallizable(),
+            Errors.Code.PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET
+        );
         _updatePerformanceFee();
         address manager = getManager();
         uint256 finalizedShare = shareToken.balanceOf(_FINALIZED_ACCOUNT);
@@ -92,7 +100,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
         _pFeeSum = 0;
         _pFeeSet = 0;
         _lastCrystallization = block.timestamp;
-        hwm64x64 = lastGrossSharePrice64x64;
+        hwm64x64 = LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64);
         emit PerformanceFeeClaimed(manager, result);
 
         return result;
@@ -160,8 +168,10 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
 
     /// @notice Convert the time to the number of crystallization periods.
     function _timeToPeriod(uint256 timestamp) internal view returns (uint256) {
-        // TODO: replace err msg: time before start
-        require(timestamp >= _crystallizationStart, "t");
+        Errors._require(
+            timestamp >= _crystallizationStart,
+            Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START
+        );
         return (timestamp - _crystallizationStart) / _crystallizationPeriod;
     }
 

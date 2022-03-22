@@ -26,7 +26,6 @@ import {
   CHAINLINK_WBTC_USD,
   FEE_BASE,
   WL_ANY_SIG,
-  FEE_BASE64x64,
   TOLERANCE_BASE,
   POOL_STATE,
 } from './utils/constants';
@@ -35,6 +34,7 @@ import {
   simpleEncode,
   tokenProviderQuick,
   mwei,
+  get64x64FromNumber,
   getCallData,
   increaseNextBlockTimeBy,
 } from './utils/utils';
@@ -274,12 +274,14 @@ describe('PoolImplementation', function () {
         expect(shareTokenAddr).to.be.eq(shareToken.address);
       });
       it('should set management fee rate', async function () {
+        const rate = get64x64FromNumber(1);
         const feeRate = await poolImplementation.getManagementFeeRate();
-        expect(feeRate).to.be.eq(BigNumber.from(FEE_BASE64x64));
+        expect(feeRate).to.be.eq(rate);
       });
       it('should set performance fee rate', async function () {
+        const rate = get64x64FromNumber(performanceFeeRate / FEE_BASE);
         const feeRate = await poolImplementation.getPerformanceFeeRate();
-        expect(feeRate).to.be.eq(BigNumber.from('1844674407370955161'));
+        expect(feeRate).to.be.eq(rate);
       });
       it('should set crystallization period', async function () {
         const _crystallizationPeriod =
@@ -327,6 +329,7 @@ describe('PoolImplementation', function () {
         const receipt = await poolImplementation.finalize();
         const block = await ethers.provider.getBlock(receipt.blockNumber!);
         const timestamp = BigNumber.from(block.timestamp);
+        const price = get64x64FromNumber(1);
 
         // check add denomication to list
         expect(await poolImplementation.getAssetList()).to.be.deep.eq([
@@ -342,7 +345,7 @@ describe('PoolImplementation', function () {
         const lastGrossSharePrice =
           await poolImplementation.callStatic.lastGrossSharePrice64x64();
         const hwm64x64 = await poolImplementation.callStatic.hwm64x64();
-        expect(lastGrossSharePrice).to.be.eq(BigNumber.from(FEE_BASE64x64));
+        expect(lastGrossSharePrice).to.be.eq(BigNumber.from(price));
         expect(lastGrossSharePrice).to.be.eq(hwm64x64);
 
         // check vault approval
@@ -361,8 +364,9 @@ describe('PoolImplementation', function () {
 
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
-        // TODO: replace err msg: Invalid denomination
-        await expect(poolImplementation.finalize()).to.be.revertedWith('');
+        await expect(poolImplementation.finalize()).to.be.revertedWith(
+          'revertCode(12)' // IMPLEMENTATION_INVALID_DENOMINATION
+        );
       });
     });
 
@@ -405,8 +409,7 @@ describe('PoolImplementation', function () {
       it('should revert: pending does not start', async function () {
         await poolImplementation.finalize();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          // TODO: replace err msg: Pending does not start
-          ''
+          'revertCode(8)' // IMPLEMENTATION_PENDING_NOT_START
         );
       });
 
@@ -414,8 +417,7 @@ describe('PoolImplementation', function () {
         await poolImplementation.finalize();
         await poolImplementation.pendMock();
         await expect(poolImplementation.liquidate()).to.be.revertedWith(
-          // TODO: replace err msg: Pending does not expire
-          ''
+          'revertCode(9)' // IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
       });
     });
@@ -502,8 +504,7 @@ describe('PoolImplementation', function () {
       it('should revert: asset is not permitted', async function () {
         await expect(
           poolImplementation.addAsset(tokenA.address)
-          // TODO: replace err msg: Invalid asset
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(11)'); // IMPLEMENTATION_INVALID_ASSET
       });
 
       it('can not be added: zero balance of asset', async function () {
@@ -657,41 +658,13 @@ describe('PoolImplementation', function () {
       await poolImplementation.setTotalAssetValueMock(valueCurrent);
       await expect(
         poolImplementation.execute(executionData)
-      ).to.be.revertedWith('');
+      ).to.be.revertedWith(
+        'revertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+      );
     });
   });
 
   describe('Setters', function () {
-    describe('Denomination', function () {
-      it('set denomination', async function () {
-        await comptroller.permitDenominations([tokenA.address], [tokenAAmount]);
-        await poolImplementation.setDenomination(tokenA.address);
-        expect(await poolImplementation.denomination()).to.be.eq(
-          tokenA.address
-        );
-      });
-
-      it('should revert: set denomination at wrong stage', async function () {
-        await poolImplementation.finalize();
-        await expect(
-          poolImplementation.setDenomination(tokenA.address)
-        ).to.be.revertedWith('InvalidState(2)');
-      });
-
-      it('should revert: set by non-owner', async function () {
-        await expect(
-          poolImplementation.connect(user).setDenomination(tokenA.address)
-        ).to.be.revertedWith('Ownable: caller is not the owner');
-      });
-
-      it('should revert: set by zero address', async function () {
-        await expect(
-          poolImplementation.setDenomination(constants.AddressZero)
-          // TODO: replace err msg: Invalid denomination
-        ).to.be.revertedWith('');
-      });
-    });
-
     describe('Management Fee Rate', function () {
       const feeRate = BigNumber.from('1000');
 
@@ -719,8 +692,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setManagementFeeRate(maxRate)
-          // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
@@ -749,8 +721,7 @@ describe('PoolImplementation', function () {
         const maxRate = 1e4;
         await expect(
           poolImplementation.setPerformanceFeeRate(maxRate)
-          // TODO: replace err msg: fee rate should be less than 100%
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
       });
     });
 
@@ -781,8 +752,7 @@ describe('PoolImplementation', function () {
         const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
         await expect(
           poolImplementation.setCrystallizationPeriod(shortPeriod)
-          // TODO: replace err msg: Crystallization period too short
-        ).to.be.revertedWith('');
+        ).to.be.revertedWith('revertCode(66)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
       });
     });
 

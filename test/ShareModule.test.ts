@@ -169,6 +169,13 @@ describe('Share module', function () {
         .withArgs(user1.address, totalAsset, totalShare);
     });
 
+    it('should fail with insufficient share', async function () {
+      await shareModule.setState(POOL_STATE.EXECUTING);
+      await expect(
+        shareModule.redeem(totalShare.mul(2), acceptPending)
+      ).to.be.revertedWith('revertCode(74)'); // SHARE_MODULE_INSUFFICIENT_SHARES
+    });
+
     it('should succeed with insufficient reserve with user permission', async function () {
       const acceptPending = true;
       const pendingShare = totalShare.sub(partialShare);
@@ -195,7 +202,7 @@ describe('Share module', function () {
       await shareModule.setReserve(partialAsset);
       await expect(
         shareModule.redeem(totalShare, acceptPending)
-      ).to.be.revertedWith('R');
+      ).to.be.revertedWith('revertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
     });
 
     it('should succeed when redemption pending with user permission', async function () {
@@ -213,8 +220,8 @@ describe('Share module', function () {
     it('should fail when redemption pending without user permission', async function () {
       await shareModule.setState(POOL_STATE.REDEMPTION_PENDING);
       await expect(
-        shareModule.redeem(totalShare, acceptPending)
-      ).to.be.revertedWith('R');
+        shareModule.redeem(totalAsset, acceptPending)
+      ).to.be.revertedWith('revertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
     });
 
     it('should fail when liquidating', async function () {
