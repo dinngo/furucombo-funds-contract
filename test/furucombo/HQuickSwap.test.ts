@@ -350,7 +350,7 @@ describe('QuickSwap Swap', function () {
     });
   });
 
-  describe.only('dealing token', function () {
+  describe('dealing token', function () {
     const token0Address = WETH_TOKEN;
     const token1Address = USDC_TOKEN;
 
@@ -380,7 +380,6 @@ describe('QuickSwap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        await proxy.updateTokenMock(token0.address);
         const expectTokens = [WMATIC_TOKEN, token1Address];
 
         const tos = [hQuickSwap.address];
@@ -391,9 +390,6 @@ describe('QuickSwap Swap', function () {
           .callStatic.batchExec(tos, configs, datas);
 
         for (let i = 0; i < expectTokens.length; i++) {
-          console.log('i:' + i);
-          console.log('dealingTokens[i]:' + dealingTokens[i]);
-          console.log('expectTokens[i]:' + expectTokens[i]);
           expect(expectTokens[i]).to.be.eq(
             dealingTokens[dealingTokens.length - (i + 1)] // returnTokens = dealingTokens.reverse()
           );
@@ -414,7 +410,6 @@ describe('QuickSwap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        await proxy.updateTokenMock(token0.address);
         const expectTokens = [WMATIC_TOKEN, token1Address];
 
         const tos = [hQuickSwap.address];
@@ -426,9 +421,6 @@ describe('QuickSwap Swap', function () {
           .callStatic.batchExec(tos, configs, datas);
 
         for (let i = 0; i < expectTokens.length; i++) {
-          console.log('i:' + i);
-          console.log('dealingTokens[i]:' + dealingTokens[i]);
-          console.log('expectTokens[i]:' + expectTokens[i]);
           expect(expectTokens[i]).to.be.eq(
             dealingTokens[dealingTokens.length - (i + 1)] // returnTokens = dealingTokens.reverse()
           );
