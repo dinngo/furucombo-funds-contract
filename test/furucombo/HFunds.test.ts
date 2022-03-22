@@ -138,72 +138,32 @@ describe('Funds', function () {
       expect(returnTokens.length).to.be.eq(ether('0'));
     });
 
-    it('native token - zero address', async function () {
+    it('should revert: native token - zero address', async function () {
       const token = [token0.address, constants.AddressZero];
-      const msgValue = ether('0.1');
-      const value = [ether('200'), ether('1')];
       const to = hFunds.address;
       const data = simpleEncode('updateTokens(address[])', [token]);
 
-      // Transfer tokens to proxy first
-      await token0.connect(provider0Address).transfer(proxy.address, value[0]);
-      await sendEther(maticProviderAddress, proxy.address, value[1]);
-
-      const receipt = await proxy.connect(user).execMock(to, data, {
-        value: msgValue,
-      });
-
-      const handlerReturn = (await getHandlerReturn(receipt, ['uint256[]']))[0];
-      // Verify token0
-      expect(handlerReturn[0]).to.be.eq(value[0]);
-      expect(await token0.balanceOf(proxy.address)).to.be.eq(ether('0'));
-      expect(await token0.balanceOf(user.address)).to.be.eq(value[0]);
-
-      // Verify ether
-      expect(handlerReturn[1]).to.be.eq(value[1].add(msgValue)); // handlerReturn should include msg.value
-
-      expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(
-        ether('0')
+      await expect(
+        proxy.connect(user).execMock(to, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith(
+        'Transaction reverted: function returned an unexpected amount of data'
       );
-      // user balance will not include msg.value because it is provided by user itself
-      expect(await balanceDelta(user.address, userBalance)).to.be.eq(value[1]);
-
-      await profileGas(receipt);
     });
 
-    it('native token - 0xEEEE', async function () {
+    it('should revert: native token - 0xEEEE', async function () {
       const token = [token0.address, NATIVE_TOKEN];
-      const msgValue = ether('0.1');
-      const value = [ether('200'), ether('1')];
       const to = hFunds.address;
       const data = simpleEncode('updateTokens(address[])', [token]);
-      // Transfer tokens to proxy first
-      await token0.connect(provider0Address).transfer(proxy.address, value[0]);
-      // Proxy does not allow transfer ether from EOA so we use provider contract
-      await sendEther(maticProviderAddress, proxy.address, value[1]);
 
-      const receipt = await proxy.connect(user).execMock(to, data, {
-        value: msgValue,
-      });
-
-      const handlerReturn = (await getHandlerReturn(receipt, ['uint256[]']))[0];
-      // Verify token0
-      expect(handlerReturn[0]).to.be.eq(value[0]);
-      expect(await token0.balanceOf(proxy.address)).to.be.eq(ether('0'));
-      expect(await token0.balanceOf(user.address)).to.be.eq(value[0]);
-
-      // Verify ether
-      expect(handlerReturn[1]).to.be.eq(value[1].add(msgValue)); // handlerReturn should include msg.value
-      expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(
-        ether('0')
+      await expect(
+        proxy.connect(user).execMock(to, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith(
+        'Transaction reverted: function returned an unexpected amount of data'
       );
-
-      // user balance will not include msg.value because it is provided by user itself
-      expect(
-        (await ethers.provider.getBalance(user.address)).sub(userBalance)
-      ).to.be.eq(value[1]);
-
-      await profileGas(receipt);
     });
 
     it('should revert: updateToken not support MRC20', async function () {
@@ -489,8 +449,8 @@ describe('Funds', function () {
     });
 
     it('normal', async function () {
-      const token = [token0.address, token1.address, constants.AddressZero];
-      const value = [ether('10'), ether('10'), ether('10')];
+      const token = [token0.address, token1.address];
+      const value = [ether('10'), ether('10')];
       const to = hFunds.address;
       const data = simpleEncode('checkSlippage(address[],uint256[])', [
         token,
@@ -501,33 +461,10 @@ describe('Funds', function () {
       await token1.connect(provider1Address).transfer(proxy.address, value[1]);
 
       const receipt = await proxy.connect(user).execMock(to, data, {
-        value: value[2],
+        value: ether('1'),
       });
 
       await profileGas(receipt);
-    });
-
-    it('should revert: eth slippage', async function () {
-      const token = [token0.address, token1.address, constants.AddressZero];
-      const value = [ether('10'), ether('10'), ether('10')];
-      const to = hFunds.address;
-      const data = simpleEncode('checkSlippage(address[],uint256[])', [
-        token,
-        value,
-      ]);
-
-      await token0.connect(provider0Address).transfer(proxy.address, value[0]);
-
-      await token1.connect(provider1Address).transfer(proxy.address, value[1]);
-      const revertValue = ether('1');
-
-      await expect(
-        proxy.connect(user).execMock(to, data, {
-          value: revertValue,
-        })
-      ).to.be.revertedWith(
-        'HFunds_checkSlippage: error: 2_' + revertValue.toString()
-      );
     });
 
     it('should revert: token slippage', async function () {
@@ -543,12 +480,11 @@ describe('Funds', function () {
       await token0
         .connect(provider0Address)
         .transfer(proxy.address, revertValue);
-
       await token1.connect(provider1Address).transfer(proxy.address, value[1]);
 
       await expect(
         proxy.connect(user).execMock(to, data, {
-          value: value[2],
+          value: ether('1'),
         })
       ).to.be.revertedWith(
         'HFunds_checkSlippage: error: 0_' + revertValue.toString()
@@ -556,8 +492,8 @@ describe('Funds', function () {
     });
 
     it('should revert: not support MRC20', async function () {
-      const token = [token0.address, constants.AddressZero, MATIC_TOKEN];
-      const value = [ether('10'), ether('1'), ether('1')];
+      const token = [token0.address, MATIC_TOKEN];
+      const value = [ether('10'), ether('1')];
       const to = hFunds.address;
       const data = simpleEncode('checkSlippage(address[],uint256[])', [
         token,
@@ -568,9 +504,49 @@ describe('Funds', function () {
 
       await expect(
         proxy.connect(user).execMock(to, data, {
-          value: value[1].add(value[2]),
+          value: ether('1'),
         })
       ).to.be.revertedWith('Not support matic token');
+    });
+
+    it('should revert: not support native token - zero address', async function () {
+      const token = [token0.address, constants.AddressZero];
+      const value = [ether('10'), ether('1')];
+      const to = hFunds.address;
+      const data = simpleEncode('checkSlippage(address[],uint256[])', [
+        token,
+        value,
+      ]);
+
+      await token0.connect(provider0Address).transfer(proxy.address, value[0]);
+
+      await expect(
+        proxy.connect(user).execMock(to, data, {
+          value: ether('1'),
+        })
+      ).to.be.revertedWith(
+        "VM Exception while processing transaction: reverted with reason string '_exec'"
+      );
+    });
+
+    it('should revert: not support native token - 0xEEEE', async function () {
+      const token = [token0.address, NATIVE_TOKEN];
+      const value = [ether('10'), ether('1')];
+      const to = hFunds.address;
+      const data = simpleEncode('checkSlippage(address[],uint256[])', [
+        token,
+        value,
+      ]);
+
+      await token0.connect(provider0Address).transfer(proxy.address, value[0]);
+
+      await expect(
+        proxy.connect(user).execMock(to, data, {
+          value: ether('1'),
+        })
+      ).to.be.revertedWith(
+        "VM Exception while processing transaction: reverted with reason string '_exec'"
+      );
     });
   });
 
@@ -627,100 +603,60 @@ describe('Funds', function () {
         await profileGas(receipt);
       });
 
-      it('token and eth', async function () {
-        const tokens = [constants.AddressZero, token1.address];
-        const value = [ether('10'), ether('15')];
-        const to = hFunds.address;
-        const data = simpleEncode('returnFunds(address[],uint256[])', [
-          tokens,
-          value,
-        ]);
-
-        await token1
-          .connect(provider1Address)
-          .transfer(proxy.address, value[1]);
-
-        const token1User = await token1.balanceOf(user.address);
-        const balanceUser = await ethers.provider.getBalance(user.address);
-
-        const receipt = await proxy.connect(user).execMockNotRefund(to, data, {
-          value: value[0],
-        });
-
-        await expect(receipt)
-          .to.emit(token1, 'Transfer')
-          .withArgs(proxy.address, user.address, value[1]);
-
-        expect(await balanceDelta(user.address, balanceUser)).to.be.eq(0);
-
-        const token1UserEnd = await token1.balanceOf(user.address);
-        expect(token1UserEnd.sub(token1User)).to.be.eq(value[1]);
-        await profileGas(receipt);
-      });
-
       it('max amount', async function () {
-        const tokens = [constants.AddressZero, token1.address];
-        const value = [ether('10'), ether('15')];
+        const value = [ether('15')];
         const to = hFunds.address;
         const data = simpleEncode('returnFunds(address[],uint256[])', [
-          tokens,
-          [constants.MaxUint256, constants.MaxUint256],
+          [token1.address],
+          [constants.MaxUint256],
         ]);
 
         await token1
           .connect(provider1Address)
-          .transfer(proxy.address, value[1]);
+          .transfer(proxy.address, value[0]);
 
         const token1User = await token1.balanceOf(user.address);
-        const balanceUser = await ethers.provider.getBalance(user.address);
-
         const receipt = await proxy.connect(user).execMockNotRefund(to, data, {
           value: value[0],
         });
 
         await expect(receipt)
           .to.emit(token1, 'Transfer')
-          .withArgs(proxy.address, user.address, value[1]);
-
-        expect(await balanceDelta(user.address, balanceUser)).to.be.eq(0);
+          .withArgs(proxy.address, user.address, value[0]);
 
         const token1UserEnd = await token1.balanceOf(user.address);
-        expect(token1UserEnd.sub(token1User)).to.be.eq(value[1]);
+        expect(token1UserEnd.sub(token1User)).to.be.eq(value[0]);
         await profileGas(receipt);
       });
 
       it('zero case', async function () {
-        const tokens = [constants.AddressZero, token1.address];
-        const value = [ether('0'), ether('0')];
+        const tokens = [token1.address];
+        const value = [ether('0')];
         const to = hFunds.address;
 
         const data = simpleEncode('returnFunds(address[],uint256[])', [
-          tokens,
+          [token1.address],
           value,
         ]);
 
         await token1
           .connect(provider1Address)
-          .transfer(proxy.address, value[1]);
+          .transfer(proxy.address, value[0]);
 
         const token1User = await token1.balanceOf(user.address);
-        const balanceUser = await ethers.provider.getBalance(user.address);
 
         const receipt = await proxy.connect(user).execMockNotRefund(to, data, {
           value: value[0],
         });
 
-        expect(await balanceDelta(user.address, balanceUser)).to.be.eq(
-          value[0]
-        );
         const token1UserEnd = await token1.balanceOf(user.address);
-        expect(token1UserEnd.sub(token1User)).to.be.eq(value[1]);
+        expect(token1UserEnd.sub(token1User)).to.be.eq(value[0]);
         await profileGas(receipt);
       });
 
       it('insufficient token', async function () {
-        const tokens = [constants.AddressZero, token1.address];
-        const value = [ether('10'), ether('15')];
+        const tokens = [token1.address];
+        const value = [ether('15')];
         const to = hFunds.address;
         const data = simpleEncode('returnFunds(address[],uint256[])', [
           tokens,
@@ -729,7 +665,7 @@ describe('Funds', function () {
 
         await token1
           .connect(provider1Address)
-          .transfer(proxy.address, value[1]);
+          .transfer(proxy.address, ether('1'));
 
         // await proxy.updateTokenMock(token1.address);
 
@@ -758,6 +694,50 @@ describe('Funds', function () {
             value: value[1],
           })
         ).to.be.revertedWith('Not support matic token');
+      });
+
+      it('should revert: not support native token - zero address', async function () {
+        const tokens = [token0.address, constants.AddressZero];
+        const value = [BigNumber.from(10000000), ether('1')];
+        const to = hFunds.address;
+        const data = simpleEncode('returnFunds(address[],uint256[])', [
+          tokens,
+          value,
+        ]);
+
+        await token0
+          .connect(usdtProviderAddress)
+          .transfer(proxy.address, value[0]);
+
+        await expect(
+          proxy.connect(user).execMockNotRefund(to, data, {
+            value: value[1],
+          })
+        ).to.be.revertedWith(
+          "VM Exception while processing transaction: reverted with reason string '0_Address: call to non-contract'"
+        );
+      });
+
+      it('should revert: not support native token - 0xEEEE', async function () {
+        const tokens = [token0.address, NATIVE_TOKEN];
+        const value = [BigNumber.from(10000000), ether('1')];
+        const to = hFunds.address;
+        const data = simpleEncode('returnFunds(address[],uint256[])', [
+          tokens,
+          value,
+        ]);
+
+        await token0
+          .connect(usdtProviderAddress)
+          .transfer(proxy.address, value[0]);
+
+        await expect(
+          proxy.connect(user).execMockNotRefund(to, data, {
+            value: value[1],
+          })
+        ).to.be.revertedWith(
+          "VM Exception while processing transaction: reverted with reason string '0_Address: call to non-contract'"
+        );
       });
     });
   });
