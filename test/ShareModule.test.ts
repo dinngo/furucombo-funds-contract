@@ -26,7 +26,7 @@ describe('Share module', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [user1, user2] = await (ethers as any).getSigners();
       shareModule = await (await ethers.getContractFactory('ShareModuleMock'))
         .connect(user1)
