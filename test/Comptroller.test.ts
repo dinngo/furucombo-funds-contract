@@ -574,6 +574,28 @@ describe('Comptroller', function () {
       ).to.be.equal(0);
     });
 
+    it('unset staking tier', async function () {
+      // set staked tier amount
+      await expect(comptroller.setStakedTier(level, stakeAmount))
+        .to.emit(comptroller, 'SetStakedTier')
+        .withArgs(level, stakeAmount);
+
+      // check env before execution
+      let stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.true;
+      expect(stakedTierConfig[1]).to.be.equal(stakeAmount);
+
+      // unset staked tier
+      await expect(comptroller.unsetStakedTier(level))
+        .to.emit(comptroller, 'UnsetStakedTier')
+        .withArgs(level);
+
+      // check staked tier
+      stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.false;
+      expect(stakedTierConfig[1]).to.be.equal(0);
+    });
+
     it('should revert: set staking tier by non-owner', async function () {
       await expect(
         comptroller.connect(user).setStakedTier(level, stakeAmount)

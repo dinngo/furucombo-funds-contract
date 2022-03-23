@@ -66,6 +66,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
     event SetStakedTier(uint256 indexed level, uint256 amount);
+    event UnsetStakedTier(uint256 indexed level);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
     event PermitCreator(address indexed to);
@@ -294,6 +295,11 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         stakedTier[level].isSet = true;
         stakedTier[level].stakeAmount = amount;
         emit SetStakedTier(level, amount);
+    }
+
+    function unsetStakedTier(uint256 level) external onlyOwner {
+        delete stakedTier[level];
+        emit UnsetStakedTier(level);
     }
 
     // Asset Router
