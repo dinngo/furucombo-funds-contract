@@ -10,7 +10,7 @@ describe('ShareToken', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [user1] = await (ethers as any).getSigners();
 
       shareToken = await (

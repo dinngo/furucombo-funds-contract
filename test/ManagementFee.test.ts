@@ -21,7 +21,7 @@ describe('Management fee', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [user, manager] = await (ethers as any).getSigners();
       mFeeModule = await (
         await ethers.getContractFactory('ManagementFeeModuleMock')

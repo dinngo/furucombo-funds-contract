@@ -31,7 +31,7 @@ describe('Performance fee', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [user, manager] = await (ethers as any).getSigners();
       pFeeModule = await (
         await ethers.getContractFactory('PerformanceFeeModuleMock')
