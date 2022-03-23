@@ -306,11 +306,7 @@ contract TaskExecutor is
 
             // send fee to collector
             uint256 execFee = (amountsIn[i] * feePercentage) / _FEE_BASE;
-            if (address(tokensIn[i]) == NATIVE_TOKEN) {
-                collector.transfer(execFee);
-            } else {
-                IERC20(tokensIn[i]).safeTransfer(collector, execFee);
-            }
+            IERC20(tokensIn[i]).safeTransfer(collector, execFee);
             setFundQuota(tokensIn[i], amountsIn[i] - execFee);
         }
     }
