@@ -816,7 +816,7 @@ describe('Share module', function () {
       await shareModule.setReserve(pendingAsset);
       await expect(
         shareModule.claimPendingRedemption(user1.address)
-      ).to.be.revertedWith('could not claim pending redemption');
+      ).to.be.revertedWith('revertCode(76)'); // SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
 
     it('should success when claiming the redemption', async function () {
@@ -828,7 +828,7 @@ describe('Share module', function () {
 
       await expect(
         shareModule.connect(user2).claimPendingRedemption(user2.address)
-      ).to.be.revertedWith('could not claim pending redemption');
+      ).to.be.revertedWith('revertCode(76)'); // SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
   });
 });

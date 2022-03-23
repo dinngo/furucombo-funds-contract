@@ -132,9 +132,9 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         virtual
         returns (uint256 balance)
     {
-        require(
+        Errors._require(
             isPendingRedemptionClaimable(user),
-            "could not claim pending redemption"
+            Errors.Code.SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
         );
         balance = _claimPendingRedemption(user);
     }

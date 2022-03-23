@@ -81,7 +81,8 @@ library Errors {
         IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION, // 73: "Insufficient total value for execution"
         SHARE_MODULE_INSUFFICIENT_SHARES, // 74: "Insufficient share amount"
         POOL_PROXY_FACTORY_INVALID_STAKED_TIER, // 75: "Stake tier not set in comptroller"
-        INVAILD_RESERVE_EXECUTION_RATIO // 76: "Invaild reserve execution ratio"
+        INVAILD_RESERVE_EXECUTION_RATIO, // 76: "Invaild reserve execution ratio"
+        SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE // 77: "Pending redemption is not claimable"
     }
 
     function _require(bool condition, Code errorCode) internal pure {
