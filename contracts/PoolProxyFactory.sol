@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.10;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {PoolProxy} from "./PoolProxy.sol";
@@ -37,7 +37,13 @@ contract PoolProxyFactory {
             Errors.Code.POOL_PROXY_FACTORY_INVALID_CREATOR
         );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
-        uint256 mortgageAmount = comptroller.stakedTier(level);
+        (bool isStakedTierSet, uint256 mortgageAmount) = comptroller.stakedTier(
+            level
+        );
+        Errors._require(
+            isStakedTierSet,
+            Errors.Code.POOL_PROXY_FACTORY_INVALID_STAKED_TIER
+        );
         // Can be customized
         ShareToken share = new ShareToken(
             shareTokenName,

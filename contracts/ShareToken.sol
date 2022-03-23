@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.10;
 
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -8,6 +8,8 @@ import {Errors} from "./utils/Errors.sol";
 
 contract ShareToken is ERC20Permit, Ownable, IShareToken {
     uint8 private immutable _decimals;
+    address private constant _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT = address(1);
+    address private constant _FINALIZED_PERFORMANCE_FEE_ACCOUNT = address(2);
 
     constructor(
         string memory name_,
@@ -50,14 +52,14 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         address to,
         uint256 amount
     ) internal virtual override {
-        if (to == address(1)) {
+        if (to == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT) {
             Errors._require(
                 from == address(0),
                 Errors.Code.SHARE_TOKEN_INVALID_TO
             );
-        } else if (to == address(2)) {
+        } else if (to == _FINALIZED_PERFORMANCE_FEE_ACCOUNT) {
             Errors._require(
-                from == address(1),
+                from == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT,
                 Errors.Code.SHARE_TOKEN_INVALID_TO
             );
         }

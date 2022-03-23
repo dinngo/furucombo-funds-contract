@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.10;
 
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -20,6 +20,11 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 dust;
     }
 
+    struct StakedTierConfig {
+        bool isSet;
+        uint256 stakeAmount;
+    }
+
     // Variable
     bool public fHalt;
     bool public fInitialAssetCheck;
@@ -38,7 +43,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     // Map
     mapping(address => DenominationConfig) public denomination;
     mapping(address => bool) public bannedPoolProxy;
-    mapping(uint256 => uint256) public stakedTier;
+    mapping(uint256 => StakedTierConfig) public stakedTier;
 
     // ACL
     Whitelist.CreatorWList private _creatorACL;
@@ -60,8 +65,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event PoolProxyUnbanned(address indexed poolProxy);
     event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
-    event SetDenominationDust(uint256 amount);
     event SetStakedTier(uint256 indexed level, uint256 amount);
+    event UnsetStakedTier(uint256 indexed level);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
     event PermitCreator(address indexed to);
@@ -287,8 +292,14 @@ contract ComptrollerImplementation is Ownable, IComptroller {
 
     // Stake tier amount
     function setStakedTier(uint256 level, uint256 amount) external onlyOwner {
-        stakedTier[level] = amount;
+        stakedTier[level].isSet = true;
+        stakedTier[level].stakeAmount = amount;
         emit SetStakedTier(level, amount);
+    }
+
+    function unsetStakedTier(uint256 level) external onlyOwner {
+        delete stakedTier[level];
+        emit UnsetStakedTier(level);
     }
 
     // Asset Router

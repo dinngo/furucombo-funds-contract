@@ -79,7 +79,8 @@ library Errors {
         AFURUCOMBO_REMAINING_TOKENS, // 71: "Furucombo has remaining tokens"
         IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE, // 72: "pending share is not resolvable"
         IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION, // 73: "Insufficient total value for execution"
-        SHARE_MODULE_INSUFFICIENT_SHARES // 74: "Insufficient share amount"
+        SHARE_MODULE_INSUFFICIENT_SHARES, // 74: "Insufficient share amount"
+        POOL_PROXY_FACTORY_INVALID_STAKED_TIER // 75: "Stake tier not set in comptroller"
     }
 
     function _require(bool condition, Code errorCode) internal pure {
