@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { BigNumber, Signer, constants } from 'ethers';
+import { BigNumber as BigNumberJs } from 'bignumber.js';
 import { ethers } from 'hardhat';
 import {
   RecordActionResultSig,
@@ -31,13 +32,23 @@ export async function profileGas(receipt: any) {
 export function expectEqWithinBps(
   actual: BigNumber,
   expected: BigNumber,
-  bps: number = 1
+  bps: number = 1,
+  exponent: number = 4
 ) {
-  const base = BigNumber.from('10000');
+  const base = BigNumber.from(10).pow(exponent);
   const upper = expected.mul(base.add(BigNumber.from(bps))).div(base);
   const lower = expected.mul(base.sub(BigNumber.from(bps))).div(base);
   expect(actual).to.be.lte(upper);
   expect(actual).to.be.gte(lower);
+}
+
+export function get64x64FromNumber(a: number): BigNumber {
+  return get64x64FromBig(new BigNumberJs(a));
+}
+
+export function get64x64FromBig(a: BigNumberJs): BigNumber {
+  const BASE64x64 = new BigNumberJs(2).pow(64);
+  return BigNumber.from(a.times(BASE64x64).toFixed(0, 1).toString());
 }
 
 export function ether(num: any) {
