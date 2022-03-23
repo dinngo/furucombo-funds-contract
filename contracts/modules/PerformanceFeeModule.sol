@@ -13,7 +13,6 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
 
-    uint256 private constant _FEE_BASE = 1e4;
     int128 private constant FEE_BASE64x64 = 1 << 64;
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 private constant FEE_DENOMINATOR = _FEE_BASE * FEE_PERIOD;

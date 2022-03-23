@@ -43,6 +43,7 @@ abstract contract PoolProxyStorageV1 {
     mapping(address => uint256) public pendingRedemptions;
     mapping(address => uint256) public pendingShares;
     uint256 internal constant _PENALTY_BASE = 1e4;
+    uint256 internal constant _FEE_BASE = 1e4;
 
     // Management fee module
     uint256 public lastMFeeClaimTime;

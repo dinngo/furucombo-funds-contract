@@ -10,8 +10,6 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 
 abstract contract PoolProxyStorageUtils is PoolProxyStorage {
-    uint256 private constant _FEE_BASE = 1e4;
-
     event StateTransited(State to);
 
     error InvalidState(State current);
