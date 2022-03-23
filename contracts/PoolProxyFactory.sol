@@ -37,7 +37,13 @@ contract PoolProxyFactory {
             Errors.Code.POOL_PROXY_FACTORY_INVALID_CREATOR
         );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
-        uint256 mortgageAmount = comptroller.stakedTier(level);
+        (bool isStakedTierSet, uint256 mortgageAmount) = comptroller.stakedTier(
+            level
+        );
+        Errors._require(
+            isStakedTierSet,
+            Errors.Code.POOL_PROXY_FACTORY_INVALID_STAKED_TIER
+        );
         // Can be customized
         ShareToken share = new ShareToken(
             shareTokenName,
