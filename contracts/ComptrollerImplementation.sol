@@ -65,7 +65,6 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event PoolProxyUnbanned(address indexed poolProxy);
     event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
-    event SetDenominationDust(uint256 amount);
     event SetStakedTier(uint256 indexed level, uint256 amount);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
