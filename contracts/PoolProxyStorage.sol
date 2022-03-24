@@ -53,7 +53,6 @@ abstract contract PoolProxyStorageV1 {
     int128 public lastGrossSharePrice64x64;
     int128 internal _pFeeRate64x64;
     uint256 internal _pFeeSum;
-    uint256 internal _pFeeSet;
     uint256 internal _lastOutstandingShare;
     uint256 internal _crystallizationStart;
     uint256 internal _crystallizationPeriod;
