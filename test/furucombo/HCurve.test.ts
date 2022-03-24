@@ -65,11 +65,7 @@ describe('HCurve', function () {
     }
   );
 
-  before(async function () {
-    await setupTest();
-  });
-
-  afterEach(async function () {
+  beforeEach(async function () {
     await setupTest();
   });
 
@@ -83,19 +79,16 @@ describe('HCurve', function () {
     let token0: IERC20, token1: IERC20;
     const value = BigNumber.from('1000000');
     let answer: BigNumber;
-    before(async function () {
+
+    beforeEach(async function () {
       providerAddress = await tokenProviderQuick(token0Address);
       token0 = await ethers.getContractAt('IERC20', token0Address);
       token1 = await ethers.getContractAt('IERC20', token1Address);
-
       answer = await aaveSwap['get_dy_underlying(int128,int128,uint256)'](
         2,
         0,
         value
       );
-    });
-
-    beforeEach(async function () {
       token0User = await token0.balanceOf(user.address);
       token1User = await token1.balanceOf(user.address);
       await token0.connect(providerAddress).transfer(proxy.address, value);
@@ -254,16 +247,13 @@ describe('HCurve', function () {
       let poolTokenProvider: Signer;
       let token0: IERC20, token1: IERC20, poolToken: IERC20;
 
-      before(async function () {
+      beforeEach(async function () {
         provider0Address = await tokenProviderQuick(token0Address);
         provider1Address = await tokenProviderQuick(token1Address);
         poolTokenProvider = await tokenProviderCurveGauge(poolTokenAddress);
         token0 = await ethers.getContractAt('IERC20', token0Address);
         token1 = await ethers.getContractAt('IERC20', token1Address);
         poolToken = await ethers.getContractAt('IERC20', poolTokenAddress);
-      });
-
-      beforeEach(async function () {
         token0User = await token0.balanceOf(user.address);
         token1User = await token1.balanceOf(user.address);
         poolTokenUser = await poolToken.balanceOf(user.address);
