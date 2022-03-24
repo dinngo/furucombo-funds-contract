@@ -29,14 +29,6 @@ interface ICurveHandler {
         uint256 min_dy
     ) external payable;
 
-    function exchange(
-        uint256 i,
-        uint256 j,
-        uint256 dx,
-        uint256 min_dy,
-        bool boolean // use_eth
-    ) external payable;
-
     function get_dy_underlying(
         int128 i,
         int128 j,
@@ -61,14 +53,6 @@ interface ICurveHandler {
         uint256 j,
         uint256 dx,
         uint256 min_dy
-    ) external payable;
-
-    function exchange_underlying(
-        uint256 i,
-        uint256 j,
-        uint256 dx,
-        uint256 min_dy,
-        bool boolean // use_eth
     ) external payable;
 
     // Curve add liquidity function only support static array

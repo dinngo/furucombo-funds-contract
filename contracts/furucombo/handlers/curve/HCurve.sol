@@ -9,10 +9,10 @@ import {ICurveHandler} from "../../../interfaces/ICurveHandler.sol";
 contract HCurve is HandlerBase {
     using SafeERC20 for IERC20;
 
-    address private immutable self; // handler address
+    address private immutable _self; // handler address
 
     constructor() {
-        self = address(this);
+        _self = address(this);
     }
 
     function getContractName() public pure override returns (string memory) {
@@ -28,7 +28,7 @@ contract HCurve is HandlerBase {
         int128 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -55,7 +55,7 @@ contract HCurve is HandlerBase {
         uint256 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -82,7 +82,7 @@ contract HCurve is HandlerBase {
         int128 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -109,7 +109,7 @@ contract HCurve is HandlerBase {
         uint256 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -169,7 +169,7 @@ contract HCurve is HandlerBase {
         address[] calldata tokens,
         uint256[] calldata amounts,
         uint256 minPoolAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256[] memory _amounts,
             uint256 balanceBefore
@@ -254,7 +254,7 @@ contract HCurve is HandlerBase {
         address[] calldata tokens,
         uint256[] calldata amounts,
         uint256 minPoolAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256[] memory _amounts,
             uint256 balanceBefore
@@ -339,7 +339,7 @@ contract HCurve is HandlerBase {
         address[] calldata tokens,
         uint256[] calldata amounts,
         uint256 minPoolAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256[] memory _amounts,
             uint256 balanceBefore
@@ -459,7 +459,7 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         int128 i,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -488,7 +488,7 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         uint256 i,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -517,7 +517,7 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         int128 i,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -547,7 +547,7 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         uint256 i,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -577,7 +577,7 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         int128 i,
         uint256 minAmount
-    ) external payable validCallee(self, handler) returns (uint256) {
+    ) external payable validCallee(_self, handler) returns (uint256) {
         (
             uint256 _poolAmount,
             uint256 balanceBefore

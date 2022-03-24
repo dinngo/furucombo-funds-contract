@@ -4,6 +4,7 @@ import { assets } from './assets/AssetConfig';
 export const MORTGAGE_TOKEN = '0x6DdB31002abC64e1479Fc439692F7eA061e78165'; // COMBO
 export const DS_PROXY_REGISTRY = '0xD6DF5BC8f4834C4e3b9c6a79E99C41622d377aFB';
 export const AAVE_LENDING_POOL = '0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf';
+export const CURVE_AAVE_SWAP = '0x445FE580eF8d70FF569aB36e80c647af338db351';
 export const WL_ANY_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 export const WL_ANY_SIG = '0xffffffff';
 export const WL_AAVE_V2_SIGS = [
