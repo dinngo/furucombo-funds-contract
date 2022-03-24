@@ -56,10 +56,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
     // Set HCurve callee
-    await registry.setHandlerCalleeWhitelist(
+    await registry.registerHandlerCalleeWhitelist(
       hCurve.address,
-      CURVE_AAVE_SWAP,
-      true
+      CURVE_AAVE_SWAP
     );
   }
 };

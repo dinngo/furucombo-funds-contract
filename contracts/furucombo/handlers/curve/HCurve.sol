@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../HandlerBase.sol";
@@ -28,7 +28,12 @@ contract HCurve is HandlerBase {
         int128 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("exchange", _self, handler)
+        returns (uint256)
+    {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -55,7 +60,12 @@ contract HCurve is HandlerBase {
         uint256 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("exchangeUint256", _self, handler)
+        returns (uint256)
+    {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -82,7 +92,12 @@ contract HCurve is HandlerBase {
         int128 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("exchangeUnderlying", _self, handler)
+        returns (uint256)
+    {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -109,7 +124,12 @@ contract HCurve is HandlerBase {
         uint256 j,
         uint256 amount,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("exchangeUnderlyingUint256", _self, handler)
+        returns (uint256)
+    {
         (uint256 _amount, uint256 balanceBefore) = _exchangeBefore(
             handler,
             tokenI,
@@ -169,7 +189,12 @@ contract HCurve is HandlerBase {
         address[] calldata tokens,
         uint256[] calldata amounts,
         uint256 minPoolAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("addLiquidity", _self, handler)
+        returns (uint256)
+    {
         (
             uint256[] memory _amounts,
             uint256 balanceBefore
@@ -254,7 +279,12 @@ contract HCurve is HandlerBase {
         address[] calldata tokens,
         uint256[] calldata amounts,
         uint256 minPoolAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("addLiquidityUnderlying", _self, handler)
+        returns (uint256)
+    {
         (
             uint256[] memory _amounts,
             uint256 balanceBefore
@@ -339,7 +369,12 @@ contract HCurve is HandlerBase {
         address[] calldata tokens,
         uint256[] calldata amounts,
         uint256 minPoolAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("addLiquidityFactoryZap", _self, handler)
+        returns (uint256)
+    {
         (
             uint256[] memory _amounts,
             uint256 balanceBefore
@@ -459,7 +494,12 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         int128 i,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("removeLiquidityOneCoin", _self, handler)
+        returns (uint256)
+    {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -488,7 +528,12 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         uint256 i,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("removeLiquidityOneCoinUint256", _self, handler)
+        returns (uint256)
+    {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -517,7 +562,12 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         int128 i,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("removeLiquidityOneCoinUnderlying", _self, handler)
+        returns (uint256)
+    {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -547,7 +597,12 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         uint256 i,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("removeLiquidityOneCoinUnderlyingUint256", _self, handler)
+        returns (uint256)
+    {
         (
             uint256 _poolAmount,
             uint256 balanceBefore
@@ -577,7 +632,12 @@ contract HCurve is HandlerBase {
         uint256 poolAmount,
         int128 i,
         uint256 minAmount
-    ) external payable validCallee(_self, handler) returns (uint256) {
+    )
+        external
+        payable
+        validCallee("removeLiquidityOneCoinFactoryZap", _self, handler)
+        returns (uint256)
+    {
         (
             uint256 _poolAmount,
             uint256 balanceBefore

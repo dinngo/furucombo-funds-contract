@@ -25,6 +25,14 @@ contract Registry is IRegistry, Ownable {
     event Unbanned(address indexed agent);
     event Halted();
     event Unhalted();
+    event RegisterHandlerCalleeWhitelist(
+        address indexed handler,
+        address indexed callee
+    );
+    event UnregisterHandlerCalleeWhitelist(
+        address indexed handler,
+        address indexed callee
+    );
 
     modifier isNotHalted() {
         require(fHalt == false, "Halted");
@@ -155,12 +163,21 @@ contract Registry is IRegistry, Ownable {
         emit Unhalted();
     }
 
-    function setHandlerCalleeWhitelist(
-        address handler,
-        address callee,
-        bool isValid
-    ) external onlyOwner {
+    function registerHandlerCalleeWhitelist(address handler, address callee)
+        external
+        onlyOwner
+    {
         require(handler != address(0) && callee != address(0), "zero address");
-        handlerCalleeWhiteList[handler][callee] = isValid;
+        handlerCalleeWhiteList[handler][callee] = true;
+        emit RegisterHandlerCalleeWhitelist(handler, callee);
+    }
+
+    function unregisterHandlerCalleeWhitelist(address handler, address callee)
+        external
+        onlyOwner
+    {
+        require(handler != address(0) && callee != address(0), "zero address");
+        handlerCalleeWhiteList[handler][callee] = false;
+        emit UnregisterHandlerCalleeWhitelist(handler, callee);
     }
 }

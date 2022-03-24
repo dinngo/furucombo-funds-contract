@@ -38,12 +38,12 @@ describe('HCurve', function () {
   const slippage = BigNumber.from('3');
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture(); // ensure you start from a fresh deployments
+      await deployments.fixture(''); // ensure you start from a fresh deployments
       [owner, user] = await (ethers as any).getSigners();
 
       aaveSwap = await ethers.getContractAt('ICurveHandler', CURVE_AAVE_SWAP);
 
-      // // Setup proxy and Aproxy
+      // Setup proxy and Aproxy
       registry = await (await ethers.getContractFactory('Registry')).deploy();
       await registry.deployed();
 
@@ -57,10 +57,9 @@ describe('HCurve', function () {
       await registry.register(hCurve.address, asciiToHex32('HCurve'));
 
       // register HCurve callee
-      await registry.setHandlerCalleeWhitelist(
+      await registry.registerHandlerCalleeWhitelist(
         hCurve.address,
-        aaveSwap.address,
-        true
+        aaveSwap.address
       );
     }
   );
@@ -134,6 +133,7 @@ describe('HCurve', function () {
           mulPercent(token1User.add(answer), BigNumber.from('101'))
         );
       });
+
       it('Exact input swap USDT to DAI by exchangeUnderlying with max amount', async function () {
         const data = getCallData(
           hCurve,
@@ -172,6 +172,7 @@ describe('HCurve', function () {
           mulPercent(token1User.add(answer), BigNumber.from('101'))
         );
       });
+
       it('should revert: not support MRC20', async function () {
         const data = getCallData(
           hCurve,
@@ -185,12 +186,12 @@ describe('HCurve', function () {
           })
         ).revertedWith('Not support matic token');
       });
+
       it('should revert: invalid callee', async function () {
         // unregister callee
-        await registry.setHandlerCalleeWhitelist(
+        await registry.unregisterHandlerCalleeWhitelist(
           hCurve.address,
-          aaveSwap.address,
-          false
+          aaveSwap.address
         );
 
         const data = getCallData(
@@ -203,8 +204,9 @@ describe('HCurve', function () {
           proxy.connect(user).execMock(hCurve.address, data, {
             value: value,
           })
-        ).revertedWith('invalid callee');
+        ).revertedWith('');
       });
+
       it('should revert: input token not support native token', async function () {
         const inputAmount = ether('5');
         const answer = await aaveSwap[
@@ -320,6 +322,7 @@ describe('HCurve', function () {
         );
         expect(poolTokenUserEnd).to.be.lte(answer);
       });
+
       it('remove from pool to USDT by removeLiquidityOneCoinUnderlying', async function () {
         const poolTokenUser = ether('0.1');
         const token1UserBefore = await token1.balanceOf(user.address);
