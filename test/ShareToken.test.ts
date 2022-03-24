@@ -34,14 +34,5 @@ describe('ShareToken', function () {
         )
       ).to.be.revertedWith('revertCode(6)'); // SHARE_TOKEN_INVALID_TO
     });
-
-    it('should revert: invalid to address(2) ', async function () {
-      await expect(
-        shareToken.transfer(
-          '0x0000000000000000000000000000000000000002',
-          ether('1')
-        )
-      ).to.be.revertedWith('revertCode(6)'); // SHARE_TOKEN_INVALID_TO
-    });
   });
 });

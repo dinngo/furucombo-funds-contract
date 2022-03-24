@@ -27,7 +27,6 @@ describe('Performance fee', function () {
 
   const totalShare = ethers.utils.parseEther('100');
   const outstandingAccount = '0x0000000000000000000000000000000000000001';
-  const finalizedAccount = '0x0000000000000000000000000000000000000002';
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
