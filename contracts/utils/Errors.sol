@@ -80,7 +80,8 @@ library Errors {
         IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE, // 72: "pending share is not resolvable"
         IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION, // 73: "Insufficient total value for execution"
         SHARE_MODULE_INSUFFICIENT_SHARES, // 74: "Insufficient share amount"
-        INVAILD_RESERVE_EXECUTION_RATIO // 75: "Invaild reserve execution ratio"
+        POOL_PROXY_FACTORY_INVALID_STAKED_TIER, // 75: "Stake tier not set in comptroller"
+        INVAILD_RESERVE_EXECUTION_RATIO // 76: "Invaild reserve execution ratio"
     }
 
     function _require(bool condition, Code errorCode) internal pure {

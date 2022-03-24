@@ -89,7 +89,7 @@ describe('PoolImplementation', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [owner, user, liquidator] = await (ethers as any).getSigners();
 
       denomination = await ethers.getContractAt('ERC20', denominationAddress);

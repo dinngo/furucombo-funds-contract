@@ -42,7 +42,7 @@ describe('Comptroller', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture(); // ensure you start from a fresh deployments
+      await deployments.fixture(''); // ensure you start from a fresh deployments
       [owner, user, collector, liquidator] = await (ethers as any).getSigners();
 
       tokenM = await (await ethers.getContractFactory('SimpleToken'))
@@ -555,7 +555,9 @@ describe('Comptroller', function () {
     const stakeAmount = 5000;
     it('set staking tier', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).stakedTier(level)).to.be.equal(0);
+      let stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.false;
+      expect(stakedTierConfig[1]).to.be.equal(0);
 
       // set staked tier amount
       await expect(comptroller.setStakedTier(level, stakeAmount))
@@ -563,13 +565,35 @@ describe('Comptroller', function () {
         .withArgs(level, stakeAmount);
 
       // check staked tier
-      expect(await comptroller.connect(user).stakedTier(level)).to.be.equal(
-        stakeAmount
-      );
+      stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.true;
+      expect(stakedTierConfig[1]).to.be.equal(stakeAmount);
 
       expect(
-        await comptroller.connect(user).stakedTier(otherLevel)
+        (await comptroller.connect(user).stakedTier(otherLevel))[1]
       ).to.be.equal(0);
+    });
+
+    it('unset staking tier', async function () {
+      // set staked tier amount
+      await expect(comptroller.setStakedTier(level, stakeAmount))
+        .to.emit(comptroller, 'SetStakedTier')
+        .withArgs(level, stakeAmount);
+
+      // check env before execution
+      let stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.true;
+      expect(stakedTierConfig[1]).to.be.equal(stakeAmount);
+
+      // unset staked tier
+      await expect(comptroller.unsetStakedTier(level))
+        .to.emit(comptroller, 'UnsetStakedTier')
+        .withArgs(level);
+
+      // check staked tier
+      stakedTierConfig = await comptroller.connect(user).stakedTier(level);
+      expect(stakedTierConfig[0]).to.be.false;
+      expect(stakedTierConfig[1]).to.be.equal(0);
     });
 
     it('should revert: set staking tier by non-owner', async function () {
@@ -591,6 +615,15 @@ describe('Comptroller', function () {
             .connect(user)
             .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
         ).to.be.revertedWith('revertCode(13)'); // POOL_PROXY_FACTORY_INVALID_CREATOR
+      });
+
+      it('should revert: invalid staked tier', async function () {
+        await comptroller.permitCreators([user.address]);
+        await expect(
+          factory
+            .connect(user)
+            .createPool(tokenD.address, 2, 0, 0, 300, 0, 'TEST')
+        ).to.be.revertedWith('revertCode(75)'); // POOL_PROXY_FACTORY_INVALID_STAKED_TIER
       });
 
       it('should stake for the given tier', async function () {

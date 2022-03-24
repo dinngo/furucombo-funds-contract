@@ -125,7 +125,7 @@ describe('PoolExecuteStrategy', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture(); // ensure you start from a fresh deployments
+      await deployments.fixture(''); // ensure you start from a fresh deployments
       [owner, collector, manager, investor, liquidator] = await (
         ethers as any
       ).getSigners();
@@ -211,6 +211,8 @@ describe('PoolExecuteStrategy', function () {
         ],
         [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
       );
+
+      await comptroller.setStakedTier(level, 0);
 
       // Add Assets to oracle
       await oracle
