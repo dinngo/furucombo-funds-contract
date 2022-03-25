@@ -55,25 +55,23 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         when3States(State.Executing, State.RedemptionPending, State.Closed)
         returns (uint256 balance)
     {
-        address user = msg.sender;
-        uint256 userShare = shareToken.balanceOf(user);
-
         // Check redeem shares need to greater than user shares they own
+        uint256 userShare = shareToken.balanceOf(msg.sender);
         Errors._require(
             share <= userShare,
             Errors.Code.SHARE_MODULE_INSUFFICIENT_SHARES
         );
 
         // Claim pending redemption if need
-        if (isPendingRedemptionClaimable(user)) {
-            _claimPendingRedemption(user);
+        if (isPendingRedemptionClaimable(msg.sender)) {
+            _claimPendingRedemption(msg.sender);
         }
 
         // Execute redeem operation
         if (state == State.RedemptionPending) {
-            balance = _redeemPending(user, share, acceptPending);
+            balance = _redeemPending(msg.sender, share, acceptPending);
         } else {
-            balance = _redeem(user, share, acceptPending);
+            balance = _redeem(msg.sender, share, acceptPending);
         }
     }
 
@@ -284,13 +282,13 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         // Add the current pending round to pending user info for the first redeem
         if (pendingUsers[user].pendingShares == 0) {
             pendingUsers[user].pendingRound = currentPendingRound();
+        } else {
+            // Confirm user pending shares is in the current pending round
+            Errors._require(
+                pendingUsers[user].pendingRound == currentPendingRound(),
+                Errors.Code.SHARE_MODULE_PENDING_ROUND_INCONSISTENT
+            );
         }
-
-        // Confirm user pending shares is in the current pending round
-        Errors._require(
-            pendingUsers[user].pendingRound == currentPendingRound(),
-            Errors.Code.SHARE_MODULE_PENDING_ROUND_INCONSISTENT
-        );
 
         // Calculate and update pending information
         uint256 penalty = _getPendingRedemptionPenalty();
