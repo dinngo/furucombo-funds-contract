@@ -667,8 +667,6 @@ describe('Funds', function () {
           .connect(provider1Address)
           .transfer(proxy.address, ether('1'));
 
-        // await proxy.updateTokenMock(token1.address);
-
         await expect(
           proxy.connect(user).execMock(to, data, {
             value: ether('0.1'),

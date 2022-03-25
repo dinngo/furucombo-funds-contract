@@ -341,12 +341,6 @@ contract PoolImplementation is
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
         );
 
-        // Check there should be no native token
-        Errors._require(
-            address(this).balance == 0,
-            Errors.Code.IMPLEMENTATION_HAVE_NATIVE_TOKEN_BALANCE
-        );
-
         // Check asset value
         uint256 totalAssetValue = getTotalAssetValue();
         uint256 minTotalAssetValue = (prevAssetValue *
