@@ -191,7 +191,7 @@ abstract contract PoolProxyStorageUtils is PoolProxyStorage {
     {
         Errors._require(
             reserveExecutionRatio_ < _FEE_BASE,
-            Errors.Code.INVAILD_RESERVE_EXECUTION_RATIO
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATIO
         );
         reserveExecutionRatio = reserveExecutionRatio_;
     }

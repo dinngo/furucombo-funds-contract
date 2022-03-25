@@ -32,7 +32,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
     /// @notice the length of pendingRoundList, means current pending round
-    /// @return share The share amount being purchased.
+    /// @return current pending round
     function currentPendingRound() public view returns (uint256) {
         return pendingRoundList.length;
     }
@@ -185,21 +185,24 @@ abstract contract ShareModule is PoolProxyStorageUtils {
 
             // Settle this round and store settle info to round list
             pendingRoundList.push(
-                pendingRoundInfo({
-                    totalPendingShare: totalPendingShare,
+                PendingRoundInfo({
+                    totalPendingShare: currentTotalPendingShare,
                     totalRedemption: totalRedemption
                 })
             );
 
-            // Burn bonus if needed
-            if (applyPenalty && totalPendingBonus != 0) {
-                uint256 unusedBonus = totalPendingBonus;
-                shareToken.burn(address(this), unusedBonus);
+            currentTotalPendingShare = 0; // reset currentTotalPendingShare
+            if (applyPenalty) {
+                // if applyPenalty is true that means there are some share as bonus shares，
+                // need to burn these bonus shares if they are remaining
+                if (currentTotalPendingBonus != 0) {
+                    shareToken.burn(address(this), currentTotalPendingBonus); // burn unused bonus
+                    currentTotalPendingBonus = 0;
+                }
+            } else {
+                currentTotalPendingBonus = 0;
             }
 
-            // Reset pending info
-            totalPendingBonus = 0;
-            totalPendingShare = 0;
             emit RedemptionPendingSettled();
         }
     }
@@ -210,9 +213,9 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         returns (uint256)
     {
         if (applyPenalty) {
-            return totalPendingShare;
+            return currentTotalPendingShare;
         } else {
-            return totalPendingShare + totalPendingBonus;
+            return currentTotalPendingShare + currentTotalPendingBonus;
         }
     }
 
@@ -228,8 +231,10 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         uint256 bonus;
         if (state == State.RedemptionPending) {
             bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
-            bonus = totalPendingBonus > bonus ? bonus : totalPendingBonus;
-            totalPendingBonus -= bonus;
+            bonus = currentTotalPendingBonus > bonus
+                ? bonus
+                : currentTotalPendingBonus;
+            currentTotalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
             share += bonus;
         }
@@ -281,14 +286,20 @@ abstract contract ShareModule is PoolProxyStorageUtils {
             pendingUsers[user].pendingRound = currentPendingRound();
         }
 
+        // Confirm user pending shares is in the current pending round
+        Errors._require(
+            pendingUsers[user].pendingRound == currentPendingRound(),
+            Errors.Code.SHARE_MODULE_PENDING_ROUND_INCONSISTENT
+        );
+
         // Calculate and update pending information
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) /
             _PENALTY_BASE;
         uint256 penaltyShare = share - effectiveShare;
         pendingUsers[user].pendingShares += effectiveShare;
-        totalPendingShare += effectiveShare;
-        totalPendingBonus += penaltyShare;
+        currentTotalPendingShare += effectiveShare;
+        currentTotalPendingBonus += penaltyShare;
         shareToken.move(user, address(this), share);
         emit RedemptionPended(user, effectiveShare, penaltyShare);
 
@@ -340,14 +351,13 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         view
         returns (uint256)
     {
-        uint256 share = pendingUsers[user].pendingShares;
-        uint256 pendingRound = pendingUsers[user].pendingRound;
-        uint256 totalPendingShare = pendingRoundList[pendingRound]
-            .totalPendingShare;
-        uint256 totalRedemption = pendingRoundList[pendingRound]
-            .totalRedemption;
-        uint256 redemption = (totalRedemption * share) / totalPendingShare;
-        return redemption;
+        PendingUserInfo storage pendingUser = pendingUsers[user];
+        PendingRoundInfo storage pendingRoundInfo = pendingRoundList[
+            pendingUser.pendingRound
+        ];
+        return
+            (pendingRoundInfo.totalRedemption * pendingUser.pendingShares) /
+            pendingRoundInfo.totalPendingShare;
     }
 
     function _claimPendingRedemption(address user)

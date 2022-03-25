@@ -20,12 +20,12 @@ abstract contract PoolProxyStorageV1 {
         Closed
     }
 
-    struct pendingUserInfo {
+    struct PendingUserInfo {
         uint256 pendingRound;
         uint256 pendingShares;
     }
 
-    struct pendingRoundInfo {
+    struct PendingRoundInfo {
         uint256 totalPendingShare;
         uint256 totalRedemption;
     }
@@ -47,10 +47,10 @@ abstract contract PoolProxyStorageV1 {
     LibUniqueAddressList.List internal _assetList;
 
     // Share module
-    uint256 public totalPendingShare;
-    uint256 public totalPendingBonus;
-    pendingRoundInfo[] public pendingRoundList;
-    mapping(address => pendingUserInfo) public pendingUsers;
+    uint256 public currentTotalPendingShare;
+    uint256 public currentTotalPendingBonus;
+    PendingRoundInfo[] public pendingRoundList;
+    mapping(address => PendingUserInfo) public pendingUsers;
 
     // Management fee module
     uint256 public lastMFeeClaimTime;
