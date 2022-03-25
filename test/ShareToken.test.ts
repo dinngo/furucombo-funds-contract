@@ -10,7 +10,7 @@ describe('ShareToken', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [user1] = await (ethers as any).getSigners();
 
       shareToken = await (
@@ -30,15 +30,6 @@ describe('ShareToken', function () {
       await expect(
         shareToken.transfer(
           '0x0000000000000000000000000000000000000001',
-          ether('1')
-        )
-      ).to.be.revertedWith('revertCode(6)'); // SHARE_TOKEN_INVALID_TO
-    });
-
-    it('should revert: invalid to address(2) ', async function () {
-      await expect(
-        shareToken.transfer(
-          '0x0000000000000000000000000000000000000002',
           ether('1')
         )
       ).to.be.revertedWith('revertCode(6)'); // SHARE_TOKEN_INVALID_TO

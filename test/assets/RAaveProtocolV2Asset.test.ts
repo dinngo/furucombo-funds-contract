@@ -39,7 +39,7 @@ describe('RAaveProtocolV2Asset', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture(); // ensure you start from a fresh deployments
+      await deployments.fixture(''); // ensure you start from a fresh deployments
       [owner, user] = await (ethers as any).getSigners();
 
       // Setup token and unlock provider

@@ -44,6 +44,6 @@ contract SimpleToken is ERC20("SimpleToken", "SIM") {
     }
 
     function netTotalShare() external view returns (uint256) {
-        return totalSupply() - balanceOf(address(1)) - balanceOf(address(2));
+        return totalSupply() - balanceOf(address(1));
     }
 }

@@ -22,7 +22,7 @@ describe('Asset module', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [user] = await (ethers as any).getSigners();
       assetModule = await (await ethers.getContractFactory('AssetModuleMock'))
         .connect(user)

@@ -15,7 +15,7 @@ describe('MortgageVault', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture(); // ensure you start from a fresh deployments
+      await deployments.fixture(''); // ensure you start from a fresh deployments
       [user, pool] = await (ethers as any).getSigners();
 
       token = await (await ethers.getContractFactory('SimpleToken'))

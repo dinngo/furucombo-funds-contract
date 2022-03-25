@@ -49,7 +49,7 @@ describe('QuickSwap Swap', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture(); // ensure you start from a fresh deployments
+      await deployments.fixture(''); // ensure you start from a fresh deployments
       [owner, user, someone] = await (ethers as any).getSigners();
 
       // Setup proxy and Aproxy
@@ -380,8 +380,7 @@ describe('QuickSwap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        await proxy.updateTokenMock(token0.address);
-        const expectTokens = [token0.address].concat(path);
+        const expectTokens = path.slice(1, -1);
 
         const tos = [hQuickSwap.address];
         const configs = [constants.HashZero];
@@ -411,8 +410,7 @@ describe('QuickSwap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        await proxy.updateTokenMock(token0.address);
-        const expectTokens = [token0.address].concat(path);
+        const expectTokens = path.slice(1, -1);
 
         const tos = [hQuickSwap.address];
         const configs = [constants.HashZero];

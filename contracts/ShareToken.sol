@@ -9,7 +9,6 @@ import {Errors} from "./utils/Errors.sol";
 contract ShareToken is ERC20Permit, Ownable, IShareToken {
     uint8 private immutable _decimals;
     address private constant _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT = address(1);
-    address private constant _FINALIZED_PERFORMANCE_FEE_ACCOUNT = address(2);
 
     constructor(
         string memory name_,
@@ -40,7 +39,7 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
     }
 
     function netTotalShare() external view returns (uint256) {
-        return totalSupply() - balanceOf(address(1)) - balanceOf(address(2));
+        return totalSupply() - balanceOf(_OUTSTANDING_PERFORMANCE_FEE_ACCOUNT);
     }
 
     function grossTotalShare() external view returns (uint256) {
@@ -55,11 +54,6 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         if (to == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT) {
             Errors._require(
                 from == address(0),
-                Errors.Code.SHARE_TOKEN_INVALID_TO
-            );
-        } else if (to == _FINALIZED_PERFORMANCE_FEE_ACCOUNT) {
-            Errors._require(
-                from == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT,
                 Errors.Code.SHARE_TOKEN_INVALID_TO
             );
         }

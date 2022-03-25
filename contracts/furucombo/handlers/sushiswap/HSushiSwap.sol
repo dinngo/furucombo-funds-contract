@@ -161,7 +161,7 @@ contract HSushiSwap is HandlerBase {
         _tokenApproveZero(tokenIn, SUSHISWAP_ROUTER);
 
         // From the 2nd token of path, because path[0] will be update by previous cubes
-        for (uint256 i = 0; i < path.length; i++) {
+        for (uint256 i = 1; i < path.length; i++) {
             _updateToken(path[i]);
         }
     }
@@ -206,7 +206,7 @@ contract HSushiSwap is HandlerBase {
         _tokenApproveZero(tokenIn, SUSHISWAP_ROUTER);
 
         // From the 2nd token of path, because path[0] will be update by previous cubes
-        for (uint256 i = 0; i < path.length; i++) {
+        for (uint256 i = 1; i < path.length; i++) {
             _updateToken(path[i]);
         }
     }

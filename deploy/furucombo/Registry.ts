@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { AAVE_LENDING_POOL } from '../Config';
+import { AAVE_LENDING_POOL, CURVE_AAVE_SWAP } from '../Config';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -23,6 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hFunds = await deployments.get('HFunds');
     const hQuickSwap = await deployments.get('HQuickSwap');
     const hSushiSwap = await deployments.get('HSushiSwap');
+    const hCurve = await deployments.get('HCurve');
 
     await registry.register(
       hAaveProtocolV2.address,
@@ -40,6 +41,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       hSushiSwap.address,
       ethers.utils.formatBytes32String('HSushiSwap')
     );
+    await registry.register(
+      hCurve.address,
+      ethers.utils.formatBytes32String('HCurve')
+    );
 
     // Register caller
     await registry.registerCaller(
@@ -49,10 +54,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         '0x000000000000000000000000',
       ])
     );
+
+    // Set HCurve callee
+    await registry.registerHandlerCalleeWhitelist(
+      hCurve.address,
+      CURVE_AAVE_SWAP
+    );
   }
 };
 
 export default func;
 
 func.tags = ['Registry'];
-func.dependencies = ['HAaveProtocolV2', 'HFunds', 'HQuickSwap', 'HSushiSwap'];
+func.dependencies = [
+  'HAaveProtocolV2',
+  'HFunds',
+  'HQuickSwap',
+  'HSushiSwap',
+  'HCurve',
+];

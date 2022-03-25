@@ -28,7 +28,7 @@ describe('Chainlink', function () {
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
-      await deployments.fixture();
+      await deployments.fixture('');
       [owner, user] = await (ethers as any).getSigners();
 
       chainlink = await (await ethers.getContractFactory('Chainlink'))

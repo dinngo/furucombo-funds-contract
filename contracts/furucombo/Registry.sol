@@ -10,6 +10,9 @@ contract Registry is IRegistry, Ownable {
     mapping(address => bytes32) public override handlers;
     mapping(address => bytes32) public override callers;
     mapping(address => uint256) public override bannedAgents;
+    mapping(address => mapping(address => bool))
+        public
+        override handlerCalleeWhiteList;
     bool public override fHalt;
 
     bytes32 public constant DEPRECATED = bytes10(0x64657072656361746564);
@@ -22,6 +25,14 @@ contract Registry is IRegistry, Ownable {
     event Unbanned(address indexed agent);
     event Halted();
     event Unhalted();
+    event HandlerCalleeWhitelistRegistered(
+        address indexed handler,
+        address indexed callee
+    );
+    event HandlerCalleeWhitelistUnregistered(
+        address indexed handler,
+        address indexed callee
+    );
 
     modifier isNotHalted() {
         require(fHalt == false, "Halted");
@@ -150,5 +161,23 @@ contract Registry is IRegistry, Ownable {
     function unhalt() external isHalted onlyOwner {
         fHalt = false;
         emit Unhalted();
+    }
+
+    function registerHandlerCalleeWhitelist(address handler, address callee)
+        external
+        onlyOwner
+    {
+        require(handler != address(0) && callee != address(0), "zero address");
+        handlerCalleeWhiteList[handler][callee] = true;
+        emit HandlerCalleeWhitelistRegistered(handler, callee);
+    }
+
+    function unregisterHandlerCalleeWhitelist(address handler, address callee)
+        external
+        onlyOwner
+    {
+        require(handler != address(0) && callee != address(0), "zero address");
+        handlerCalleeWhiteList[handler][callee] = false;
+        emit HandlerCalleeWhitelistUnregistered(handler, callee);
     }
 }

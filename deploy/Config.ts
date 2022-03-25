@@ -4,7 +4,7 @@ import { assets } from './assets/AssetConfig';
 export const MORTGAGE_TOKEN = '0x6DdB31002abC64e1479Fc439692F7eA061e78165'; // COMBO
 export const DS_PROXY_REGISTRY = '0xD6DF5BC8f4834C4e3b9c6a79E99C41622d377aFB';
 export const AAVE_LENDING_POOL = '0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf';
-export const FURUCOMBO_HCURVE = '0xf0830115E60e11e02E980B063c3E88FcFDA598d1';
+export const CURVE_AAVE_SWAP = '0x445FE580eF8d70FF569aB36e80c647af338db351';
 export const WL_ANY_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 export const WL_ANY_SIG = '0xffffffff';
 export const WL_AAVE_V2_SIGS = [
@@ -30,6 +30,11 @@ export const WL_SUSHISWAP_SIGS = [
   '0xe2dc85dc', // removeLiquidity(address,address,uint256,uint256,uint256)
   '0x86818f26', // swapExactTokensForTokens(uint256,uint256,address[])
   '0x397d4b4a', // swapTokensForExactTokens(uint256,uint256,address[])
+];
+export const WL_CURVE_SIGS = [
+  '0xfef6074e', // exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)
+  '0x7ad0fd49', // addLiquidityUnderlying(address,address,address[],uint256[],uint256)
+  '0xdf5f2889', // removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)
 ];
 export const LEVEL = 1;
 export const EXEC_FEE_PERCENTAGE = 200; // 2%

@@ -1,12 +1,11 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import {
-  FURUCOMBO_HCURVE,
   WL_AAVE_V2_SIGS,
   WL_FUNDS_SIGS,
   WL_QUICKSWAP_SIGS,
   WL_SUSHISWAP_SIGS,
-  WL_ANY_SIG,
+  WL_CURVE_SIGS,
   LEVEL,
   EXEC_FEE_PERCENTAGE,
   PENDING_EXPIRATION,
@@ -121,19 +120,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hFunds = await deployments.get('HFunds');
     const hQuickSwap = await deployments.get('HQuickSwap');
     const hSushiSwap = await deployments.get('HSushiSwap');
+    const hCurve = await deployments.get('HCurve');
     const wlAddressList = [
       ...Array(WL_AAVE_V2_SIGS.length).fill(hAaveProtocolV2.address),
       ...Array(WL_FUNDS_SIGS.length).fill(hFunds.address),
       ...Array(WL_QUICKSWAP_SIGS.length).fill(hQuickSwap.address),
       ...Array(WL_SUSHISWAP_SIGS.length).fill(hSushiSwap.address),
-      FURUCOMBO_HCURVE,
+      ...Array(WL_CURVE_SIGS.length).fill(hCurve.address),
     ];
     const wlSigList = [
       ...WL_AAVE_V2_SIGS,
       ...WL_FUNDS_SIGS,
       ...WL_QUICKSWAP_SIGS,
       ...WL_SUSHISWAP_SIGS,
-      WL_ANY_SIG,
+      ...WL_CURVE_SIGS,
     ];
     await comptroller.permitHandlers(LEVEL, wlAddressList, wlSigList);
   }
@@ -150,4 +150,5 @@ func.dependencies = [
   'HFunds',
   'HQuickSwap',
   'HSushiSwap',
+  'HCurve',
 ];
