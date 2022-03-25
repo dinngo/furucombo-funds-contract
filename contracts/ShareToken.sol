@@ -39,7 +39,7 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
     }
 
     function netTotalShare() external view returns (uint256) {
-        return totalSupply() - balanceOf(address(1));
+        return totalSupply() - balanceOf(_OUTSTANDING_PERFORMANCE_FEE_ACCOUNT);
     }
 
     function grossTotalShare() external view returns (uint256) {
