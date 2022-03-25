@@ -380,7 +380,7 @@ describe('QuickSwap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        const expectTokens = [WMATIC_TOKEN, token1Address];
+        const expectTokens = path.slice(1, -1);
 
         const tos = [hQuickSwap.address];
         const configs = [constants.HashZero];
@@ -410,7 +410,7 @@ describe('QuickSwap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        const expectTokens = [WMATIC_TOKEN, token1Address];
+        const expectTokens = path.slice(1, -1);
 
         const tos = [hQuickSwap.address];
         const configs = [constants.HashZero];

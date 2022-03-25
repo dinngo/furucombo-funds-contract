@@ -187,8 +187,8 @@ describe('HCurve', function () {
         ).revertedWith('Not support matic token');
       });
 
-      it('should revert: invalid callee', async function () {
-        // unregister callee
+      it('should revert: invalid callee when exchangeUnderlying', async function () {
+        // Unregister callee
         await registry.unregisterHandlerCalleeWhitelist(
           hCurve.address,
           aaveSwap.address
@@ -204,7 +204,7 @@ describe('HCurve', function () {
           proxy.connect(user).execMock(hCurve.address, data, {
             value: value,
           })
-        ).revertedWith('');
+        ).revertedWith('HCurve_exchangeUnderlying: invalid callee');
       });
 
       it('should revert: input token not support native token', async function () {
@@ -371,6 +371,100 @@ describe('HCurve', function () {
 
         // Check user
         expect(token1UserEnd).to.be.eq(token1UserBefore.add(answer));
+      });
+
+      it('should revert: invalid callee when addLiquidityUnderlying', async function () {
+        // Unregister callee
+        await registry.unregisterHandlerCalleeWhitelist(
+          hCurve.address,
+          aaveSwap.address
+        );
+
+        const token0Amount = ether('1');
+        const token1Amount = BigNumber.from('2000000');
+        const tokens = [token0.address, constants.AddressZero, token1.address];
+        const amounts: [BigNumber, BigNumber, BigNumber] = [
+          token0Amount,
+          BigNumber.from('0'),
+          token1Amount,
+        ];
+        // Get expected answer
+        const answer = await aaveSwap['calc_token_amount(uint256[3],bool)'](
+          amounts,
+          true
+        );
+
+        // Execute handler
+        await token0
+          .connect(provider0Address)
+          .transfer(proxy.address, token0Amount);
+        await token1
+          .connect(provider1Address)
+          .transfer(proxy.address, token1Amount);
+
+        await proxy.updateTokenMock(token0.address);
+        await proxy.updateTokenMock(token1.address);
+        const minMintAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
+        );
+        const data = getCallData(
+          hCurve,
+          'addLiquidityUnderlying(address,address,address[],uint256[],uint256)',
+          [aaveSwap.address, poolToken.address, tokens, amounts, minMintAmount]
+        );
+
+        await expect(
+          proxy.connect(user).execMock(hCurve.address, data, {
+            value: ether('1'),
+          })
+        ).revertedWith('HCurve_addLiquidityUnderlying: invalid callee');
+      });
+
+      it('should revert: invalid callee when removeLiquidityOneCoinUnderlying', async function () {
+        // Unregister callee
+        await registry.unregisterHandlerCalleeWhitelist(
+          hCurve.address,
+          aaveSwap.address
+        );
+
+        const poolTokenUser = ether('0.1');
+        const token1UserBefore = await token1.balanceOf(user.address);
+        const answer = await aaveSwap['calc_withdraw_one_coin(uint256,int128)'](
+          poolTokenUser,
+          2
+        );
+
+        await poolToken
+          .connect(poolTokenProvider)
+          .transfer(proxy.address, poolTokenUser);
+
+        await proxy.updateTokenMock(poolToken.address);
+
+        const minAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
+        );
+        const data = getCallData(
+          hCurve,
+          'removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)',
+          [
+            aaveSwap.address,
+            poolToken.address,
+            token1.address,
+            poolTokenUser,
+            2,
+            minAmount,
+          ]
+        );
+
+        await expect(
+          proxy.connect(user).execMock(hCurve.address, data, {
+            value: ether('1'),
+          })
+        ).revertedWith(
+          'HCurve_removeLiquidityOneCoinUnderlying: invalid callee'
+        );
       });
     });
   });

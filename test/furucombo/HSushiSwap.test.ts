@@ -387,7 +387,7 @@ describe('Sushiswap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        const expectTokens = [WMATIC_TOKEN, token1Address];
+        const expectTokens = path.slice(1, -1);
 
         const tos = [hSushiSwap.address];
         const configs = [constants.HashZero];
@@ -417,7 +417,7 @@ describe('Sushiswap Swap', function () {
           ]
         );
         await token0.connect(provider).transfer(proxy.address, value);
-        const expectTokens = [WMATIC_TOKEN, token1Address];
+        const expectTokens = path.slice(1, -1);
 
         const tos = [hSushiSwap.address];
         const configs = [constants.HashZero];

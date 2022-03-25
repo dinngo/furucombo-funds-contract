@@ -224,7 +224,7 @@ describe('AFurucombo', function () {
       const tokensOut = [tokenOut.address];
       const tos = [hFunds.address, hQuickSwap.address];
       const configs = [
-        '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 4 (uint256[2])
+        '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 3 (uint256[1])
         '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
       ];
       const datas = [
@@ -304,7 +304,7 @@ describe('AFurucombo', function () {
       // Verify dealing asset
       for (let i = 0; i < dealingAssets.length; i++) {
         expect(tokensOut[i]).to.be.eq(
-          dealingAssets[dealingAssets.length - (i + 1)]
+          dealingAssets[dealingAssets.length - (i + 1)] // returnTokens = dealingAssets.reverse()
         );
       }
 
