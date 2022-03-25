@@ -9,7 +9,6 @@ import {ILendingPoolAddressesProviderV2} from "../../../interfaces/ILendingPoolA
 import {IProxy} from "../../interfaces/IProxy.sol";
 import {HandlerBase} from "../HandlerBase.sol";
 import {IFlashLoanReceiver} from "./IFlashLoanReceiver.sol";
-import {IWMATIC} from "./IWMATIC.sol";
 
 contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
     using SafeERC20 for IERC20;
@@ -30,14 +29,6 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         _deposit(asset, amount);
     }
 
-    function depositETH(uint256 amount) external payable {
-        amount = _getBalance(NATIVE_TOKEN_ADDRESS, amount);
-        IWMATIC(WMATIC).deposit{value: amount}();
-        _deposit(WMATIC, amount);
-
-        _updateToken(WMATIC);
-    }
-
     function withdraw(address asset, uint256 amount)
         external
         payable
@@ -47,15 +38,6 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         withdrawAmount = _withdraw(asset, amount);
 
         _updateToken(asset);
-    }
-
-    function withdrawETH(uint256 amount)
-        external
-        payable
-        returns (uint256 withdrawAmount)
-    {
-        withdrawAmount = _withdraw(WMATIC, amount);
-        IWMATIC(WMATIC).withdraw(withdrawAmount);
     }
 
     function repay(
@@ -68,18 +50,6 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         remainDebt = _repay(asset, amount, rateMode, onBehalfOf);
     }
 
-    function repayETH(uint256 amount, uint256 rateMode)
-        external
-        payable
-        returns (uint256 remainDebt)
-    {
-        IWMATIC(WMATIC).deposit{value: amount}();
-        address onBehalfOf = _getSender();
-        remainDebt = _repay(WMATIC, amount, rateMode, onBehalfOf);
-
-        _updateToken(WMATIC);
-    }
-
     function borrow(
         address asset,
         uint256 amount,
@@ -89,12 +59,6 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         address onBehalfOf = _getSender();
         _borrow(asset, amount, rateMode, onBehalfOf);
         _updateToken(asset);
-    }
-
-    function borrowETH(uint256 amount, uint256 rateMode) external payable {
-        address onBehalfOf = _getSender();
-        _borrow(WMATIC, amount, rateMode, onBehalfOf);
-        IWMATIC(WMATIC).withdraw(amount);
     }
 
     function flashLoan(

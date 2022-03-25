@@ -69,12 +69,10 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
 
         // Check no remaining input tokens to ensure updateTokens was called
         for (uint256 i = 0; i < tokensIn.length; i++) {
-            if (tokensIn[i] != NATIVE_TOKEN_ADDRESS) {
-                Errors._require(
-                    IERC20(tokensIn[i]).balanceOf(proxy) < _TOKEN_DUST,
-                    Errors.Code.AFURUCOMBO_REMAINING_TOKENS
-                );
-            }
+            Errors._require(
+                IERC20(tokensIn[i]).balanceOf(proxy) < _TOKEN_DUST,
+                Errors.Code.AFURUCOMBO_REMAINING_TOKENS
+            );
         }
 
         // Calculate increased output token amounts
@@ -140,12 +138,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
             if (amount > 0) {
                 // decrease fund quota
                 decreaseFundQuota(tokensIn[i], amount);
-
-                if (tokensIn[i] == NATIVE_TOKEN_ADDRESS) {
-                    proxy.transfer(amount);
-                } else {
-                    IERC20(tokensIn[i]).safeTransfer(proxy, amount);
-                }
+                IERC20(tokensIn[i]).safeTransfer(proxy, amount);
             }
         }
     }

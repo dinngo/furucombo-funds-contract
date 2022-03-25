@@ -982,18 +982,17 @@ describe('Task Executor', function () {
       const consumeQuota = quota.sub(expectExecutionFee);
       const collectorTokenABalance = await tokenA.balanceOf(collector);
       const collectorTokenBBalance = await tokenB.balanceOf(collector);
-      const collectorBalance = await ethers.provider.getBalance(collector);
 
       // Prepare action data
       const actionData = getCallData(fooAction, 'decreaseQuota', [
-        [tokenA.address, tokenB.address, NATIVE_TOKEN],
-        [consumeQuota, consumeQuota.sub(BigNumber.from('100')), consumeQuota],
+        [tokenA.address, tokenB.address],
+        [consumeQuota, consumeQuota.sub(BigNumber.from('100'))],
       ]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
-        [tokenA.address, tokenB.address, NATIVE_TOKEN],
-        [quota, quota, quota],
+        [tokenA.address, tokenB.address],
+        [quota, quota],
         [fooAction.address],
         [constants.HashZero],
         [actionData],
@@ -1011,10 +1010,6 @@ describe('Task Executor', function () {
       ).to.be.eq(expectExecutionFee);
       expect(
         (await tokenB.balanceOf(collector)).sub(collectorTokenBBalance)
-      ).to.be.eq(expectExecutionFee);
-
-      expect(
-        (await ethers.provider.getBalance(collector)).sub(collectorBalance)
       ).to.be.eq(expectExecutionFee);
     });
 
@@ -1063,6 +1058,34 @@ describe('Task Executor', function () {
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
         [tokenB.address],
+        [quota],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      const target = taskExecutor.address;
+      await expect(
+        proxy.connect(user).callStatic.executeMock(target, data, {
+          value: ether('0.01'),
+        })
+      ).to.be.revertedWith('revertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
+    });
+
+    it('should revert: native token', async function () {
+      const consumeQuota = quota.div(BigNumber.from('2'));
+      const actionData = getCallData(fooAction, 'decreaseQuota', [
+        [NATIVE_TOKEN],
+        [consumeQuota],
+      ]);
+
+      expect(
+        await comptroller.isValidInitialAsset(await proxy.level(), NATIVE_TOKEN)
+      ).to.be.eq(false);
+
+      // Prepare task data and execute
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [NATIVE_TOKEN],
         [quota],
         [fooAction.address],
         [constants.HashZero],

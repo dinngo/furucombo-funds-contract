@@ -218,6 +218,7 @@ describe('AFurucombo', function () {
 
   describe('inject and batchExec', function () {
     const furucomboTokenDust = BigNumber.from('10');
+
     it('swap token to token', async function () {
       const tokensIn = [token.address];
       const amountsIn = [ether('1')];
