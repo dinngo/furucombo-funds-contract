@@ -780,7 +780,7 @@ describe('PoolImplementation', function () {
       it('should revert: invalid reserve execution', async function () {
         await expect(
           poolImplementation.setReserveExecutionRatio(reserveBase)
-        ).to.be.revertedWith('revertCode(75)');
+        ).to.be.revertedWith('revertCode(76)');
       });
     });
   });

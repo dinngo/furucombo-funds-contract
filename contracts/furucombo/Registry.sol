@@ -25,11 +25,11 @@ contract Registry is IRegistry, Ownable {
     event Unbanned(address indexed agent);
     event Halted();
     event Unhalted();
-    event RegisterHandlerCalleeWhitelist(
+    event HandlerCalleeWhitelistRegistered(
         address indexed handler,
         address indexed callee
     );
-    event UnregisterHandlerCalleeWhitelist(
+    event HandlerCalleeWhitelistUnregistered(
         address indexed handler,
         address indexed callee
     );
@@ -169,7 +169,7 @@ contract Registry is IRegistry, Ownable {
     {
         require(handler != address(0) && callee != address(0), "zero address");
         handlerCalleeWhiteList[handler][callee] = true;
-        emit RegisterHandlerCalleeWhitelist(handler, callee);
+        emit HandlerCalleeWhitelistRegistered(handler, callee);
     }
 
     function unregisterHandlerCalleeWhitelist(address handler, address callee)
@@ -178,6 +178,6 @@ contract Registry is IRegistry, Ownable {
     {
         require(handler != address(0) && callee != address(0), "zero address");
         handlerCalleeWhiteList[handler][callee] = false;
-        emit UnregisterHandlerCalleeWhitelist(handler, callee);
+        emit HandlerCalleeWhitelistUnregistered(handler, callee);
     }
 }
