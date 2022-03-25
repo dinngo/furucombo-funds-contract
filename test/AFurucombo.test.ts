@@ -18,6 +18,7 @@ import {
   AssetRegistry,
   IVariableDebtToken,
   SimpleToken,
+  HQuickSwap,
 } from '../typechain';
 
 import {
@@ -27,7 +28,6 @@ import {
   WETH_TOKEN,
   WL_ANY_SIG,
   NATIVE_TOKEN,
-  FURUCOMBO_HQUICKSWAP,
   WMATIC_TOKEN,
   AWETH_V2_DEBT_VARIABLE,
   AAVEPROTOCOL_V2_PROVIDER,
@@ -64,6 +64,7 @@ describe('AFurucombo', function () {
   let aFurucombo: AFurucombo;
   let furuRegistry: Registry;
   let hFunds: HFunds;
+  let hQuickSwap: HQuickSwap;
 
   let token: IERC20;
   let tokenOut: IERC20;
@@ -155,14 +156,19 @@ describe('AFurucombo', function () {
       hFunds = await (await ethers.getContractFactory('HFunds')).deploy();
       await hFunds.deployed();
 
+      hQuickSwap = await (
+        await ethers.getContractFactory('HQuickSwap')
+      ).deploy();
+      await hQuickSwap.deployed();
+
       await furuRegistry.register(
         hFunds.address,
         ethers.utils.hexZeroPad(asciiToHex32('HFunds'), 32)
       );
 
       await furuRegistry.register(
-        FURUCOMBO_HQUICKSWAP,
-        ethers.utils.hexZeroPad(asciiToHex32('FURUCOMBO_HQUICKSWAP'), 32)
+        hQuickSwap.address,
+        ethers.utils.hexZeroPad(asciiToHex32('HQuickswap'), 32)
       );
 
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
@@ -197,7 +203,7 @@ describe('AFurucombo', function () {
       // Permit handler
       comptroller.permitHandlers(
         await proxy.level(),
-        [hFunds.address, FURUCOMBO_HQUICKSWAP],
+        [hFunds.address, hQuickSwap.address],
         [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG]
       );
     }
@@ -212,24 +218,17 @@ describe('AFurucombo', function () {
 
   describe('inject and batchExec', function () {
     const furucomboTokenDust = BigNumber.from('10');
-    it('swap native and token to token', async function () {
-      const tokensIn = [NATIVE_TOKEN, token.address];
-      const amountsIn = [ether('2'), ether('1')];
+    it('swap token to token', async function () {
+      const tokensIn = [token.address];
+      const amountsIn = [ether('1')];
       const tokensOut = [tokenOut.address];
-      const tos = [hFunds.address, FURUCOMBO_HQUICKSWAP, FURUCOMBO_HQUICKSWAP];
+      const tos = [hFunds.address, hQuickSwap.address];
       const configs = [
-        '0x0004000000000000000000000000000000000000000000000000000000000000', // return size = 4 (uint256[2])
+        '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 3 (uint256[1])
         '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
-        '0x0100000000000000000103ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[3]
       ];
-
       const datas = [
         simpleEncode('updateTokens(address[])', [tokensIn]),
-        simpleEncode('swapExactETHForTokens(uint256,uint256,address[])', [
-          0, // amountIn: 100% return data
-          1, // amountOutMin
-          [WMATIC_TOKEN, tokenOut.address], // path
-        ]),
         simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
           0, // amountIn: 100% return data
           1, // amountOutMin
@@ -254,17 +253,14 @@ describe('AFurucombo', function () {
 
       // send token to vault
       const vault = await proxy.vault();
-      await token.connect(tokenProvider).transfer(vault, amountsIn[1]);
+      await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
       // Execute
       const receipt = await proxy
         .connect(user)
-        .executeMock(taskExecutor.address, data, {
-          value: amountsIn[0],
-        });
+        .executeMock(taskExecutor.address, data);
 
       // Record after balance
-      const balanceAfter = await ethers.provider.getBalance(vault);
       const tokenAfter = await token.balanceOf(vault);
       const tokenOutAfter = await tokenOut.balanceOf(vault);
       const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
@@ -290,7 +286,6 @@ describe('AFurucombo', function () {
       expect(actionReturn[0]).to.be.eq(tokenOutAfter);
 
       // Verify user dsproxy
-      expect(balanceAfter).to.be.eq(0);
       expect(tokenAfter).to.be.eq(0);
       expect(tokenOutAfter).to.be.gt(0);
 
@@ -308,110 +303,9 @@ describe('AFurucombo', function () {
 
       // Verify dealing asset
       for (let i = 0; i < dealingAssets.length; i++) {
-        expect(dealingAssets[i]).to.be.eq(tokensOut[i]);
-      }
-
-      await profileGas(receipt);
-    });
-
-    it('swap token to native and token', async function () {
-      const tokensIn = [token.address];
-      const amountsIn = [ether('1')];
-      const tokensOut = [NATIVE_TOKEN, tokenOut.address];
-      const tos = [hFunds.address, FURUCOMBO_HQUICKSWAP, FURUCOMBO_HQUICKSWAP];
-      const configs = [
-        '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 3 (uint256[1])
-        '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
-        '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
-      ];
-      const datas = [
-        simpleEncode('updateTokens(address[])', [tokensIn]),
-        simpleEncode('swapExactTokensForETH(uint256,uint256,address[])', [
-          ether('0.5'), // amountIn: 50% return data
-          1, // amountOutMin
-          [token.address, WMATIC_TOKEN], // path
-        ]),
-        simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
-          ether('0.5'), // amountIn: 50% return data
-          1, // amountOutMin
-          [token.address, tokenOut.address], // path
-        ]),
-      ];
-
-      // TaskExecutorMock data
-      const data = getCallData(taskExecutor, 'execMock', [
-        tokensIn,
-        amountsIn,
-        aFurucombo.address,
-        getCallData(aFurucombo, 'injectAndBatchExec', [
-          tokensIn,
-          amountsIn,
-          tokensOut,
-          tos,
-          configs,
-          datas,
-        ]),
-      ]);
-
-      // Send token to vault
-      const vault = await proxy.vault();
-      await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
-
-      // Execute
-      const receipt = await proxy
-        .connect(user)
-        .executeMock(taskExecutor.address, data);
-
-      // Get fundQuotas and dealing asset
-      const fundQuotas = await getTaskExecutorFundQuotas(
-        proxy,
-        taskExecutor,
-        tokensIn
-      );
-      const outputFundQuotas = await getTaskExecutorFundQuotas(
-        proxy,
-        taskExecutor,
-        tokensOut
-      );
-      const dealingAssets = await getTaskExecutorDealingAssets(
-        proxy,
-        taskExecutor
-      );
-
-      // Record after balance
-      const balanceAfter = await ethers.provider.getBalance(vault);
-      const tokenAfter = await token.balanceOf(vault);
-      const tokenOutAfter = await tokenOut.balanceOf(vault);
-      const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
-
-      // Check action return
-      const actionReturn = await getActionReturn(receipt, ['uint256[]']);
-      expect(actionReturn[0]).to.be.eq(balanceAfter);
-      expect(actionReturn[1]).to.be.eq(tokenOutAfter);
-
-      // Check user dsproxy
-      expect(balanceAfter).to.be.gt(ether('0'));
-      expect(tokenAfter).to.be.eq(ether('0'));
-      expect(tokenOutAfter).to.be.gt(ether('0'));
-
-      // Verify furucombo proxy
-      expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
-
-      // Verify fund Quota
-      for (let i = 0; i < fundQuotas.length; i++) {
-        expect(fundQuotas[i]).to.be.lt(tokensIn[i]);
-      }
-      const tokenOutAfters = [balanceAfter, tokenOutAfter];
-      for (let i = 0; i < outputFundQuotas.length; i++) {
-        expect(outputFundQuotas[i]).to.be.eq(tokenOutAfters[i]);
-      }
-
-      // Verify dealing asset
-      for (let i = 0; i < dealingAssets.length; i++) {
-        // Furucombo would not return Native token as dealing assets
-        // It will be fine because native tokens always be approved as dealing asset
-        if (tokensOut[i] === NATIVE_TOKEN) continue;
-        expect(dealingAssets[i]).to.be.eq(tokensOut[i]);
+        expect(tokensOut[i]).to.be.eq(
+          dealingAssets[dealingAssets.length - (i + 1)] // returnTokens = dealingAssets.reverse()
+        );
       }
 
       await profileGas(receipt);

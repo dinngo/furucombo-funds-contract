@@ -758,10 +758,8 @@ describe('PoolImplementation', function () {
 
     describe('Reserve Execution', function () {
       it('set reserve execution', async function () {
-        await poolImplementation.setReserveExecutionRatio(denominationDust);
-        expect(await poolImplementation.reserveExecutionRatio()).to.be.eq(
-          denominationDust
-        );
+        await poolImplementation.setReserveExecutionRatio(100);
+        expect(await poolImplementation.reserveExecutionRatio()).to.be.eq(100);
       });
 
       it('should revert: set reserve execution at wrong stage', async function () {
@@ -777,6 +775,12 @@ describe('PoolImplementation', function () {
             .connect(user)
             .setReserveExecutionRatio(denominationDust)
         ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: invalid reserve execution', async function () {
+        await expect(
+          poolImplementation.setReserveExecutionRatio(reserveBase)
+        ).to.be.revertedWith('revertCode(76)');
       });
     });
   });

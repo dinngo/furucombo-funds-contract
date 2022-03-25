@@ -42,10 +42,8 @@ contract FurucomboProxy is IProxy, Storage, Config {
         _;
     }
 
-    IRegistry public immutable registry;
-
-    constructor(address _registry) {
-        registry = IRegistry(_registry);
+    constructor(IRegistry registry_) {
+        registry = registry_;
     }
 
     /**

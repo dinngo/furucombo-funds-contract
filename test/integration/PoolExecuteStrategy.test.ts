@@ -18,6 +18,8 @@ import {
   PoolImplementation,
   ShareToken,
   IUniswapV2Router02,
+  HQuickSwap,
+  HSushiSwap,
 } from '../../typechain';
 
 import {
@@ -28,9 +30,6 @@ import {
   CHAINLINK_DAI_USD,
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
-  FURUCOMBO_HQUICKSWAP,
-  FURUCOMBO_HSUSHISWAP,
-  FURUCOMBO_HCURVE,
   DS_PROXY_REGISTRY,
   WL_ANY_SIG,
   QUICKSWAP_ROUTER,
@@ -65,6 +64,7 @@ import {
   registerHandlers,
   registerResolvers,
 } from './deploy';
+import { HCurve } from '../../typechain/HCurve';
 
 describe('PoolExecuteStrategy', function () {
   const denominationAddress = USDC_TOKEN;
@@ -104,6 +104,9 @@ describe('PoolExecuteStrategy', function () {
   let fRegistry: Registry;
   let furucombo: FurucomboProxy;
   let hAaveV2: HAaveProtocolV2;
+  let hCurve: HCurve;
+  let hQuickSwap: HQuickSwap;
+  let hSushiSwap: HSushiSwap;
   let hFunds: HFunds;
   let aFurucombo: AFurucombo;
   let taskExecutor: TaskExecutor;
@@ -161,18 +164,18 @@ describe('PoolExecuteStrategy', function () {
       );
 
       // Register furucombo handlers
-      [hAaveV2, hFunds] = await deployContracts(
-        ['HAaveProtocolV2', 'HFunds'],
-        [[], []]
+      [hAaveV2, hFunds, hCurve, hQuickSwap, hSushiSwap] = await deployContracts(
+        ['HAaveProtocolV2', 'HFunds', 'HCurve', 'HQuickSwap', 'HSushiSwap'],
+        [[], [], [], [], []]
       );
       await registerHandlers(
         fRegistry,
         [
           hFunds.address,
           hAaveV2.address,
-          FURUCOMBO_HCURVE,
-          FURUCOMBO_HQUICKSWAP,
-          FURUCOMBO_HSUSHISWAP,
+          hCurve.address,
+          hQuickSwap.address,
+          hSushiSwap.address,
         ],
         ['HFunds', 'HAaveProtocolV2', 'HCurve', 'HQuickswap', 'HSushiswap']
       );
@@ -202,9 +205,9 @@ describe('PoolExecuteStrategy', function () {
         [
           hAaveV2.address,
           hFunds.address,
-          FURUCOMBO_HCURVE,
-          FURUCOMBO_HQUICKSWAP,
-          FURUCOMBO_HSUSHISWAP,
+          hCurve.address,
+          hQuickSwap.address,
+          hSushiSwap.address,
         ],
         [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
       );
@@ -318,7 +321,7 @@ describe('PoolExecuteStrategy', function () {
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
       const path = [denomination.address, tokenB.address, tokenA.address];
-      const tos = [hFunds.address, FURUCOMBO_HQUICKSWAP];
+      const tos = [hFunds.address, hQuickSwap.address];
       const configs = [constants.HashZero, constants.HashZero];
 
       // Furucombo data
@@ -401,7 +404,7 @@ describe('PoolExecuteStrategy', function () {
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
       const path = [denomination.address, tokenB.address, tokenA.address];
-      const tos = [hFunds.address, FURUCOMBO_HSUSHISWAP];
+      const tos = [hFunds.address, hSushiSwap.address];
       const configs = [constants.HashZero, constants.HashZero];
 
       // Furucombo data
