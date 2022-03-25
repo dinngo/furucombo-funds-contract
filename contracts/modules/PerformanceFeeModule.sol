@@ -18,7 +18,6 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
     uint256 private constant FEE_DENOMINATOR = _FEE_BASE * FEE_PERIOD;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
-    address private constant _FINALIZED_ACCOUNT = address(2);
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
 
@@ -91,14 +90,11 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
         );
         _updatePerformanceFee();
         address manager = getManager();
-        uint256 finalizedShare = shareToken.balanceOf(_FINALIZED_ACCOUNT);
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
-        shareToken.move(_FINALIZED_ACCOUNT, manager, finalizedShare);
         _updateGrossSharePrice();
-        uint256 result = _lastOutstandingShare + finalizedShare;
+        uint256 result = _lastOutstandingShare;
         _lastOutstandingShare = 0;
         _pFeeSum = 0;
-        _pFeeSet = 0;
         _lastCrystallization = block.timestamp;
         hwm64x64 = LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64);
         emit PerformanceFeeClaimed(manager, result);
@@ -122,7 +118,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
             .muli(int256(totalShare));
         int256 fee = _pFeeRate64x64.muli(wealth);
         _pFeeSum = uint256(LibFee._max(0, int256(_pFeeSum) + fee));
-        uint256 netAssetValue = grossAssetValue - _pFeeSum - _pFeeSet;
+        uint256 netAssetValue = grossAssetValue - _pFeeSum;
         uint256 outstandingShare = (totalShare * _pFeeSum) / netAssetValue;
         if (outstandingShare > _lastOutstandingShare) {
             shareToken.mint(
@@ -148,21 +144,6 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
             lastGrossSharePrice64x64 = FEE_BASE64x64;
         } else {
             lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
-        }
-    }
-
-    /// @notice Payout a portion of performance fee without the limitation of
-    /// crystallization.
-    /// @param amount The share amount being redeemed.
-    function _redemptionPayout(uint256 amount) internal virtual {
-        uint256 totalShare = shareToken.netTotalShare() + amount;
-        if (totalShare != 0) {
-            uint256 payout = (_lastOutstandingShare * amount) / totalShare;
-            uint256 fee = (_pFeeSum * amount) / totalShare;
-            shareToken.move(_OUTSTANDING_ACCOUNT, _FINALIZED_ACCOUNT, payout);
-            _lastOutstandingShare -= payout;
-            _pFeeSum -= fee;
-            _pFeeSet += fee;
         }
     }
 

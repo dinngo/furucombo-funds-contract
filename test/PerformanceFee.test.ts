@@ -27,7 +27,6 @@ describe('Performance fee', function () {
 
   const totalShare = ethers.utils.parseEther('100');
   const outstandingAccount = '0x0000000000000000000000000000000000000001';
-  const finalizedAccount = '0x0000000000000000000000000000000000000002';
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -177,47 +176,6 @@ describe('Performance fee', function () {
         expect(outstandingShare).to.be.lt(expectShare.mul(1001).div(1000));
       });
 
-      describe('payout when redeem', function () {
-        beforeEach(async function () {
-          feeRate = BigNumber.from('1000');
-          growth = grossAssetValue;
-          currentGrossAssetValue = grossAssetValue.add(growth);
-          await pFeeModule.setPerformanceFeeRate(feeRate);
-          await pFeeModule.initializePerformanceFee();
-          await pFeeModule.setGrossAssetValue(currentGrossAssetValue);
-        });
-
-        it('get fee when user redeem', async function () {
-          const redeemShare = totalShare;
-          await pFeeModule.redemptionPayout(redeemShare);
-          const finalizedShare = await tokenS.callStatic.balanceOf(
-            finalizedAccount
-          );
-          const fee = growth.mul(feeRate).div(feeBase);
-          const expectShare = fee
-            .mul(totalShare)
-            .div(currentGrossAssetValue.sub(fee));
-          expect(finalizedShare).to.be.gt(expectShare.mul(999).div(1000));
-          expect(finalizedShare).to.be.lt(expectShare.mul(1001).div(1000));
-        });
-
-        it('get fee when user redeem separately', async function () {
-          const redeemShare = totalShare.div(2);
-          await pFeeModule.redemptionPayout(redeemShare);
-          await pFeeModule.redemptionPayout(redeemShare);
-          const finalizedShare = await tokenS.callStatic.balanceOf(
-            finalizedAccount
-          );
-
-          const fee = growth.mul(feeRate).div(feeBase);
-          const expectShare = fee
-            .mul(totalShare)
-            .div(currentGrossAssetValue.sub(fee));
-          expect(finalizedShare).to.be.gt(expectShare.mul(999).div(1000));
-          expect(finalizedShare).to.be.lt(expectShare.mul(1001).div(1000));
-        });
-      });
-
       describe('crystallization', function () {
         beforeEach(async function () {
           feeRate = BigNumber.from('1000');
@@ -287,32 +245,6 @@ describe('Performance fee', function () {
         });
 
         it('should get fee when crystallization after period', async function () {
-          await increaseNextBlockTimeBy(period.toNumber());
-          const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
-          await pFeeModule.crystallize();
-          const highWaterMarkAfter = await pFeeModule.callStatic.hwm64x64();
-          const shareManager = await tokenS.callStatic.balanceOf(
-            manager.address
-          );
-          const fee = growth.mul(feeRate).div(feeBase);
-          const expectShare = fee
-            .mul(totalShare)
-            .div(currentGrossAssetValue.sub(fee));
-          const lastPrice =
-            await pFeeModule.callStatic.lastGrossSharePrice64x64();
-          const expectPrice = highWaterMarkBefore
-            .mul(feeBase.mul(2).sub(feeRate))
-            .div(feeBase);
-          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
-          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
-          expect(highWaterMarkAfter).to.be.eq(lastPrice);
-          expect(highWaterMarkAfter).to.be.gt(expectPrice.mul(999).div(1000));
-          expect(highWaterMarkAfter).to.be.lt(expectPrice.mul(1001).div(1000));
-        });
-
-        it('should get fee when crystallization after period with redeem among period', async function () {
-          const redeemShare = totalShare.div(2);
-          await pFeeModule.redemptionPayout(redeemShare);
           await increaseNextBlockTimeBy(period.toNumber());
           const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
           await pFeeModule.crystallize();

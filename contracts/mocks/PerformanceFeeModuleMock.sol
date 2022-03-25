@@ -50,16 +50,6 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
         _updateGrossSharePrice();
     }
 
-    function redemptionPayout(uint256 amount) public {
-        _updatePerformanceFee();
-        grossAssetValue =
-            grossAssetValue -
-            ((grossAssetValue * amount) / shareToken.grossTotalShare());
-        shareToken.burn(msg.sender, amount);
-        _redemptionPayout(amount);
-        _updateGrossSharePrice();
-    }
-
     function getFeeBase() public pure returns (uint256) {
         return 1e4;
     }
