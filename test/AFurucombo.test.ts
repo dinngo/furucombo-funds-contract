@@ -482,4 +482,62 @@ describe('AFurucombo', function () {
       ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
+
+  describe('approve token to proxy', function () {
+    it('approve token', async function () {
+      const tokenA = token;
+      const tokenB = tokenOut;
+      const tokens = [tokenA.address, tokenB.address];
+      const vault = await proxy.vault();
+
+      expect(await tokenA.allowance(vault, furucombo.address)).to.be.eq(0);
+      expect(await tokenB.allowance(vault, furucombo.address)).to.be.eq(0);
+
+      const approveTokneAAmount = ether('0.05');
+      const approveTokneBAmount = ether('100');
+      const amounts = [approveTokneAAmount, approveTokneBAmount];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        [],
+        [],
+        aFurucombo.address,
+        getCallData(aFurucombo, 'approveToken', [tokens, amounts]),
+      ]);
+
+      // Execute
+      const receipt = await proxy
+        .connect(user)
+        .executeMock(taskExecutor.address, data);
+
+      expect(await tokenA.allowance(vault, furucombo.address)).to.be.eq(
+        approveTokneAAmount
+      );
+      expect(await tokenB.allowance(vault, furucombo.address)).to.be.eq(
+        approveTokneBAmount
+      );
+
+      await profileGas(receipt);
+    });
+
+    it('should revert: inconsistent length', async function () {
+      const tokenA = token;
+      const tokenB = tokenOut;
+      const tokens = [tokenA.address, tokenB.address];
+      const approveTokneAAmount = ether('0.05');
+      const amounts = [approveTokneAAmount];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        [],
+        [],
+        aFurucombo.address,
+        getCallData(aFurucombo, 'approveToken', [tokens, amounts]),
+      ]);
+
+      await expect(
+        proxy.connect(user).executeMock(taskExecutor.address, data)
+      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+    });
+  });
 });
