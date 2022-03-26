@@ -191,7 +191,7 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.purchase(totalAsset);
       await shareModule.setReserve(totalAsset);
-      await shareModule.setTotalAssetValue(totalAsset);
+      await shareModule.setGrossAssetValue(totalAsset);
       userShareBefore = await shareToken.balanceOf(user1.address);
     });
 
@@ -478,10 +478,10 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.purchase(totalAsset);
       await shareModule.setReserve(totalAsset.sub(pendingAsset));
-      await shareModule.setTotalAssetValue(totalAsset);
+      await shareModule.setGrossAssetValue(totalAsset);
       await shareModule.redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
       expect(
         (await shareModule.pendingUsers(user1.address)).pendingShares
       ).to.be.eq(actualShare);
@@ -539,10 +539,10 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.connect(user2).purchase(totalAsset);
       await shareModule.setReserve(totalAsset.sub(pendingAsset));
-      await shareModule.setTotalAssetValue(totalAsset);
+      await shareModule.setGrossAssetValue(totalAsset);
       await shareModule.connect(user2).redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingShare);
 
       // Settle in round2
@@ -609,7 +609,7 @@ describe('Share module', function () {
     it('should settle the remain bonus when settle without penalty', async function () {
       const purchaseAsset = actualAsset.div(2);
       await shareModule.purchase(purchaseAsset);
-      await shareModule.setTotalAssetValue(pendingAsset.add(purchaseAsset));
+      await shareModule.setGrossAssetValue(pendingAsset.add(purchaseAsset));
       await shareModule.setReserve(pendingAsset);
       const pendingRound = await shareModule.currentPendingRound();
 
@@ -644,7 +644,7 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.purchase(totalAsset);
       await shareModule.setReserve(totalAsset.sub(pendingAsset));
-      await shareModule.setTotalAssetValue(totalAsset);
+      await shareModule.setGrossAssetValue(totalAsset);
     });
 
     it('should success when claiming the redemption', async function () {
@@ -655,7 +655,7 @@ describe('Share module', function () {
       const actualAsset = actualShare;
       await shareModule.redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingRedemption();
 
@@ -689,7 +689,7 @@ describe('Share module', function () {
       // User 1 redeem
       await shareModule.redeem(totalShare.sub(redeemShare), acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
 
       // User 2 redeem
       await shareModule.connect(user2).redeem(redeemShare, acceptPending);
@@ -745,7 +745,7 @@ describe('Share module', function () {
         .div(penaltyBase);
       const actualAsset1 = actualShare1;
       await shareModule.redeem(totalShare, acceptPending);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingRedemption();
 
@@ -760,7 +760,7 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.purchase(purchaseShares);
       await shareModule.setReserve(purchaseAsset);
-      await shareModule.setTotalAssetValue(purchaseAsset);
+      await shareModule.setGrossAssetValue(purchaseAsset);
 
       // Execute redeem in round2
       const redeemShares = purchaseShares.div('2');
@@ -788,7 +788,7 @@ describe('Share module', function () {
       const actualAsset1 = actualShare1;
       await shareModule.redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingRedemption();
 
@@ -811,7 +811,7 @@ describe('Share module', function () {
       await shareModule.setState(POOL_STATE.EXECUTING);
       await shareModule.purchase(totalAsset2);
       await shareModule.setReserve(round2Reserve);
-      await shareModule.setTotalAssetValue(totalAsset2);
+      await shareModule.setGrossAssetValue(totalAsset2);
 
       // Execute redeem in round2
       const user1DenominationBefore = await tokenD.balanceOf(user1.address);
@@ -836,7 +836,7 @@ describe('Share module', function () {
     it('should revert: pending round is not settle yet', async function () {
       await shareModule.redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await expect(
         shareModule.claimPendingRedemption(user1.address)
@@ -846,7 +846,7 @@ describe('Share module', function () {
     it('should success when claiming the redemption', async function () {
       await shareModule.redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setTotalAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingRedemption();
 

@@ -76,10 +76,20 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     }
 
     /// @notice Calculate the share amount corresponding to the given balance.
-    /// @param balance The balance to be queried.
+    /// @param balance_ The balance to be queried.
     /// @return share The share amount.
-    function calculateShare(uint256 balance)
-        public
+    function calculateShare(uint256 balance_)
+        external
+        view
+        virtual
+        returns (uint256 share)
+    {
+        uint256 grossAssetValue = __getGrossAssetValue();
+        return _calculateShare(balance_, grossAssetValue);
+    }
+
+    function _calculateShare(uint256 balance_, uint256 grossAssetValue_)
+        internal
         view
         virtual
         returns (uint256 share)
@@ -87,26 +97,34 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         uint256 shareAmount = shareToken.grossTotalShare();
         if (shareAmount == 0) {
             // Handler initial minting
-            share = balance;
+            share = balance_;
         } else {
-            uint256 assetValue = getTotalAssetValue();
-            share = (shareAmount * balance) / assetValue;
+            share = (shareAmount * balance_) / grossAssetValue_;
         }
     }
 
     /// @notice Calculate the balance amount corresponding to the given share
     /// amount.
-    /// @param share The share amount to be queried.
+    /// @param share_ The share amount to be queried.
     /// @return balance The balance.
-    function calculateBalance(uint256 share)
-        public
+    function calculateBalance(uint256 share_)
+        external
         view
         virtual
         returns (uint256 balance)
     {
-        uint256 assetValue = getTotalAssetValue();
+        uint256 grossAssetValue = __getGrossAssetValue();
+        return _calculateBalance(share_, grossAssetValue);
+    }
+
+    function _calculateBalance(uint256 share_, uint256 grossAssetValue_)
+        internal
+        view
+        virtual
+        returns (uint256 balance)
+    {
         uint256 shareAmount = shareToken.grossTotalShare();
-        balance = (share * assetValue) / shareAmount;
+        balance = (share_ * grossAssetValue_) / shareAmount;
     }
 
     /// @notice Determine user could claim pending redemption or not
@@ -138,33 +156,58 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     }
 
     /// @notice determine pending statue could be resolvable or not
-    /// @param applyPenalty true if enable penalty otherwise false
+    /// @param applyPenalty_ true if enable penalty otherwise false
     /// @return true if resolvable otherwise false
-    function isPendingResolvable(bool applyPenalty) public view returns (bool) {
-        uint256 redeemShares = _getResolvePendingShares(applyPenalty);
-        uint256 redeemSharesBalance = calculateBalance(redeemShares);
+    function isPendingResolvable(bool applyPenalty_)
+        external
+        view
+        returns (bool)
+    {
+        uint256 grossAssetValue = __getGrossAssetValue();
+
+        return _isPendingResolvable(applyPenalty_, grossAssetValue);
+    }
+
+    function _isPendingResolvable(bool applyPenalty_, uint256 grossAssetValue_)
+        internal
+        view
+        returns (bool)
+    {
+        uint256 redeemShares = _getResolvePendingShares(applyPenalty_);
+        uint256 redeemSharesBalance = _calculateBalance(
+            redeemShares,
+            grossAssetValue_
+        );
         uint256 reserve = __getReserve();
 
         return reserve >= redeemSharesBalance;
     }
 
     /// @notice Calculate the max redeemable balance of the given share amount.
-    /// @param share The share amount to be queried.
+    /// @param share_ The share amount to be queried.
     /// @return shareLeft The share amount left due to insufficient reserve.
     /// @return balance The max redeemable balance from reserve.
-    function calculateRedeemableBalance(uint256 share)
-        public
+    function calculateRedeemableBalance(uint256 share_)
+        external
         view
         virtual
         returns (uint256 shareLeft, uint256 balance)
     {
-        balance = calculateBalance(share);
+        uint256 grossAssetValue = __getGrossAssetValue();
+        return _calculateRedeemableBalance(share_, grossAssetValue);
+    }
+
+    function _calculateRedeemableBalance(
+        uint256 share_,
+        uint256 grossAssetValue_
+    ) internal view virtual returns (uint256 shareLeft, uint256 balance) {
+        balance = _calculateBalance(share_, grossAssetValue_);
         uint256 reserve = __getReserve();
 
         // insufficient reserve
         if (balance > reserve) {
-            uint256 shareToBurn = calculateShare(reserve);
-            shareLeft = share - shareToBurn;
+            uint256 shareToBurn = _calculateShare(reserve, grossAssetValue_);
+            shareLeft = share_ - shareToBurn;
             balance = reserve;
         }
     }
@@ -222,8 +265,8 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         virtual
         returns (uint256 share)
     {
-        _callBeforePurchase(0);
-        share = _addShare(user, balance);
+        uint256 grossAssetValue = _callBeforePurchase(0);
+        share = _addShare(user, balance, grossAssetValue);
 
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 bonus;
@@ -236,10 +279,9 @@ abstract contract ShareModule is PoolProxyStorageUtils {
             shareToken.move(address(this), user, bonus);
             share += bonus;
         }
-
+        grossAssetValue += balance;
         denomination.safeTransferFrom(msg.sender, address(vault), balance);
-
-        _callAfterPurchase(share);
+        _callAfterPurchase(share, grossAssetValue);
 
         emit Purchased(user, balance, share, bonus);
     }
@@ -249,9 +291,10 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         uint256 share,
         bool acceptPending
     ) internal virtual returns (uint256) {
-        _callBeforeRedeem(share);
-        (uint256 shareLeft, uint256 balance) = calculateRedeemableBalance(
-            share
+        uint256 grossAssetValue = _callBeforeRedeem(share);
+        (uint256 shareLeft, uint256 balance) = _calculateRedeemableBalance(
+            share,
+            grossAssetValue
         );
 
         uint256 shareRedeemed = share - shareLeft;
@@ -261,9 +304,9 @@ abstract contract ShareModule is PoolProxyStorageUtils {
             _pend();
             _redeemPending(user, shareLeft, acceptPending);
         }
-
+        grossAssetValue -= balance;
         denomination.safeTransferFrom(address(vault), user, balance);
-        _callAfterRedeem(shareRedeemed);
+        _callAfterRedeem(shareRedeemed, grossAssetValue);
         emit Redeemed(user, balance, shareRedeemed);
 
         return balance;
@@ -304,36 +347,50 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         return 0;
     }
 
-    function _addShare(address user, uint256 balance)
+    function _addShare(
+        address user_,
+        uint256 balance_,
+        uint256 grossAssetValue_
+    ) internal virtual returns (uint256 share) {
+        share = _calculateShare(balance_, grossAssetValue_);
+        shareToken.mint(user_, share);
+    }
+
+    function _callBeforePurchase(uint256 amount)
         internal
         virtual
-        returns (uint256 share)
+        returns (uint256)
     {
-        share = calculateShare(balance);
-        shareToken.mint(user, share);
+        amount;
+        return 0;
     }
 
-    function _callBeforePurchase(uint256 amount) internal virtual {
-        amount;
+    function _callAfterPurchase(uint256 amount_, uint256 grossAssetValue_)
+        internal
+        virtual
+    {
+        amount_;
+        grossAssetValue_;
         return;
     }
 
-    function _callAfterPurchase(uint256 amount) internal virtual {
+    function _callBeforeRedeem(uint256 amount)
+        internal
+        virtual
+        returns (uint256)
+    {
         amount;
-        return;
+        return 0;
     }
 
-    function _callBeforeRedeem(uint256 amount) internal virtual {
-        amount;
+    function _callAfterRedeem(uint256 amount_, uint256 grossAssetValue_)
+        internal
+        virtual
+    {
+        amount_;
+        grossAssetValue_;
         return;
     }
-
-    function _callAfterRedeem(uint256 amount) internal virtual {
-        amount;
-        return;
-    }
-
-    function getTotalAssetValue() public view virtual returns (uint256);
 
     function _getPendingRedemptionPenalty()
         internal
@@ -374,4 +431,6 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     }
 
     function __getReserve() internal view virtual returns (uint256);
+
+    function __getGrossAssetValue() internal view virtual returns (uint256);
 }

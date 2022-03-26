@@ -230,7 +230,7 @@ describe('PoolImplementation', function () {
     await poolImplementation.addAsset(tokenA.address);
     await poolImplementation.addAsset(tokenB.address);
 
-    const value = await poolImplementation.getTotalAssetValue();
+    const value = await poolImplementation.getGrossAssetValue();
     expect(value).to.be.eq(expectedA.add(expectedB));
 
     // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
@@ -239,10 +239,10 @@ describe('PoolImplementation', function () {
       .connect(denominationProvider)
       .transfer(vault.address, denominationReserve);
 
-    const totalAssetValue = await poolImplementation.getTotalAssetValue();
+    const grossAssetValue = await poolImplementation.getGrossAssetValue();
     const currentReserve = denominationReserve
       .mul(reserveBase)
-      .div(totalAssetValue);
+      .div(grossAssetValue);
 
     return currentReserve;
   }
@@ -629,7 +629,7 @@ describe('PoolImplementation', function () {
     let actionData, executionData: any;
     beforeEach(async function () {
       await poolImplementation.finalize();
-      await poolImplementation.setLastTotalAssetValue(valueBefore);
+      await poolImplementation.setLastGrossAssetValue(valueBefore);
       actionData = getCallData(action, 'fooAddress', []);
       executionData = getCallData(taskExecutor, 'batchExec', [
         [],
@@ -647,7 +647,7 @@ describe('PoolImplementation', function () {
 
     it('should success', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
-      await poolImplementation.setTotalAssetValueMock(valueCurrent);
+      await poolImplementation.setGrossAssetValueMock(valueCurrent);
       await poolImplementation.execute(executionData);
     });
 
@@ -655,7 +655,7 @@ describe('PoolImplementation', function () {
       const valueCurrent = valueBefore
         .mul(valueTolerance - 1)
         .div(TOLERANCE_BASE);
-      await poolImplementation.setTotalAssetValueMock(valueCurrent);
+      await poolImplementation.setGrossAssetValueMock(valueCurrent);
       await expect(
         poolImplementation.execute(executionData)
       ).to.be.revertedWith(
@@ -818,12 +818,12 @@ describe('PoolImplementation', function () {
       await poolImplementation.addAsset(tokenA.address);
       await poolImplementation.addAsset(tokenB.address);
 
-      const value = await poolImplementation.getTotalAssetValue();
+      const value = await poolImplementation.getGrossAssetValue();
       expect(value).to.be.eq(expectedA.add(expectedB));
     });
 
     it('zero total value', async function () {
-      expect(await poolImplementation.getTotalAssetValue()).to.be.eq(0);
+      expect(await poolImplementation.getGrossAssetValue()).to.be.eq(0);
     });
   });
 
@@ -871,7 +871,7 @@ describe('PoolImplementation', function () {
         .transfer(owner.address, redeemAmount.mul(2)); // Transfer more to owner
 
       // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
-      await poolImplementation.setTotalAssetValueMock(mwei('5000'));
+      await poolImplementation.setGrossAssetValueMock(mwei('5000'));
       await denomination
         .connect(owner)
         .approve(poolImplementation.address, 500);
