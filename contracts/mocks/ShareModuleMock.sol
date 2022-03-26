@@ -69,4 +69,13 @@ contract ShareModuleMock is ShareModule, BaseMock {
     function __getReserve() internal view override returns (uint256) {
         return reserveMock;
     }
+
+    function setPendingUserPendingInfo(
+        address user,
+        uint256 round,
+        uint256 share
+    ) external {
+        pendingUsers[user].pendingRound = round;
+        pendingUsers[user].pendingShares = share;
+    }
 }
