@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {AssetModule} from "./modules/AssetModule.sol";
@@ -22,7 +21,6 @@ import {Errors} from "./utils/Errors.sol";
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
 contract PoolImplementation is
-    Ownable,
     AssetModule,
     ShareModule,
     ExecutionModule,
@@ -192,17 +190,6 @@ contract PoolImplementation is
     /////////////////////////////////////////////////////
     // Getters
     /////////////////////////////////////////////////////
-    /// @notice Return the manager address.
-    /// @return Manager address.
-    function getManager()
-        public
-        view
-        override(ManagementFeeModule, PerformanceFeeModule)
-        returns (address)
-    {
-        return owner();
-    }
-
     /// @notice Get the current reserve amount of the pool.
     /// @return The reserve amount.
     function __getReserve() internal view override returns (uint256) {

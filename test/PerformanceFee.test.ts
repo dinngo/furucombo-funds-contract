@@ -44,7 +44,7 @@ describe('Performance fee', function () {
       await tokenS.deployed();
       // initialize
       await pFeeModule.setShareToken(tokenS.address);
-      await pFeeModule.setManager(manager.address);
+      await pFeeModule.transferOwnership(manager.address);
       await tokenS.transferOwnership(pFeeModule.address);
     }
   );

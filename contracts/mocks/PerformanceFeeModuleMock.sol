@@ -10,7 +10,6 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
     using ABDKMath64x64 for uint256;
 
     uint256 public grossAssetValue;
-    address public manager;
 
     function setShareToken(IShareToken shareToken_) public {
         shareToken = shareToken_;
@@ -18,10 +17,6 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
 
     function setGrossAssetValue(uint256 grossAssetValue_) public {
         grossAssetValue = grossAssetValue_;
-    }
-
-    function setManager(address manager_) public {
-        manager = manager_;
     }
 
     function mintShareToken(address user, uint256 share) public {
@@ -64,10 +59,6 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
 
     function getFeePeriod() public pure returns (uint256) {
         return 31557600;
-    }
-
-    function getManager() public view override returns (address) {
-        return manager;
     }
 
     function getTotalAssetValue() public view override returns (uint256) {
