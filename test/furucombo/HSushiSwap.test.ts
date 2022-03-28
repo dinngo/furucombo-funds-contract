@@ -126,7 +126,7 @@ describe('Sushiswap Swap', function () {
           token1User.add(result[result.length - 1])
         );
 
-        profileGas(receipt);
+        await profileGas(receipt);
       });
 
       it('max amount', async function () {
@@ -161,7 +161,7 @@ describe('Sushiswap Swap', function () {
           token1User.add(result[result.length - 1])
         );
 
-        profileGas(receipt);
+        await profileGas(receipt);
       });
 
       it('min output too high', async function () {
@@ -258,7 +258,7 @@ describe('Sushiswap Swap', function () {
         expect(await token1.balanceOf(user.address)).to.be.eq(
           token1User.add(buyAmt)
         );
-        profileGas(receipt);
+        await profileGas(receipt);
       });
 
       it('max amount', async function () {
@@ -287,7 +287,7 @@ describe('Sushiswap Swap', function () {
         expect(await token1.balanceOf(user.address)).to.be.eq(
           token1User.add(buyAmt)
         );
-        profileGas(receipt);
+        await profileGas(receipt);
       });
 
       it('excessive input amount', async function () {

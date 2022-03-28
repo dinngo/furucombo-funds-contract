@@ -186,7 +186,7 @@ describe('QuickSwap Liquidity', function () {
       );
 
       // Gas profile
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('max amount', async function () {
@@ -264,7 +264,7 @@ describe('QuickSwap Liquidity', function () {
       );
 
       // Gas profile
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('tokenA is matic token', async function () {
@@ -432,7 +432,7 @@ describe('QuickSwap Liquidity', function () {
       );
 
       // Gas profile
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('max amount', async function () {
@@ -512,7 +512,7 @@ describe('QuickSwap Liquidity', function () {
       );
 
       // Gas profile
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('tokenA is matic token', async function () {
