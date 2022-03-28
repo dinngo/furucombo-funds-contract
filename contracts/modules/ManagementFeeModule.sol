@@ -77,14 +77,11 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
             )
         ).mulu(totalShare);
 
-        address manager = getManager();
+        address manager = owner();
         shareToken.mint(manager, sharesDue);
         lastMFeeClaimTime = currentTime;
         emit ManagementFeeClaimed(manager, sharesDue);
 
         return sharesDue;
     }
-
-    /// @notice Get the manager address.
-    function getManager() public virtual returns (address);
 }

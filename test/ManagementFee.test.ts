@@ -35,7 +35,7 @@ describe('Management fee', function () {
       await tokenS.deployed();
       // initialize
       await mFeeModule.setShareToken(tokenS.address);
-      await mFeeModule.setManager(manager.address);
+      await mFeeModule.transferOwnership(manager.address);
       await tokenS.transferOwnership(mFeeModule.address);
     }
   );

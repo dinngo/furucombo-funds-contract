@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LibUniqueAddressList} from "./libraries/LibUniqueAddressList.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
@@ -8,7 +10,7 @@ import {IDSProxy} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
-abstract contract PoolProxyStorageV1 {
+abstract contract PoolProxyStorageV1 is Ownable, ReentrancyGuard {
     using LibUniqueAddressList for LibUniqueAddressList.List;
 
     enum State {
@@ -29,8 +31,6 @@ abstract contract PoolProxyStorageV1 {
         uint256 totalPendingShare;
         uint256 totalRedemption;
     }
-
-    // Slot 0: owner address
 
     // Common
     uint256 public level;

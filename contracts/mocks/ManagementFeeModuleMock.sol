@@ -8,14 +8,8 @@ import {IShareToken} from "../interfaces/IShareToken.sol";
 contract ManagementFeeModuleMock is ManagementFeeModule {
     using ABDKMath64x64 for uint256;
 
-    address public manager;
-
     function setShareToken(IShareToken shareToken_) public {
         shareToken = shareToken_;
-    }
-
-    function setManager(address manager_) public {
-        manager = manager_;
     }
 
     function setManagementFeeRate(uint256 feeRate) external returns (int256) {
@@ -24,10 +18,6 @@ contract ManagementFeeModuleMock is ManagementFeeModule {
 
     function initializeManagementFee() public {
         _initializeManagementFee();
-    }
-
-    function getManager() public view override returns (address) {
-        return manager;
     }
 
     function getFeeBase() public pure returns (uint256) {

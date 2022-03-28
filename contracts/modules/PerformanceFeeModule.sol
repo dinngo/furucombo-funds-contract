@@ -88,7 +88,7 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
             Errors.Code.PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET
         );
         _updatePerformanceFee();
-        address manager = getManager();
+        address manager = owner();
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
         _updateGrossSharePrice();
         uint256 result = _lastOutstandingShare;
@@ -159,9 +159,6 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
     function _periodToTime(uint256 period) internal view returns (uint256) {
         return _crystallizationStart + period * _crystallizationPeriod;
     }
-
-    /// @notice Get the pool manager.
-    function getManager() public virtual returns (address);
 
     /// @notice Get the total value of all the asset of the pool.
     function getTotalAssetValue() public view virtual returns (uint256);
