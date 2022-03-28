@@ -8,15 +8,15 @@ library DealingAsset {
     using StorageArray for bytes32;
     using StorageMap for bytes32;
 
-    // Data is stored in storage slot `uint256(keccak256('furucombo.poolcombo.asset.map')) - 1`, so that it doesn't
+    // Data is stored in storage slot `uint256(keccak256('furucombo.funds.asset.map')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
     bytes32 private constant _ASSET_MAP_SLOT =
-        0xec31421a1a944971f11fd2cbe8cfbba87b8b0d29a620a1efd4c05f9f7159c747;
+        0xa321fd097844f2df9aa8403ea06ed928267e143994398da9342e1622b5626151;
 
-    // Data is stored in storage slot `uint256(keccak256('furucombo.poolcombo.asset.array')) - 1`, so that it doesn't
+    // Data is stored in storage slot `uint256(keccak256('furucombo.funds.asset.array')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
     bytes32 private constant _ASSET_ARR_SLOT =
-        0x86233452633f491986b284d2c846dada54c355b761841e210134990fc1fc490f;
+        0x25241bfd865dc0cf716378d03594b4104571b985a2d5cf72950d41c4b7474874;
 
     bytes32 private constant _ASSET_TRUE_FLAG =
         0x0000000000000000000000000000000000000000000000000000000000000001;

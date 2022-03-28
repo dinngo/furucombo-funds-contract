@@ -8,15 +8,15 @@ library FundQuota {
     using StorageArray for bytes32;
     using StorageMap for bytes32;
 
-    // Data is stored in storage slot `uint256(keccak256('furucombo.poolcombo.quota.map')) - 1`, so that it doesn't
+    // Data is stored in storage slot `uint256(keccak256('furucombo.funds.quota.map')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
     bytes32 private constant _QUOTA_MAP_SLOT =
-        0x2b788f7bcb8450fcfa384e3745f09c0bac6c160b8fc795c1a07d087fd7da0a36;
+        0x1af59a3fd3f5a4bba6259b5a65dd4f4fbaab48545aeeabdfb60969120dbd5c35;
 
-    // Data is stored in storage slot `uint256(keccak256('furucombo.poolcombo.quota.array')) - 1`, so that it doesn't
+    // Data is stored in storage slot `uint256(keccak256('furucombo.funds.quota.array')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
     bytes32 private constant _QUOTA_ARR_SLOT =
-        0x5ed6d3693c7c47d16b35cceff2738deb653860111a238f4d7574bbeba1ea6bc0;
+        0x041334f809138adff4aed76ee4e45b3671e485ee2dcac112682c24d3a0c21736;
 
     function get(address _key) internal view returns (uint256) {
         bytes32 key = bytes32(bytes20(_key));
