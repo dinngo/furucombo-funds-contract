@@ -36,6 +36,10 @@ contract PoolProxyFactory {
             comptroller.isValidCreator(msg.sender),
             Errors.Code.POOL_PROXY_FACTORY_INVALID_CREATOR
         );
+        Errors._require(
+            comptroller.isValidDenomination(address(denomination)),
+            Errors.Code.POOL_PROXY_FACTORY_INVALID_DENOMINATION
+        );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
         (bool isStakedTierSet, uint256 mortgageAmount) = comptroller.stakedTier(
             level
