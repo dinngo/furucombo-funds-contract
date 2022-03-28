@@ -29,11 +29,11 @@ describe('FundProxyFactory', function () {
 
   const denominationAddress = USDC_TOKEN;
   const level = 1;
-  const stakeAmount = 0;
+  const mortgageAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
   const crystallizationPeriod = 1;
-  const reserveExecutionRatio = 0;
+  const reserveExecutionRate = 0;
   const shareTokenName = 'TEST';
   const dust = BigNumber.from('10');
 
@@ -106,7 +106,7 @@ describe('FundProxyFactory', function () {
 
     await comptroller.permitCreators([manager.address]);
     await comptroller.permitDenominations([denominationAddress], [dust]);
-    await comptroller.setStakedTier(level, stakeAmount);
+    await comptroller.setMortgageTier(level, mortgageAmount);
   });
   beforeEach(async function () {
     await setupTest();
@@ -121,7 +121,7 @@ describe('FundProxyFactory', function () {
           mFeeRate,
           pFeeRate,
           crystallizationPeriod,
-          reserveExecutionRatio,
+          reserveExecutionRate,
           shareTokenName
         );
 
@@ -140,7 +140,7 @@ describe('FundProxyFactory', function () {
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.revertedWith('revertCode(79)'); //FUND_PROXY_FACTORY_INVALID_DENOMINATION
@@ -156,7 +156,7 @@ describe('FundProxyFactory', function () {
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.revertedWith('revertCode(13)'); //FUND_PROXY_FACTORY_INVALID_CREATOR
@@ -172,10 +172,10 @@ describe('FundProxyFactory', function () {
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
-      ).to.be.revertedWith('revertCode(75)'); //FUND_PROXY_FACTORY_INVALID_STAKED_TIER
+      ).to.be.revertedWith('revertCode(75)'); //FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
     });
     it('should revert: invalid management fee rate', async function () {
       const invalidMFeeRate = FEE_BASE;
@@ -188,7 +188,7 @@ describe('FundProxyFactory', function () {
             invalidMFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
@@ -204,7 +204,7 @@ describe('FundProxyFactory', function () {
             mFeeRate,
             invalidPFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
@@ -220,12 +220,12 @@ describe('FundProxyFactory', function () {
             mFeeRate,
             pFeeRate,
             invalidCrystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
     });
-    it('should revert: invalid reserve execution ratio', async function () {
+    it('should revert: invalid reserve execution rate', async function () {
       const invalidReserveExecutionRate = FEE_BASE;
       await expect(
         fundProxyFactory
