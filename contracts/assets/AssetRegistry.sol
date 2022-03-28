@@ -15,8 +15,6 @@ contract AssetRegistry is IAssetRegistry, Ownable {
     event Unregistered(address indexed asset);
     event BannedResolver(address indexed resolver);
     event UnbannedResolver(address indexed resolver);
-    event Halted();
-    event Unhalted();
 
     /**
      * @notice Register a asset with resolver.
