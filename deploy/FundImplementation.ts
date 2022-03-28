@@ -1,20 +1,19 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
+import { DS_PROXY_REGISTRY } from './Config';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const comptrollerProxy = await deployments.get('ComptrollerProxy');
-  await deploy('PoolProxyFactory', {
+  await deploy('FundImplementation', {
     from: deployer,
-    args: [comptrollerProxy.address],
+    args: [DS_PROXY_REGISTRY],
     log: true,
   });
 };
 
 export default func;
 
-func.tags = ['PoolProxyFactory'];
-func.dependencies = ['Comptroller'];
+func.tags = ['FundImplementation'];

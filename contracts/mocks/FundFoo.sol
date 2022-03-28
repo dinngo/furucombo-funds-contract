@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract PoolFoo {
+contract FundFoo {
     bytes32 public bValue;
     uint256 public nValue;
     uint256[] public nList;

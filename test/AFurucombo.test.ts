@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   ComptrollerImplementation,
-  PoolImplementation,
+  FundImplementation,
   AssetRouter,
   MortgageVault,
   TaskExecutorMock,
@@ -13,7 +13,7 @@ import {
   FurucomboProxy,
   Registry,
   HFunds,
-  PoolProxyMock,
+  FundProxyMock,
   Chainlink,
   AssetRegistry,
   IVariableDebtToken,
@@ -49,12 +49,12 @@ describe('AFurucombo', function () {
   const debtTokenAddress = AWETH_V2_DEBT_VARIABLE;
 
   let comptroller: ComptrollerImplementation;
-  let poolImplementation: PoolImplementation;
+  let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutorMock;
   let dsProxyRegistry: IDSProxyRegistry;
-  let proxy: PoolProxyMock;
+  let proxy: FundProxyMock;
 
   let owner: Wallet;
   let user: Wallet;
@@ -92,10 +92,10 @@ describe('AFurucombo', function () {
       );
 
       // Setup contracts
-      poolImplementation = await (
-        await ethers.getContractFactory('PoolImplementation')
+      fundImplementation = await (
+        await ethers.getContractFactory('FundImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await poolImplementation.deployed();
+      await fundImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -120,7 +120,7 @@ describe('AFurucombo', function () {
       ).deploy();
       await comptroller.deployed();
       await comptroller.initialize(
-        poolImplementation.address,
+        fundImplementation.address,
         assetRouter.address,
         collector.address,
         0,
@@ -176,13 +176,13 @@ describe('AFurucombo', function () {
         .deploy();
       await tokenD.deployed();
 
-      // Setup PoolProxy
+      // Setup FundProxy
       dsProxyRegistry = await ethers.getContractAt(
         'IDSProxyRegistry',
         DS_PROXY_REGISTRY
       );
 
-      proxy = await (await ethers.getContractFactory('PoolProxyMock'))
+      proxy = await (await ethers.getContractFactory('FundProxyMock'))
         .connect(user)
         .deploy(dsProxyRegistry.address);
       await proxy.deployed();

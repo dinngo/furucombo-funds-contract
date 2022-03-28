@@ -188,8 +188,8 @@ export const WL_ANY_SIG = '0xffffffff';
 export const RecordHandlerResultSig =
   '0x90c726ff5efa7268723ee48df835144384bc0f012e89750782886764b5e54f16';
 
-/* Pool State */
-export const POOL_STATE = {
+/* Fund State */
+export const FUND_STATE = {
   INITIALIZING: 0,
   REVIEWING: 1,
   EXECUTING: 2,

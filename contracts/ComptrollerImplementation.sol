@@ -42,7 +42,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
 
     // Map
     mapping(address => DenominationConfig) public denomination;
-    mapping(address => bool) public bannedPoolProxy;
+    mapping(address => bool) public bannedFundProxy;
     mapping(uint256 => MortgageTierConfig) public mortgageTier;
 
     // ACL
@@ -61,8 +61,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event SetPendingExpiration(uint256 expiration);
     event SetExecAssetValueToleranceRate(uint256 tolerance);
     event SetInitialAssetCheck(bool indexed check);
-    event PoolProxyBanned(address indexed poolProxy);
-    event PoolProxyUnbanned(address indexed poolProxy);
+    event FundProxyBanned(address indexed fundProxy);
+    event FundProxyUnbanned(address indexed fundProxy);
     event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
     event SetMortgageTier(uint256 indexed level, uint256 amount);
@@ -102,9 +102,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         _;
     }
 
-    modifier onlyUnbannedPoolProxy() {
+    modifier onlyUnbannedFundProxy() {
         Errors._require(
-            !bannedPoolProxy[msg.sender],
+            !bannedFundProxy[msg.sender],
             Errors.Code.COMPTROLLER_BANNED
         );
         _;
@@ -159,7 +159,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         public
         view
         onlyUnHalted
-        onlyUnbannedPoolProxy
+        onlyUnbannedFundProxy
         returns (address)
     {
         return beacon.implementation();
@@ -279,15 +279,15 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return denomination[_denomination].dust;
     }
 
-    // Ban Pool Proxy
-    function banPoolProxy(address poolProxy) external onlyOwner {
-        bannedPoolProxy[poolProxy] = true;
-        emit PoolProxyBanned(poolProxy);
+    // Ban Fund Proxy
+    function banFundProxy(address fundProxy) external onlyOwner {
+        bannedFundProxy[fundProxy] = true;
+        emit FundProxyBanned(fundProxy);
     }
 
-    function unbanPoolProxy(address poolProxy) external onlyOwner {
-        bannedPoolProxy[poolProxy] = false;
-        emit PoolProxyUnbanned(poolProxy);
+    function unbanFundProxy(address fundProxy) external onlyOwner {
+        bannedFundProxy[fundProxy] = false;
+        emit FundProxyUnbanned(fundProxy);
     }
 
     // Mortgage tier amount

@@ -5,7 +5,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {DestructibleAction} from "../../utils/DestructibleAction.sol";
 import {DelegateCallAction} from "../../utils/DelegateCallAction.sol";
 import {Errors} from "../../utils/Errors.sol";
-import {IPool} from "../../interfaces/IPool.sol";
+import {IFund} from "../../interfaces/IFund.sol";
 import {ActionBase} from "../ActionBase.sol";
 import {IComptroller} from "../../interfaces/IComptroller.sol";
 import {IDebtToken} from "../../interfaces/IDebtToken.sol";
@@ -114,7 +114,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         internal
     {
         // check comptroller handler call
-        uint256 level = IPool(msg.sender).level();
+        uint256 level = IFund(msg.sender).level();
         for (uint256 i = 0; i < tos.length; ++i) {
             Errors._require(
                 comptroller.canHandlerCall(level, tos[i], bytes4(datas[i])),

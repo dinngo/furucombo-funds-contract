@@ -258,7 +258,6 @@ export async function _tokenProviderUniLike(
   token1: string,
   factoryAddress: string
 ) {
-  // Setup PoolProxy
   const factory = await ethers.getContractAt(
     'IUniswapV2Factory',
     factoryAddress

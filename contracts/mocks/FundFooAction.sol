@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {ActionBase} from "../actions/ActionBase.sol";
-import {PoolFoo} from "./PoolFoo.sol";
+import {FundFoo} from "./FundFoo.sol";
 
-contract PoolFooAction is ActionBase {
+contract FundFooAction is ActionBase {
     event FooBytes32(bytes32 a);
     event FooUint256(uint256 b);
 
@@ -13,11 +13,11 @@ contract PoolFooAction is ActionBase {
     }
 
     function bar(address to) external payable returns (bytes32 ret) {
-        ret = PoolFoo(to).bar();
+        ret = FundFoo(to).bar();
     }
 
     function barUint(address to) external payable returns (uint256 ret) {
-        ret = PoolFoo(to).barUint();
+        ret = FundFoo(to).barUint();
     }
 
     function bar1(address to, bytes32 a)
@@ -25,7 +25,7 @@ contract PoolFooAction is ActionBase {
         payable
         returns (bytes32 ret)
     {
-        ret = PoolFoo(to).bar1(a);
+        ret = FundFoo(to).bar1(a);
     }
 
     function bar2(
@@ -33,7 +33,7 @@ contract PoolFooAction is ActionBase {
         bytes32 a,
         bytes32 b
     ) external payable returns (bytes32 ret) {
-        ret = PoolFoo(to).bar2(a, b);
+        ret = FundFoo(to).bar2(a, b);
     }
 
     function barUint1(address to, uint256 a)
@@ -41,7 +41,7 @@ contract PoolFooAction is ActionBase {
         payable
         returns (uint256 ret)
     {
-        ret = PoolFoo(to).barUint1(a);
+        ret = FundFoo(to).barUint1(a);
     }
 
     function barUint2(
@@ -49,7 +49,7 @@ contract PoolFooAction is ActionBase {
         uint256 a,
         uint256 value
     ) external payable returns (uint256 ret) {
-        ret = PoolFoo(to).barUint2{value: value}(a);
+        ret = FundFoo(to).barUint2{value: value}(a);
     }
 
     function barUList(
@@ -58,7 +58,7 @@ contract PoolFooAction is ActionBase {
         uint256 b,
         uint256 c
     ) external payable returns (uint256[] memory ret) {
-        ret = PoolFoo(to).barUList(a, b, c);
+        ret = FundFoo(to).barUList(a, b, c);
     }
 
     function barUList2(address to, uint256[] calldata uList)
@@ -66,7 +66,7 @@ contract PoolFooAction is ActionBase {
         payable
         returns (uint256[] memory ret)
     {
-        ret = PoolFoo(to).barUList2(uList);
+        ret = FundFoo(to).barUList2(uList);
     }
 
     function revertCall() external payable {

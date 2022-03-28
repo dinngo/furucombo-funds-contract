@@ -6,7 +6,7 @@ import {
   AssetModuleMock,
   SimpleToken,
 } from '../typechain';
-import { DS_PROXY_REGISTRY, POOL_STATE } from './utils/constants';
+import { DS_PROXY_REGISTRY, FUND_STATE } from './utils/constants';
 
 describe('Asset module', function () {
   let comptroller: ComptrollerImplementation;
@@ -66,7 +66,7 @@ describe('Asset module', function () {
 
   describe('add asset', function () {
     beforeEach(async function () {
-      await assetModule.setState(POOL_STATE.EXECUTING);
+      await assetModule.setState(FUND_STATE.EXECUTING);
     });
 
     it('should success when asset is not in the list', async function () {
@@ -86,7 +86,7 @@ describe('Asset module', function () {
 
   describe('remove asset', function () {
     beforeEach(async function () {
-      await assetModule.setState(POOL_STATE.EXECUTING);
+      await assetModule.setState(FUND_STATE.EXECUTING);
     });
 
     it('should success when asset is in the list', async function () {
@@ -105,14 +105,14 @@ describe('Asset module', function () {
   describe('close', function () {
     describe('when executing', function () {
       beforeEach(async function () {
-        await assetModule.setState(POOL_STATE.EXECUTING);
+        await assetModule.setState(FUND_STATE.EXECUTING);
       });
 
       it('should success when denomination asset is the only asset', async function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close())
           .to.emit(assetModule, 'StateTransited')
-          .withArgs(POOL_STATE.CLOSED);
+          .withArgs(FUND_STATE.CLOSED);
       });
 
       it('should fail when denomination asset is not the only asset', async function () {
@@ -129,14 +129,14 @@ describe('Asset module', function () {
 
     describe('when liquidating', function () {
       beforeEach(async function () {
-        await assetModule.setState(POOL_STATE.LIQUIDATING);
+        await assetModule.setState(FUND_STATE.LIQUIDATING);
       });
 
       it('should success when denomination asset is the only asset', async function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close())
           .to.emit(assetModule, 'StateTransited')
-          .withArgs(POOL_STATE.CLOSED);
+          .withArgs(FUND_STATE.CLOSED);
       });
 
       it('should fail when denomination asset is not the only asset', async function () {
@@ -152,7 +152,7 @@ describe('Asset module', function () {
     });
 
     it('should fail when not Executing or Liquidating', async function () {
-      await assetModule.setState(POOL_STATE.REDEMPTION_PENDING);
+      await assetModule.setState(FUND_STATE.REDEMPTION_PENDING);
       await assetModule.addAsset(tokenD.address);
       await expect(assetModule.close()).to.be.revertedWith('InvalidState(3)');
     });
@@ -160,7 +160,7 @@ describe('Asset module', function () {
 
   describe('get asset list', function () {
     beforeEach(async function () {
-      await assetModule.setState(POOL_STATE.EXECUTING);
+      await assetModule.setState(FUND_STATE.EXECUTING);
       await assetModule.addAsset(tokenD.address);
       await assetModule.addAsset(token0.address);
       await assetModule.addAsset(token1.address);

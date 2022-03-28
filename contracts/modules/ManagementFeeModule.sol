@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
-import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /// @title Management fee module
-abstract contract ManagementFeeModule is PoolProxyStorageUtils {
+abstract contract ManagementFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
 

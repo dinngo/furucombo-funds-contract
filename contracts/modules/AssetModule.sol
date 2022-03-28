@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {Errors} from "../utils/Errors.sol";
 import {LibUniqueAddressList} from "../libraries/LibUniqueAddressList.sol";
 
 /// @title Asset module
-/// @notice Define the asset relate policy of the pool.
-abstract contract AssetModule is PoolProxyStorageUtils {
+/// @notice Define the asset relate policy of the fund.
+abstract contract AssetModule is FundProxyStorageUtils {
     using LibUniqueAddressList for LibUniqueAddressList.List;
 
     event AssetAdded(address asset);

@@ -3,14 +3,14 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   ComptrollerImplementation,
-  PoolImplementation,
+  FundImplementation,
   AssetRouter,
   MortgageVault,
   TaskExecutor,
   IDSProxyRegistry,
-  PoolFooAction,
-  PoolFoo,
-  PoolProxyMock,
+  FundFooAction,
+  FundFoo,
+  FundProxyMock,
   IERC20,
   AssetRegistry,
   Chainlink,
@@ -35,19 +35,19 @@ import {
 
 describe('Task Executor', function () {
   let comptroller: ComptrollerImplementation;
-  let poolImplementation: PoolImplementation;
+  let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
   let dsProxyRegistry: IDSProxyRegistry;
-  let proxy: PoolProxyMock;
+  let proxy: FundProxyMock;
 
   let owner: Wallet;
   let user: Wallet;
   let collector: Wallet;
 
-  let foo: PoolFoo;
-  let fooAction: PoolFooAction;
+  let foo: FundFoo;
+  let fooAction: FundFooAction;
 
   let tokenA: IERC20;
   let tokenB: IERC20;
@@ -70,10 +70,10 @@ describe('Task Executor', function () {
       tokenA = await ethers.getContractAt('IERC20', DAI_TOKEN);
       tokenB = await ethers.getContractAt('IERC20', WETH_TOKEN);
 
-      poolImplementation = await (
-        await ethers.getContractFactory('PoolImplementation')
+      fundImplementation = await (
+        await ethers.getContractFactory('FundImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await poolImplementation.deployed();
+      await fundImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -98,7 +98,7 @@ describe('Task Executor', function () {
       ).deploy();
       await comptroller.deployed();
       await comptroller.initialize(
-        poolImplementation.address,
+        fundImplementation.address,
         assetRouter.address,
         collector.address,
         0,
@@ -114,11 +114,11 @@ describe('Task Executor', function () {
       await taskExecutor.deployed();
       await comptroller.setExecAction(taskExecutor.address);
 
-      foo = await (await ethers.getContractFactory('PoolFoo')).deploy();
+      foo = await (await ethers.getContractFactory('FundFoo')).deploy();
       await foo.deployed();
 
       fooAction = await (
-        await ethers.getContractFactory('PoolFooAction')
+        await ethers.getContractFactory('FundFooAction')
       ).deploy();
       await fooAction.deployed();
 
@@ -127,7 +127,7 @@ describe('Task Executor', function () {
         DS_PROXY_REGISTRY
       );
 
-      proxy = await (await ethers.getContractFactory('PoolProxyMock'))
+      proxy = await (await ethers.getContractFactory('FundProxyMock'))
         .connect(user)
         .deploy(dsProxyRegistry.address);
       await proxy.deployed();
@@ -226,7 +226,7 @@ describe('Task Executor', function () {
     });
 
     it('payable action', async function () {
-      const balancePoolFoo = await ethers.provider.getBalance(foo.address);
+      const balanceFundFoo = await ethers.provider.getBalance(foo.address);
 
       // Prepare action data
       const value = ether('1');
@@ -253,7 +253,7 @@ describe('Task Executor', function () {
       // Verify
       expect(await foo.nValue()).to.be.eq(expectNValue);
       expect(
-        (await ethers.provider.getBalance(foo.address)).sub(balancePoolFoo)
+        (await ethers.provider.getBalance(foo.address)).sub(balanceFundFoo)
       ).to.be.eq(value);
     });
 
@@ -514,7 +514,7 @@ describe('Task Executor', function () {
     });
 
     it('payable action', async function () {
-      const balancePoolFoo = await ethers.provider.getBalance(foo.address);
+      const balanceFundFoo = await ethers.provider.getBalance(foo.address);
 
       // Prepare action data
       const actionEthValue = ether('5');
@@ -537,9 +537,9 @@ describe('Task Executor', function () {
       });
 
       // Verify
-      const balancePoolFooEnd = await ethers.provider.getBalance(foo.address);
+      const balanceFundFooEnd = await ethers.provider.getBalance(foo.address);
       expect(await foo.nValue()).to.be.eq(expectNValue);
-      expect(await balancePoolFooEnd.sub(balancePoolFoo)).to.be.eq(
+      expect(await balanceFundFooEnd.sub(balanceFundFoo)).to.be.eq(
         actionEthValue
       );
     });

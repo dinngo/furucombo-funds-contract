@@ -2,13 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
-import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {LibFee} from "../libraries/LibFee.sol";
 import {Errors} from "../utils/Errors.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 
 /// @title Performance fee module
-abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
+abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
@@ -29,12 +29,12 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
         _lastCrystallization = block.timestamp;
     }
 
-    /// @notice Get the performance fee rate of the pool.
+    /// @notice Get the performance fee rate of the fund.
     function getPerformanceFeeRate() public view returns (int128) {
         return _pFeeRate64x64;
     }
 
-    /// @notice Get the crystallization period of the pool.
+    /// @notice Get the crystallization period of the fund.
     function getCrystallizationPeriod() public view returns (uint256) {
         return _crystallizationPeriod;
     }
@@ -160,6 +160,6 @@ abstract contract PerformanceFeeModule is PoolProxyStorageUtils {
         return _crystallizationStart + period * _crystallizationPeriod;
     }
 
-    /// @notice Get the total value of all the asset of the pool.
+    /// @notice Get the total value of all the asset of the fund.
     function getTotalAssetValue() public view virtual returns (uint256);
 }

@@ -85,7 +85,7 @@ export async function deployAssetResolvers(resolvers: string[]): Promise<any> {
   return result;
 }
 
-export async function deployComptrollerAndPoolProxyFactory(
+export async function deployComptrollerAndFundProxyFactory(
   dsProxyRegistry: string,
   assetRouterAddress: string,
   collectorAddress: string,
@@ -95,10 +95,10 @@ export async function deployComptrollerAndPoolProxyFactory(
   mortgageVaultAddress: string,
   totalAssetValueTolerance: number
 ): Promise<any> {
-  const poolImplementation = await (
-    await ethers.getContractFactory('PoolImplementation')
+  const fundImplementation = await (
+    await ethers.getContractFactory('FundImplementation')
   ).deploy(dsProxyRegistry);
-  await poolImplementation.deployed();
+  await fundImplementation.deployed();
 
   // comptroller
   const comptrollerImplementation = await (
@@ -109,7 +109,7 @@ export async function deployComptrollerAndPoolProxyFactory(
   const compData = comptrollerImplementation.interface.encodeFunctionData(
     'initialize',
     [
-      poolImplementation.address,
+      fundImplementation.address,
       assetRouterAddress,
       collectorAddress,
       execFeePercentage,
@@ -129,17 +129,17 @@ export async function deployComptrollerAndPoolProxyFactory(
     await ethers.getContractFactory('ComptrollerImplementation')
   ).attach(comptrollerProxy.address);
 
-  // PoolProxyFactory
-  const poolProxyFactory = await (
-    await ethers.getContractFactory('PoolProxyFactory')
+  // FundProxyFactory
+  const fundProxyFactory = await (
+    await ethers.getContractFactory('FundProxyFactory')
   ).deploy(comptroller.address);
-  await poolProxyFactory.deployed();
+  await fundProxyFactory.deployed();
 
-  return [poolImplementation, comptroller, poolProxyFactory];
+  return [fundImplementation, comptroller, fundProxyFactory];
 }
 
-export async function createPoolProxy(
-  poolProxyFactory: any,
+export async function createFundProxy(
+  fundProxyFactory: any,
   manager: any,
   quoteAddress: any,
   level: any,
@@ -149,9 +149,9 @@ export async function createPoolProxy(
   reserveExecution: any,
   shareTokenName: any
 ): Promise<any> {
-  const receipt = await poolProxyFactory
+  const receipt = await fundProxyFactory
     .connect(manager)
-    .createPool(
+    .createFund(
       quoteAddress,
       level,
       mFeeRate,
@@ -160,13 +160,13 @@ export async function createPoolProxy(
       reserveExecution,
       shareTokenName
     );
-  const eventArgs = await getEventArgs(receipt, 'PoolCreated');
-  console.log('args.newPool', eventArgs.newPool);
-  const poolProxy = await ethers.getContractAt(
-    'PoolImplementation',
-    eventArgs.newPool
+  const eventArgs = await getEventArgs(receipt, 'FundCreated');
+  console.log('args.newFund', eventArgs.newFund);
+  const fundProxy = await ethers.getContractAt(
+    'FundImplementation',
+    eventArgs.newFund
   );
-  return poolProxy;
+  return fundProxy;
 }
 
 export async function deployTaskExecutorAndAFurucombo(

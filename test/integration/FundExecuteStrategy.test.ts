@@ -14,8 +14,8 @@ import {
   AFurucombo,
   TaskExecutor,
   ComptrollerImplementation,
-  PoolProxyFactory,
-  PoolImplementation,
+  FundProxyFactory,
+  FundImplementation,
   ShareToken,
   IUniswapV2Router02,
   HQuickSwap,
@@ -55,9 +55,9 @@ import {
 import {
   deployFurucomboProxyAndRegistry,
   deployAssetOracleAndRouterAndRegistry,
-  deployComptrollerAndPoolProxyFactory,
+  deployComptrollerAndFundProxyFactory,
   deployContracts,
-  createPoolProxy,
+  createFundProxy,
   deployAssetResolvers,
   deployMortgageVault,
   deployTaskExecutorAndAFurucombo,
@@ -66,7 +66,7 @@ import {
 } from './deploy';
 import { HCurve } from '../../typechain/HCurve';
 
-describe('PoolExecuteStrategy', function () {
+describe('FundExecuteStrategy', function () {
   const denominationAddress = USDC_TOKEN;
   const mortgageAddress = BAT_TOKEN;
   const tokenAAddress = DAI_TOKEN;
@@ -114,11 +114,11 @@ describe('PoolExecuteStrategy', function () {
   let assetRegistry: AssetRegistry;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
-  let implementation: PoolImplementation;
+  let implementation: FundImplementation;
   let comptroller: ComptrollerImplementation;
-  let poolProxyFactory: PoolProxyFactory;
-  let poolProxy: PoolImplementation;
-  let poolVault: string;
+  let fundProxyFactory: FundProxyFactory;
+  let fundProxy: FundImplementation;
+  let fundVault: string;
 
   let quickRouter: IUniswapV2Router02;
   let sushiRouter: IUniswapV2Router02;
@@ -146,8 +146,8 @@ describe('PoolExecuteStrategy', function () {
         await deployAssetOracleAndRouterAndRegistry();
       mortgageVault = await deployMortgageVault(mortgage.address);
 
-      [implementation, comptroller, poolProxyFactory] =
-        await deployComptrollerAndPoolProxyFactory(
+      [implementation, comptroller, fundProxyFactory] =
+        await deployComptrollerAndFundProxyFactory(
           DS_PROXY_REGISTRY,
           assetRouter.address,
           collector.address,
@@ -235,8 +235,8 @@ describe('PoolExecuteStrategy', function () {
       );
 
       // Create and finalize furucombo fund
-      poolProxy = await createPoolProxy(
-        poolProxyFactory,
+      fundProxy = await createFundProxy(
+        fundProxyFactory,
         manager,
         denominationAddress,
         level,
@@ -246,12 +246,12 @@ describe('PoolExecuteStrategy', function () {
         reserveExecutionRate,
         shareTokenName
       );
-      await poolProxy.connect(manager).finalize();
+      await fundProxy.connect(manager).finalize();
       shareToken = await ethers.getContractAt(
         'ShareToken',
-        await poolProxy.shareToken()
+        await fundProxy.shareToken()
       );
-      poolVault = await poolProxy.vault();
+      fundVault = await fundProxy.vault();
 
       // External
       quickRouter = await ethers.getContractAt(
@@ -277,8 +277,8 @@ describe('PoolExecuteStrategy', function () {
       console.log('assetRouter', assetRouter.address);
       console.log('implementation', implementation.address);
       console.log('comptroller', comptroller.address);
-      console.log('poolProxyFactory', poolProxyFactory.address);
-      console.log('poolProxy', poolProxy.address);
+      console.log('fundProxyFactory', fundProxyFactory.address);
+      console.log('fundProxy', fundProxy.address);
       console.log('taskExecutor', taskExecutor.address);
       console.log('aFurucombo', aFurucombo.address);
     }
@@ -290,8 +290,8 @@ describe('PoolExecuteStrategy', function () {
   describe('execute strategy in operation', function () {
     const purchaseAmount = mwei('2000');
     let ownedShares: BigNumber;
-    let tokenAPoolVaultBalance: BigNumber;
-    let tokenBPoolVaultBalance: BigNumber;
+    let tokenAFundVaultBalance: BigNumber;
+    let tokenBFundVaultBalance: BigNumber;
     let denominationProxyBalance: BigNumber;
     let denominationCollectorBalance: BigNumber;
 
@@ -299,13 +299,13 @@ describe('PoolExecuteStrategy', function () {
       // Deposit denomination to get shares
       await denomination
         .connect(investor)
-        .approve(poolProxy.address, purchaseAmount);
-      await poolProxy.connect(investor).purchase(purchaseAmount);
+        .approve(fundProxy.address, purchaseAmount);
+      await fundProxy.connect(investor).purchase(purchaseAmount);
       ownedShares = await shareToken.balanceOf(investor.address);
 
-      tokenAPoolVaultBalance = await tokenA.balanceOf(poolVault);
-      tokenBPoolVaultBalance = await tokenB.balanceOf(poolVault);
-      denominationProxyBalance = await denomination.balanceOf(poolVault);
+      tokenAFundVaultBalance = await tokenA.balanceOf(fundVault);
+      tokenBFundVaultBalance = await tokenB.balanceOf(fundVault);
+      denominationProxyBalance = await denomination.balanceOf(fundVault);
       denominationCollectorBalance = await denomination.balanceOf(
         collector.address
       );
@@ -358,7 +358,7 @@ describe('PoolExecuteStrategy', function () {
       const amountOut = amountOuts[amountOuts.length - 1];
 
       // Execute strategy
-      await poolProxy.connect(manager).execute(data);
+      await fundProxy.connect(manager).execute(data);
 
       // Verify
       // check shares are the same
@@ -367,10 +367,10 @@ describe('PoolExecuteStrategy', function () {
       );
 
       // check denomination will decrease and token will increase
-      expect(await tokenA.balanceOf(poolVault)).to.be.eq(
-        tokenAPoolVaultBalance.add(amountOut)
+      expect(await tokenA.balanceOf(fundVault)).to.be.eq(
+        tokenAFundVaultBalance.add(amountOut)
       );
-      expect(await denomination.balanceOf(poolVault)).to.be.eq(
+      expect(await denomination.balanceOf(fundVault)).to.be.eq(
         denominationProxyBalance.sub(amountIn)
       );
 
@@ -383,7 +383,7 @@ describe('PoolExecuteStrategy', function () {
 
       // TODO: check it after refine quickswap handler
       // check asset list will be updated
-      // const assetList = await poolProxy.getAssetList();
+      // const assetList = await fundProxy.getAssetList();
       // const expectedAssets = [denomination.address].concat(
       //   path.slice(1, path.length)
       // );
@@ -441,7 +441,7 @@ describe('PoolExecuteStrategy', function () {
       const amountOut = amountOuts[amountOuts.length - 1];
 
       // Execute strategy
-      await poolProxy.connect(manager).execute(data);
+      await fundProxy.connect(manager).execute(data);
 
       // Verify
       // check shares are the same
@@ -450,10 +450,10 @@ describe('PoolExecuteStrategy', function () {
       );
 
       // check denomination will decrease and token will increase
-      expect(await tokenA.balanceOf(poolVault)).to.be.eq(
-        tokenAPoolVaultBalance.add(amountOut)
+      expect(await tokenA.balanceOf(fundVault)).to.be.eq(
+        tokenAFundVaultBalance.add(amountOut)
       );
-      expect(await denomination.balanceOf(poolVault)).to.be.eq(
+      expect(await denomination.balanceOf(fundVault)).to.be.eq(
         denominationProxyBalance.sub(amountIn)
       );
 
@@ -466,7 +466,7 @@ describe('PoolExecuteStrategy', function () {
 
       // TODO: check it after refine sushiswap handler
       // check asset list will be updated
-      // const assetList = await poolProxy.getAssetList();
+      // const assetList = await fundProxy.getAssetList();
       // const expectedAssets = [denomination.address].concat(
       //   path.slice(1, path.length)
       // );

@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const poolImplementation = await deployments.get('PoolImplementation');
+  const fundImplementation = await deployments.get('FundImplementation');
   const assetRouter = await deployments.get('AssetRouter');
   const execFeeCollector = deployer;
   const execFeePercentage = EXEC_FEE_PERCENTAGE;
@@ -48,7 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const compData = comptrollerImplementation.interface.encodeFunctionData(
     'initialize',
     [
-      poolImplementation.address,
+      fundImplementation.address,
       assetRouter.address,
       execFeeCollector,
       execFeePercentage,
@@ -143,7 +143,7 @@ export default func;
 
 func.tags = ['Comptroller'];
 func.dependencies = [
-  'PoolImplementation',
+  'FundImplementation',
   'AssetRouter',
   'MortgageVault',
   'HAaveProtocolV2',

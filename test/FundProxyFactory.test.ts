@@ -4,28 +4,28 @@ import { constants, Wallet, BigNumber } from 'ethers';
 import { ethers, deployments } from 'hardhat';
 
 import {
-  PoolProxyFactory,
+  FundProxyFactory,
   ComptrollerImplementation,
   ComptrollerProxy,
   ComptrollerProxyAdmin,
-  PoolImplementation,
+  FundImplementation,
   Chainlink,
   AssetRegistry,
   SimpleToken,
   AssetRouter,
   MortgageVault,
-  PoolProxy,
+  FundProxy,
 } from '../typechain';
 
 import {
   DS_PROXY_REGISTRY,
   FEE_BASE,
-  POOL_STATE,
+  FUND_STATE,
   USDC_TOKEN,
 } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
-describe('PoolProxyFactory', function () {
+describe('FundProxyFactory', function () {
   let owner: Wallet;
   let user: Wallet;
   let manager: Wallet;
@@ -46,8 +46,8 @@ describe('PoolProxyFactory', function () {
   let comptrollerProxy: ComptrollerProxy;
   let comptrollerProxyAdmin: ComptrollerProxyAdmin;
   let comptroller: ComptrollerImplementation;
-  let poolImplementation: PoolImplementation;
-  let poolProxyFactory: PoolProxyFactory;
+  let fundImplementation: FundImplementation;
+  let fundProxyFactory: FundProxyFactory;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let oracle: Chainlink;
@@ -86,10 +86,10 @@ describe('PoolProxyFactory', function () {
       ).deploy(tokenM.address);
       await mortgageVault.deployed();
 
-      poolImplementation = await (
-        await ethers.getContractFactory('PoolImplementation')
+      fundImplementation = await (
+        await ethers.getContractFactory('FundImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await poolImplementation.deployed();
+      await fundImplementation.deployed();
 
       comptrollerImplementation = await (
         await ethers.getContractFactory('ComptrollerImplementation')
@@ -99,7 +99,7 @@ describe('PoolProxyFactory', function () {
       const compData = comptrollerImplementation.interface.encodeFunctionData(
         'initialize',
         [
-          poolImplementation.address,
+          fundImplementation.address,
           assetRouter.address,
           collector.address,
           0,
@@ -125,13 +125,13 @@ describe('PoolProxyFactory', function () {
         await ethers.getContractFactory('ComptrollerImplementation')
       ).attach(comptrollerProxy.address);
 
-      // deploy poolProxyFactory
-      poolProxyFactory = await (
-        await ethers.getContractFactory('PoolProxyFactory')
+      // deploy fundProxyFactory
+      fundProxyFactory = await (
+        await ethers.getContractFactory('FundProxyFactory')
       )
         .connect(owner)
         .deploy(comptroller.address);
-      await poolProxyFactory.deployed();
+      await fundProxyFactory.deployed();
 
       await comptroller.permitCreators([manager.address]);
       await comptroller.permitDenominations([denominationAddress], [dust]);
@@ -141,11 +141,11 @@ describe('PoolProxyFactory', function () {
   beforeEach(async function () {
     await setupTest();
   });
-  describe('create pool', function () {
+  describe('create fund', function () {
     it('with valid params', async function () {
-      const receipt = await poolProxyFactory
+      const receipt = await fundProxyFactory
         .connect(manager)
-        .createPool(
+        .createFund(
           denominationAddress,
           level,
           mFeeRate,
@@ -155,19 +155,19 @@ describe('PoolProxyFactory', function () {
           shareTokenName
         );
 
-      const eventArgs = await getEventArgs(receipt, 'PoolCreated');
-      const poolProxy = await ethers.getContractAt(
-        'PoolImplementation',
-        eventArgs.newPool
+      const eventArgs = await getEventArgs(receipt, 'FundCreated');
+      const fundProxy = await ethers.getContractAt(
+        'FundImplementation',
+        eventArgs.newFund
       );
-      expect(await poolProxy.state()).to.be.eq(POOL_STATE.REVIEWING);
+      expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
     });
     it('should revert: invalid denomination address', async function () {
       const invalidDenominationAddress = constants.AddressZero;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             invalidDenominationAddress,
             level,
             mFeeRate,
@@ -176,14 +176,14 @@ describe('PoolProxyFactory', function () {
             reserveExecutionRatio,
             shareTokenName
           )
-      ).to.be.revertedWith('revertCode(79)'); //POOL_PROXY_FACTORY_INVALID_DENOMINATION
+      ).to.be.revertedWith('revertCode(79)'); //FUND_PROXY_FACTORY_INVALID_DENOMINATION
     });
     it('should revert: invalid creator', async function () {
       const invalidCreator = collector;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(invalidCreator)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
@@ -192,14 +192,14 @@ describe('PoolProxyFactory', function () {
             reserveExecutionRatio,
             shareTokenName
           )
-      ).to.be.revertedWith('revertCode(13)'); //POOL_PROXY_FACTORY_INVALID_CREATOR
+      ).to.be.revertedWith('revertCode(13)'); //FUND_PROXY_FACTORY_INVALID_CREATOR
     });
     it('should revert: invalid level', async function () {
       const invalidLevel = 0;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             invalidLevel,
             mFeeRate,
@@ -208,14 +208,14 @@ describe('PoolProxyFactory', function () {
             reserveExecutionRatio,
             shareTokenName
           )
-      ).to.be.revertedWith('revertCode(75)'); //POOL_PROXY_FACTORY_INVALID_STAKED_TIER
+      ).to.be.revertedWith('revertCode(75)'); //FUND_PROXY_FACTORY_INVALID_STAKED_TIER
     });
     it('should revert: invalid management fee rate', async function () {
       const invalidMFeeRate = FEE_BASE;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             invalidMFeeRate,
@@ -229,9 +229,9 @@ describe('PoolProxyFactory', function () {
     it('should revert: invalid performance fee rate', async function () {
       const invalidPFeeRate = FEE_BASE;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
@@ -245,9 +245,9 @@ describe('PoolProxyFactory', function () {
     it('should revert: invalid crystallization period', async function () {
       const invalidCrystallizationPeriod = 0;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
@@ -261,9 +261,9 @@ describe('PoolProxyFactory', function () {
     it('should revert: invalid reserve execution ratio', async function () {
       const invalidReserveExecutionRate = FEE_BASE;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,

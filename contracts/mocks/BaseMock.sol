@@ -5,12 +5,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDSProxy, IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
 import {IComptroller} from "../interfaces/IComptroller.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
-import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {ShareToken} from "../ShareToken.sol";
 import {SetupAction} from "../actions/SetupAction.sol";
 import {ISetupAction} from "../interfaces/ISetupAction.sol";
 
-contract BaseMock is PoolProxyStorageUtils {
+contract BaseMock is FundProxyStorageUtils {
     IDSProxyRegistry public immutable dsProxyRegistry;
     ISetupAction public immutable setupAction;
 

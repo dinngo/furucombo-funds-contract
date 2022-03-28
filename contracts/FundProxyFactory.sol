@@ -2,16 +2,16 @@
 pragma solidity 0.8.10;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {PoolProxy} from "./PoolProxy.sol";
+import {FundProxy} from "./FundProxy.sol";
 import {ShareToken} from "./ShareToken.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
-import {IPool} from "./interfaces/IPool.sol";
+import {IFund} from "./interfaces/IFund.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {Errors} from "./utils/Errors.sol";
 
-contract PoolProxyFactory {
-    event PoolCreated(
-        address indexed newPool,
+contract FundProxyFactory {
+    event FundCreated(
+        address indexed newFund,
         address comptroller,
         address shareToken,
         address vault
@@ -23,7 +23,7 @@ contract PoolProxyFactory {
         comptroller = comptroller_;
     }
 
-    function createPool(
+    function createFund(
         IERC20Metadata denomination,
         uint256 level,
         uint256 mFeeRate,
@@ -34,11 +34,11 @@ contract PoolProxyFactory {
     ) external returns (address) {
         Errors._require(
             comptroller.isValidCreator(msg.sender),
-            Errors.Code.POOL_PROXY_FACTORY_INVALID_CREATOR
+            Errors.Code.FUND_PROXY_FACTORY_INVALID_CREATOR
         );
         Errors._require(
             comptroller.isValidDenomination(address(denomination)),
-            Errors.Code.POOL_PROXY_FACTORY_INVALID_DENOMINATION
+            Errors.Code.FUND_PROXY_FACTORY_INVALID_DENOMINATION
         );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
         (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(
@@ -46,7 +46,7 @@ contract PoolProxyFactory {
         );
         Errors._require(
             isMortgageTierSet,
-            Errors.Code.POOL_PROXY_FACTORY_INVALID_MORTGAGE_TIER
+            Errors.Code.FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
         );
         // Can be customized
         ShareToken share = new ShareToken(
@@ -67,15 +67,15 @@ contract PoolProxyFactory {
             msg.sender
         );
 
-        IPool pool = IPool(address(new PoolProxy(address(comptroller), data)));
-        mortgageVault.mortgage(msg.sender, address(pool), amount);
-        share.transferOwnership(address(pool));
-        emit PoolCreated(
-            address(pool),
+        IFund fund = IFund(address(new FundProxy(address(comptroller), data)));
+        mortgageVault.mortgage(msg.sender, address(fund), amount);
+        share.transferOwnership(address(fund));
+        emit FundCreated(
+            address(fund),
             address(comptroller),
             address(share),
-            pool.vault()
+            fund.vault()
         );
-        return address(pool);
+        return address(fund);
     }
 }

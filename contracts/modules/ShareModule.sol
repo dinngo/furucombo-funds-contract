@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /// @title Share module
-abstract contract ShareModule is PoolProxyStorageUtils {
+abstract contract ShareModule is FundProxyStorageUtils {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
     using SafeERC20 for IERC20;
@@ -48,7 +48,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         share = _purchase(msg.sender, balance);
     }
 
-    /// @notice Redeem with the given share amount. Need to wait when pool is under liquidation
+    /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
     function redeem(uint256 share, bool acceptPending)
         public
         virtual

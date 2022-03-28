@@ -17,10 +17,10 @@ import {SetupAction} from "./actions/SetupAction.sol";
 
 import {Errors} from "./utils/Errors.sol";
 
-/// @title The implementation contract for pool.
+/// @title The implementation contract for fund.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
-contract PoolImplementation is
+contract FundImplementation is
     AssetModule,
     ShareModule,
     ExecutionModule,
@@ -42,7 +42,7 @@ contract PoolImplementation is
     // State Changes
     /////////////////////////////////////////////////////
     /// @notice Initializer.
-    /// @param level_ The tier of the pool.
+    /// @param level_ The tier of the fund.
     /// @param comptroller_ The comptroller address.
     /// @param denomination_ The denomination asset.
     /// @param shareToken_ The share token address.
@@ -50,7 +50,7 @@ contract PoolImplementation is
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
     /// @param reserveExecutionRate_ The reserve rate during execution.
-    /// @param newOwner The owner to be assigned to the pool.
+    /// @param newOwner The owner to be assigned to the fund.
     function initialize(
         uint256 level_,
         IComptroller comptroller_,
@@ -77,7 +77,7 @@ contract PoolImplementation is
         _review();
     }
 
-    /// @notice Finalize the initialization of the pool.
+    /// @notice Finalize the initialization of the fund.
     function finalize() public onlyOwner {
         _finalize();
 
@@ -103,7 +103,7 @@ contract PoolImplementation is
         _initializePerformanceFee();
     }
 
-    /// @notice Resume the pool by anyone if can settle pending redeemption.
+    /// @notice Resume the fund by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
         Errors._require(
             isPendingResolvable(true),
@@ -113,7 +113,7 @@ contract PoolImplementation is
         _resume();
     }
 
-    /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
+    /// @notice Liquidate the fund by anyone and transfer owner to liquidator.
     function liquidate() public {
         Errors._require(
             pendingStartTime != 0,
@@ -131,7 +131,7 @@ contract PoolImplementation is
         _transferOwnership(comptroller.pendingLiquidator());
     }
 
-    /// @notice Close the pool. The pending redemption will be settled
+    /// @notice Close the fund. The pending redemption will be settled
     /// without penalty.
     function close()
         public
@@ -190,13 +190,13 @@ contract PoolImplementation is
     /////////////////////////////////////////////////////
     // Getters
     /////////////////////////////////////////////////////
-    /// @notice Get the current reserve amount of the pool.
+    /// @notice Get the current reserve amount of the fund.
     /// @return The reserve amount.
     function __getReserve() internal view override returns (uint256) {
         return getReserve();
     }
 
-    /// @notice Get the total asset value of the pool.
+    /// @notice Get the total asset value of the fund.
     /// @return The value of asset.
     function getTotalAssetValue()
         public
@@ -291,7 +291,7 @@ contract PoolImplementation is
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
-    /// @notice Execute an action on the pool's behalf.
+    /// @notice Execute an action on the fund's behalf.
     function _beforeExecute() internal virtual override returns (uint256) {
         return getTotalAssetValue();
     }

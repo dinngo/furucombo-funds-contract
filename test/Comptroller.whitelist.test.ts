@@ -4,7 +4,7 @@ import { deployments } from 'hardhat';
 import {
   ComptrollerImplementation,
   ComptrollerProxy,
-  PoolImplementation,
+  FundImplementation,
   AssetRouter,
   MortgageVault,
   AMock,
@@ -23,7 +23,7 @@ describe('ComptrollerImplementation_Whitelist', function () {
   let comptrollerImplementation: ComptrollerImplementation;
   let comptrollerProxy: ComptrollerProxy;
   let comptroller: ComptrollerImplementation;
-  let poolImplementation: PoolImplementation;
+  let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let actionMockA: AMock;
@@ -49,10 +49,10 @@ describe('ComptrollerImplementation_Whitelist', function () {
         .deploy();
       await tokenM.deployed();
 
-      poolImplementation = await (
-        await ethers.getContractFactory('PoolImplementation')
+      fundImplementation = await (
+        await ethers.getContractFactory('FundImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await poolImplementation.deployed();
+      await fundImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -82,7 +82,7 @@ describe('ComptrollerImplementation_Whitelist', function () {
       const compData = comptrollerImplementation.interface.encodeFunctionData(
         'initialize',
         [
-          poolImplementation.address,
+          fundImplementation.address,
           assetRouter.address,
           collector.address,
           execFeePercentage,

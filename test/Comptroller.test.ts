@@ -6,14 +6,14 @@ import {
   ComptrollerProxy,
   ComptrollerProxyAdmin,
   UpgradeableBeacon,
-  PoolImplementation,
+  FundImplementation,
   AssetRouter,
   MortgageVault,
   TaskExecutor,
   Chainlink,
   AssetRegistry,
   SimpleToken,
-  PoolProxyFactory,
+  FundProxyFactory,
 } from '../typechain';
 import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
 import { getEventArgs } from './utils/utils';
@@ -24,7 +24,7 @@ describe('Comptroller', function () {
   let comptrollerProxyAdmin: ComptrollerProxyAdmin;
   let comptroller: ComptrollerImplementation;
   let beacon: UpgradeableBeacon;
-  let poolImplementation: PoolImplementation;
+  let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
@@ -38,7 +38,7 @@ describe('Comptroller', function () {
   let registry: AssetRegistry;
   let tokenM: SimpleToken;
   let tokenD: SimpleToken;
-  let factory: PoolProxyFactory;
+  let factory: FundProxyFactory;
 
   const setupTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
@@ -55,10 +55,10 @@ describe('Comptroller', function () {
         .deploy();
       await tokenD.deployed();
 
-      poolImplementation = await (
-        await ethers.getContractFactory('PoolImplementation')
+      fundImplementation = await (
+        await ethers.getContractFactory('FundImplementation')
       ).deploy(DS_PROXY_REGISTRY);
-      await poolImplementation.deployed();
+      await fundImplementation.deployed();
 
       registry = await (
         await ethers.getContractFactory('AssetRegistry')
@@ -86,7 +86,7 @@ describe('Comptroller', function () {
       const compData = comptrollerImplementation.interface.encodeFunctionData(
         'initialize',
         [
-          poolImplementation.address,
+          fundImplementation.address,
           assetRouter.address,
           collector.address,
           0,
@@ -124,7 +124,7 @@ describe('Comptroller', function () {
       await taskExecutor.deployed();
 
       factory = await (
-        await ethers.getContractFactory('PoolProxyFactory')
+        await ethers.getContractFactory('FundProxyFactory')
       ).deploy(comptroller.address);
       await factory.deployed();
     }
@@ -142,7 +142,7 @@ describe('Comptroller', function () {
       // check env before execution
       expect(await comptroller.fHalt()).to.equal(false);
       expect(await comptroller.implementation()).to.equal(
-        poolImplementation.address
+        fundImplementation.address
       );
 
       // halt
@@ -165,7 +165,7 @@ describe('Comptroller', function () {
       await expect(comptroller.unHalt()).to.emit(comptroller, 'UnHalted');
       expect(await comptroller.fHalt()).to.equal(false);
       expect(await comptroller.implementation()).to.equal(
-        poolImplementation.address
+        fundImplementation.address
       );
     });
 
@@ -186,15 +186,15 @@ describe('Comptroller', function () {
   describe('Ban proxy', function () {
     it('ban ', async function () {
       // check env before execution
-      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(false);
+      expect(await comptroller.bannedFundProxy(user.address)).to.equal(false);
 
       // ban proxy
-      await expect(comptroller.banPoolProxy(user.address))
-        .to.emit(comptroller, 'PoolProxyBanned')
+      await expect(comptroller.banFundProxy(user.address))
+        .to.emit(comptroller, 'FundProxyBanned')
         .withArgs(user.address);
 
       // verify banned proxy
-      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(true);
+      expect(await comptroller.bannedFundProxy(user.address)).to.equal(true);
       await expect(
         comptroller.connect(user).implementation()
       ).to.be.revertedWith('revertCode(1)'); // COMPTROLLER_BANNED
@@ -202,30 +202,30 @@ describe('Comptroller', function () {
 
     it('unBan ', async function () {
       // check env before execution
-      await comptroller.banPoolProxy(user.address);
-      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(true);
+      await comptroller.banFundProxy(user.address);
+      expect(await comptroller.bannedFundProxy(user.address)).to.equal(true);
 
       // unban proxy
-      await expect(comptroller.unbanPoolProxy(user.address))
-        .to.emit(comptroller, 'PoolProxyUnbanned')
+      await expect(comptroller.unbanFundProxy(user.address))
+        .to.emit(comptroller, 'FundProxyUnbanned')
         .withArgs(user.address);
 
       // verify unbanned proxy
-      expect(await comptroller.bannedPoolProxy(user.address)).to.equal(false);
+      expect(await comptroller.bannedFundProxy(user.address)).to.equal(false);
       expect(await comptroller.connect(user).implementation()).to.be.equal(
-        poolImplementation.address
+        fundImplementation.address
       );
     });
 
     it('should revert: ban by non-owner', async function () {
       await expect(
-        comptroller.connect(user).banPoolProxy(user.address)
+        comptroller.connect(user).banFundProxy(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert: unBan by non-owner', async function () {
       await expect(
-        comptroller.connect(user).unbanPoolProxy(user.address)
+        comptroller.connect(user).unbanFundProxy(user.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
@@ -235,12 +235,12 @@ describe('Comptroller', function () {
     it('set implementation', async function () {
       // check env before execution
       expect(await comptroller.connect(user).implementation()).to.be.equal(
-        poolImplementation.address
+        fundImplementation.address
       );
 
       // deploy new implementation
       const newImpl = await (
-        await ethers.getContractFactory('PoolImplementation')
+        await ethers.getContractFactory('FundImplementation')
       ).deploy(DS_PROXY_REGISTRY);
       await newImpl.deployed();
 
@@ -257,7 +257,7 @@ describe('Comptroller', function () {
 
     it('should revert: set implementation by non-owner', async function () {
       await expect(
-        beacon.connect(user).upgradeTo(poolImplementation.address)
+        beacon.connect(user).upgradeTo(fundImplementation.address)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
@@ -606,7 +606,7 @@ describe('Comptroller', function () {
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
-    describe('create pool', function () {
+    describe('create fund', function () {
       const dustD = ethers.utils.parseUnits('0.1', 18);
       beforeEach(async function () {
         await comptroller.permitDenominations([tokenD.address], [dustD]);
@@ -617,8 +617,8 @@ describe('Comptroller', function () {
         await expect(
           factory
             .connect(user)
-            .createPool(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
-        ).to.be.revertedWith('revertCode(13)'); // POOL_PROXY_FACTORY_INVALID_CREATOR
+            .createFund(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
+        ).to.be.revertedWith('revertCode(13)'); // FUND_PROXY_FACTORY_INVALID_CREATOR
       });
 
       it('should revert: invalid mortgage tier', async function () {
@@ -626,8 +626,8 @@ describe('Comptroller', function () {
         await expect(
           factory
             .connect(user)
-            .createPool(tokenD.address, 2, 0, 0, 300, 0, 'TEST')
-        ).to.be.revertedWith('revertCode(75)'); // POOL_PROXY_FACTORY_INVALID_MORTGAGE_TIER
+            .createFund(tokenD.address, 2, 0, 0, 300, 0, 'TEST')
+        ).to.be.revertedWith('revertCode(75)'); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
       });
 
       it('should mortgage for the given tier', async function () {
@@ -641,18 +641,18 @@ describe('Comptroller', function () {
         await comptroller.permitCreators([user.address]);
         const receipt = await factory
           .connect(user)
-          .createPool(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
-        const pool = await getEventArgs(receipt, 'PoolCreated');
+          .createFund(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
+        const fund = await getEventArgs(receipt, 'FundCreated');
         const tokenMUserAfter = await tokenM.callStatic.balanceOf(user.address);
         const tokenMVaultAfter = await tokenM.callStatic.balanceOf(
           mortgageVault.address
         );
-        const mortgagePool = await mortgageVault.callStatic.poolAmounts(
-          pool[0]
+        const mortgageFund = await mortgageVault.callStatic.fundAmounts(
+          fund[0]
         );
         expect(tokenMUserBefore.sub(tokenMUserAfter)).to.be.eq(amount);
         expect(tokenMVaultAfter.sub(tokenMVaultBefore)).to.be.eq(amount);
-        expect(mortgagePool).to.be.eq(amount);
+        expect(mortgageFund).to.be.eq(amount);
       });
     });
   });

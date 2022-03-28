@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ITaskExecutor} from "./interfaces/ITaskExecutor.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
-import {IPool} from "./interfaces/IPool.sol";
+import {IFund} from "./interfaces/IFund.sol";
 import {Errors} from "./utils/Errors.sol";
 import {DestructibleAction} from "./utils/DestructibleAction.sol";
 import {DelegateCallAction} from "./utils/DelegateCallAction.sol";
@@ -87,7 +87,7 @@ contract TaskExecutor is
             Errors.Code.TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT
         );
 
-        uint256 level = IPool(msg.sender).level();
+        uint256 level = IFund(msg.sender).level();
 
         for (uint256 i = 0; i < tos.length; i++) {
             bytes32 config = configs[i];
@@ -287,7 +287,7 @@ contract TaskExecutor is
         uint256[] calldata amountsIn
     ) internal {
         // Check initial asset from white list
-        uint256 level = IPool(msg.sender).level();
+        uint256 level = IFund(msg.sender).level();
         Errors._require(
             comptroller.isValidInitialAssets(level, tokensIn),
             Errors.Code.TASK_EXECUTOR_INVALID_INITIAL_ASSET
