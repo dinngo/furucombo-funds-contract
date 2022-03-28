@@ -57,12 +57,7 @@ contract ShareModuleMock is ShareModule, BaseMock {
         return totalAssetValueMock;
     }
 
-    function _getPendingRedemptionPenalty()
-        internal
-        view
-        override
-        returns (uint256)
-    {
+    function _getPendingRedemptionPenalty() internal view override returns (uint256) {
         return pendingRedemptionPenaltyMock;
     }
 

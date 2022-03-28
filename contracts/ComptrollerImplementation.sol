@@ -73,26 +73,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event ForbidCreator(address indexed to);
     event PermitAsset(uint256 indexed level, address indexed asset);
     event ForbidAsset(uint256 indexed level, address indexed asset);
-    event PermitDelegateCall(
-        uint256 indexed level,
-        address indexed to,
-        bytes4 sig
-    );
-    event ForbidDelegateCall(
-        uint256 indexed level,
-        address indexed to,
-        bytes4 sig
-    );
-    event PermitContractCall(
-        uint256 indexed level,
-        address indexed to,
-        bytes4 sig
-    );
-    event ForbidContractCall(
-        uint256 indexed level,
-        address indexed to,
-        bytes4 sig
-    );
+    event PermitDelegateCall(uint256 indexed level, address indexed to, bytes4 sig);
+    event ForbidDelegateCall(uint256 indexed level, address indexed to, bytes4 sig);
+    event PermitContractCall(uint256 indexed level, address indexed to, bytes4 sig);
+    event ForbidContractCall(uint256 indexed level, address indexed to, bytes4 sig);
     event PermitHandler(uint256 indexed level, address indexed to, bytes4 sig);
     event ForbidHandler(uint256 indexed level, address indexed to, bytes4 sig);
 
@@ -103,29 +87,17 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     modifier onlyUnbannedFundProxy() {
-        Errors._require(
-            !bannedFundProxy[msg.sender],
-            Errors.Code.COMPTROLLER_BANNED
-        );
+        Errors._require(!bannedFundProxy[msg.sender], Errors.Code.COMPTROLLER_BANNED);
         _;
     }
 
     modifier nonZeroAddress(address newSetter) {
-        Errors._require(
-            newSetter != address(0),
-            Errors.Code.COMPTROLLER_ZERO_ADDRESS
-        );
+        Errors._require(newSetter != address(0), Errors.Code.COMPTROLLER_ZERO_ADDRESS);
         _;
     }
 
-    modifier consistentTosAndSigsLength(
-        address[] calldata tos,
-        bytes4[] calldata sigs
-    ) {
-        Errors._require(
-            tos.length == sigs.length,
-            Errors.Code.COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
-        );
+    modifier consistentTosAndSigsLength(address[] calldata tos, bytes4[] calldata sigs) {
+        Errors._require(tos.length == sigs.length, Errors.Code.COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT);
         _;
     }
 
@@ -155,22 +127,11 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         beacon.transferOwnership(msg.sender);
     }
 
-    function implementation()
-        public
-        view
-        onlyUnHalted
-        onlyUnbannedFundProxy
-        returns (address)
-    {
+    function implementation() public view onlyUnHalted onlyUnbannedFundProxy returns (address) {
         return beacon.implementation();
     }
 
-    function owner()
-        public
-        view
-        override(Ownable, IComptroller)
-        returns (address)
-    {
+    function owner() public view override(Ownable, IComptroller) returns (address) {
         return Ownable.owner();
     }
 
@@ -186,11 +147,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Fee
-    function setFeeCollector(address collector)
-        external
-        nonZeroAddress(collector)
-        onlyOwner
-    {
+    function setFeeCollector(address collector) external nonZeroAddress(collector) onlyOwner {
         execFeeCollector = collector;
         emit SetExecFeeCollector(collector);
     }
@@ -201,11 +158,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Pending redemption
-    function setPendingLiquidator(address liquidator)
-        external
-        nonZeroAddress(liquidator)
-        onlyOwner
-    {
+    function setPendingLiquidator(address liquidator) external nonZeroAddress(liquidator) onlyOwner {
         pendingLiquidator = liquidator;
         emit SetPendingLiquidator(liquidator);
     }
@@ -222,10 +175,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Execution asset value tolerance
-    function setExecAssetValueToleranceRate(uint256 tolerance)
-        external
-        onlyOwner
-    {
+    function setExecAssetValueToleranceRate(uint256 tolerance) external onlyOwner {
         execAssetValueToleranceRate = tolerance;
         emit SetExecAssetValueToleranceRate(tolerance);
     }
@@ -237,10 +187,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Denomination whitelist
-    function permitDenominations(
-        address[] calldata denominations,
-        uint256[] calldata dusts
-    ) external onlyOwner {
+    function permitDenominations(address[] calldata denominations, uint256[] calldata dusts) external onlyOwner {
         Errors._require(
             denominations.length == dusts.length,
             Errors.Code.COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
@@ -253,29 +200,18 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
-    function forbidDenominations(address[] calldata denominations)
-        external
-        onlyOwner
-    {
+    function forbidDenominations(address[] calldata denominations) external onlyOwner {
         for (uint256 i = 0; i < denominations.length; i++) {
             delete denomination[denominations[i]];
             emit ForbidDenomination(denominations[i]);
         }
     }
 
-    function isValidDenomination(address _denomination)
-        external
-        view
-        returns (bool)
-    {
+    function isValidDenomination(address _denomination) external view returns (bool) {
         return denomination[_denomination].isPermitted;
     }
 
-    function getDenominationDust(address _denomination)
-        external
-        view
-        returns (uint256)
-    {
+    function getDenominationDust(address _denomination) external view returns (uint256) {
         return denomination[_denomination].dust;
     }
 
@@ -303,21 +239,13 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Asset Router
-    function setAssetRouter(IAssetRouter _assetRouter)
-        external
-        nonZeroAddress(address(_assetRouter))
-        onlyOwner
-    {
+    function setAssetRouter(IAssetRouter _assetRouter) external nonZeroAddress(address(_assetRouter)) onlyOwner {
         assetRouter = _assetRouter;
         emit SetAssetRouter(address(_assetRouter));
     }
 
     // Action
-    function setExecAction(address action)
-        external
-        nonZeroAddress(action)
-        onlyOwner
-    {
+    function setExecAction(address action) external nonZeroAddress(action) onlyOwner {
         execAction = action;
         emit SetExecAction(action);
     }
@@ -342,39 +270,25 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Asset whitelist
-    function permitAssets(uint256 level, address[] calldata assets)
-        external
-        onlyOwner
-    {
+    function permitAssets(uint256 level, address[] calldata assets) external onlyOwner {
         for (uint256 i = 0; i < assets.length; i++) {
             _assetACL.permit(level, assets[i]);
             emit PermitAsset(level, assets[i]);
         }
     }
 
-    function forbidAssets(uint256 level, address[] calldata assets)
-        external
-        onlyOwner
-    {
+    function forbidAssets(uint256 level, address[] calldata assets) external onlyOwner {
         for (uint256 i = 0; i < assets.length; i++) {
             _assetACL.forbid(level, assets[i]);
             emit ForbidAsset(level, assets[i]);
         }
     }
 
-    function isValidDealingAsset(uint256 level, address asset)
-        public
-        view
-        returns (bool)
-    {
+    function isValidDealingAsset(uint256 level, address asset) public view returns (bool) {
         return _assetACL.canCall(level, asset);
     }
 
-    function isValidDealingAssets(uint256 level, address[] calldata assets)
-        external
-        view
-        returns (bool)
-    {
+    function isValidDealingAssets(uint256 level, address[] calldata assets) external view returns (bool) {
         for (uint256 i = 0; i < assets.length; i++) {
             if (!isValidDealingAsset(level, assets[i])) {
                 return false;
@@ -383,11 +297,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return true;
     }
 
-    function isValidInitialAsset(uint256 level, address asset)
-        public
-        view
-        returns (bool)
-    {
+    function isValidInitialAsset(uint256 level, address asset) public view returns (bool) {
         // check if input check flag is true
         if (fInitialAssetCheck) {
             return _assetACL.canCall(level, asset);
@@ -395,11 +305,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return true;
     }
 
-    function isValidInitialAssets(uint256 level, address[] calldata assets)
-        external
-        view
-        returns (bool)
-    {
+    function isValidInitialAssets(uint256 level, address[] calldata assets) external view returns (bool) {
         for (uint256 i = 0; i < assets.length; i++) {
             if (!isValidInitialAsset(level, assets[i])) {
                 return false;

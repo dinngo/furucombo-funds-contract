@@ -30,11 +30,7 @@ abstract contract ExecutionModule is FundProxyStorageUtils {
         return 0;
     }
 
-    function _afterExecute(bytes memory, uint256)
-        internal
-        virtual
-        returns (uint256)
-    {
+    function _afterExecute(bytes memory, uint256) internal virtual returns (uint256) {
         return 0;
     }
 }

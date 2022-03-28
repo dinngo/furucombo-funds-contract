@@ -21,11 +21,7 @@ contract Foo4Handler is HandlerBase {
         ret = Foo4(to).barUint();
     }
 
-    function bar1(address to, bytes32 a)
-        external
-        payable
-        returns (bytes32 ret)
-    {
+    function bar1(address to, bytes32 a) external payable returns (bytes32 ret) {
         ret = Foo4(to).bar1(a);
     }
 
@@ -37,11 +33,7 @@ contract Foo4Handler is HandlerBase {
         ret = Foo4(to).bar2(a, b);
     }
 
-    function barUint1(address to, uint256 a)
-        external
-        payable
-        returns (uint256 ret)
-    {
+    function barUint1(address to, uint256 a) external payable returns (uint256 ret) {
         ret = Foo4(to).barUint1(a);
     }
 

@@ -3,14 +3,10 @@
 pragma solidity ^0.8.0;
 
 library LibParam {
-    bytes32 private constant STATIC_MASK =
-        0x0100000000000000000000000000000000000000000000000000000000000000;
-    bytes32 private constant PARAMS_MASK =
-        0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 private constant REFS_MASK =
-        0x00000000000000000000000000000000000000000000000000000000000000FF;
-    bytes32 private constant RETURN_NUM_MASK =
-        0x00FF000000000000000000000000000000000000000000000000000000000000;
+    bytes32 private constant STATIC_MASK = 0x0100000000000000000000000000000000000000000000000000000000000000;
+    bytes32 private constant PARAMS_MASK = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    bytes32 private constant REFS_MASK = 0x00000000000000000000000000000000000000000000000000000000000000FF;
+    bytes32 private constant RETURN_NUM_MASK = 0x00FF000000000000000000000000000000000000000000000000000000000000;
 
     uint256 private constant REFS_LIMIT = 22;
     uint256 private constant PARAMS_SIZE_LIMIT = 64;
@@ -31,11 +27,7 @@ library LibParam {
         num = uint256(temp);
     }
 
-    function getParams(bytes32 conf)
-        internal
-        pure
-        returns (uint256[] memory refs, uint256[] memory params)
-    {
+    function getParams(bytes32 conf) internal pure returns (uint256[] memory refs, uint256[] memory params) {
         require(!isStatic(conf), "Static params");
         uint256 n = REFS_LIMIT;
         while (conf & REFS_MASK == REFS_MASK && n > 0) {

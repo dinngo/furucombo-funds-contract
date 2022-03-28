@@ -20,21 +20,13 @@ export async function profileGas(receipt: any) {
 
   result.events.forEach((element: any) => {
     if (element.topics[0] === DeltaGasSig) {
-      const [tag, gas] = ethers.utils.defaultAbiCoder.decode(
-        ['bytes32', 'uint256'],
-        element.data
-      );
+      const [tag, gas] = ethers.utils.defaultAbiCoder.decode(['bytes32', 'uint256'], element.data);
       console.log(ethers.utils.toUtf8String(tag) + ': ' + gas.toString());
     }
   });
 }
 
-export function expectEqWithinBps(
-  actual: BigNumber,
-  expected: BigNumber,
-  bps: number = 1,
-  exponent: number = 4
-) {
+export function expectEqWithinBps(actual: BigNumber, expected: BigNumber, bps: number = 1, exponent: number = 4) {
   const base = BigNumber.from(10).pow(exponent);
   const upper = expected.mul(base.add(BigNumber.from(bps))).div(base);
   const lower = expected.mul(base.sub(BigNumber.from(bps))).div(base);
@@ -59,36 +51,23 @@ export function mwei(num: any) {
   return ethers.utils.parseUnits(num, 6);
 }
 
-export async function getTaskExecutorFundQuotas(
-  proxy: any,
-  taskExecutor: any,
-  tokensIn: string[]
-) {
+export async function getTaskExecutorFundQuotas(proxy: any, taskExecutor: any, tokensIn: string[]) {
   const returnData = await proxy.callStatic.executeMock(
     taskExecutor.address,
     getCallData(taskExecutor, 'getFundQuotas', [tokensIn])
   );
 
-  const fundQuotas = ethers.utils.defaultAbiCoder.decode(
-    ['uint256[]'],
-    returnData
-  )[0];
+  const fundQuotas = ethers.utils.defaultAbiCoder.decode(['uint256[]'], returnData)[0];
   return fundQuotas;
 }
 
-export async function getTaskExecutorDealingAssets(
-  proxy: any,
-  taskExecutor: any
-) {
+export async function getTaskExecutorDealingAssets(proxy: any, taskExecutor: any) {
   const returnData = await proxy.callStatic.executeMock(
     taskExecutor.address,
     getCallData(taskExecutor, 'getDealingAssetList', [])
   );
 
-  const assets = ethers.utils.defaultAbiCoder.decode(
-    ['address[]'],
-    returnData
-  )[0];
+  const assets = ethers.utils.defaultAbiCoder.decode(['address[]'], returnData)[0];
   return assets;
 }
 
@@ -96,16 +75,8 @@ export function getCallData(artifact: any, name: string, params: any) {
   return artifact.interface.encodeFunctionData(name, params);
 }
 
-export function getCallActionData(
-  ethValue: any,
-  artifact: any,
-  funcName: string,
-  params: any
-) {
-  return ethers.utils.defaultAbiCoder.encode(
-    ['uint256', 'bytes'],
-    [ethValue, getCallData(artifact, funcName, params)]
-  );
+export function getCallActionData(ethValue: any, artifact: any, funcName: string, params: any) {
+  return ethers.utils.defaultAbiCoder.encode(['uint256', 'bytes'], [ethValue, getCallData(artifact, funcName, params)]);
 }
 
 export async function impersonateAndInjectEther(address: string) {
@@ -113,10 +84,7 @@ export async function impersonateAndInjectEther(address: string) {
   await hre.network.provider.send('hardhat_impersonateAccount', [address]);
 
   // Inject 1 ether
-  await hre.network.provider.send('hardhat_setBalance', [
-    address,
-    '0xde0b6b3a7640000',
-  ]);
+  await hre.network.provider.send('hardhat_setBalance', [address, '0xde0b6b3a7640000']);
   return await (ethers as any).getSigner(address);
 }
 
@@ -135,15 +103,9 @@ export async function getActionReturn(receipt: any, dataTypes: any) {
 
   result.events.forEach((element: any) => {
     if (element.topics[0] === RecordActionResultSig) {
-      const bytesData = ethers.utils.defaultAbiCoder.decode(
-        ['bytes'],
-        element.data
-      )[0];
+      const bytesData = ethers.utils.defaultAbiCoder.decode(['bytes'], element.data)[0];
 
-      actionResult = ethers.utils.defaultAbiCoder.decode(
-        dataTypes,
-        bytesData
-      )[0];
+      actionResult = ethers.utils.defaultAbiCoder.decode(dataTypes, bytesData)[0];
     }
   });
   return actionResult;
@@ -155,10 +117,7 @@ export async function getHandlerReturn(receipt: any, dataTypes: any) {
 
   result.events.forEach((element: any) => {
     if (element.topics[0] === RecordHandlerResultSig) {
-      const bytesData = ethers.utils.defaultAbiCoder.decode(
-        ['bytes'],
-        element.data
-      )[0];
+      const bytesData = ethers.utils.defaultAbiCoder.decode(['bytes'], element.data)[0];
 
       actionResult = ethers.utils.defaultAbiCoder.decode(dataTypes, bytesData);
     }
@@ -191,11 +150,7 @@ export function getFuncSig(artifact: any, name: string) {
   return artifact.interface.getSighash(name);
 }
 
-export async function tokenProviderQuick(
-  token0 = USDC_TOKEN,
-  token1 = WETH_TOKEN,
-  factoryAddress = QUICKSWAP_FACTORY
-) {
+export async function tokenProviderQuick(token0 = USDC_TOKEN, token1 = WETH_TOKEN, factoryAddress = QUICKSWAP_FACTORY) {
   if (token0 === WETH_TOKEN) {
     token1 = USDC_TOKEN;
   }
@@ -210,11 +165,7 @@ export async function maticProviderWmatic() {
   // return WMATIC_TOKEN;
 }
 
-export async function tokenProviderSushi(
-  token0 = USDC_TOKEN,
-  token1 = WETH_TOKEN,
-  factoryAddress = SUSHISWAP_FACTORY
-) {
+export async function tokenProviderSushi(token0 = USDC_TOKEN, token1 = WETH_TOKEN, factoryAddress = SUSHISWAP_FACTORY) {
   if (token0 === WETH_TOKEN) {
     token1 = USDC_TOKEN;
   }
@@ -253,15 +204,8 @@ export async function tokenProviderCurveGauge(lpToken: string) {
   return await (ethers as any).getSigner(gauge);
 }
 
-export async function _tokenProviderUniLike(
-  token0: string,
-  token1: string,
-  factoryAddress: string
-) {
-  const factory = await ethers.getContractAt(
-    'IUniswapV2Factory',
-    factoryAddress
-  );
+export async function _tokenProviderUniLike(token0: string, token1: string, factoryAddress: string) {
+  const factory = await ethers.getContractAt('IUniswapV2Factory', factoryAddress);
 
   const pair = await factory.callStatic.getPair(token0, token1);
   _impersonateAndInjectEther(pair);
@@ -273,10 +217,7 @@ export async function _impersonateAndInjectEther(address: string) {
   await hre.network.provider.send('hardhat_impersonateAccount', [address]);
 
   // Inject 1 ether
-  await hre.network.provider.send('hardhat_setBalance', [
-    address,
-    '0xde0b6b3a7640000',
-  ]);
+  await hre.network.provider.send('hardhat_setBalance', [address, '0xde0b6b3a7640000']);
 }
 
 export async function sendEther(sender: Signer, to: string, value: BigNumber) {
@@ -287,9 +228,7 @@ export async function sendEther(sender: Signer, to: string, value: BigNumber) {
 }
 
 export function mulPercent(num: any, percentage: any) {
-  return BigNumber.from(num)
-    .mul(BigNumber.from(percentage))
-    .div(BigNumber.from(100));
+  return BigNumber.from(num).mul(BigNumber.from(percentage)).div(BigNumber.from(100));
 }
 
 export function padRightZero(s: string, length: any) {
@@ -316,16 +255,11 @@ export function calcSqrt(y: BigNumber) {
 }
 
 export async function latest() {
-  return BigNumber.from(
-    (await ethers.provider.getBlock(await ethers.provider.getBlockNumber()))
-      .timestamp
-  );
+  return BigNumber.from((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp);
 }
 
 export async function getTimestampByTx(tx: any) {
-  return BigNumber.from(
-    (await ethers.provider.getBlock((await tx.wait()).blockNumber)).timestamp
-  );
+  return BigNumber.from((await ethers.provider.getBlock((await tx.wait()).blockNumber)).timestamp);
 }
 
 export function decimal6(amount: any) {

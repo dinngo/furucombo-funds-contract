@@ -76,138 +76,100 @@ describe('AFurucombo', function () {
 
   let tokenD: SimpleToken;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user, collector] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user, collector] = await (ethers as any).getSigners();
 
-      // Setup token and unlock provider
-      tokenProvider = await impersonateAndInjectEther(DAI_PROVIDER);
-      token = await ethers.getContractAt('IERC20', DAI_TOKEN);
+    // Setup token and unlock provider
+    tokenProvider = await impersonateAndInjectEther(DAI_PROVIDER);
+    token = await ethers.getContractAt('IERC20', DAI_TOKEN);
 
-      tokenOut = await ethers.getContractAt('IERC20', WETH_TOKEN);
-      debtToken = await ethers.getContractAt(
-        'IVariableDebtToken',
-        debtTokenAddress
-      );
+    tokenOut = await ethers.getContractAt('IERC20', WETH_TOKEN);
+    debtToken = await ethers.getContractAt('IVariableDebtToken', debtTokenAddress);
 
-      // Setup contracts
-      fundImplementation = await (
-        await ethers.getContractFactory('FundImplementation')
-      ).deploy(DS_PROXY_REGISTRY);
-      await fundImplementation.deployed();
+    // Setup contracts
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    await fundImplementation.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
 
-      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
-      await oracle.deployed();
+    oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+    await oracle.deployed();
 
-      assetRouter = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await assetRouter.deployed();
+    assetRouter = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await assetRouter.deployed();
 
-      mortgageVault = await (
-        await ethers.getContractFactory('MortgageVault')
-      ).deploy(token.address);
-      await mortgageVault.deployed();
+    mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(token.address);
+    await mortgageVault.deployed();
 
-      comptroller = await (
-        await ethers.getContractFactory('ComptrollerImplementation')
-      ).deploy();
-      await comptroller.deployed();
-      await comptroller.initialize(
-        fundImplementation.address,
-        assetRouter.address,
-        collector.address,
-        0,
-        constants.AddressZero,
-        0,
-        mortgageVault.address,
-        0
-      );
-      await comptroller.setInitialAssetCheck(false);
+    comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
+    await comptroller.deployed();
+    await comptroller.initialize(
+      fundImplementation.address,
+      assetRouter.address,
+      collector.address,
+      0,
+      constants.AddressZero,
+      0,
+      mortgageVault.address,
+      0
+    );
+    await comptroller.setInitialAssetCheck(false);
 
-      taskExecutor = await (
-        await ethers.getContractFactory('TaskExecutorMock')
-      ).deploy(owner.address, comptroller.address);
-      await taskExecutor.deployed();
-      await comptroller.setExecAction(taskExecutor.address);
+    taskExecutor = await (
+      await ethers.getContractFactory('TaskExecutorMock')
+    ).deploy(owner.address, comptroller.address);
+    await taskExecutor.deployed();
+    await comptroller.setExecAction(taskExecutor.address);
 
-      // Setup furucombo and AFurucombo
-      furuRegistry = await (
-        await ethers.getContractFactory('Registry')
-      ).deploy();
-      await furuRegistry.deployed();
+    // Setup furucombo and AFurucombo
+    furuRegistry = await (await ethers.getContractFactory('Registry')).deploy();
+    await furuRegistry.deployed();
 
-      furucombo = await (
-        await ethers.getContractFactory('FurucomboProxy')
-      ).deploy(furuRegistry.address);
-      await furucombo.deployed();
+    furucombo = await (await ethers.getContractFactory('FurucomboProxy')).deploy(furuRegistry.address);
+    await furucombo.deployed();
 
-      aFurucombo = await (
-        await ethers.getContractFactory('AFurucombo')
-      ).deploy(owner.address, furucombo.address, comptroller.address);
-      await aFurucombo.deployed();
+    aFurucombo = await (
+      await ethers.getContractFactory('AFurucombo')
+    ).deploy(owner.address, furucombo.address, comptroller.address);
+    await aFurucombo.deployed();
 
-      hFunds = await (await ethers.getContractFactory('HFunds')).deploy();
-      await hFunds.deployed();
+    hFunds = await (await ethers.getContractFactory('HFunds')).deploy();
+    await hFunds.deployed();
 
-      hQuickSwap = await (
-        await ethers.getContractFactory('HQuickSwap')
-      ).deploy();
-      await hQuickSwap.deployed();
+    hQuickSwap = await (await ethers.getContractFactory('HQuickSwap')).deploy();
+    await hQuickSwap.deployed();
 
-      await furuRegistry.register(
-        hFunds.address,
-        ethers.utils.hexZeroPad(asciiToHex32('HFunds'), 32)
-      );
+    await furuRegistry.register(hFunds.address, ethers.utils.hexZeroPad(asciiToHex32('HFunds'), 32));
 
-      await furuRegistry.register(
-        hQuickSwap.address,
-        ethers.utils.hexZeroPad(asciiToHex32('HQuickswap'), 32)
-      );
+    await furuRegistry.register(hQuickSwap.address, ethers.utils.hexZeroPad(asciiToHex32('HQuickswap'), 32));
 
-      tokenD = await (await ethers.getContractFactory('SimpleToken'))
-        .connect(user)
-        .deploy();
-      await tokenD.deployed();
+    tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
+    await tokenD.deployed();
 
-      // Setup FundProxy
-      dsProxyRegistry = await ethers.getContractAt(
-        'IDSProxyRegistry',
-        DS_PROXY_REGISTRY
-      );
+    // Setup FundProxy
+    dsProxyRegistry = await ethers.getContractAt('IDSProxyRegistry', DS_PROXY_REGISTRY);
 
-      proxy = await (await ethers.getContractFactory('FundProxyMock'))
-        .connect(user)
-        .deploy(dsProxyRegistry.address);
-      await proxy.deployed();
+    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy(dsProxyRegistry.address);
+    await proxy.deployed();
 
-      await proxy.setComptroller(comptroller.address);
-      await comptroller.permitDenominations([tokenD.address], [0]);
-      await proxy.setupDenomination(tokenD.address);
-      await proxy.setVault();
-      await proxy.setLevel(1);
+    await proxy.setComptroller(comptroller.address);
+    await comptroller.permitDenominations([tokenD.address], [0]);
+    await proxy.setupDenomination(tokenD.address);
+    await proxy.setVault();
+    await proxy.setLevel(1);
 
-      // Permit delegate calls
-      comptroller.permitDelegateCalls(
-        await proxy.level(),
-        [aFurucombo.address],
-        [WL_ANY_SIG]
-      );
+    // Permit delegate calls
+    comptroller.permitDelegateCalls(await proxy.level(), [aFurucombo.address], [WL_ANY_SIG]);
 
-      // Permit handler
-      comptroller.permitHandlers(
-        await proxy.level(),
-        [hFunds.address, hQuickSwap.address],
-        [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG]
-      );
-    }
-  );
+    // Permit handler
+    comptroller.permitHandlers(
+      await proxy.level(),
+      [hFunds.address, hQuickSwap.address],
+      [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG]
+    );
+  });
 
   // `beforeEach` will run before each test, re-deploying the contract every
   // time. It receives a callback, which can be async.
@@ -242,14 +204,7 @@ describe('AFurucombo', function () {
         tokensIn,
         amountsIn,
         aFurucombo.address,
-        getCallData(aFurucombo, 'injectAndBatchExec', [
-          tokensIn,
-          amountsIn,
-          tokensOut,
-          tos,
-          configs,
-          datas,
-        ]),
+        getCallData(aFurucombo, 'injectAndBatchExec', [tokensIn, amountsIn, tokensOut, tos, configs, datas]),
       ]);
 
       // send token to vault
@@ -257,9 +212,7 @@ describe('AFurucombo', function () {
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
       // Execute
-      const receipt = await proxy
-        .connect(user)
-        .executeMock(taskExecutor.address, data);
+      const receipt = await proxy.connect(user).executeMock(taskExecutor.address, data);
 
       // Record after balance
       const tokenAfter = await token.balanceOf(vault);
@@ -267,20 +220,9 @@ describe('AFurucombo', function () {
       const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
 
       // Get fundQuotas and dealing asset
-      const fundQuotas = await getTaskExecutorFundQuotas(
-        proxy,
-        taskExecutor,
-        tokensIn
-      );
-      const outputFundQuotas = await getTaskExecutorFundQuotas(
-        proxy,
-        taskExecutor,
-        tokensOut
-      );
-      const dealingAssets = await getTaskExecutorDealingAssets(
-        proxy,
-        taskExecutor
-      );
+      const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutor, tokensIn);
+      const outputFundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutor, tokensOut);
+      const dealingAssets = await getTaskExecutorDealingAssets(proxy, taskExecutor);
 
       // Verify action return
       const actionReturn = await getActionReturn(receipt, ['uint256[]']);
@@ -322,14 +264,7 @@ describe('AFurucombo', function () {
         tokensIn,
         amountsIn,
         aFurucombo.address,
-        getCallData(aFurucombo, 'injectAndBatchExec', [
-          tokensIn,
-          amountsIn,
-          [],
-          [],
-          [],
-          [],
-        ]),
+        getCallData(aFurucombo, 'injectAndBatchExec', [tokensIn, amountsIn, [], [], [], []]),
       ]);
 
       // send token to vault
@@ -353,23 +288,14 @@ describe('AFurucombo', function () {
         tokensIn,
         amountsIn,
         aFurucombo.address,
-        getCallData(aFurucombo, 'injectAndBatchExec', [
-          tokensIn,
-          amountsIn,
-          [],
-          [],
-          [],
-          [],
-        ]),
+        getCallData(aFurucombo, 'injectAndBatchExec', [tokensIn, amountsIn, [], [], [], []]),
       ]);
 
       // send token to vault
       const vault = await proxy.vault();
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
-      await expect(
-        proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
     it('should revert: remaining tokens >= token dust', async function () {
@@ -381,23 +307,14 @@ describe('AFurucombo', function () {
         tokensIn,
         amountsIn,
         aFurucombo.address,
-        getCallData(aFurucombo, 'injectAndBatchExec', [
-          tokensIn,
-          amountsIn,
-          [],
-          [],
-          [],
-          [],
-        ]),
+        getCallData(aFurucombo, 'injectAndBatchExec', [tokensIn, amountsIn, [], [], [], []]),
       ]);
 
       // send token to vault
       const vault = await proxy.vault();
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
-      await expect(
-        proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith('revertCode(71)'); // AFURUCOMBO_REMAINING_TOKENS
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(71)'); // AFURUCOMBO_REMAINING_TOKENS
     });
 
     it('should revert: invalid handler', async function () {
@@ -405,30 +322,19 @@ describe('AFurucombo', function () {
       const amountsIn: any[] = [];
       const tokensOut: any[] = [];
       const tos = [hFunds.address];
-      const configs = [
-        '0x0003000000000000000000000000000000000000000000000000000000000000',
-      ];
+      const configs = ['0x0003000000000000000000000000000000000000000000000000000000000000'];
       const datas = [simpleEncode('_inject(address[],uint256[])', [[], []])];
       // TaskExecutorMock data
       const data = getCallData(taskExecutor, 'execMock', [
         tokensIn,
         amountsIn,
         aFurucombo.address,
-        getCallData(aFurucombo, 'injectAndBatchExec', [
-          tokensIn,
-          amountsIn,
-          tokensOut,
-          tos,
-          configs,
-          datas,
-        ]),
+        getCallData(aFurucombo, 'injectAndBatchExec', [tokensIn, amountsIn, tokensOut, tos, configs, datas]),
       ]);
 
       // send token to vault
       // const vault = await proxy.vault();
-      await expect(
-        proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith('revertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
     });
   });
 
@@ -436,9 +342,7 @@ describe('AFurucombo', function () {
     it('approve delegation', async function () {
       const vault = await proxy.vault();
 
-      expect(
-        await debtToken.borrowAllowance(vault, furucombo.address)
-      ).to.be.eq(0);
+      expect(await debtToken.borrowAllowance(vault, furucombo.address)).to.be.eq(0);
 
       const borrowAmount = ether('0.05');
       const tokens = [debtToken.address];
@@ -453,13 +357,9 @@ describe('AFurucombo', function () {
       ]);
 
       // Execute
-      const receipt = await proxy
-        .connect(user)
-        .executeMock(taskExecutor.address, data);
+      const receipt = await proxy.connect(user).executeMock(taskExecutor.address, data);
 
-      expect(
-        await debtToken.borrowAllowance(vault, furucombo.address)
-      ).to.be.eq(borrowAmount);
+      expect(await debtToken.borrowAllowance(vault, furucombo.address)).to.be.eq(borrowAmount);
 
       await profileGas(receipt);
     });
@@ -477,9 +377,7 @@ describe('AFurucombo', function () {
         getCallData(aFurucombo, 'approveDelegation', [tokens, amounts]),
       ]);
 
-      await expect(
-        proxy.connect(user).executeMock(taskExecutor.address, data)
-      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
 });

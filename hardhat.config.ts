@@ -44,8 +44,7 @@ const config: HardhatUserConfig = {
     },
     beta: {
       url: process.env.BETA_URL || '',
-      accounts:
-        process.env.SECRET_BETA !== undefined ? [process.env.SECRET_BETA] : [],
+      accounts: process.env.SECRET_BETA !== undefined ? [process.env.SECRET_BETA] : [],
       gas: 6000000,
     },
     localhost: {

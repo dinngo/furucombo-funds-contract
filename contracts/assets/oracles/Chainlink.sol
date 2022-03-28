@@ -49,24 +49,15 @@ contract Chainlink is IAssetOracle, Ownable {
     /// @param assets The asset list to be supported.
     /// @param aggregators The corresponding chainlink aggregator list.
     /// @dev All aggregators should have the same quote and decimals.
-    function addAssets(
-        address[] calldata assets,
-        address[] calldata aggregators
-    ) external onlyOwner {
-        Errors._require(
-            assets.length == aggregators.length,
-            Errors.Code.CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT
-        );
+    function addAssets(address[] calldata assets, address[] calldata aggregators) external onlyOwner {
+        Errors._require(assets.length == aggregators.length, Errors.Code.CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT);
 
         for (uint256 i; i < assets.length; i++) {
             Errors._require(
                 assets[i] != address(0) && aggregators[i] != address(0),
                 Errors.Code.CHAINLINK_ZERO_ADDRESS
             );
-            Errors._require(
-                assetToAggregator[assets[i]] == address(0),
-                Errors.Code.CHAINLINK_EXISTING_ASSET
-            );
+            Errors._require(assetToAggregator[assets[i]] == address(0), Errors.Code.CHAINLINK_EXISTING_ASSET);
 
             _getChainlinkPrice(aggregators[i]); // Try it out
             assetToAggregator[assets[i]] = aggregators[i];
@@ -79,10 +70,7 @@ contract Chainlink is IAssetOracle, Ownable {
     /// @param assets The asset list to be removed.
     function removeAssets(address[] calldata assets) external onlyOwner {
         for (uint256 i; i < assets.length; i++) {
-            Errors._require(
-                assetToAggregator[assets[i]] != address(0),
-                Errors.Code.CHAINLINK_NON_EXISTENT_ASSET
-            );
+            Errors._require(assetToAggregator[assets[i]] != address(0), Errors.Code.CHAINLINK_NON_EXISTENT_ASSET);
             delete assetToAggregator[assets[i]];
 
             emit AssetRemoved(assets[i]);
@@ -91,25 +79,13 @@ contract Chainlink is IAssetOracle, Ownable {
 
     /// @notice Get chainlink data.
     /// @param aggregator The chainlink aggregator address.
-    function _getChainlinkPrice(address aggregator)
-        private
-        view
-        returns (uint256)
-    {
-        Errors._require(
-            aggregator != address(0),
-            Errors.Code.CHAINLINK_ZERO_ADDRESS
-        );
+    function _getChainlinkPrice(address aggregator) private view returns (uint256) {
+        Errors._require(aggregator != address(0), Errors.Code.CHAINLINK_ZERO_ADDRESS);
 
-        (, int256 price, , uint256 updatedAt, ) = IChainlinkAggregatorV3(
-            aggregator
-        ).latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = IChainlinkAggregatorV3(aggregator).latestRoundData();
 
         Errors._require(price > 0, Errors.Code.CHAINLINK_INVALID_PRICE);
-        Errors._require(
-            updatedAt >= block.timestamp - stalePeriod,
-            Errors.Code.CHAINLINK_STALE_PRICE
-        );
+        Errors._require(updatedAt >= block.timestamp - stalePeriod, Errors.Code.CHAINLINK_STALE_PRICE);
 
         return uint256(price);
     }

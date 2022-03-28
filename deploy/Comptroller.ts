@@ -12,14 +12,7 @@ import {
   VALUE_TOLERANCE,
   denominations,
 } from './Config';
-import {
-  assets,
-  aaveV2Asset,
-  aaveV2Debt,
-  curveStable,
-  quickSwap,
-  sushiSwap,
-} from './assets/AssetConfig';
+import { assets, aaveV2Asset, aaveV2Debt, curveStable, quickSwap, sushiSwap } from './assets/AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -45,19 +38,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     resultImplementation.address
   );
 
-  const compData = comptrollerImplementation.interface.encodeFunctionData(
-    'initialize',
-    [
-      fundImplementation.address,
-      assetRouter.address,
-      execFeeCollector,
-      execFeePercentage,
-      pendingLiquidator,
-      pendingExpiration,
-      mortgageVault.address,
-      valueTolerance,
-    ]
-  );
+  const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
+    fundImplementation.address,
+    assetRouter.address,
+    execFeeCollector,
+    execFeePercentage,
+    pendingLiquidator,
+    pendingExpiration,
+    mortgageVault.address,
+    valueTolerance,
+  ]);
 
   const result = await deploy('ComptrollerProxy', {
     from: deployer,
@@ -68,21 +58,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     console.log('executing "Comptroller" newly deployed setup');
 
-    const comptroller = await ethers.getContractAt(
-      'ComptrollerImplementation',
-      result.address
-    );
+    const comptroller = await ethers.getContractAt('ComptrollerImplementation', result.address);
 
     // Permit denomination and dust pair
-    const mappedDenominations = Object.keys(denominations).map(
-      (denomination) => {
-        const dust = denominations[denomination];
-        return [denomination, dust] as const;
-      }
-    );
-    const denominationArray = mappedDenominations.map(
-      ([denomination]) => denomination
-    );
+    const mappedDenominations = Object.keys(denominations).map((denomination) => {
+      const dust = denominations[denomination];
+      return [denomination, dust] as const;
+    });
+    const denominationArray = mappedDenominations.map(([denomination]) => denomination);
     const dustArray = mappedDenominations.map(([, dust]) => dust);
     await comptroller.permitDenominations(denominationArray, dustArray);
 

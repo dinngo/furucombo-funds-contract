@@ -17,12 +17,7 @@ import {
   FundProxy,
 } from '../typechain';
 
-import {
-  DS_PROXY_REGISTRY,
-  FEE_BASE,
-  FUND_STATE,
-  USDC_TOKEN,
-} from './utils/constants';
+import { DS_PROXY_REGISTRY, FEE_BASE, FUND_STATE, USDC_TOKEN } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
 describe('FundProxyFactory', function () {
@@ -55,89 +50,64 @@ describe('FundProxyFactory', function () {
 
   let tokenM: SimpleToken;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture('');
-      [owner, user, manager, collector, liquidator] = await (
-        ethers as any
-      ).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture('');
+    [owner, user, manager, collector, liquidator] = await (ethers as any).getSigners();
 
-      // deploy for comptroller
-      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
-      await oracle.deployed();
+    // deploy for comptroller
+    oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+    await oracle.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
 
-      assetRouter = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await assetRouter.deployed();
+    assetRouter = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await assetRouter.deployed();
 
-      tokenM = await (await ethers.getContractFactory('SimpleToken'))
-        .connect(user)
-        .deploy();
-      await tokenM.deployed();
+    tokenM = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
+    await tokenM.deployed();
 
-      mortgageVault = await (
-        await ethers.getContractFactory('MortgageVault')
-      ).deploy(tokenM.address);
-      await mortgageVault.deployed();
+    mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenM.address);
+    await mortgageVault.deployed();
 
-      fundImplementation = await (
-        await ethers.getContractFactory('FundImplementation')
-      ).deploy(DS_PROXY_REGISTRY);
-      await fundImplementation.deployed();
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    await fundImplementation.deployed();
 
-      comptrollerImplementation = await (
-        await ethers.getContractFactory('ComptrollerImplementation')
-      ).deploy();
-      await comptrollerImplementation.deployed();
+    comptrollerImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
+    await comptrollerImplementation.deployed();
 
-      const compData = comptrollerImplementation.interface.encodeFunctionData(
-        'initialize',
-        [
-          fundImplementation.address,
-          assetRouter.address,
-          collector.address,
-          0,
-          liquidator.address,
-          0,
-          mortgageVault.address,
-          0,
-        ]
-      );
+    const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
+      fundImplementation.address,
+      assetRouter.address,
+      collector.address,
+      0,
+      liquidator.address,
+      0,
+      mortgageVault.address,
+      0,
+    ]);
 
-      comptrollerProxy = await (
-        await ethers.getContractFactory('ComptrollerProxy')
-      ).deploy(comptrollerImplementation.address, compData);
-      await comptrollerProxy.deployed();
-      const receiptAdmin = comptrollerProxy.deployTransaction;
-      const args = await getEventArgs(receiptAdmin, 'AdminChanged');
+    comptrollerProxy = await (
+      await ethers.getContractFactory('ComptrollerProxy')
+    ).deploy(comptrollerImplementation.address, compData);
+    await comptrollerProxy.deployed();
+    const receiptAdmin = comptrollerProxy.deployTransaction;
+    const args = await getEventArgs(receiptAdmin, 'AdminChanged');
 
-      comptrollerProxyAdmin = await (
-        await ethers.getContractFactory('ComptrollerProxyAdmin')
-      ).attach(args.newAdmin);
+    comptrollerProxyAdmin = await (await ethers.getContractFactory('ComptrollerProxyAdmin')).attach(args.newAdmin);
 
-      comptroller = await (
-        await ethers.getContractFactory('ComptrollerImplementation')
-      ).attach(comptrollerProxy.address);
+    comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).attach(comptrollerProxy.address);
 
-      // deploy fundProxyFactory
-      fundProxyFactory = await (
-        await ethers.getContractFactory('FundProxyFactory')
-      )
-        .connect(owner)
-        .deploy(comptroller.address);
-      await fundProxyFactory.deployed();
+    // deploy fundProxyFactory
+    fundProxyFactory = await (await ethers.getContractFactory('FundProxyFactory'))
+      .connect(owner)
+      .deploy(comptroller.address);
+    await fundProxyFactory.deployed();
 
-      await comptroller.permitCreators([manager.address]);
-      await comptroller.permitDenominations([denominationAddress], [dust]);
-      await comptroller.setStakedTier(level, stakeAmount);
-    }
-  );
+    await comptroller.permitCreators([manager.address]);
+    await comptroller.permitDenominations([denominationAddress], [dust]);
+    await comptroller.setStakedTier(level, stakeAmount);
+  });
   beforeEach(async function () {
     await setupTest();
   });
@@ -156,10 +126,7 @@ describe('FundProxyFactory', function () {
         );
 
       const eventArgs = await getEventArgs(receipt, 'FundCreated');
-      const fundProxy = await ethers.getContractAt(
-        'FundImplementation',
-        eventArgs.newFund
-      );
+      const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
     });
     it('should revert: invalid denomination address', async function () {

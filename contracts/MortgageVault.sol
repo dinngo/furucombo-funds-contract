@@ -12,16 +12,8 @@ contract MortgageVault {
     uint256 public totalAmount;
     mapping(address => uint256) public fundAmounts;
 
-    event Mortgaged(
-        address indexed sender,
-        address indexed fund,
-        uint256 amount
-    );
-    event Claimed(
-        address indexed receiver,
-        address indexed fund,
-        uint256 amount
-    );
+    event Mortgaged(address indexed sender, address indexed fund, uint256 amount);
+    event Claimed(address indexed receiver, address indexed fund, uint256 amount);
 
     constructor(IERC20 token_) {
         mortgageToken = token_;
@@ -32,10 +24,7 @@ contract MortgageVault {
         address fund,
         uint256 amount
     ) external {
-        Errors._require(
-            fundAmounts[fund] == 0,
-            Errors.Code.MORTGAGE_VAULT_FUND_MORTGAGED
-        );
+        Errors._require(fundAmounts[fund] == 0, Errors.Code.MORTGAGE_VAULT_FUND_MORTGAGED);
         fundAmounts[fund] += amount;
         totalAmount += amount;
         mortgageToken.safeTransferFrom(sender, address(this), amount);

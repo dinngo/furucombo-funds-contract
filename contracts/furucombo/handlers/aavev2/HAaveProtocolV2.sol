@@ -29,11 +29,7 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         _deposit(asset, amount);
     }
 
-    function withdraw(address asset, uint256 amount)
-        external
-        payable
-        returns (uint256 withdrawAmount)
-    {
+    function withdraw(address asset, uint256 amount) external payable returns (uint256 withdrawAmount) {
         _notMaticToken(asset);
         withdrawAmount = _withdraw(asset, amount);
 
@@ -68,32 +64,15 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         bytes calldata params
     ) external payable {
         _notMaticToken(assets);
-        _requireMsg(
-            assets.length == amounts.length,
-            "flashLoan",
-            "assets and amounts do not match"
-        );
+        _requireMsg(assets.length == amounts.length, "flashLoan", "assets and amounts do not match");
 
-        _requireMsg(
-            assets.length == modes.length,
-            "flashLoan",
-            "assets and modes do not match"
-        );
+        _requireMsg(assets.length == modes.length, "flashLoan", "assets and modes do not match");
 
         address onBehalfOf = _getSender();
-        address pool = ILendingPoolAddressesProviderV2(PROVIDER)
-            .getLendingPool();
+        address pool = ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool();
 
         try
-            ILendingPoolV2(pool).flashLoan(
-                address(this),
-                assets,
-                amounts,
-                modes,
-                onBehalfOf,
-                params,
-                REFERRAL_CODE
-            )
+            ILendingPoolV2(pool).flashLoan(address(this), assets, amounts, modes, onBehalfOf, params, REFERRAL_CODE)
         {} catch Error(string memory reason) {
             _revertMsg("flashLoan", reason);
         } catch {
@@ -116,27 +95,20 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
     ) external override returns (bool) {
         _notMaticToken(assets);
         _requireMsg(
-            msg.sender ==
-                ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool(),
+            msg.sender == ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool(),
             "executeOperation",
             "invalid caller"
         );
 
-        _requireMsg(
-            initiator == address(this),
-            "executeOperation",
-            "not initiated by the proxy"
-        );
+        _requireMsg(initiator == address(this), "executeOperation", "not initiated by the proxy");
 
-        (
-            address[] memory tos,
-            bytes32[] memory configs,
-            bytes[] memory datas
-        ) = abi.decode(params, (address[], bytes32[], bytes[]));
+        (address[] memory tos, bytes32[] memory configs, bytes[] memory datas) = abi.decode(
+            params,
+            (address[], bytes32[], bytes[])
+        );
         IProxy(address(this)).execs(tos, configs, datas);
 
-        address pool = ILendingPoolAddressesProviderV2(PROVIDER)
-            .getLendingPool();
+        address pool = ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool();
         for (uint256 i = 0; i < assets.length; i++) {
             uint256 amountOwing = amounts[i] + premiums[i];
             _tokenApprove(assets[i], pool, amountOwing);
@@ -149,14 +121,9 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
     function _deposit(address asset, uint256 amount) internal {
         (address pool, address aToken) = _getLendingPoolAndAToken(asset);
         _tokenApprove(asset, pool, amount);
-        try
-            ILendingPoolV2(pool).deposit(
-                asset,
-                amount,
-                address(this),
-                REFERRAL_CODE
-            )
-        {} catch Error(string memory reason) {
+        try ILendingPoolV2(pool).deposit(asset, amount, address(this), REFERRAL_CODE) {} catch Error(
+            string memory reason
+        ) {
             _revertMsg("deposit", reason);
         } catch {
             _revertMsg("deposit");
@@ -165,16 +132,11 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         _updateToken(aToken);
     }
 
-    function _withdraw(address asset, uint256 amount)
-        internal
-        returns (uint256 withdrawAmount)
-    {
+    function _withdraw(address asset, uint256 amount) internal returns (uint256 withdrawAmount) {
         (address pool, address aToken) = _getLendingPoolAndAToken(asset);
         amount = _getBalance(aToken, amount);
 
-        try
-            ILendingPoolV2(pool).withdraw(asset, amount, address(this))
-        returns (uint256 ret) {
+        try ILendingPoolV2(pool).withdraw(asset, amount, address(this)) returns (uint256 ret) {
             withdrawAmount = ret;
         } catch Error(string memory reason) {
             _revertMsg("withdraw", reason);
@@ -189,13 +151,10 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         uint256 rateMode,
         address onBehalfOf
     ) internal returns (uint256 remainDebt) {
-        address pool = ILendingPoolAddressesProviderV2(PROVIDER)
-            .getLendingPool();
+        address pool = ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool();
         _tokenApprove(asset, pool, amount);
 
-        try
-            ILendingPoolV2(pool).repay(asset, amount, rateMode, onBehalfOf)
-        {} catch Error(string memory reason) {
+        try ILendingPoolV2(pool).repay(asset, amount, rateMode, onBehalfOf) {} catch Error(string memory reason) {
             _revertMsg("repay", reason);
         } catch {
             _revertMsg("repay");
@@ -203,10 +162,8 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
 
         _tokenApproveZero(asset, pool);
 
-        DataTypes.ReserveData memory reserve = ILendingPoolV2(pool)
-            .getReserveData(asset);
-        remainDebt = DataTypes.InterestRateMode(rateMode) ==
-            DataTypes.InterestRateMode.STABLE
+        DataTypes.ReserveData memory reserve = ILendingPoolV2(pool).getReserveData(asset);
+        remainDebt = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE
             ? IERC20(reserve.stableDebtTokenAddress).balanceOf(onBehalfOf)
             : IERC20(reserve.variableDebtTokenAddress).balanceOf(onBehalfOf);
     }
@@ -217,13 +174,9 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         uint256 rateMode,
         address onBehalfOf
     ) internal {
-        ILendingPoolV2 pool = ILendingPoolV2(
-            ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool()
-        );
+        ILendingPoolV2 pool = ILendingPoolV2(ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool());
 
-        try
-            pool.borrow(asset, amount, rateMode, REFERRAL_CODE, onBehalfOf)
-        {} catch Error(string memory reason) {
+        try pool.borrow(asset, amount, rateMode, REFERRAL_CODE, onBehalfOf) {} catch Error(string memory reason) {
             _revertMsg("borrow", reason);
         } catch {
             _revertMsg("borrow");
@@ -231,36 +184,20 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
 
         // Return debt asset to pool proxy
         DataTypes.ReserveData memory data = pool.getReserveData(asset);
-        if (
-            DataTypes.InterestRateMode(rateMode) ==
-            DataTypes.InterestRateMode.VARIABLE
-        ) {
+        if (DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.VARIABLE) {
             _updateToken(data.variableDebtTokenAddress);
-        } else if (
-            DataTypes.InterestRateMode(rateMode) ==
-            DataTypes.InterestRateMode.STABLE
-        ) {
+        } else if (DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE) {
             _updateToken(data.stableDebtTokenAddress);
         } else {
             _revertMsg("rateMode is not support");
         }
     }
 
-    function _getLendingPoolAndAToken(address underlying)
-        internal
-        view
-        returns (address pool, address aToken)
-    {
+    function _getLendingPoolAndAToken(address underlying) internal view returns (address pool, address aToken) {
         pool = ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool();
-        try ILendingPoolV2(pool).getReserveData(underlying) returns (
-            DataTypes.ReserveData memory data
-        ) {
+        try ILendingPoolV2(pool).getReserveData(underlying) returns (DataTypes.ReserveData memory data) {
             aToken = data.aTokenAddress;
-            _requireMsg(
-                aToken != address(0),
-                "General",
-                "aToken should not be zero address"
-            );
+            _requireMsg(aToken != address(0), "General", "aToken should not be zero address");
         } catch Error(string memory reason) {
             _revertMsg("General", reason);
         } catch {

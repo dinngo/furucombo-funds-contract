@@ -10,12 +10,7 @@ import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {Errors} from "./utils/Errors.sol";
 
 contract FundProxyFactory {
-    event FundCreated(
-        address indexed newFund,
-        address comptroller,
-        address shareToken,
-        address vault
-    );
+    event FundCreated(address indexed newFund, address comptroller, address shareToken, address vault);
 
     IComptroller public comptroller;
 
@@ -32,28 +27,16 @@ contract FundProxyFactory {
         uint256 reserveExecutionRate,
         string memory shareTokenName
     ) external returns (address) {
-        Errors._require(
-            comptroller.isValidCreator(msg.sender),
-            Errors.Code.FUND_PROXY_FACTORY_INVALID_CREATOR
-        );
+        Errors._require(comptroller.isValidCreator(msg.sender), Errors.Code.FUND_PROXY_FACTORY_INVALID_CREATOR);
         Errors._require(
             comptroller.isValidDenomination(address(denomination)),
             Errors.Code.FUND_PROXY_FACTORY_INVALID_DENOMINATION
         );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
-        (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(
-            level
-        );
-        Errors._require(
-            isMortgageTierSet,
-            Errors.Code.FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
-        );
+        (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(level);
+        Errors._require(isMortgageTierSet, Errors.Code.FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER);
         // Can be customized
-        ShareToken share = new ShareToken(
-            shareTokenName,
-            "FFST",
-            denomination.decimals()
-        );
+        ShareToken share = new ShareToken(shareTokenName, "FFST", denomination.decimals());
         bytes memory data = abi.encodeWithSignature(
             "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
             level,
@@ -70,12 +53,7 @@ contract FundProxyFactory {
         IFund fund = IFund(address(new FundProxy(address(comptroller), data)));
         mortgageVault.mortgage(msg.sender, address(fund), amount);
         share.transferOwnership(address(fund));
-        emit FundCreated(
-            address(fund),
-            address(comptroller),
-            address(share),
-            fund.vault()
-        );
+        emit FundCreated(address(fund), address(comptroller), address(share), fund.vault());
         return address(fund);
     }
 }

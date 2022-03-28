@@ -10,15 +10,13 @@ describe('FundQuotaAction', function () {
   let user: Wallet;
   let action: AMock;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user] = await (ethers as any).getSigners();
 
-      action = await (await ethers.getContractFactory('AMock')).deploy();
-      await action.deployed();
-    }
-  );
+    action = await (await ethers.getContractFactory('AMock')).deploy();
+    await action.deployed();
+  });
 
   // `beforeEach` will run before each test, re-deploying the contract every
   // time. It receives a callback, which can be async.
@@ -60,9 +58,7 @@ describe('FundQuotaAction', function () {
       expect(await action.doIsFundQuotaZero(NATIVE_TOKEN)).to.be.eq(false);
       expect(await action.doIsFundQuotaZero(tokenB)).to.be.eq(true);
       expect(await action.doGetFundQuota(tokenA)).to.be.eq(quota.add(quota));
-      expect(await action.doGetFundQuota(NATIVE_TOKEN)).to.be.eq(
-        quota.add(quota)
-      );
+      expect(await action.doGetFundQuota(NATIVE_TOKEN)).to.be.eq(quota.add(quota));
       expect(await action.doGetFundQuota(tokenB)).to.be.eq(0);
     });
 
@@ -94,12 +90,8 @@ describe('FundQuotaAction', function () {
       expect(await action.doIsFundQuotaZero(tokenA)).to.be.eq(false);
       expect(await action.doIsFundQuotaZero(NATIVE_TOKEN)).to.be.eq(false);
       expect(await action.doIsFundQuotaZero(tokenB)).to.be.eq(true);
-      expect(await action.doGetFundQuota(tokenA)).to.be.eq(
-        quota.sub(decreaseQuota)
-      );
-      expect(await action.doGetFundQuota(NATIVE_TOKEN)).to.be.eq(
-        quota.sub(decreaseQuota)
-      );
+      expect(await action.doGetFundQuota(tokenA)).to.be.eq(quota.sub(decreaseQuota));
+      expect(await action.doGetFundQuota(NATIVE_TOKEN)).to.be.eq(quota.sub(decreaseQuota));
       expect(await action.doGetFundQuota(tokenB)).to.be.eq(0);
     });
 
@@ -127,9 +119,9 @@ describe('FundQuotaAction', function () {
 
       // Execution
 
-      await expect(
-        action.doDecreaseFundQuota(tokenA, quota.add(BigNumber.from('1')))
-      ).to.be.revertedWith('insufficient quota');
+      await expect(action.doDecreaseFundQuota(tokenA, quota.add(BigNumber.from('1')))).to.be.revertedWith(
+        'insufficient quota'
+      );
     });
 
     it('clean fund quota', async function () {

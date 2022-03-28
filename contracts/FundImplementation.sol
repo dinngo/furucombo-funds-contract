@@ -20,13 +20,7 @@ import {Errors} from "./utils/Errors.sol";
 /// @title The implementation contract for fund.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
-contract FundImplementation is
-    AssetModule,
-    ShareModule,
-    ExecutionModule,
-    ManagementFeeModule,
-    PerformanceFeeModule
-{
+contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
     uint256 private constant _RESERVE_BASE = 1e4;
     uint256 private constant _TOLERANCE_BASE = 1e4;
 
@@ -82,10 +76,7 @@ contract FundImplementation is
         _finalize();
 
         // Add denomination to list and never remove
-        Errors._require(
-            getAssetList().length == 0,
-            Errors.Code.IMPLEMENTATION_ASSET_LIST_NOT_EMPTY
-        );
+        Errors._require(getAssetList().length == 0, Errors.Code.IMPLEMENTATION_ASSET_LIST_NOT_EMPTY);
 
         Errors._require(
             comptroller.isValidDenomination(address(denomination)),
@@ -105,23 +96,16 @@ contract FundImplementation is
 
     /// @notice Resume the fund by anyone if can settle pending redeemption.
     function resume() public whenState(State.RedemptionPending) {
-        Errors._require(
-            isPendingResolvable(true),
-            Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
-        );
+        Errors._require(isPendingResolvable(true), Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE);
         _settlePendingRedemption(true);
         _resume();
     }
 
     /// @notice Liquidate the fund by anyone and transfer owner to liquidator.
     function liquidate() public {
+        Errors._require(pendingStartTime != 0, Errors.Code.IMPLEMENTATION_PENDING_NOT_START);
         Errors._require(
-            pendingStartTime != 0,
-            Errors.Code.IMPLEMENTATION_PENDING_NOT_START
-        );
-        Errors._require(
-            block.timestamp >=
-                pendingStartTime + comptroller.pendingExpiration(),
+            block.timestamp >= pendingStartTime + comptroller.pendingExpiration(),
             Errors.Code.IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
 
@@ -133,12 +117,7 @@ contract FundImplementation is
 
     /// @notice Close the fund. The pending redemption will be settled
     /// without penalty.
-    function close()
-        public
-        override
-        onlyOwner
-        whenStates(State.Executing, State.Liquidating)
-    {
+    function close() public override onlyOwner whenStates(State.Executing, State.Liquidating) {
         if (_getResolvePendingShares(false) > 0) {
             _settlePendingRedemption(false);
         }
@@ -152,38 +131,22 @@ contract FundImplementation is
     // Setters
     /////////////////////////////////////////////////////
     /// @notice Set management fee rate only during reviewing.
-    function setManagementFeeRate(uint256 mFeeRate_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
+    function setManagementFeeRate(uint256 mFeeRate_) external onlyOwner whenState(State.Reviewing) {
         _setManagementFeeRate(mFeeRate_);
     }
 
     /// @notice Set performance fee rate only during reviewing.
-    function setPerformanceFeeRate(uint256 pFeeRate_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
+    function setPerformanceFeeRate(uint256 pFeeRate_) external onlyOwner whenState(State.Reviewing) {
         _setPerformanceFeeRate(pFeeRate_);
     }
 
     /// @notice Set crystallization period only during reviewing.
-    function setCrystallizationPeriod(uint256 crystallizationPeriod_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
+    function setCrystallizationPeriod(uint256 crystallizationPeriod_) external onlyOwner whenState(State.Reviewing) {
         _setCrystallizationPeriod(crystallizationPeriod_);
     }
 
     /// @notice Set reserve rate only during reviewing.
-    function setReserveExecutionRate(uint256 reserve_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
+    function setReserveExecutionRate(uint256 reserve_) external onlyOwner whenState(State.Reviewing) {
         _setReserveExecutionRate(reserve_);
     }
 
@@ -198,13 +161,7 @@ contract FundImplementation is
 
     /// @notice Get the total asset value of the fund.
     /// @return The value of asset.
-    function getTotalAssetValue()
-        public
-        view
-        virtual
-        override(PerformanceFeeModule, ShareModule)
-        returns (uint256)
-    {
+    function getTotalAssetValue() public view virtual override(PerformanceFeeModule, ShareModule) returns (uint256) {
         address[] memory assets = getAssetList();
         uint256 length = assets.length;
         uint256[] memory amounts = new uint256[](length);
@@ -212,12 +169,7 @@ contract FundImplementation is
             amounts[i] = IERC20(assets[i]).balanceOf(address(vault));
         }
 
-        return
-            comptroller.assetRouter().calcAssetsTotalValue(
-                assets,
-                amounts,
-                address(denomination)
-            );
+        return comptroller.assetRouter().calcAssetsTotalValue(assets, amounts, address(denomination));
     }
 
     /////////////////////////////////////////////////////
@@ -232,18 +184,13 @@ contract FundImplementation is
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
-        Errors._require(
-            comptroller.isValidDealingAsset(level, asset),
-            Errors.Code.IMPLEMENTATION_INVALID_ASSET
-        );
+        Errors._require(comptroller.isValidDealingAsset(level, asset), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
 
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
             int256 value = getAssetValue(asset);
-            int256 dust = int256(
-                comptroller.getDenominationDust(address(denomination))
-            );
+            int256 dust = int256(comptroller.getDenominationDust(address(denomination)));
 
             if (value >= dust || value < 0) {
                 super._addAsset(asset);
@@ -264,9 +211,7 @@ contract FundImplementation is
         address _denomination = address(denomination);
         if (asset != _denomination) {
             int256 value = getAssetValue(asset);
-            int256 dust = int256(
-                comptroller.getDenominationDust(_denomination)
-            );
+            int256 dust = int256(comptroller.getDenominationDust(_denomination));
 
             if (value < dust && value >= 0) {
                 super._removeAsset(asset);
@@ -280,12 +225,7 @@ contract FundImplementation is
         uint256 balance = IERC20(asset).balanceOf(address(vault));
         if (balance == 0) return 0;
 
-        return
-            comptroller.assetRouter().calcAssetValue(
-                asset,
-                balance,
-                address(denomination)
-            );
+        return comptroller.assetRouter().calcAssetValue(asset, balance, address(denomination));
     }
 
     /////////////////////////////////////////////////////
@@ -301,11 +241,7 @@ contract FundImplementation is
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response, uint256 prevAssetValue)
-        internal
-        override
-        returns (uint256)
-    {
+    function _afterExecute(bytes memory response, uint256 prevAssetValue) internal override returns (uint256) {
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
@@ -323,15 +259,11 @@ contract FundImplementation is
             resume();
         }
 
-        Errors._require(
-            _isReserveEnough(),
-            Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
-        );
+        Errors._require(_isReserveEnough(), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
 
         // Check asset value
         uint256 totalAssetValue = getTotalAssetValue();
-        uint256 minTotalAssetValue = (prevAssetValue *
-            comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
+        uint256 minTotalAssetValue = (prevAssetValue * comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
 
         Errors._require(
             totalAssetValue >= minTotalAssetValue,
@@ -344,8 +276,7 @@ contract FundImplementation is
     /// @notice Check funds reserve rate is enough or not.
     /// @return The reserve rate is enough or not.
     function _isReserveEnough() internal view returns (bool) {
-        uint256 reserveRate = (getReserve() * _RESERVE_BASE) /
-            getTotalAssetValue();
+        uint256 reserveRate = (getReserve() * _RESERVE_BASE) / getTotalAssetValue();
         return reserveRate >= reserveExecutionRate;
     }
 

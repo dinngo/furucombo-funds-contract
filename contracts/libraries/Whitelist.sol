@@ -4,8 +4,7 @@ pragma solidity ^0.8.0;
 
 library Whitelist {
     uint256 internal constant ANY32 = type(uint256).max;
-    address internal constant ANY20 =
-        0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
+    address internal constant ANY20 = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
     bytes4 internal constant ANY4 = bytes4(type(uint32).max);
 
     // Action Whitelist
@@ -19,10 +18,7 @@ library Whitelist {
         address to,
         bytes4 sig
     ) internal view returns (bool) {
-        return
-            wl.acl[level][to][sig] ||
-            wl.acl[level][to][ANY4] ||
-            wl.acl[ANY32][to][sig];
+        return wl.acl[level][to][sig] || wl.acl[level][to][ANY4] || wl.acl[ANY32][to][sig];
     }
 
     function permit(
@@ -85,11 +81,7 @@ library Whitelist {
         wl.acl[creator] = false;
     }
 
-    function canCall(CreatorWList storage wl, address creator)
-        internal
-        view
-        returns (bool)
-    {
+    function canCall(CreatorWList storage wl, address creator) internal view returns (bool) {
         return wl.acl[creator] || wl.acl[ANY20];
     }
 }

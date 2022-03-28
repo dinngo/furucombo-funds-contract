@@ -11,9 +11,7 @@ contract FundImplementationMock is FundImplementation {
     bool public totalAssetValueMocked;
     uint256 public lastTotalAssetValue;
 
-    constructor(IDSProxyRegistry dsProxyRegistry_)
-        FundImplementation(dsProxyRegistry_)
-    {}
+    constructor(IDSProxyRegistry dsProxyRegistry_) FundImplementation(dsProxyRegistry_) {}
 
     function reviewingMock() external {
         _enterState(State.Reviewing);
@@ -31,12 +29,7 @@ contract FundImplementationMock is FundImplementation {
         totalAssetValueMocked = true;
     }
 
-    function getTotalAssetValue()
-        public
-        view
-        override(FundImplementation)
-        returns (uint256)
-    {
+    function getTotalAssetValue() public view override(FundImplementation) returns (uint256) {
         if (totalAssetValueMocked) {
             return totalAssetValueMock;
         } else {
@@ -47,15 +40,8 @@ contract FundImplementationMock is FundImplementation {
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
-    function vaultCallMock(address _target, bytes calldata _data)
-        external
-        returns (bytes memory)
-    {
-        bytes memory data = abi.encodeWithSignature(
-            "call(address,bytes)",
-            _target,
-            _data
-        );
+    function vaultCallMock(address _target, bytes calldata _data) external returns (bytes memory) {
+        bytes memory data = abi.encodeWithSignature("call(address,bytes)", _target, _data);
         CallActionMock action = new CallActionMock();
 
         return vault.execute(address(action), data);
@@ -75,10 +61,7 @@ contract FundImplementationMock is FundImplementation {
 }
 
 contract CallActionMock {
-    function call(address _target, bytes calldata _data)
-        external
-        returns (bool success)
-    {
+    function call(address _target, bytes calldata _data) external returns (bool success) {
         (success, ) = _target.call(_data);
     }
 }

@@ -20,11 +20,7 @@ contract FundFooAction is ActionBase {
         ret = FundFoo(to).barUint();
     }
 
-    function bar1(address to, bytes32 a)
-        external
-        payable
-        returns (bytes32 ret)
-    {
+    function bar1(address to, bytes32 a) external payable returns (bytes32 ret) {
         ret = FundFoo(to).bar1(a);
     }
 
@@ -36,11 +32,7 @@ contract FundFooAction is ActionBase {
         ret = FundFoo(to).bar2(a, b);
     }
 
-    function barUint1(address to, uint256 a)
-        external
-        payable
-        returns (uint256 ret)
-    {
+    function barUint1(address to, uint256 a) external payable returns (uint256 ret) {
         ret = FundFoo(to).barUint1(a);
     }
 
@@ -61,11 +53,7 @@ contract FundFooAction is ActionBase {
         ret = FundFoo(to).barUList(a, b, c);
     }
 
-    function barUList2(address to, uint256[] calldata uList)
-        external
-        payable
-        returns (uint256[] memory ret)
-    {
+    function barUList2(address to, uint256[] calldata uList) external payable returns (uint256[] memory ret) {
         ret = FundFoo(to).barUList2(uList);
     }
 
@@ -79,19 +67,13 @@ contract FundFooAction is ActionBase {
         }
     }
 
-    function decreaseQuota(
-        address[] calldata assets,
-        uint256[] calldata amounts
-    ) external payable {
+    function decreaseQuota(address[] calldata assets, uint256[] calldata amounts) external payable {
         for (uint256 i = 0; i < assets.length; i++) {
             decreaseFundQuota(assets[i], amounts[i]);
         }
     }
 
-    function increaseQuota(
-        address[] calldata assets,
-        uint256[] calldata amounts
-    ) external payable {
+    function increaseQuota(address[] calldata assets, uint256[] calldata amounts) external payable {
         for (uint256 i = 0; i < assets.length; i++) {
             increaseFundQuota(assets[i], amounts[i]);
         }

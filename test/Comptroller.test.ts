@@ -40,95 +40,66 @@ describe('Comptroller', function () {
   let tokenD: SimpleToken;
   let factory: FundProxyFactory;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user, collector, liquidator] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user, collector, liquidator] = await (ethers as any).getSigners();
 
-      tokenM = await (await ethers.getContractFactory('SimpleToken'))
-        .connect(user)
-        .deploy();
-      await tokenM.deployed();
+    tokenM = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
+    await tokenM.deployed();
 
-      tokenD = await (await ethers.getContractFactory('SimpleToken'))
-        .connect(user)
-        .deploy();
-      await tokenD.deployed();
+    tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
+    await tokenD.deployed();
 
-      fundImplementation = await (
-        await ethers.getContractFactory('FundImplementation')
-      ).deploy(DS_PROXY_REGISTRY);
-      await fundImplementation.deployed();
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    await fundImplementation.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
 
-      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
-      await oracle.deployed();
+    oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+    await oracle.deployed();
 
-      assetRouter = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await assetRouter.deployed();
+    assetRouter = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await assetRouter.deployed();
 
-      mortgageVault = await (
-        await ethers.getContractFactory('MortgageVault')
-      ).deploy(tokenM.address);
-      await mortgageVault.deployed();
+    mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenM.address);
+    await mortgageVault.deployed();
 
-      comptrollerImplementation = await (
-        await ethers.getContractFactory('ComptrollerImplementation')
-      ).deploy();
-      await comptrollerImplementation.deployed();
+    comptrollerImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
+    await comptrollerImplementation.deployed();
 
-      const compData = comptrollerImplementation.interface.encodeFunctionData(
-        'initialize',
-        [
-          fundImplementation.address,
-          assetRouter.address,
-          collector.address,
-          0,
-          liquidator.address,
-          0,
-          mortgageVault.address,
-          0,
-        ]
-      );
+    const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
+      fundImplementation.address,
+      assetRouter.address,
+      collector.address,
+      0,
+      liquidator.address,
+      0,
+      mortgageVault.address,
+      0,
+    ]);
 
-      comptrollerProxy = await (
-        await ethers.getContractFactory('ComptrollerProxy')
-      ).deploy(comptrollerImplementation.address, compData);
-      await comptrollerProxy.deployed();
-      const receiptAdmin = comptrollerProxy.deployTransaction;
-      const args = await getEventArgs(receiptAdmin, 'AdminChanged');
+    comptrollerProxy = await (
+      await ethers.getContractFactory('ComptrollerProxy')
+    ).deploy(comptrollerImplementation.address, compData);
+    await comptrollerProxy.deployed();
+    const receiptAdmin = comptrollerProxy.deployTransaction;
+    const args = await getEventArgs(receiptAdmin, 'AdminChanged');
 
-      comptrollerProxyAdmin = await (
-        await ethers.getContractFactory('ComptrollerProxyAdmin')
-      ).attach(args.newAdmin);
+    comptrollerProxyAdmin = await (await ethers.getContractFactory('ComptrollerProxyAdmin')).attach(args.newAdmin);
 
-      comptroller = await (
-        await ethers.getContractFactory('ComptrollerImplementation')
-      ).attach(comptrollerProxy.address);
+    comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).attach(comptrollerProxy.address);
 
-      const beaconAddress = await comptroller.callStatic.beacon();
+    const beaconAddress = await comptroller.callStatic.beacon();
 
-      beacon = await (
-        await ethers.getContractFactory('UpgradeableBeacon')
-      ).attach(beaconAddress);
+    beacon = await (await ethers.getContractFactory('UpgradeableBeacon')).attach(beaconAddress);
 
-      taskExecutor = await (
-        await ethers.getContractFactory('TaskExecutor')
-      ).deploy(owner.address, comptroller.address);
-      await taskExecutor.deployed();
+    taskExecutor = await (await ethers.getContractFactory('TaskExecutor')).deploy(owner.address, comptroller.address);
+    await taskExecutor.deployed();
 
-      factory = await (
-        await ethers.getContractFactory('FundProxyFactory')
-      ).deploy(comptroller.address);
-      await factory.deployed();
-    }
-  );
+    factory = await (await ethers.getContractFactory('FundProxyFactory')).deploy(comptroller.address);
+    await factory.deployed();
+  });
 
   // `beforeEach` will run before each test, re-deploying the contract every
   // time. It receives a callback, which can be async.
@@ -141,9 +112,7 @@ describe('Comptroller', function () {
     it('halt ', async function () {
       // check env before execution
       expect(await comptroller.fHalt()).to.equal(false);
-      expect(await comptroller.implementation()).to.equal(
-        fundImplementation.address
-      );
+      expect(await comptroller.implementation()).to.equal(fundImplementation.address);
 
       // halt
       await expect(comptroller.halt()).to.emit(comptroller, 'Halted');
@@ -164,21 +133,15 @@ describe('Comptroller', function () {
       // unHalt
       await expect(comptroller.unHalt()).to.emit(comptroller, 'UnHalted');
       expect(await comptroller.fHalt()).to.equal(false);
-      expect(await comptroller.implementation()).to.equal(
-        fundImplementation.address
-      );
+      expect(await comptroller.implementation()).to.equal(fundImplementation.address);
     });
 
     it('should revert: halt by non-owner', async function () {
-      await expect(comptroller.connect(user).halt()).to.be.revertedWith(
-        'Ownable: caller is not the owner'
-      );
+      await expect(comptroller.connect(user).halt()).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert: unHalt by non-owner', async function () {
-      await expect(comptroller.connect(user).unHalt()).to.be.revertedWith(
-        'Ownable: caller is not the owner'
-      );
+      await expect(comptroller.connect(user).unHalt()).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
 
@@ -195,9 +158,7 @@ describe('Comptroller', function () {
 
       // verify banned proxy
       expect(await comptroller.bannedFundProxy(user.address)).to.equal(true);
-      await expect(
-        comptroller.connect(user).implementation()
-      ).to.be.revertedWith('revertCode(1)'); // COMPTROLLER_BANNED
+      await expect(comptroller.connect(user).implementation()).to.be.revertedWith('revertCode(1)'); // COMPTROLLER_BANNED
     });
 
     it('unBan ', async function () {
@@ -212,21 +173,19 @@ describe('Comptroller', function () {
 
       // verify unbanned proxy
       expect(await comptroller.bannedFundProxy(user.address)).to.equal(false);
-      expect(await comptroller.connect(user).implementation()).to.be.equal(
-        fundImplementation.address
-      );
+      expect(await comptroller.connect(user).implementation()).to.be.equal(fundImplementation.address);
     });
 
     it('should revert: ban by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).banFundProxy(user.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).banFundProxy(user.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should revert: unBan by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).unbanFundProxy(user.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).unbanFundProxy(user.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -234,31 +193,23 @@ describe('Comptroller', function () {
   describe('implementation', function () {
     it('set implementation', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).implementation()).to.be.equal(
-        fundImplementation.address
-      );
+      expect(await comptroller.connect(user).implementation()).to.be.equal(fundImplementation.address);
 
       // deploy new implementation
-      const newImpl = await (
-        await ethers.getContractFactory('FundImplementation')
-      ).deploy(DS_PROXY_REGISTRY);
+      const newImpl = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
       await newImpl.deployed();
 
       // set new implementation
-      await expect(beacon.upgradeTo(newImpl.address))
-        .to.emit(beacon, 'Upgraded')
-        .withArgs(newImpl.address);
+      await expect(beacon.upgradeTo(newImpl.address)).to.emit(beacon, 'Upgraded').withArgs(newImpl.address);
 
       // check new implementation
-      expect(await comptroller.connect(user).implementation()).to.be.equal(
-        newImpl.address
-      );
+      expect(await comptroller.connect(user).implementation()).to.be.equal(newImpl.address);
     });
 
     it('should revert: set implementation by non-owner', async function () {
-      await expect(
-        beacon.connect(user).upgradeTo(fundImplementation.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(beacon.connect(user).upgradeTo(fundImplementation.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -272,52 +223,30 @@ describe('Comptroller', function () {
     describe('permit/forbid assets', function () {
       it('permit assets', async function () {
         // check env before execution
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidDealingAssets(level, [tokenA, tokenB])
-        ).to.be.equal(false);
+        expect(await comptroller.connect(user).isValidDealingAssets(level, [tokenA, tokenB])).to.be.equal(false);
 
         // permit assets
         const receipt = await comptroller.permitAssets(level, [tokenA, tokenB]);
 
         // check events
-        await expect(receipt)
-          .to.emit(comptroller, 'PermitAsset')
-          .withArgs(level, tokenA);
-        await expect(receipt)
-          .to.emit(comptroller, 'PermitAsset')
-          .withArgs(level, tokenB);
+        await expect(receipt).to.emit(comptroller, 'PermitAsset').withArgs(level, tokenA);
+        await expect(receipt).to.emit(comptroller, 'PermitAsset').withArgs(level, tokenB);
 
         // check single asset
-        expect(
-          await comptroller.connect(user).isValidDealingAsset(level, tokenA)
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidDealingAsset(level, tokenA)).to.be.equal(true);
 
         // check multiple assets
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidDealingAssets(level, [tokenA, tokenB])
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidDealingAssets(level, [tokenA, tokenB])).to.be.equal(true);
 
         // not affect other level assets
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidDealingAsset(otherLevel, tokenA)
-        ).to.be.equal(false);
+        expect(await comptroller.connect(user).isValidDealingAsset(otherLevel, tokenA)).to.be.equal(false);
       });
 
       it('forbid assets', async function () {
         // check env before execution
         await comptroller.permitAssets(otherLevel, [tokenA]);
         await comptroller.permitAssets(level, [tokenA, tokenB]);
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidDealingAssets(level, [tokenA, tokenB])
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidDealingAssets(level, [tokenA, tokenB])).to.be.equal(true);
 
         // forbid asset
         await expect(comptroller.forbidAssets(level, [tokenA]))
@@ -326,39 +255,27 @@ describe('Comptroller', function () {
 
         // validate dealing asset
         // single asset
-        expect(
-          await comptroller.connect(user).isValidDealingAsset(level, tokenA)
-        ).to.be.equal(false);
+        expect(await comptroller.connect(user).isValidDealingAsset(level, tokenA)).to.be.equal(false);
 
-        expect(
-          await comptroller.connect(user).isValidDealingAsset(level, tokenB)
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidDealingAsset(level, tokenB)).to.be.equal(true);
 
         // check multiple assets
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidDealingAssets(level, [tokenA, tokenB])
-        ).to.be.equal(false);
+        expect(await comptroller.connect(user).isValidDealingAssets(level, [tokenA, tokenB])).to.be.equal(false);
 
         // not affect other level assets
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidDealingAsset(otherLevel, tokenA)
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidDealingAsset(otherLevel, tokenA)).to.be.equal(true);
       });
 
       it('should revert: permit asset by non-owner', async function () {
-        await expect(
-          comptroller.connect(user).permitAssets(level, [tokenA])
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        await expect(comptroller.connect(user).permitAssets(level, [tokenA])).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        );
       });
 
       it('should revert: forbid asset by non-owner', async function () {
-        await expect(
-          comptroller.connect(user).forbidAssets(level, [tokenA])
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        await expect(comptroller.connect(user).forbidAssets(level, [tokenA])).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        );
       });
     });
 
@@ -366,9 +283,7 @@ describe('Comptroller', function () {
       beforeEach(async function () {
         // check env before execution
         await comptroller.permitAssets(level, [tokenA]);
-        expect(
-          await comptroller.connect(user).isValidInitialAssets(level, [tokenA])
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidInitialAssets(level, [tokenA])).to.be.equal(true);
       });
 
       // validate initial asset
@@ -379,9 +294,7 @@ describe('Comptroller', function () {
           .to.emit(comptroller, 'SetInitialAssetCheck')
           .withArgs(check);
 
-        expect(
-          await comptroller.connect(user).fInitialAssetCheck()
-        ).to.be.equal(check);
+        expect(await comptroller.connect(user).fInitialAssetCheck()).to.be.equal(check);
 
         // set new implementation
         check = true;
@@ -390,64 +303,40 @@ describe('Comptroller', function () {
           .withArgs(check);
 
         // check initialCheck
-        expect(
-          await comptroller.connect(user).fInitialAssetCheck()
-        ).to.be.equal(check);
+        expect(await comptroller.connect(user).fInitialAssetCheck()).to.be.equal(check);
       });
 
       it('non-authority initial asset', async function () {
         // enable initial asset check
-        expect(
-          await comptroller.connect(user).isValidInitialAsset(level, tokenA)
-        ).to.be.equal(true);
-        expect(
-          await comptroller.connect(user).isValidInitialAsset(level, tokenB)
-        ).to.be.equal(false);
+        expect(await comptroller.connect(user).isValidInitialAsset(level, tokenA)).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidInitialAsset(level, tokenB)).to.be.equal(false);
 
         // check multiple assets
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidInitialAssets(level, [tokenA, tokenB])
-        ).to.be.equal(false);
+        expect(await comptroller.connect(user).isValidInitialAssets(level, [tokenA, tokenB])).to.be.equal(false);
       });
 
       it('authority initial asset', async function () {
         // enable initial asset check
-        expect(
-          await comptroller.connect(user).isValidInitialAsset(level, tokenA)
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidInitialAsset(level, tokenA)).to.be.equal(true);
 
         // check multiple assets
-        expect(
-          await comptroller.connect(user).isValidInitialAssets(level, [tokenA])
-        ).to.be.equal(true);
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidInitialAssets(level, [tokenA, tokenB])
-        ).to.be.equal(false);
+        expect(await comptroller.connect(user).isValidInitialAssets(level, [tokenA])).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidInitialAssets(level, [tokenA, tokenB])).to.be.equal(false);
       });
 
       it('always return true if initial check flag is false', async function () {
         await comptroller.setInitialAssetCheck(false);
         // check single asset
-        expect(
-          await comptroller.connect(user).isValidInitialAsset(level, tokenB)
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidInitialAsset(level, tokenB)).to.be.equal(true);
 
         // check multiple assets
-        expect(
-          await comptroller
-            .connect(user)
-            .isValidInitialAssets(level, [tokenA, tokenB])
-        ).to.be.equal(true);
+        expect(await comptroller.connect(user).isValidInitialAssets(level, [tokenA, tokenB])).to.be.equal(true);
       });
 
       it('should revert: set initial check flag by non-owner', async function () {
-        await expect(
-          comptroller.connect(user).setInitialAssetCheck(true)
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        await expect(comptroller.connect(user).setInitialAssetCheck(true)).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        );
       });
     });
   });
@@ -460,91 +349,56 @@ describe('Comptroller', function () {
     const dustB = ethers.utils.parseUnits('0.1', 18);
     it('permit denominations', async function () {
       // check env before execution
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenA)
-      ).to.be.equal(false);
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenB)
-      ).to.be.equal(false);
+      expect(await comptroller.connect(user).isValidDenomination(tokenA)).to.be.equal(false);
+      expect(await comptroller.connect(user).isValidDenomination(tokenB)).to.be.equal(false);
 
       // permit new denominations
-      const receipt = await comptroller.permitDenominations(
-        [tokenA, tokenB],
-        [dustA, dustB]
-      );
-      await expect(receipt)
-        .to.emit(comptroller, 'PermitDenomination')
-        .withArgs(tokenA, dustA);
-      await expect(receipt)
-        .to.emit(comptroller, 'PermitDenomination')
-        .withArgs(tokenB, dustB);
+      const receipt = await comptroller.permitDenominations([tokenA, tokenB], [dustA, dustB]);
+      await expect(receipt).to.emit(comptroller, 'PermitDenomination').withArgs(tokenA, dustA);
+      await expect(receipt).to.emit(comptroller, 'PermitDenomination').withArgs(tokenB, dustB);
 
       // check denominations
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenA)
-      ).to.be.equal(true);
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenB)
-      ).to.be.equal(true);
+      expect(await comptroller.connect(user).isValidDenomination(tokenA)).to.be.equal(true);
+      expect(await comptroller.connect(user).isValidDenomination(tokenB)).to.be.equal(true);
 
       // check dusts
-      expect(
-        await comptroller.connect(user).getDenominationDust(tokenA)
-      ).to.be.equal(dustA);
-      expect(
-        await comptroller.connect(user).getDenominationDust(tokenB)
-      ).to.be.equal(dustB);
+      expect(await comptroller.connect(user).getDenominationDust(tokenA)).to.be.equal(dustA);
+      expect(await comptroller.connect(user).getDenominationDust(tokenB)).to.be.equal(dustB);
     });
 
     it('forbid denominations', async function () {
       // check env before execution
       await comptroller.permitDenominations([tokenA, tokenB], [dustA, dustB]);
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenA)
-      ).to.be.equal(true);
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenB)
-      ).to.be.equal(true);
+      expect(await comptroller.connect(user).isValidDenomination(tokenA)).to.be.equal(true);
+      expect(await comptroller.connect(user).isValidDenomination(tokenB)).to.be.equal(true);
 
       // permit new denominations
       const receipt = await comptroller.forbidDenominations([tokenA, tokenB]);
 
       // check event
-      await expect(receipt)
-        .to.emit(comptroller, 'ForbidDenomination')
-        .withArgs(tokenA);
-      await expect(receipt)
-        .to.emit(comptroller, 'ForbidDenomination')
-        .withArgs(tokenB);
+      await expect(receipt).to.emit(comptroller, 'ForbidDenomination').withArgs(tokenA);
+      await expect(receipt).to.emit(comptroller, 'ForbidDenomination').withArgs(tokenB);
 
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenA)
-      ).to.be.equal(false);
-      expect(
-        await comptroller.connect(user).isValidDenomination(tokenB)
-      ).to.be.equal(false);
+      expect(await comptroller.connect(user).isValidDenomination(tokenA)).to.be.equal(false);
+      expect(await comptroller.connect(user).isValidDenomination(tokenB)).to.be.equal(false);
     });
 
     it('should revert: permit denominations by non-owner', async function () {
-      await expect(
-        comptroller
-          .connect(user)
-          .permitDenominations([tokenA, tokenB], [dustA, dustB])
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).permitDenominations([tokenA, tokenB], [dustA, dustB])).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should revert: forbid denominations by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).forbidDenominations([tokenA, tokenB])
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).forbidDenominations([tokenA, tokenB])).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should revert: denomination and dust length are inconsistent', async function () {
-      await expect(
-        comptroller
-          .connect(owner)
-          .permitDenominations([tokenA, tokenB], [dustA])
-      ).to.be.revertedWith('revertCode(4)'); // COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
+      await expect(comptroller.connect(owner).permitDenominations([tokenA, tokenB], [dustA])).to.be.revertedWith(
+        'revertCode(4)'
+      ); // COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
     });
   });
 
@@ -555,9 +409,7 @@ describe('Comptroller', function () {
     const amount = 5000;
     it('set staking tier', async function () {
       // check env before execution
-      let mortgageTierConfig = await comptroller
-        .connect(user)
-        .mortgageTier(level);
+      let mortgageTierConfig = await comptroller.connect(user).mortgageTier(level);
       expect(mortgageTierConfig[0]).to.be.false;
       expect(mortgageTierConfig[1]).to.be.equal(0);
 
@@ -571,9 +423,7 @@ describe('Comptroller', function () {
       expect(mortgageTierConfig[0]).to.be.true;
       expect(mortgageTierConfig[1]).to.be.equal(amount);
 
-      expect(
-        (await comptroller.connect(user).mortgageTier(otherLevel))[1]
-      ).to.be.equal(0);
+      expect((await comptroller.connect(user).mortgageTier(otherLevel))[1]).to.be.equal(0);
     });
 
     it('unset staking tier', async function () {
@@ -583,16 +433,12 @@ describe('Comptroller', function () {
         .withArgs(level, amount);
 
       // check env before execution
-      let mortgageTierConfig = await comptroller
-        .connect(user)
-        .mortgageTier(level);
+      let mortgageTierConfig = await comptroller.connect(user).mortgageTier(level);
       expect(mortgageTierConfig[0]).to.be.true;
       expect(mortgageTierConfig[1]).to.be.equal(amount);
 
       // unset mortgage tier
-      await expect(comptroller.unsetMortgageTier(level))
-        .to.emit(comptroller, 'UnsetMortgageTier')
-        .withArgs(level);
+      await expect(comptroller.unsetMortgageTier(level)).to.emit(comptroller, 'UnsetMortgageTier').withArgs(level);
 
       // check mortgage tier
       mortgageTierConfig = await comptroller.connect(user).mortgageTier(level);
@@ -601,9 +447,9 @@ describe('Comptroller', function () {
     });
 
     it('should revert: set staking tier by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).setMortgageTier(level, amount)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).setMortgageTier(level, amount)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     describe('create fund', function () {
@@ -614,42 +460,28 @@ describe('Comptroller', function () {
       });
 
       it('should revert: invalid creator', async function () {
-        await expect(
-          factory
-            .connect(user)
-            .createFund(tokenD.address, 1, 0, 0, 300, 0, 'TEST')
-        ).to.be.revertedWith('revertCode(13)'); // FUND_PROXY_FACTORY_INVALID_CREATOR
+        await expect(factory.connect(user).createFund(tokenD.address, 1, 0, 0, 300, 0, 'TEST')).to.be.revertedWith(
+          'revertCode(13)'
+        ); // FUND_PROXY_FACTORY_INVALID_CREATOR
       });
 
       it('should revert: invalid mortgage tier', async function () {
         await comptroller.permitCreators([user.address]);
-        await expect(
-          factory
-            .connect(user)
-            .createFund(tokenD.address, 2, 0, 0, 300, 0, 'TEST')
-        ).to.be.revertedWith('revertCode(75)'); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
+        await expect(factory.connect(user).createFund(tokenD.address, 2, 0, 0, 300, 0, 'TEST')).to.be.revertedWith(
+          'revertCode(75)'
+        ); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
       });
 
       it('should mortgage for the given tier', async function () {
-        const tokenMUserBefore = await tokenM.callStatic.balanceOf(
-          user.address
-        );
-        const tokenMVaultBefore = await tokenM.callStatic.balanceOf(
-          mortgageVault.address
-        );
+        const tokenMUserBefore = await tokenM.callStatic.balanceOf(user.address);
+        const tokenMVaultBefore = await tokenM.callStatic.balanceOf(mortgageVault.address);
         await tokenM.connect(user).approve(mortgageVault.address, amount);
         await comptroller.permitCreators([user.address]);
-        const receipt = await factory
-          .connect(user)
-          .createFund(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
+        const receipt = await factory.connect(user).createFund(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
         const fund = await getEventArgs(receipt, 'FundCreated');
         const tokenMUserAfter = await tokenM.callStatic.balanceOf(user.address);
-        const tokenMVaultAfter = await tokenM.callStatic.balanceOf(
-          mortgageVault.address
-        );
-        const mortgageFund = await mortgageVault.callStatic.fundAmounts(
-          fund[0]
-        );
+        const tokenMVaultAfter = await tokenM.callStatic.balanceOf(mortgageVault.address);
+        const mortgageFund = await mortgageVault.callStatic.fundAmounts(fund[0]);
         expect(tokenMUserBefore.sub(tokenMUserAfter)).to.be.eq(amount);
         expect(tokenMVaultAfter.sub(tokenMVaultBefore)).to.be.eq(amount);
         expect(mortgageFund).to.be.eq(amount);
@@ -661,9 +493,7 @@ describe('Comptroller', function () {
   describe('asset router', function () {
     it('set asset router', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).assetRouter()).to.be.equal(
-        assetRouter.address
-      );
+      expect(await comptroller.connect(user).assetRouter()).to.be.equal(assetRouter.address);
 
       // deploy new asset router
       const newAssetRouter = await (
@@ -677,21 +507,19 @@ describe('Comptroller', function () {
         .withArgs(newAssetRouter.address);
 
       // check new asset router
-      expect(await comptroller.connect(user).assetRouter()).to.be.equal(
-        newAssetRouter.address
-      );
+      expect(await comptroller.connect(user).assetRouter()).to.be.equal(newAssetRouter.address);
     });
 
     it('should revert: set asset router by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).setAssetRouter(assetRouter.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).setAssetRouter(assetRouter.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should revert: set zero asset router', async function () {
-      await expect(
-        comptroller.connect(owner).setAssetRouter(constants.AddressZero)
-      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+      await expect(comptroller.connect(owner).setAssetRouter(constants.AddressZero)).to.be.revertedWith(
+        'revertCode(2)'
+      ); // COMPTROLLER_ZERO_ADDRESS
     });
   });
 
@@ -699,9 +527,7 @@ describe('Comptroller', function () {
   describe('fee', function () {
     it('set fee collector', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).execFeeCollector()).to.be.equal(
-        collector.address
-      );
+      expect(await comptroller.connect(user).execFeeCollector()).to.be.equal(collector.address);
 
       // set new fee collector
       await expect(comptroller.setFeeCollector(user.address))
@@ -709,28 +535,22 @@ describe('Comptroller', function () {
         .withArgs(user.address);
 
       // check new fee collector
-      expect(await comptroller.connect(user).execFeeCollector()).to.be.equal(
-        user.address
-      );
+      expect(await comptroller.connect(user).execFeeCollector()).to.be.equal(user.address);
     });
 
     it('should revert: set fee collector by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).setFeeCollector(user.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).setFeeCollector(user.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should revert: set zero address fee collector', async function () {
-      await expect(
-        comptroller.setFeeCollector(constants.AddressZero)
-      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+      await expect(comptroller.setFeeCollector(constants.AddressZero)).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
 
     it('set fee percentage', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).execFeePercentage()).to.be.equal(
-        0
-      );
+      expect(await comptroller.connect(user).execFeePercentage()).to.be.equal(0);
 
       // set new fee percentage
       const percentage = BigNumber.from('20');
@@ -739,15 +559,13 @@ describe('Comptroller', function () {
         .withArgs(percentage);
 
       // check new fee percentage
-      expect(await comptroller.connect(user).execFeePercentage()).to.be.equal(
-        percentage
-      );
+      expect(await comptroller.connect(user).execFeePercentage()).to.be.equal(percentage);
     });
 
     it('should revert: set fee collector by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).setExecFeePercentage(BigNumber.from('20'))
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).setExecFeePercentage(BigNumber.from('20'))).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -756,13 +574,9 @@ describe('Comptroller', function () {
     const expiration = '86400'; // 1 day
 
     it('set liquidator', async function () {
-      expect(await comptroller.pendingLiquidator()).to.be.eq(
-        liquidator.address
-      );
+      expect(await comptroller.pendingLiquidator()).to.be.eq(liquidator.address);
 
-      await expect(
-        comptroller.connect(owner).setPendingLiquidator(user.address)
-      )
+      await expect(comptroller.connect(owner).setPendingLiquidator(user.address))
         .to.emit(comptroller, 'SetPendingLiquidator')
         .withArgs(user.address);
 
@@ -770,15 +584,13 @@ describe('Comptroller', function () {
     });
 
     it('should revert: set liquidator by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).setPendingLiquidator(user.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).setPendingLiquidator(user.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should revert: set zero address liquidator', async function () {
-      await expect(
-        comptroller.setPendingLiquidator(constants.AddressZero)
-      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+      await expect(comptroller.setPendingLiquidator(constants.AddressZero)).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
 
     it('set expiration', async function () {
@@ -792,9 +604,9 @@ describe('Comptroller', function () {
     });
 
     it('should revert: set expiration by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).setPendingExpiration(expiration)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).setPendingExpiration(expiration)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -802,9 +614,7 @@ describe('Comptroller', function () {
   describe('execution action', function () {
     it('set execution action', async function () {
       // check env before execution
-      expect(await comptroller.connect(user).execAction()).to.be.equal(
-        constants.AddressZero
-      );
+      expect(await comptroller.connect(user).execAction()).to.be.equal(constants.AddressZero);
 
       // set new execution action
       await expect(comptroller.setExecAction(taskExecutor.address))
@@ -812,17 +622,13 @@ describe('Comptroller', function () {
         .withArgs(taskExecutor.address);
 
       // check new executor action
-      expect(await comptroller.connect(user).execAction()).to.be.equal(
-        taskExecutor.address
-      );
+      expect(await comptroller.connect(user).execAction()).to.be.equal(taskExecutor.address);
     });
 
     it('set execution action twice', async function () {
       // check env before execution
       await comptroller.setExecAction(collector.address);
-      expect(await comptroller.connect(user).execAction()).to.be.equal(
-        collector.address
-      );
+      expect(await comptroller.connect(user).execAction()).to.be.equal(collector.address);
 
       // set new execution action
       await expect(comptroller.setExecAction(taskExecutor.address))
@@ -830,21 +636,17 @@ describe('Comptroller', function () {
         .withArgs(taskExecutor.address);
 
       // check new executor action
-      expect(await comptroller.connect(user).execAction()).to.be.equal(
-        taskExecutor.address
-      );
+      expect(await comptroller.connect(user).execAction()).to.be.equal(taskExecutor.address);
     });
 
     it('should revert: set execution action by non-owner', async function () {
-      await expect(
-        comptroller.connect(user).setExecAction(taskExecutor.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(comptroller.connect(user).setExecAction(taskExecutor.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('should revert: set zero address execution action', async function () {
-      await expect(
-        comptroller.setExecAction(constants.AddressZero)
-      ).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+      await expect(comptroller.setExecAction(constants.AddressZero)).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
   });
 
@@ -853,28 +655,24 @@ describe('Comptroller', function () {
       let newImplementation: ComptrollerImplementation;
 
       beforeEach(async function () {
-        newImplementation = await (
-          await ethers.getContractFactory('ComptrollerImplementation')
-        ).deploy();
+        newImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
         await newImplementation.deployed();
       });
 
       it('normal', async function () {
-        expect(
-          await comptrollerProxyAdmin.callStatic.getProxyImplementation()
-        ).to.be.eq(comptrollerImplementation.address);
+        expect(await comptrollerProxyAdmin.callStatic.getProxyImplementation()).to.be.eq(
+          comptrollerImplementation.address
+        );
         await expect(comptrollerProxyAdmin.upgrade(newImplementation.address))
           .to.emit(comptrollerProxy, 'Upgraded')
           .withArgs(newImplementation.address);
-        expect(
-          await comptrollerProxyAdmin.callStatic.getProxyImplementation()
-        ).to.be.eq(newImplementation.address);
+        expect(await comptrollerProxyAdmin.callStatic.getProxyImplementation()).to.be.eq(newImplementation.address);
       });
 
       it('should revert: send by non owner', async function () {
-        await expect(
-          comptrollerProxyAdmin.connect(user).upgrade(newImplementation.address)
-        ).to.be.revertedWith('Ownable: caller is not the owner');
+        await expect(comptrollerProxyAdmin.connect(user).upgrade(newImplementation.address)).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        );
       });
     });
   });

@@ -10,9 +10,7 @@ contract Registry is IRegistry, Ownable {
     mapping(address => bytes32) public override handlers;
     mapping(address => bytes32) public override callers;
     mapping(address => uint256) public override bannedAgents;
-    mapping(address => mapping(address => bool))
-        public
-        override handlerCalleeWhiteList;
+    mapping(address => mapping(address => bool)) public override handlerCalleeWhiteList;
     bool public override fHalt;
 
     bytes32 public constant DEPRECATED = bytes10(0x64657072656361746564);
@@ -25,14 +23,8 @@ contract Registry is IRegistry, Ownable {
     event Unbanned(address indexed agent);
     event Halted();
     event Unhalted();
-    event HandlerCalleeWhitelistRegistered(
-        address indexed handler,
-        address indexed callee
-    );
-    event HandlerCalleeWhitelistUnregistered(
-        address indexed handler,
-        address indexed callee
-    );
+    event HandlerCalleeWhitelistRegistered(address indexed handler, address indexed callee);
+    event HandlerCalleeWhitelistUnregistered(address indexed handler, address indexed callee);
 
     modifier isNotHalted() {
         require(fHalt == false, "Halted");
@@ -87,10 +79,7 @@ contract Registry is IRegistry, Ownable {
      * In this case, registration is the Dapp address and the leading 20 bytes
      * of info is the handler address.
      */
-    function registerCaller(address registration, bytes32 info)
-        external
-        onlyOwner
-    {
+    function registerCaller(address registration, bytes32 info) external onlyOwner {
         require(registration != address(0), "zero address");
         require(info != DEPRECATED, "unregistered info");
         require(callers[registration] != DEPRECATED, "unregistered");
@@ -131,12 +120,7 @@ contract Registry is IRegistry, Ownable {
      * @notice Check if the handler is valid.
      * @param handler The handler to be verified.
      */
-    function isValidHandler(address handler)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function isValidHandler(address handler) external view override returns (bool) {
         return handlers[handler] != 0 && handlers[handler] != DEPRECATED;
     }
 
@@ -144,12 +128,7 @@ contract Registry is IRegistry, Ownable {
      * @notice Check if the caller is valid.
      * @param caller The caller to be verified.
      */
-    function isValidCaller(address caller)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function isValidCaller(address caller) external view override returns (bool) {
         return callers[caller] != 0 && callers[caller] != DEPRECATED;
     }
 
@@ -163,19 +142,13 @@ contract Registry is IRegistry, Ownable {
         emit Unhalted();
     }
 
-    function registerHandlerCalleeWhitelist(address handler, address callee)
-        external
-        onlyOwner
-    {
+    function registerHandlerCalleeWhitelist(address handler, address callee) external onlyOwner {
         require(handler != address(0) && callee != address(0), "zero address");
         handlerCalleeWhiteList[handler][callee] = true;
         emit HandlerCalleeWhitelistRegistered(handler, callee);
     }
 
-    function unregisterHandlerCalleeWhitelist(address handler, address callee)
-        external
-        onlyOwner
-    {
+    function unregisterHandlerCalleeWhitelist(address handler, address callee) external onlyOwner {
         require(handler != address(0) && callee != address(0), "zero address");
         handlerCalleeWhiteList[handler][callee] = false;
         emit HandlerCalleeWhitelistUnregistered(handler, callee);

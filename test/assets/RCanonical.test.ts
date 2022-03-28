@@ -1,20 +1,9 @@
 import { constants, Wallet, Signer } from 'ethers';
 import { expect } from 'chai';
 import { deployments } from 'hardhat';
-import {
-  AssetRegistry,
-  AssetRouter,
-  Chainlink,
-  IERC20,
-  RCanonical,
-} from '../../typechain';
+import { AssetRegistry, AssetRouter, Chainlink, IERC20, RCanonical } from '../../typechain';
 
-import {
-  DAI_TOKEN,
-  USDC_TOKEN,
-  CHAINLINK_DAI_USD,
-  CHAINLINK_USDC_USD,
-} from '../utils/constants';
+import { DAI_TOKEN, USDC_TOKEN, CHAINLINK_DAI_USD, CHAINLINK_USDC_USD } from '../utils/constants';
 
 import { ether, tokenProviderQuick } from '../utils/utils';
 
@@ -35,38 +24,30 @@ describe('RCanonical', function () {
   let router: AssetRouter;
   let oracle: Chainlink;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user] = await (ethers as any).getSigners();
 
-      // Setup token and unlock provider
-      tokenAProvider = await tokenProviderQuick(tokenAAddress);
-      tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
+    // Setup token and unlock provider
+    tokenAProvider = await tokenProviderQuick(tokenAAddress);
+    tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
 
-      resolver = await (await ethers.getContractFactory('RCanonical')).deploy();
-      await resolver.deployed();
+    resolver = await (await ethers.getContractFactory('RCanonical')).deploy();
+    await resolver.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
-      await registry.register(tokenA.address, resolver.address);
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
+    await registry.register(tokenA.address, resolver.address);
 
-      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
-      await oracle.deployed();
-      await oracle
-        .connect(owner)
-        .addAssets([tokenA.address, quoteAddress], [aggregatorA, aggregatorB]);
+    oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+    await oracle.deployed();
+    await oracle.connect(owner).addAssets([tokenA.address, quoteAddress], [aggregatorA, aggregatorB]);
 
-      router = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await router.deployed();
+    router = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await router.deployed();
 
-      expect(await router.oracle()).to.be.eq(oracle.address);
-    }
-  );
+    expect(await router.oracle()).to.be.eq(oracle.address);
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -77,15 +58,9 @@ describe('RCanonical', function () {
       const assets = [tokenA.address];
       const amounts = [ether('1')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(
-        assets,
-        amounts,
-        quote
-      );
+      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
 
-      expect(assetValue).to.be.eq(
-        await oracle.calcConversionAmount(assets[0], amounts[0], quote)
-      );
+      expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amounts[0], quote));
     });
 
     it('max amount', async function () {
@@ -95,13 +70,9 @@ describe('RCanonical', function () {
       const quote = quoteAddress;
 
       await tokenA.connect(tokenAProvider).transfer(user.address, amount);
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote);
 
-      expect(assetValue).to.be.eq(
-        await oracle.calcConversionAmount(assets[0], amount, quote)
-      );
+      expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amount, quote));
     });
   });
 });

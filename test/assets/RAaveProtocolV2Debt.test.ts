@@ -47,69 +47,40 @@ describe('RAaveProtocolV2Debt', function () {
 
   let lendingPool: ILendingPoolV2;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user] = await (ethers as any).getSigners();
 
-      // Setup token and unlock provider
-      aToken = await ethers.getContractAt('IATokenV2', aaveTokenAddress);
-      aTokenProvider = await impersonateAndInjectEther(
-        aaveTokenProviderAddress
-      );
+    // Setup token and unlock provider
+    aToken = await ethers.getContractAt('IATokenV2', aaveTokenAddress);
+    aTokenProvider = await impersonateAndInjectEther(aaveTokenProviderAddress);
 
-      vDebtToken = await ethers.getContractAt(
-        'IATokenV2',
-        variableDebtTokenAddress
-      );
+    vDebtToken = await ethers.getContractAt('IATokenV2', variableDebtTokenAddress);
 
-      borrowToken = await ethers.getContractAt(
-        'IERC20',
-        await vDebtToken.UNDERLYING_ASSET_ADDRESS()
-      );
+    borrowToken = await ethers.getContractAt('IERC20', await vDebtToken.UNDERLYING_ASSET_ADDRESS());
 
-      resolver = await (
-        await ethers.getContractFactory('RAaveProtocolV2Debt')
-      ).deploy();
-      await resolver.deployed();
+    resolver = await (await ethers.getContractFactory('RAaveProtocolV2Debt')).deploy();
+    await resolver.deployed();
 
-      const canonicalResolver = await (
-        await ethers.getContractFactory('RCanonical')
-      ).deploy();
-      await canonicalResolver.deployed();
+    const canonicalResolver = await (await ethers.getContractFactory('RCanonical')).deploy();
+    await canonicalResolver.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
-      await registry.register(vDebtToken.address, resolver.address);
-      await registry.register(borrowToken.address, canonicalResolver.address);
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
+    await registry.register(vDebtToken.address, resolver.address);
+    await registry.register(borrowToken.address, canonicalResolver.address);
 
-      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
-      await oracle.deployed();
-      await oracle
-        .connect(owner)
-        .addAssets(
-          [borrowToken.address, quoteAddress],
-          [aggregatorA, aggregatorB]
-        );
+    oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+    await oracle.deployed();
+    await oracle.connect(owner).addAssets([borrowToken.address, quoteAddress], [aggregatorA, aggregatorB]);
 
-      router = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await router.deployed();
-      expect(await router.oracle()).to.be.eq(oracle.address);
+    router = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await router.deployed();
+    expect(await router.oracle()).to.be.eq(oracle.address);
 
-      const provider = await ethers.getContractAt(
-        'ILendingPoolAddressesProviderV2',
-        AAVEPROTOCOL_V2_PROVIDER
-      );
-      lendingPool = await ethers.getContractAt(
-        'ILendingPoolV2',
-        await provider.getLendingPool()
-      );
-    }
-  );
+    const provider = await ethers.getContractAt('ILendingPoolAddressesProviderV2', AAVEPROTOCOL_V2_PROVIDER);
+    lendingPool = await ethers.getContractAt('ILendingPoolV2', await provider.getLendingPool());
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -123,13 +94,7 @@ describe('RAaveProtocolV2Debt', function () {
       const borrowAmount = ether('1');
       await lendingPool
         .connect(user)
-        .borrow(
-          borrowToken.address,
-          borrowAmount,
-          AAVE_RATEMODE.VARIABLE,
-          0,
-          user.address
-        );
+        .borrow(borrowToken.address, borrowAmount, AAVE_RATEMODE.VARIABLE, 0, user.address);
       expect(await borrowToken.balanceOf(user.address)).to.be.eq(borrowAmount);
     });
 
@@ -139,17 +104,10 @@ describe('RAaveProtocolV2Debt', function () {
       const quote = quoteAddress;
 
       // get asset value by asset resolver
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
 
-      const underlyingTokenAddress =
-        await vDebtToken.UNDERLYING_ASSET_ADDRESS();
-      const tokenValue = await oracle.calcConversionAmount(
-        underlyingTokenAddress,
-        amount,
-        quote
-      );
+      const underlyingTokenAddress = await vDebtToken.UNDERLYING_ASSET_ADDRESS();
+      const tokenValue = await oracle.calcConversionAmount(underlyingTokenAddress, amount, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue.mul(-1));
@@ -161,12 +119,9 @@ describe('RAaveProtocolV2Debt', function () {
       const quote = quoteAddress;
 
       // get asset value by asset resolver
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
 
-      const underlyingTokenAddress =
-        await vDebtToken.UNDERLYING_ASSET_ADDRESS();
+      const underlyingTokenAddress = await vDebtToken.UNDERLYING_ASSET_ADDRESS();
       const tokenValue = await oracle.calcConversionAmount(
         underlyingTokenAddress,
         await vDebtToken.balanceOf(user.address),

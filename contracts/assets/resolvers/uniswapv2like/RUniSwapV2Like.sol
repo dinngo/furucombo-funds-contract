@@ -29,19 +29,11 @@ contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
 
         IUniswapV2Pair pair = IUniswapV2Pair(asset);
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
-        uint256 reserve0value = uint256(
-            _calcAssetValue(pair.token0(), reserve0, quote)
-        );
+        uint256 reserve0value = uint256(_calcAssetValue(pair.token0(), reserve0, quote));
 
-        uint256 reserve1value = uint256(
-            _calcAssetValue(pair.token1(), reserve1, quote)
-        );
+        uint256 reserve1value = uint256(_calcAssetValue(pair.token1(), reserve1, quote));
         uint256 square = __uniswapSqrt(reserve0value * reserve1value);
-        uint256 totalSupply = _getTotalSupplyAtWithdrawal(
-            pair,
-            reserve0,
-            reserve1
-        );
+        uint256 totalSupply = _getTotalSupplyAtWithdrawal(pair, reserve0, reserve1);
 
         // Use Bone to avoid calculation loss
         uint256 value = (((2 * square * amount * BONE) / totalSupply) / BONE);

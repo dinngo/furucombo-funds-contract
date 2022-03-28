@@ -123,166 +123,116 @@ describe('FundExecuteStrategy', function () {
   let quickRouter: IUniswapV2Router02;
   let sushiRouter: IUniswapV2Router02;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, collector, manager, investor, liquidator] = await (
-        ethers as any
-      ).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
 
-      // Setup tokens and providers
-      // denominationProvider = await tokenProviderSushi(denominationAddress);
-      denominationProvider = await impersonateAndInjectEther(
-        denominationProviderAddress
-      );
-      denomination = await ethers.getContractAt('IERC20', denominationAddress);
-      mortgage = await ethers.getContractAt('IERC20', mortgageAddress);
-      tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
-      tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
+    // Setup tokens and providers
+    // denominationProvider = await tokenProviderSushi(denominationAddress);
+    denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
+    denomination = await ethers.getContractAt('IERC20', denominationAddress);
+    mortgage = await ethers.getContractAt('IERC20', mortgageAddress);
+    tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
+    tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
 
-      // Deploy furucombo funds contracts
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
-      [oracle, assetRegistry, assetRouter] =
-        await deployAssetOracleAndRouterAndRegistry();
-      mortgageVault = await deployMortgageVault(mortgage.address);
+    // Deploy furucombo funds contracts
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+    [oracle, assetRegistry, assetRouter] = await deployAssetOracleAndRouterAndRegistry();
+    mortgageVault = await deployMortgageVault(mortgage.address);
 
-      [implementation, comptroller, fundProxyFactory] =
-        await deployComptrollerAndFundProxyFactory(
-          DS_PROXY_REGISTRY,
-          assetRouter.address,
-          collector.address,
-          execFeePercentage,
-          liquidator.address,
-          pendingExpiration,
-          mortgageVault.address,
-          valueTolerance
-        );
-      [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(
-        comptroller,
-        owner.address,
-        furucombo.address
-      );
+    [implementation, comptroller, fundProxyFactory] = await deployComptrollerAndFundProxyFactory(
+      DS_PROXY_REGISTRY,
+      assetRouter.address,
+      collector.address,
+      execFeePercentage,
+      liquidator.address,
+      pendingExpiration,
+      mortgageVault.address,
+      valueTolerance
+    );
+    [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(comptroller, owner.address, furucombo.address);
 
-      // Register furucombo handlers
-      [hAaveV2, hFunds, hCurve, hQuickSwap, hSushiSwap] = await deployContracts(
-        ['HAaveProtocolV2', 'HFunds', 'HCurve', 'HQuickSwap', 'HSushiSwap'],
-        [[], [], [], [], []]
-      );
-      await registerHandlers(
-        fRegistry,
-        [
-          hFunds.address,
-          hAaveV2.address,
-          hCurve.address,
-          hQuickSwap.address,
-          hSushiSwap.address,
-        ],
-        ['HFunds', 'HAaveProtocolV2', 'HCurve', 'HQuickswap', 'HSushiswap']
-      );
+    // Register furucombo handlers
+    [hAaveV2, hFunds, hCurve, hQuickSwap, hSushiSwap] = await deployContracts(
+      ['HAaveProtocolV2', 'HFunds', 'HCurve', 'HQuickSwap', 'HSushiSwap'],
+      [[], [], [], [], []]
+    );
+    await registerHandlers(
+      fRegistry,
+      [hFunds.address, hAaveV2.address, hCurve.address, hQuickSwap.address, hSushiSwap.address],
+      ['HFunds', 'HAaveProtocolV2', 'HCurve', 'HQuickswap', 'HSushiswap']
+    );
 
-      // Setup comptroller whitelist
-      await comptroller.permitDenominations(
-        [denomination.address],
-        [BigNumber.from('10')]
-      );
+    // Setup comptroller whitelist
+    await comptroller.permitDenominations([denomination.address], [BigNumber.from('10')]);
 
-      await comptroller.permitCreators([manager.address]);
+    await comptroller.permitCreators([manager.address]);
 
-      await comptroller.permitAssets(level, [
-        denominationAddress,
-        tokenA.address,
-        tokenB.address,
-      ]);
+    await comptroller.permitAssets(level, [denominationAddress, tokenA.address, tokenB.address]);
 
-      await comptroller.permitDelegateCalls(
-        level,
-        [aFurucombo.address],
-        [WL_ANY_SIG]
+    await comptroller.permitDelegateCalls(level, [aFurucombo.address], [WL_ANY_SIG]);
+
+    await comptroller.permitHandlers(
+      level,
+      [hAaveV2.address, hFunds.address, hCurve.address, hQuickSwap.address, hSushiSwap.address],
+      [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
+    );
+
+    await comptroller.setMortgageTier(level, 0);
+
+    // Add Assets to oracle
+    await oracle
+      .connect(owner)
+      .addAssets(
+        [denominationAddress, tokenAAddress, tokenBAddress],
+        [denominationAggregator, tokenAAggregator, tokenBAggregator]
       );
 
-      await comptroller.permitHandlers(
-        level,
-        [
-          hAaveV2.address,
-          hFunds.address,
-          hCurve.address,
-          hQuickSwap.address,
-          hSushiSwap.address,
-        ],
-        [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
-      );
+    // Register resolvers
+    const [canonicalResolver] = await deployContracts(['RCanonical'], [[]]);
+    await registerResolvers(
+      assetRegistry,
+      [denomination.address, tokenA.address, tokenB.address],
+      [canonicalResolver.address, canonicalResolver.address, canonicalResolver.address]
+    );
 
-      await comptroller.setMortgageTier(level, 0);
+    // Create and finalize furucombo fund
+    fundProxy = await createFundProxy(
+      fundProxyFactory,
+      manager,
+      denominationAddress,
+      level,
+      mFeeRate,
+      pFeeRate,
+      crystallizationPeriod,
+      reserveExecutionRate,
+      shareTokenName
+    );
+    await fundProxy.connect(manager).finalize();
+    shareToken = await ethers.getContractAt('ShareToken', await fundProxy.shareToken());
+    fundVault = await fundProxy.vault();
 
-      // Add Assets to oracle
-      await oracle
-        .connect(owner)
-        .addAssets(
-          [denominationAddress, tokenAAddress, tokenBAddress],
-          [denominationAggregator, tokenAAggregator, tokenBAggregator]
-        );
+    // External
+    quickRouter = await ethers.getContractAt('IUniswapV2Router02', QUICKSWAP_ROUTER);
+    sushiRouter = await ethers.getContractAt('IUniswapV2Router02', SUSHISWAP_ROUTER);
 
-      // Register resolvers
-      const [canonicalResolver] = await deployContracts(['RCanonical'], [[]]);
-      await registerResolvers(
-        assetRegistry,
-        [denomination.address, tokenA.address, tokenB.address],
-        [
-          canonicalResolver.address,
-          canonicalResolver.address,
-          canonicalResolver.address,
-        ]
-      );
+    // Transfer token to investor
+    const initialFunds = mwei('3000');
+    await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
 
-      // Create and finalize furucombo fund
-      fundProxy = await createFundProxy(
-        fundProxyFactory,
-        manager,
-        denominationAddress,
-        level,
-        mFeeRate,
-        pFeeRate,
-        crystallizationPeriod,
-        reserveExecutionRate,
-        shareTokenName
-      );
-      await fundProxy.connect(manager).finalize();
-      shareToken = await ethers.getContractAt(
-        'ShareToken',
-        await fundProxy.shareToken()
-      );
-      fundVault = await fundProxy.vault();
-
-      // External
-      quickRouter = await ethers.getContractAt(
-        'IUniswapV2Router02',
-        QUICKSWAP_ROUTER
-      );
-      sushiRouter = await ethers.getContractAt(
-        'IUniswapV2Router02',
-        SUSHISWAP_ROUTER
-      );
-
-      // Transfer token to investor
-      const initialFunds = mwei('3000');
-      await denomination
-        .connect(denominationProvider)
-        .transfer(investor.address, initialFunds);
-
-      // print log
-      console.log('fRegistry', fRegistry.address);
-      console.log('furucombo', furucombo.address);
-      console.log('oracle', oracle.address);
-      console.log('assetRegistry', assetRegistry.address);
-      console.log('assetRouter', assetRouter.address);
-      console.log('implementation', implementation.address);
-      console.log('comptroller', comptroller.address);
-      console.log('fundProxyFactory', fundProxyFactory.address);
-      console.log('fundProxy', fundProxy.address);
-      console.log('taskExecutor', taskExecutor.address);
-      console.log('aFurucombo', aFurucombo.address);
-    }
-  );
+    // print log
+    console.log('fRegistry', fRegistry.address);
+    console.log('furucombo', furucombo.address);
+    console.log('oracle', oracle.address);
+    console.log('assetRegistry', assetRegistry.address);
+    console.log('assetRouter', assetRouter.address);
+    console.log('implementation', implementation.address);
+    console.log('comptroller', comptroller.address);
+    console.log('fundProxyFactory', fundProxyFactory.address);
+    console.log('fundProxy', fundProxy.address);
+    console.log('taskExecutor', taskExecutor.address);
+    console.log('aFurucombo', aFurucombo.address);
+  });
   beforeEach(async function () {
     await setupTest();
   });
@@ -297,26 +247,20 @@ describe('FundExecuteStrategy', function () {
 
     beforeEach(async function () {
       // Deposit denomination to get shares
-      await denomination
-        .connect(investor)
-        .approve(fundProxy.address, purchaseAmount);
+      await denomination.connect(investor).approve(fundProxy.address, purchaseAmount);
       await fundProxy.connect(investor).purchase(purchaseAmount);
       ownedShares = await shareToken.balanceOf(investor.address);
 
       tokenAFundVaultBalance = await tokenA.balanceOf(fundVault);
       tokenBFundVaultBalance = await tokenB.balanceOf(fundVault);
       denominationProxyBalance = await denomination.balanceOf(fundVault);
-      denominationCollectorBalance = await denomination.balanceOf(
-        collector.address
-      );
+      denominationCollectorBalance = await denomination.balanceOf(collector.address);
     });
 
     it('quickswap', async function () {
       // Prepare action data
       const amountIn = mwei('1000');
-      const actionAmountIn = amountIn
-        .mul(BigNumber.from(FEE_BASE).sub(execFeePercentage))
-        .div(FEE_BASE);
+      const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -362,24 +306,16 @@ describe('FundExecuteStrategy', function () {
 
       // Verify
       // check shares are the same
-      expect(ownedShares).to.be.eq(
-        await shareToken.balanceOf(investor.address)
-      );
+      expect(ownedShares).to.be.eq(await shareToken.balanceOf(investor.address));
 
       // check denomination will decrease and token will increase
-      expect(await tokenA.balanceOf(fundVault)).to.be.eq(
-        tokenAFundVaultBalance.add(amountOut)
-      );
-      expect(await denomination.balanceOf(fundVault)).to.be.eq(
-        denominationProxyBalance.sub(amountIn)
-      );
+      expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAFundVaultBalance.add(amountOut));
+      expect(await denomination.balanceOf(fundVault)).to.be.eq(denominationProxyBalance.sub(amountIn));
 
       // check collector will get execute fee
-      expect(
-        (await denomination.balanceOf(collector.address)).sub(
-          denominationCollectorBalance
-        )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(FEE_BASE));
+      expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
+        amountIn.mul(execFeePercentage).div(FEE_BASE)
+      );
 
       // TODO: check it after refine quickswap handler
       // check asset list will be updated
@@ -397,9 +333,7 @@ describe('FundExecuteStrategy', function () {
     it('sushiswap', async function () {
       // Prepare action data
       const amountIn = mwei('1000');
-      const actionAmountIn = amountIn
-        .mul(BigNumber.from(FEE_BASE).sub(execFeePercentage))
-        .div(FEE_BASE);
+      const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -445,24 +379,16 @@ describe('FundExecuteStrategy', function () {
 
       // Verify
       // check shares are the same
-      expect(ownedShares).to.be.eq(
-        await shareToken.balanceOf(investor.address)
-      );
+      expect(ownedShares).to.be.eq(await shareToken.balanceOf(investor.address));
 
       // check denomination will decrease and token will increase
-      expect(await tokenA.balanceOf(fundVault)).to.be.eq(
-        tokenAFundVaultBalance.add(amountOut)
-      );
-      expect(await denomination.balanceOf(fundVault)).to.be.eq(
-        denominationProxyBalance.sub(amountIn)
-      );
+      expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAFundVaultBalance.add(amountOut));
+      expect(await denomination.balanceOf(fundVault)).to.be.eq(denominationProxyBalance.sub(amountIn));
 
       // check collector will get execute fee
-      expect(
-        (await denomination.balanceOf(collector.address)).sub(
-          denominationCollectorBalance
-        )
-      ).to.be.eq(amountIn.mul(execFeePercentage).div(FEE_BASE));
+      expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
+        amountIn.mul(execFeePercentage).div(FEE_BASE)
+      );
 
       // TODO: check it after refine sushiswap handler
       // check asset list will be updated

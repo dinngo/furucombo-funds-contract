@@ -40,8 +40,7 @@ abstract contract AssetModule is FundProxyStorageUtils {
     /// when closing the vault.
     function close() public virtual {
         Errors._require(
-            _assetList.size() == 1 &&
-                _assetList.front() == address(denomination),
+            _assetList.size() == 1 && _assetList.front() == address(denomination),
             Errors.Code.ASSET_MODULE_DIFFERENT_ASSET_REMAINING
         );
         _close();

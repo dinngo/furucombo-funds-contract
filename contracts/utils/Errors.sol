@@ -91,10 +91,7 @@ library Errors {
         if (!condition) revert revertCode(errorCode);
     }
 
-    function _revertMsg(string memory functionName, string memory reason)
-        internal
-        pure
-    {
+    function _revertMsg(string memory functionName, string memory reason) internal pure {
         revert(string(abi.encodePacked(functionName, ": ", reason)));
     }
 

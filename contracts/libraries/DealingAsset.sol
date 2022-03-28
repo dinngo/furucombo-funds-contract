@@ -10,18 +10,14 @@ library DealingAsset {
 
     // Data is stored in storage slot `uint256(keccak256('furucombo.funds.asset.map')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
-    bytes32 private constant _ASSET_MAP_SLOT =
-        0xa321fd097844f2df9aa8403ea06ed928267e143994398da9342e1622b5626151;
+    bytes32 private constant _ASSET_MAP_SLOT = 0xa321fd097844f2df9aa8403ea06ed928267e143994398da9342e1622b5626151;
 
     // Data is stored in storage slot `uint256(keccak256('furucombo.funds.asset.array')) - 1`, so that it doesn't
     // conflict with the storage layout of the implementation behind the proxy.
-    bytes32 private constant _ASSET_ARR_SLOT =
-        0x25241bfd865dc0cf716378d03594b4104571b985a2d5cf72950d41c4b7474874;
+    bytes32 private constant _ASSET_ARR_SLOT = 0x25241bfd865dc0cf716378d03594b4104571b985a2d5cf72950d41c4b7474874;
 
-    bytes32 private constant _ASSET_TRUE_FLAG =
-        0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 private constant _ASSET_FALSE_FLAG =
-        0x0000000000000000000000000000000000000000000000000000000000000000;
+    bytes32 private constant _ASSET_TRUE_FLAG = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    bytes32 private constant _ASSET_FALSE_FLAG = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
     function get(address _key) internal view returns (bool) {
         bytes32 key = bytes32(bytes20(_key));

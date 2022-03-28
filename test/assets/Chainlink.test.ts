@@ -26,17 +26,13 @@ describe('Chainlink', function () {
   let user: Wallet;
   let chainlink: Chainlink;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture('');
-      [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture('');
+    [owner, user] = await (ethers as any).getSigners();
 
-      chainlink = await (await ethers.getContractFactory('Chainlink'))
-        .connect(owner)
-        .deploy();
-      await chainlink.deployed();
-    }
-  );
+    chainlink = await (await ethers.getContractFactory('Chainlink')).connect(owner).deploy();
+    await chainlink.deployed();
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -58,102 +54,74 @@ describe('Chainlink', function () {
     });
 
     it('should revert: not owner', async function () {
-      await expect(
-        chainlink.connect(user).setStalePeriod(newPeriod)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(chainlink.connect(user).setStalePeriod(newPeriod)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
   describe('Add assets', function () {
     it('normal', async function () {
-      const receipt = await chainlink
-        .connect(owner)
-        .addAssets([tokenA, tokenB], [aggregatorA, aggregatorB]);
-      await expect(receipt)
-        .to.emit(chainlink, 'AssetAdded')
-        .withArgs(tokenA, aggregatorA);
-      await expect(receipt)
-        .to.emit(chainlink, 'AssetAdded')
-        .withArgs(tokenB, aggregatorB);
+      const receipt = await chainlink.connect(owner).addAssets([tokenA, tokenB], [aggregatorA, aggregatorB]);
+      await expect(receipt).to.emit(chainlink, 'AssetAdded').withArgs(tokenA, aggregatorA);
+      await expect(receipt).to.emit(chainlink, 'AssetAdded').withArgs(tokenB, aggregatorB);
       expect(await chainlink.assetToAggregator(tokenA)).to.be.eq(aggregatorA);
       expect(await chainlink.assetToAggregator(tokenB)).to.be.eq(aggregatorB);
     });
 
     it('should revert: not owner', async function () {
-      await expect(
-        chainlink.connect(user).addAssets([], [])
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(chainlink.connect(user).addAssets([], [])).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert: invalid length', async function () {
-      await expect(
-        chainlink.connect(owner).addAssets([], [aggregatorA])
-      ).to.be.revertedWith('revertCode(43)'); // CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT
+      await expect(chainlink.connect(owner).addAssets([], [aggregatorA])).to.be.revertedWith('revertCode(43)'); // CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT
     });
 
     it('should revert: zero address asset', async function () {
       await expect(
-        chainlink
-          .connect(owner)
-          .addAssets([constants.AddressZero], [aggregatorA])
+        chainlink.connect(owner).addAssets([constants.AddressZero], [aggregatorA])
       ).to.be.reverted.revertedWith('revertCode(44)'); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: zero address aggregator', async function () {
-      await expect(
-        chainlink.connect(owner).addAssets([tokenA], [constants.AddressZero])
-      ).to.be.reverted.revertedWith('revertCode(44)'); // CHAINLINK_ZERO_ADDRESS
+      await expect(chainlink.connect(owner).addAssets([tokenA], [constants.AddressZero])).to.be.reverted.revertedWith(
+        'revertCode(44)'
+      ); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: existing asset', async function () {
-      await expect(
-        chainlink
-          .connect(owner)
-          .addAssets([tokenA, tokenA], [aggregatorA, aggregatorB])
-      ).to.be.revertedWith('revertCode(45)'); // CHAINLINK_EXISTING_ASSET
+      await expect(chainlink.connect(owner).addAssets([tokenA, tokenA], [aggregatorA, aggregatorB])).to.be.revertedWith(
+        'revertCode(45)'
+      ); // CHAINLINK_EXISTING_ASSET
     });
 
     it('should revert: stale price', async function () {
       const stalePeriod = await chainlink.stalePeriod();
       await network.provider.send('evm_increaseTime', [stalePeriod.toNumber()]);
       await network.provider.send('evm_mine', []);
-      await expect(
-        chainlink.connect(owner).addAssets([tokenA], [aggregatorA])
-      ).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
+      await expect(chainlink.connect(owner).addAssets([tokenA], [aggregatorA])).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   });
 
   describe('Remove assets', function () {
     beforeEach(async function () {
-      await chainlink
-        .connect(owner)
-        .addAssets([tokenA, tokenB], [aggregatorA, aggregatorB]);
+      await chainlink.connect(owner).addAssets([tokenA, tokenB], [aggregatorA, aggregatorB]);
     });
 
     it('normal', async function () {
-      const receipt = await chainlink
-        .connect(owner)
-        .removeAssets([tokenA, tokenB]);
+      const receipt = await chainlink.connect(owner).removeAssets([tokenA, tokenB]);
       await expect(receipt).to.emit(chainlink, 'AssetRemoved').withArgs(tokenA);
       await expect(receipt).to.emit(chainlink, 'AssetRemoved').withArgs(tokenB);
-      expect(await chainlink.assetToAggregator(tokenA)).to.be.eq(
-        constants.AddressZero
-      );
-      expect(await chainlink.assetToAggregator(tokenB)).to.be.eq(
-        constants.AddressZero
-      );
+      expect(await chainlink.assetToAggregator(tokenA)).to.be.eq(constants.AddressZero);
+      expect(await chainlink.assetToAggregator(tokenB)).to.be.eq(constants.AddressZero);
     });
 
     it('should revert: not owner', async function () {
-      await expect(chainlink.connect(user).removeAssets([])).to.be.revertedWith(
-        'Ownable: caller is not the owner'
-      );
+      await expect(chainlink.connect(user).removeAssets([])).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert: non-existent asset', async function () {
-      await expect(
-        chainlink.removeAssets([unsupportedToken])
-      ).to.be.revertedWith('revertCode(46)'); // CHAINLINK_NON_EXISTENT_ASSET
+      await expect(chainlink.removeAssets([unsupportedToken])).to.be.revertedWith('revertCode(46)'); // CHAINLINK_NON_EXISTENT_ASSET
     });
   });
 
@@ -164,9 +132,7 @@ describe('Chainlink', function () {
     let pairBalanceB: BigNumber;
 
     beforeEach(async function () {
-      await chainlink
-        .connect(owner)
-        .addAssets([tokenA, tokenB], [aggregatorA, aggregatorB]);
+      await chainlink.connect(owner).addAssets([tokenA, tokenB], [aggregatorA, aggregatorB]);
 
       // Get token decimals
       const ercA = await ethers.getContractAt('ERC20', tokenA);
@@ -175,10 +141,7 @@ describe('Chainlink', function () {
       decimalsB = await ercB.decimals();
 
       // Get AMM balance
-      const factory = await ethers.getContractAt(
-        'IUniswapV2Factory',
-        uniLikeFactory
-      );
+      const factory = await ethers.getContractAt('IUniswapV2Factory', uniLikeFactory);
       const pair = await factory.getPair(tokenA, tokenB);
       pairBalanceA = await ercA.balanceOf(pair);
       pairBalanceB = await ercB.balanceOf(pair);
@@ -189,11 +152,7 @@ describe('Chainlink', function () {
       const base = tokenA;
       const baseAmount = utils.parseUnits('1', decimalsA);
       const quote = tokenB;
-      const chainlinkAmount = await chainlink.calcConversionAmount(
-        base,
-        baseAmount,
-        quote
-      );
+      const chainlinkAmount = await chainlink.calcConversionAmount(base, baseAmount, quote);
 
       // Calculate AMM price
       const ammAmount = baseAmount.mul(pairBalanceB).div(pairBalanceA);
@@ -206,11 +165,7 @@ describe('Chainlink', function () {
       const base = tokenB;
       const baseAmount = utils.parseUnits('1', decimalsB);
       const quote = tokenA;
-      const chainlinkAmount = await chainlink.calcConversionAmount(
-        base,
-        baseAmount,
-        quote
-      );
+      const chainlinkAmount = await chainlink.calcConversionAmount(base, baseAmount, quote);
 
       // Calculate AMM price
       const ammAmount = baseAmount.mul(pairBalanceA).div(pairBalanceB);
@@ -223,9 +178,9 @@ describe('Chainlink', function () {
       const baseAmount = constants.Zero;
       const quote = tokenB;
 
-      await expect(
-        chainlink.calcConversionAmount(base, baseAmount, quote)
-      ).to.be.reverted.revertedWith('revertCode(42)'); // CHAINLINK_ZERO_AMOUNT
+      await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.reverted.revertedWith(
+        'revertCode(42)'
+      ); // CHAINLINK_ZERO_AMOUNT
     });
 
     it('should revert: unsupported asset', async function () {
@@ -233,9 +188,9 @@ describe('Chainlink', function () {
       const baseAmount = utils.parseUnits('1', decimalsA);
       const quote = tokenB;
 
-      await expect(
-        chainlink.calcConversionAmount(base, baseAmount, quote)
-      ).to.be.reverted.revertedWith('revertCode(44)'); // CHAINLINK_ZERO_ADDRESS
+      await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.reverted.revertedWith(
+        'revertCode(44)'
+      ); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: stale price', async function () {
@@ -246,9 +201,7 @@ describe('Chainlink', function () {
 
       await network.provider.send('evm_increaseTime', [stalePeriod.toNumber()]);
       await network.provider.send('evm_mine', []);
-      await expect(
-        chainlink.calcConversionAmount(base, baseAmount, quote)
-      ).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
+      await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   });
 });
