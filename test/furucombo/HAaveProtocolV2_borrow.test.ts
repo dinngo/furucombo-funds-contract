@@ -178,7 +178,7 @@ describe('Aave V2 Borrow', function () {
         borrowAmount.add(interestMax)
       );
 
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('borrow wmatic', async function () {
@@ -220,7 +220,7 @@ describe('Aave V2 Borrow', function () {
         borrowAmount.add(interestMax)
       );
 
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('should revert: borrow token over the collateral value', async function () {

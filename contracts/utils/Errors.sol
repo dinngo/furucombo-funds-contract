@@ -83,7 +83,8 @@ library Errors {
         POOL_PROXY_FACTORY_INVALID_STAKED_TIER, // 75: "Stake tier not set in comptroller"
         POOL_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATIO, // 76: "Invalid reserve execution ratio"
         SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE, // 77: "Pending redemption is not claimable"
-        SHARE_MODULE_PENDING_ROUND_INCONSISTENT // 78: "user pending round and current pending round are inconsistent"
+        SHARE_MODULE_PENDING_ROUND_INCONSISTENT, // 78: "user pending round and current pending round are inconsistent"
+        POOL_PROXY_FACTORY_INVALID_DENOMINATION // 79: "Invalid denomination"
     }
 
     function _require(bool condition, Code errorCode) internal pure {

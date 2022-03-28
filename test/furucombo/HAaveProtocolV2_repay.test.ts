@@ -181,7 +181,7 @@ describe('Aave V2 Repay', function () {
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
         ether('0')
       );
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('whole', async function () {
@@ -226,7 +226,7 @@ describe('Aave V2 Repay', function () {
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
         ether('0')
       );
-      profileGas(receipt);
+      await profileGas(receipt);
     });
 
     it('should revert: not enough balance', async function () {
