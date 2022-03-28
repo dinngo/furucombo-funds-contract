@@ -20,9 +20,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         uint256 dust;
     }
 
-    struct StakedTierConfig {
+    struct MortgageTierConfig {
         bool isSet;
-        uint256 stakeAmount;
+        uint256 amount;
     }
 
     // Variable
@@ -43,7 +43,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     // Map
     mapping(address => DenominationConfig) public denomination;
     mapping(address => bool) public bannedPoolProxy;
-    mapping(uint256 => StakedTierConfig) public stakedTier;
+    mapping(uint256 => MortgageTierConfig) public mortgageTier;
 
     // ACL
     Whitelist.CreatorWList private _creatorACL;
@@ -65,8 +65,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event PoolProxyUnbanned(address indexed poolProxy);
     event PermitDenomination(address indexed denomination, uint256 dust);
     event ForbidDenomination(address indexed denomination);
-    event SetStakedTier(uint256 indexed level, uint256 amount);
-    event UnsetStakedTier(uint256 indexed level);
+    event SetMortgageTier(uint256 indexed level, uint256 amount);
+    event UnsetMortgageTier(uint256 indexed level);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
     event PermitCreator(address indexed to);
@@ -290,16 +290,16 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         emit PoolProxyUnbanned(poolProxy);
     }
 
-    // Stake tier amount
-    function setStakedTier(uint256 level, uint256 amount) external onlyOwner {
-        stakedTier[level].isSet = true;
-        stakedTier[level].stakeAmount = amount;
-        emit SetStakedTier(level, amount);
+    // Mortgage tier amount
+    function setMortgageTier(uint256 level, uint256 amount) external onlyOwner {
+        mortgageTier[level].isSet = true;
+        mortgageTier[level].amount = amount;
+        emit SetMortgageTier(level, amount);
     }
 
-    function unsetStakedTier(uint256 level) external onlyOwner {
-        delete stakedTier[level];
-        emit UnsetStakedTier(level);
+    function unsetMortgageTier(uint256 level) external onlyOwner {
+        delete mortgageTier[level];
+        emit UnsetMortgageTier(level);
     }
 
     // Asset Router

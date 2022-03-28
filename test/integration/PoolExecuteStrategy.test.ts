@@ -212,7 +212,7 @@ describe('PoolExecuteStrategy', function () {
         [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
       );
 
-      await comptroller.setStakedTier(level, 0);
+      await comptroller.setMortgageTier(level, 0);
 
       // Add Assets to oracle
       await oracle

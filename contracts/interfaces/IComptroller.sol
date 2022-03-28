@@ -58,7 +58,7 @@ interface IComptroller {
 
     function execAction() external view returns (address);
 
-    function stakedTier(uint256 tier) external view returns (bool, uint256);
+    function mortgageTier(uint256 tier) external view returns (bool, uint256);
 
     function isValidDenomination(address _denomination)
         external

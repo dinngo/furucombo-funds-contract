@@ -548,57 +548,61 @@ describe('Comptroller', function () {
     });
   });
 
-  // StakedTier management
-  describe('staked tier management', function () {
+  // MortgageTier management
+  describe('mortgage tier management', function () {
     const level = 1;
     const otherLevel = 0;
-    const stakeAmount = 5000;
+    const amount = 5000;
     it('set staking tier', async function () {
       // check env before execution
-      let stakedTierConfig = await comptroller.connect(user).stakedTier(level);
-      expect(stakedTierConfig[0]).to.be.false;
-      expect(stakedTierConfig[1]).to.be.equal(0);
+      let mortgageTierConfig = await comptroller
+        .connect(user)
+        .mortgageTier(level);
+      expect(mortgageTierConfig[0]).to.be.false;
+      expect(mortgageTierConfig[1]).to.be.equal(0);
 
-      // set staked tier amount
-      await expect(comptroller.setStakedTier(level, stakeAmount))
-        .to.emit(comptroller, 'SetStakedTier')
-        .withArgs(level, stakeAmount);
+      // set mortgage tier amount
+      await expect(comptroller.setMortgageTier(level, amount))
+        .to.emit(comptroller, 'SetMortgageTier')
+        .withArgs(level, amount);
 
-      // check staked tier
-      stakedTierConfig = await comptroller.connect(user).stakedTier(level);
-      expect(stakedTierConfig[0]).to.be.true;
-      expect(stakedTierConfig[1]).to.be.equal(stakeAmount);
+      // check mortgage tier
+      mortgageTierConfig = await comptroller.connect(user).mortgageTier(level);
+      expect(mortgageTierConfig[0]).to.be.true;
+      expect(mortgageTierConfig[1]).to.be.equal(amount);
 
       expect(
-        (await comptroller.connect(user).stakedTier(otherLevel))[1]
+        (await comptroller.connect(user).mortgageTier(otherLevel))[1]
       ).to.be.equal(0);
     });
 
     it('unset staking tier', async function () {
-      // set staked tier amount
-      await expect(comptroller.setStakedTier(level, stakeAmount))
-        .to.emit(comptroller, 'SetStakedTier')
-        .withArgs(level, stakeAmount);
+      // set mortgage tier amount
+      await expect(comptroller.setMortgageTier(level, amount))
+        .to.emit(comptroller, 'SetMortgageTier')
+        .withArgs(level, amount);
 
       // check env before execution
-      let stakedTierConfig = await comptroller.connect(user).stakedTier(level);
-      expect(stakedTierConfig[0]).to.be.true;
-      expect(stakedTierConfig[1]).to.be.equal(stakeAmount);
+      let mortgageTierConfig = await comptroller
+        .connect(user)
+        .mortgageTier(level);
+      expect(mortgageTierConfig[0]).to.be.true;
+      expect(mortgageTierConfig[1]).to.be.equal(amount);
 
-      // unset staked tier
-      await expect(comptroller.unsetStakedTier(level))
-        .to.emit(comptroller, 'UnsetStakedTier')
+      // unset mortgage tier
+      await expect(comptroller.unsetMortgageTier(level))
+        .to.emit(comptroller, 'UnsetMortgageTier')
         .withArgs(level);
 
-      // check staked tier
-      stakedTierConfig = await comptroller.connect(user).stakedTier(level);
-      expect(stakedTierConfig[0]).to.be.false;
-      expect(stakedTierConfig[1]).to.be.equal(0);
+      // check mortgage tier
+      mortgageTierConfig = await comptroller.connect(user).mortgageTier(level);
+      expect(mortgageTierConfig[0]).to.be.false;
+      expect(mortgageTierConfig[1]).to.be.equal(0);
     });
 
     it('should revert: set staking tier by non-owner', async function () {
       await expect(
-        comptroller.connect(user).setStakedTier(level, stakeAmount)
+        comptroller.connect(user).setMortgageTier(level, amount)
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
@@ -606,7 +610,7 @@ describe('Comptroller', function () {
       const dustD = ethers.utils.parseUnits('0.1', 18);
       beforeEach(async function () {
         await comptroller.permitDenominations([tokenD.address], [dustD]);
-        await comptroller.setStakedTier(level, stakeAmount);
+        await comptroller.setMortgageTier(level, amount);
       });
 
       it('should revert: invalid creator', async function () {
@@ -617,23 +621,23 @@ describe('Comptroller', function () {
         ).to.be.revertedWith('revertCode(13)'); // POOL_PROXY_FACTORY_INVALID_CREATOR
       });
 
-      it('should revert: invalid staked tier', async function () {
+      it('should revert: invalid mortgage tier', async function () {
         await comptroller.permitCreators([user.address]);
         await expect(
           factory
             .connect(user)
             .createPool(tokenD.address, 2, 0, 0, 300, 0, 'TEST')
-        ).to.be.revertedWith('revertCode(75)'); // POOL_PROXY_FACTORY_INVALID_STAKED_TIER
+        ).to.be.revertedWith('revertCode(75)'); // POOL_PROXY_FACTORY_INVALID_MORTGAGE_TIER
       });
 
-      it('should stake for the given tier', async function () {
+      it('should mortgage for the given tier', async function () {
         const tokenMUserBefore = await tokenM.callStatic.balanceOf(
           user.address
         );
         const tokenMVaultBefore = await tokenM.callStatic.balanceOf(
           mortgageVault.address
         );
-        await tokenM.connect(user).approve(mortgageVault.address, stakeAmount);
+        await tokenM.connect(user).approve(mortgageVault.address, amount);
         await comptroller.permitCreators([user.address]);
         const receipt = await factory
           .connect(user)
@@ -646,9 +650,9 @@ describe('Comptroller', function () {
         const mortgagePool = await mortgageVault.callStatic.poolAmounts(
           pool[0]
         );
-        expect(tokenMUserBefore.sub(tokenMUserAfter)).to.be.eq(stakeAmount);
-        expect(tokenMVaultAfter.sub(tokenMVaultBefore)).to.be.eq(stakeAmount);
-        expect(mortgagePool).to.be.eq(stakeAmount);
+        expect(tokenMUserBefore.sub(tokenMUserAfter)).to.be.eq(amount);
+        expect(tokenMVaultAfter.sub(tokenMVaultBefore)).to.be.eq(amount);
+        expect(mortgagePool).to.be.eq(amount);
       });
     });
   });

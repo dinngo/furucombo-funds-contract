@@ -8,34 +8,38 @@ import {Errors} from "./utils/Errors.sol";
 contract MortgageVault {
     using SafeERC20 for IERC20;
 
-    IERC20 public mortgage;
+    IERC20 public mortgageToken;
     uint256 public totalAmount;
     mapping(address => uint256) public poolAmounts;
 
-    event Staked(address indexed sender, address indexed pool, uint256 amount);
+    event Mortgaged(
+        address indexed sender,
+        address indexed pool,
+        uint256 amount
+    );
     event Claimed(
         address indexed receiver,
         address indexed pool,
         uint256 amount
     );
 
-    constructor(IERC20 mortgage_) {
-        mortgage = mortgage_;
+    constructor(IERC20 token_) {
+        mortgageToken = token_;
     }
 
-    function stake(
+    function mortgage(
         address sender,
         address pool,
         uint256 amount
     ) external {
         Errors._require(
             poolAmounts[pool] == 0,
-            Errors.Code.MORTGAGE_VAULT_POOL_STAKED
+            Errors.Code.MORTGAGE_VAULT_POOL_MORTGAGED
         );
         poolAmounts[pool] += amount;
         totalAmount += amount;
-        mortgage.safeTransferFrom(sender, address(this), amount);
-        emit Staked(sender, pool, amount);
+        mortgageToken.safeTransferFrom(sender, address(this), amount);
+        emit Mortgaged(sender, pool, amount);
     }
 
     function claim(address receiver) external {
@@ -44,7 +48,7 @@ contract MortgageVault {
         poolAmounts[pool] = 0;
         totalAmount -= amount;
 
-        mortgage.safeTransfer(receiver, amount);
+        mortgageToken.safeTransfer(receiver, amount);
         emit Claimed(receiver, pool, amount);
     }
 }

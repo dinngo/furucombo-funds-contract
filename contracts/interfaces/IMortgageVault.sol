@@ -8,7 +8,7 @@ interface IMortgageVault {
 
     function poolAmounts(address pool) external view returns (uint256);
 
-    function stake(
+    function mortgage(
         address sender,
         address pool,
         uint256 amount

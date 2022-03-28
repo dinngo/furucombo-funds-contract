@@ -37,7 +37,7 @@ describe('MortgageVault', function () {
     await setupTest();
   });
 
-  describe('stake', function () {
+  describe('mortgage', function () {
     beforeEach(async function () {
       await token.approve(mortgageVault.address, stakingAmount);
     });
@@ -48,9 +48,9 @@ describe('MortgageVault', function () {
         mortgageVault.address
       );
       await expect(
-        mortgageVault.stake(user.address, pool.address, stakingAmount)
+        mortgageVault.mortgage(user.address, pool.address, stakingAmount)
       )
-        .to.emit(mortgageVault, 'Staked')
+        .to.emit(mortgageVault, 'Mortgaged')
         .withArgs(user.address, pool.address, stakingAmount);
       const userBalanceAfter = await token.callStatic.balanceOf(user.address);
       const vaultBalanceAfter = await token.callStatic.balanceOf(
@@ -66,18 +66,18 @@ describe('MortgageVault', function () {
       expect(totalMortgage).to.be.eq(stakingAmount);
     });
 
-    it('should fail when pool is already staked', async function () {
-      await mortgageVault.stake(user.address, pool.address, stakingAmount);
+    it('should fail when pool is already mortgaged', async function () {
+      await mortgageVault.mortgage(user.address, pool.address, stakingAmount);
       await expect(
-        mortgageVault.stake(user.address, pool.address, stakingAmount)
-      ).to.be.revertedWith('revertCode(5)'); // MORTGAGE_VAULT_POOL_STAKED
+        mortgageVault.mortgage(user.address, pool.address, stakingAmount)
+      ).to.be.revertedWith('revertCode(5)'); // MORTGAGE_VAULT_POOL_MORTGAGED
     });
   });
 
   describe('claim', function () {
     beforeEach(async function () {
       await token.approve(mortgageVault.address, stakingAmount);
-      await mortgageVault.stake(user.address, pool.address, stakingAmount);
+      await mortgageVault.mortgage(user.address, pool.address, stakingAmount);
     });
 
     it('should succeed to claim', async function () {

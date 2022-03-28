@@ -41,12 +41,12 @@ contract PoolProxyFactory {
             Errors.Code.POOL_PROXY_FACTORY_INVALID_DENOMINATION
         );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
-        (bool isStakedTierSet, uint256 mortgageAmount) = comptroller.stakedTier(
+        (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(
             level
         );
         Errors._require(
-            isStakedTierSet,
-            Errors.Code.POOL_PROXY_FACTORY_INVALID_STAKED_TIER
+            isMortgageTierSet,
+            Errors.Code.POOL_PROXY_FACTORY_INVALID_MORTGAGE_TIER
         );
         // Can be customized
         ShareToken share = new ShareToken(
@@ -68,7 +68,7 @@ contract PoolProxyFactory {
         );
 
         IPool pool = IPool(address(new PoolProxy(address(comptroller), data)));
-        mortgageVault.stake(msg.sender, address(pool), mortgageAmount);
+        mortgageVault.mortgage(msg.sender, address(pool), amount);
         share.transferOwnership(address(pool));
         emit PoolCreated(
             address(pool),
