@@ -85,7 +85,7 @@ describe('PoolExecuteStrategy', function () {
   const valueTolerance = 9000; // 90%
   const pendingExpiration = 86400; // 1 day
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 1000; // 10%
+  const reserveExecutionRate = 1000; // 10%
   const shareTokenName = 'TEST';
 
   let owner: Wallet;
@@ -243,7 +243,7 @@ describe('PoolExecuteStrategy', function () {
         mFeeRate,
         pFeeRate,
         crystallizationPeriod,
-        reserveExecutionRatio,
+        reserveExecutionRate,
         shareTokenName
       );
       await poolProxy.connect(manager).finalize();

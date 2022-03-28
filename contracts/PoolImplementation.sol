@@ -49,7 +49,7 @@ contract PoolImplementation is
     /// @param mFeeRate_ The management fee rate.
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
-    /// @param reserveExecutionRatio_ The reserve ratio during execution.
+    /// @param reserveExecutionRate_ The reserve rate during execution.
     /// @param newOwner The owner to be assigned to the pool.
     function initialize(
         uint256 level_,
@@ -59,7 +59,7 @@ contract PoolImplementation is
         uint256 mFeeRate_,
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
-        uint256 reserveExecutionRatio_,
+        uint256 reserveExecutionRate_,
         address newOwner
     ) external whenState(State.Initializing) {
         _setLevel(level_);
@@ -69,7 +69,7 @@ contract PoolImplementation is
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
-        _setReserveExecutionRatio(reserveExecutionRatio_);
+        _setReserveExecutionRate(reserveExecutionRate_);
         _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
         _setMortgageVault(comptroller_);
@@ -178,13 +178,13 @@ contract PoolImplementation is
         _setCrystallizationPeriod(crystallizationPeriod_);
     }
 
-    /// @notice Set reserve ratio only during reviewing.
-    function setReserveExecutionRatio(uint256 reserve_)
+    /// @notice Set reserve rate only during reviewing.
+    function setReserveExecutionRate(uint256 reserve_)
         external
         onlyOwner
         whenState(State.Reviewing)
     {
-        _setReserveExecutionRatio(reserve_);
+        _setReserveExecutionRate(reserve_);
     }
 
     /////////////////////////////////////////////////////
@@ -341,12 +341,12 @@ contract PoolImplementation is
         return totalAssetValue;
     }
 
-    /// @notice Check funds reserve ratio is enough or not.
-    /// @return The reserve ratio is enough or not.
+    /// @notice Check funds reserve rate is enough or not.
+    /// @return The reserve rate is enough or not.
     function _isReserveEnough() internal view returns (bool) {
-        uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
+        uint256 reserveRate = (getReserve() * _RESERVE_BASE) /
             getTotalAssetValue();
-        return reserveRatio >= reserveExecutionRatio;
+        return reserveRate >= reserveExecutionRate;
     }
 
     /////////////////////////////////////////////////////

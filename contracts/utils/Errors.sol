@@ -81,7 +81,7 @@ library Errors {
         IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION, // 73: "Insufficient total value for execution"
         SHARE_MODULE_INSUFFICIENT_SHARES, // 74: "Insufficient share amount"
         POOL_PROXY_FACTORY_INVALID_STAKED_TIER, // 75: "Stake tier not set in comptroller"
-        POOL_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATIO, // 76: "Invalid reserve execution ratio"
+        POOL_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE, // 76: "Invalid reserve execution rate"
         SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE, // 77: "Pending redemption is not claimable"
         SHARE_MODULE_PENDING_ROUND_INCONSISTENT, // 78: "user pending round and current pending round are inconsistent"
         POOL_PROXY_FACTORY_INVALID_DENOMINATION // 79: "Invalid denomination"

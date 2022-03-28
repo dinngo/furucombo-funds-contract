@@ -49,7 +49,7 @@ contract BaseMock is PoolProxyStorageUtils {
         _setVaultApproval(setupAction);
     }
 
-    function setReserveExecutionRatio(uint256 reserve_) external {
-        _setReserveExecutionRatio(reserve_);
+    function setReserveExecutionRate(uint256 reserve_) external {
+        _setReserveExecutionRate(reserve_);
     }
 }

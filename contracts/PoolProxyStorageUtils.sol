@@ -186,13 +186,11 @@ abstract contract PoolProxyStorageUtils is PoolProxyStorage {
         );
     }
 
-    function _setReserveExecutionRatio(uint256 reserveExecutionRatio_)
-        internal
-    {
+    function _setReserveExecutionRate(uint256 reserveExecutionRate_) internal {
         Errors._require(
-            reserveExecutionRatio_ < _FEE_BASE,
-            Errors.Code.POOL_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATIO
+            reserveExecutionRate_ < _FEE_BASE,
+            Errors.Code.POOL_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
         );
-        reserveExecutionRatio = reserveExecutionRatio_;
+        reserveExecutionRate = reserveExecutionRate_;
     }
 }

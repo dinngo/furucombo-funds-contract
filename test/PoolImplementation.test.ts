@@ -758,14 +758,14 @@ describe('PoolImplementation', function () {
 
     describe('Reserve Execution', function () {
       it('set reserve execution', async function () {
-        await poolImplementation.setReserveExecutionRatio(100);
-        expect(await poolImplementation.reserveExecutionRatio()).to.be.eq(100);
+        await poolImplementation.setReserveExecutionRate(100);
+        expect(await poolImplementation.reserveExecutionRate()).to.be.eq(100);
       });
 
       it('should revert: set reserve execution at wrong stage', async function () {
         await poolImplementation.finalize();
         await expect(
-          poolImplementation.setReserveExecutionRatio(denominationDust)
+          poolImplementation.setReserveExecutionRate(denominationDust)
         ).to.be.revertedWith('InvalidState(2)');
       });
 
@@ -773,13 +773,13 @@ describe('PoolImplementation', function () {
         await expect(
           poolImplementation
             .connect(user)
-            .setReserveExecutionRatio(denominationDust)
+            .setReserveExecutionRate(denominationDust)
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
 
       it('should revert: invalid reserve execution', async function () {
         await expect(
-          poolImplementation.setReserveExecutionRatio(reserveBase)
+          poolImplementation.setReserveExecutionRate(reserveBase)
         ).to.be.revertedWith('revertCode(76)');
       });
     });
@@ -828,33 +828,33 @@ describe('PoolImplementation', function () {
   });
 
   describe('Reserve', function () {
-    let currentReserveRatio = constants.Zero;
+    let currentReserveRate = constants.Zero;
 
     beforeEach(async function () {
-      currentReserveRatio = await transferAssetToVault();
+      currentReserveRate = await transferAssetToVault();
       poolImplementation.reviewingMock();
     });
 
     it('reserve is totally enough', async function () {
-      await poolImplementation.setReserveExecutionRatio(100); // 1%
+      await poolImplementation.setReserveExecutionRate(100); // 1%
       expect(await poolImplementation.isReserveEnough()).to.be.eq(true);
     });
 
     it('reserve is a little bit more than setting', async function () {
-      await poolImplementation.setReserveExecutionRatio(
-        currentReserveRatio.sub(5)
+      await poolImplementation.setReserveExecutionRate(
+        currentReserveRate.sub(5)
       ); // reserveExecution is 0.05% below currentReserve
       expect(await poolImplementation.isReserveEnough()).to.be.eq(true);
     });
 
     it('reserve is totally not enough', async function () {
-      await poolImplementation.setReserveExecutionRatio(1500); // 15%
+      await poolImplementation.setReserveExecutionRate(1500); // 15%
       expect(await poolImplementation.isReserveEnough()).to.be.eq(false);
     });
 
     it('reserve is a little bit less than setting', async function () {
-      await poolImplementation.setReserveExecutionRatio(
-        currentReserveRatio.add(5)
+      await poolImplementation.setReserveExecutionRate(
+        currentReserveRate.add(5)
       ); // reserveExecution is 0.05% above currentReserve
       expect(await poolImplementation.isReserveEnough()).to.be.eq(false);
     });

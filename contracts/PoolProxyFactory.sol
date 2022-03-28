@@ -29,7 +29,7 @@ contract PoolProxyFactory {
         uint256 mFeeRate,
         uint256 pFeeRate,
         uint256 crystallizationPeriod,
-        uint256 reserveExecutionRatio,
+        uint256 reserveExecutionRate,
         string memory shareTokenName
     ) external returns (address) {
         Errors._require(
@@ -63,7 +63,7 @@ contract PoolProxyFactory {
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             msg.sender
         );
 
