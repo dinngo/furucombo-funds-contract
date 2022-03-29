@@ -199,7 +199,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     }
 
     function _purchase(address user_, uint256 balance_) internal virtual returns (uint256 share) {
-        uint256 grossAssetValue = _callBeforePurchase(0);
+        uint256 grossAssetValue = _beforePurchase();
         share = _addShare(user_, balance_, grossAssetValue);
 
         uint256 penalty = _getPendingRedemptionPenalty();
@@ -213,7 +213,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
         grossAssetValue += balance_;
         denomination.safeTransferFrom(msg.sender, address(vault), balance_);
-        _callAfterPurchase(share, grossAssetValue);
+        _afterPurchase(grossAssetValue);
 
         emit Purchased(user_, balance_, share, bonus);
     }
@@ -223,7 +223,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         uint256 share_,
         bool acceptPending_
     ) internal virtual returns (uint256) {
-        uint256 grossAssetValue = _callBeforeRedeem(share_);
+        uint256 grossAssetValue = _beforeRedeem();
         (uint256 shareLeft, uint256 balance) = _calculateRedeemableBalance(share_, grossAssetValue);
 
         uint256 shareRedeemed = share_ - shareLeft;
@@ -235,7 +235,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
         grossAssetValue -= balance;
         denomination.safeTransferFrom(address(vault), user_, balance);
-        _callAfterRedeem(shareRedeemed, grossAssetValue);
+        _afterRedeem(grossAssetValue);
         emit Redeemed(user_, balance, shareRedeemed);
 
         return balance;
@@ -281,24 +281,20 @@ abstract contract ShareModule is FundProxyStorageUtils {
         shareToken.mint(user_, share);
     }
 
-    function _callBeforePurchase(uint256 amount_) internal virtual returns (uint256) {
-        amount_;
+    function _beforePurchase() internal virtual returns (uint256) {
         return 0;
     }
 
-    function _callAfterPurchase(uint256 amount_, uint256 grossAssetValue_) internal virtual {
-        amount_;
+    function _afterPurchase(uint256 grossAssetValue_) internal virtual {
         grossAssetValue_;
         return;
     }
 
-    function _callBeforeRedeem(uint256 amount_) internal virtual returns (uint256) {
-        amount_;
+    function _beforeRedeem() internal virtual returns (uint256) {
         return 0;
     }
 
-    function _callAfterRedeem(uint256 amount_, uint256 grossAssetValue_) internal virtual {
-        amount_;
+    function _afterRedeem(uint256 grossAssetValue_) internal virtual {
         grossAssetValue_;
         return;
     }

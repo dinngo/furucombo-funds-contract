@@ -48,21 +48,21 @@ contract ShareModuleMock is ShareModule, BaseMock {
         pendingUsers[user].pendingShares = share;
     }
 
-    function _callBeforePurchase(uint256) internal override returns (uint256) {
+    function _beforePurchase() internal override returns (uint256) {
         emit BeforePurchaseCalled();
         return grossAssetValueMock;
     }
 
-    function _callAfterPurchase(uint256, uint256) internal override {
+    function _afterPurchase(uint256) internal override {
         emit AfterPurchaseCalled();
     }
 
-    function _callBeforeRedeem(uint256) internal override returns (uint256) {
+    function _beforeRedeem() internal override returns (uint256) {
         emit BeforeRedeemCalled();
         return grossAssetValueMock;
     }
 
-    function _callAfterRedeem(uint256, uint256) internal override {
+    function _afterRedeem(uint256) internal override {
         emit AfterRedeemCalled();
     }
 

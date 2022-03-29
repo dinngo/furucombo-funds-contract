@@ -318,7 +318,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     /// @notice Update the management fee and performance fee before purchase
     /// to get the lastest share price.
-    function _callBeforePurchase(uint256) internal override returns (uint256) {
+    function _beforePurchase() internal override returns (uint256) {
         uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
         _updatePerformanceFee(grossAssetValue);
@@ -326,7 +326,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Update the gross share price after the purchase.
-    function _callAfterPurchase(uint256, uint256 grossAssetValue_) internal override {
+    function _afterPurchase(uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
         if (state == State.RedemptionPending && _isPendingResolvable(true, grossAssetValue_)) {
             _settlePendingRedemption(true);
@@ -337,7 +337,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Update the management fee and performance fee before redeem
     /// to get the latest share price.
-    function _callBeforeRedeem(uint256) internal override returns (uint256) {
+    function _beforeRedeem() internal override returns (uint256) {
         uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
         _updatePerformanceFee(grossAssetValue);
@@ -346,7 +346,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Payout the performance fee for the redempt portion and update
     /// the gross share price.
-    function _callAfterRedeem(uint256, uint256 grossAssetValue_) internal override {
+    function _afterRedeem(uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
         return;
     }
