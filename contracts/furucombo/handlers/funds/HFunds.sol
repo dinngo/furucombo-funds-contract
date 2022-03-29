@@ -28,14 +28,14 @@ contract HFunds is HandlerBase {
         return balances;
     }
 
-    function inject(address[] calldata tokens, uint256[] calldata amounts)
+    function addFunds(address[] calldata tokens, uint256[] calldata amounts)
         external
         payable
         returns (uint256[] memory)
     {
         _requireMsg(
             tokens.length == amounts.length,
-            "inject",
+            "addFunds",
             "token and amount does not match"
         );
         address sender = _getSender();
@@ -48,7 +48,7 @@ contract HFunds is HandlerBase {
             );
 
             // Update involved token
-            _updateInitialToken(tokens[i]);
+            _updateToken(tokens[i]);
         }
         return amounts;
     }
@@ -92,7 +92,12 @@ contract HFunds is HandlerBase {
             uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
             if (balance < amounts[i]) {
                 string memory errMsg = string(
-                    abi.encodePacked("error: ", _uint2String(i), "_", _uint2String(balance))
+                    abi.encodePacked(
+                        "error: ",
+                        _uint2String(i),
+                        "_",
+                        _uint2String(balance)
+                    )
                 );
                 _revertMsg("checkSlippage", errMsg);
             }

@@ -179,7 +179,7 @@ describe('Funds', function () {
     });
   });
 
-  describe('inject', function () {
+  describe('add funds', function () {
     describe('single token', function () {
       let usdt: IERC20Usdt;
       beforeEach(async function () {
@@ -191,7 +191,7 @@ describe('Funds', function () {
         const token = [token0.address];
         const value = [ether('100')];
         const to = hFunds.address;
-        const data = simpleEncode('inject(address[],uint256[])', [
+        const data = simpleEncode('addFunds(address[],uint256[])', [
           token,
           value,
         ]);
@@ -221,7 +221,7 @@ describe('Funds', function () {
         const token = [usdt.address];
         const value = [BigNumber.from('1000000')];
         const to = hFunds.address;
-        const data = simpleEncode('inject(address[],uint256[])', [
+        const data = simpleEncode('addFunds(address[],uint256[])', [
           token,
           value,
         ]);
@@ -250,12 +250,12 @@ describe('Funds', function () {
         await profileGas(receipt);
       });
 
-      it('return token', async function () {
-        const token = [token0.address];
+      it('check return assets', async function () {
+        const tokens = [token0.address];
         const value = [ether('100')];
         const to = hFunds.address;
-        const data = simpleEncode('inject(address[],uint256[])', [
-          token,
+        const data = simpleEncode('addFunds(address[],uint256[])', [
+          tokens,
           value,
         ]);
         await token0.connect(provider0Address).transfer(user.address, value[0]);
@@ -272,14 +272,16 @@ describe('Funds', function () {
           });
 
         // Verify
-        expect(returnTokens.length).to.be.eq(ether('0'));
+        console.log('returnTokens.length', returnTokens.length.toString());
+        expect(returnTokens.length).to.be.eq(tokens.length);
+        expect(returnTokens[0]).to.be.eq(tokens[0]);
       });
 
-      it('should revert: inject not support MRC20', async function () {
+      it('should revert: addFunds not support MRC20', async function () {
         const token = [MATIC_TOKEN];
         const value = [ether('1')];
         const to = hFunds.address;
-        const data = simpleEncode('inject(address[],uint256[])', [
+        const data = simpleEncode('addFunds(address[],uint256[])', [
           token,
           value,
         ]);
@@ -302,7 +304,7 @@ describe('Funds', function () {
         const token = [token0.address, token1.address];
         const value = [ether('100'), ether('200')];
         const to = hFunds.address;
-        const data = simpleEncode('inject(address[],uint256[])', [
+        const data = simpleEncode('addFunds(address[],uint256[])', [
           token,
           value,
         ]);
@@ -342,12 +344,12 @@ describe('Funds', function () {
         await profileGas(receipt);
       });
 
-      it('return tokens', async function () {
-        const token = [token0.address, token1.address];
+      it('check return assets', async function () {
+        const tokens = [token0.address, token1.address];
         const value = [ether('100'), ether('200')];
         const to = hFunds.address;
-        const data = simpleEncode('inject(address[],uint256[])', [
-          token,
+        const data = simpleEncode('addFunds(address[],uint256[])', [
+          tokens,
           value,
         ]);
         await token0.connect(provider0Address).transfer(user.address, value[0]);
@@ -367,14 +369,17 @@ describe('Funds', function () {
           });
 
         // Verify
-        expect(returnTokens.length).to.be.eq(ether('0'));
+        expect(returnTokens.length).to.be.eq(BigNumber.from(tokens.length));
+        for (let i = 0; i < returnTokens.length; i++) {
+          expect(returnTokens[i]).to.be.eq(tokens[tokens.length - (i + 1)]);
+        }
       });
 
-      it('should revert: inject not support MRC20', async function () {
+      it('should revert: addFunds not support MRC20', async function () {
         const token = [token0.address, MATIC_TOKEN];
         const value = [ether('100'), ether('1')];
         const to = hFunds.address;
-        const data = simpleEncode('inject(address[],uint256[])', [
+        const data = simpleEncode('addFunds(address[],uint256[])', [
           token,
           value,
         ]);

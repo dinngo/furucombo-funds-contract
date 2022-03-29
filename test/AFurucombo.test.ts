@@ -1,6 +1,6 @@
 import { Wallet, BigNumber, Signer, constants } from 'ethers';
 import { expect } from 'chai';
-import { ethers, deployments } from 'hardhat';
+import { deployments } from 'hardhat';
 import {
   ComptrollerImplementation,
   PoolImplementation,
@@ -13,6 +13,8 @@ import {
   FurucomboProxy,
   Registry,
   HFunds,
+  HMock,
+  Faucet,
   PoolProxyMock,
   Chainlink,
   AssetRegistry,
@@ -27,10 +29,8 @@ import {
   DAI_PROVIDER,
   WETH_TOKEN,
   WL_ANY_SIG,
-  NATIVE_TOKEN,
-  WMATIC_TOKEN,
   AWETH_V2_DEBT_VARIABLE,
-  AAVEPROTOCOL_V2_PROVIDER,
+  FEE_BASE,
 } from './utils/constants';
 import {
   getActionReturn,
@@ -64,7 +64,9 @@ describe('AFurucombo', function () {
   let aFurucombo: AFurucombo;
   let furuRegistry: Registry;
   let hFunds: HFunds;
+  let hMock: HMock;
   let hQuickSwap: HQuickSwap;
+  let faucet: Faucet;
 
   let token: IERC20;
   let tokenOut: IERC20;
@@ -161,6 +163,9 @@ describe('AFurucombo', function () {
       ).deploy();
       await hQuickSwap.deployed();
 
+      hMock = await (await ethers.getContractFactory('HMock')).deploy();
+      await hMock.deployed();
+
       await furuRegistry.register(
         hFunds.address,
         ethers.utils.hexZeroPad(asciiToHex32('HFunds'), 32)
@@ -170,6 +175,7 @@ describe('AFurucombo', function () {
         hQuickSwap.address,
         ethers.utils.hexZeroPad(asciiToHex32('HQuickswap'), 32)
       );
+      await furuRegistry.register(hMock.address, asciiToHex32('HMock'));
 
       tokenD = await (await ethers.getContractFactory('SimpleToken'))
         .connect(user)
@@ -187,6 +193,9 @@ describe('AFurucombo', function () {
         .deploy(dsProxyRegistry.address);
       await proxy.deployed();
 
+      faucet = await (await ethers.getContractFactory('Faucet')).deploy();
+      await faucet.deployed();
+
       await proxy.setComptroller(comptroller.address);
       await comptroller.permitDenominations([tokenD.address], [0]);
       await proxy.setupDenomination(tokenD.address);
@@ -203,8 +212,8 @@ describe('AFurucombo', function () {
       // Permit handler
       comptroller.permitHandlers(
         await proxy.level(),
-        [hFunds.address, hQuickSwap.address],
-        [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG]
+        [hFunds.address, hQuickSwap.address, hMock.address],
+        [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG, WL_ANY_SIG]
       );
     }
   );
@@ -295,7 +304,7 @@ describe('AFurucombo', function () {
 
       // Verify fund Quota
       for (let i = 0; i < fundQuotas.length; i++) {
-        expect(fundQuotas[i]).to.be.lt(tokensIn[i]);
+        expect(fundQuotas[i]).to.be.lt(amountsIn[i]);
       }
       const tokenOutAfters = [tokenOutAfter];
       for (let i = 0; i < outputFundQuotas.length; i++) {
@@ -430,6 +439,268 @@ describe('AFurucombo', function () {
         proxy.connect(user).executeMock(taskExecutor.address, data)
       ).to.be.revertedWith('revertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
     });
+
+    describe('fund Quota', function () {
+      it('input token == output token: the same amount', async function () {
+        const amountIn = ether('1');
+        const consumeAmount = amountIn.sub(
+          amountIn.mul(await comptroller.execFeePercentage()).div(FEE_BASE)
+        );
+        const tokensIn = [token.address];
+        const tokensOut = [token.address];
+        const amountsIn = [amountIn];
+        const tos = [hFunds.address, hMock.address];
+        const configs = [constants.HashZero, constants.HashZero];
+        const datas = [
+          simpleEncode('updateTokens(address[])', [tokensIn]),
+          simpleEncode('doUpdateTokenOnly(address[])', [tokensIn]),
+        ];
+
+        // TaskExecutorMock data
+        const injectAmounts = [consumeAmount];
+        const data = getCallData(taskExecutor, 'execMock', [
+          tokensIn,
+          amountsIn,
+          aFurucombo.address,
+          getCallData(aFurucombo, 'injectAndBatchExec', [
+            tokensIn,
+            injectAmounts,
+            tokensOut,
+            tos,
+            configs,
+            datas,
+          ]),
+        ]);
+
+        // Send token to vault
+        const vault = await proxy.vault();
+        await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
+
+        // Execute
+        const vaultTokenBalanceBefore = await token.balanceOf(vault);
+        const receipt = await proxy
+          .connect(user)
+          .executeMock(taskExecutor.address, data);
+        const vaultTokenBalanceAfter = await token.balanceOf(vault);
+
+        // Record after balance
+        const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
+
+        // Get fundQuotas and dealing asset
+        const fundQuotas = await getTaskExecutorFundQuotas(
+          proxy,
+          taskExecutor,
+          tokensIn
+        );
+
+        const dealingAssets = await getTaskExecutorDealingAssets(
+          proxy,
+          taskExecutor
+        );
+
+        // Verify user dsproxy
+        expect(vaultTokenBalanceAfter).to.be.eq(vaultTokenBalanceBefore);
+
+        // Verify furucombo proxy
+        expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
+
+        // Verify fund Quota
+        const feePercentage = await comptroller.execFeePercentage();
+        for (let i = 0; i < fundQuotas.length; i++) {
+          expect(fundQuotas[i]).to.be.eq(
+            amountsIn[i].sub(amountsIn[i].mul(feePercentage).div(FEE_BASE))
+          );
+        }
+
+        // Verify dealing asset
+        for (let i = 0; i < dealingAssets.length; i++) {
+          expect(tokensOut[i]).to.be.eq(
+            dealingAssets[dealingAssets.length - (i + 1)] // returnTokens = dealingAssets.reverse()
+          );
+        }
+
+        await profileGas(receipt);
+      });
+
+      it('input token == output token: input amount > output amount', async function () {
+        const amountIn = ether('1');
+        const consumeAmount = amountIn.sub(
+          amountIn.mul(await comptroller.execFeePercentage()).div(FEE_BASE)
+        );
+        const tokensIn = [token.address];
+        const targets = [await tokenProvider.getAddress()];
+        const tokensOut = [token.address];
+        const amountsIn = [amountIn];
+        const tos = [hFunds.address, hMock.address];
+        const configs = [constants.HashZero, constants.HashZero];
+
+        const sendTokenAmount = consumeAmount.div(BigNumber.from(2));
+        const datas = [
+          simpleEncode('updateTokens(address[])', [tokensIn]),
+          simpleEncode('sendTokens(address[],address[],uint256[])', [
+            targets,
+            tokensIn,
+            [sendTokenAmount],
+          ]),
+        ];
+
+        // TaskExecutorMock data
+        const injectAmounts = [consumeAmount];
+        const data = getCallData(taskExecutor, 'execMock', [
+          tokensIn,
+          amountsIn,
+          aFurucombo.address,
+          getCallData(aFurucombo, 'injectAndBatchExec', [
+            tokensIn,
+            injectAmounts,
+            tokensOut,
+            tos,
+            configs,
+            datas,
+          ]),
+        ]);
+
+        // send token to vault
+        const vault = await proxy.vault();
+        await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
+
+        // Execute
+        const vaultTokenBalanceBefore = await token.balanceOf(vault);
+        const receipt = await proxy
+          .connect(user)
+          .executeMock(taskExecutor.address, data);
+        const vaultTokenBalanceAfter = await token.balanceOf(vault);
+
+        // Record after balance
+        const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
+
+        // Get fundQuotas and dealing asset
+        const fundQuotas = await getTaskExecutorFundQuotas(
+          proxy,
+          taskExecutor,
+          tokensIn
+        );
+
+        const dealingAssets = await getTaskExecutorDealingAssets(
+          proxy,
+          taskExecutor
+        );
+
+        // Verify user dsproxy
+        expect(vaultTokenBalanceAfter).to.be.lt(vaultTokenBalanceBefore);
+
+        // Verify furucombo proxy
+        expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
+
+        // Verify fund Quota
+        for (let i = 0; i < fundQuotas.length; i++) {
+          expect(fundQuotas[i]).to.be.eq(
+            amountIn.sub(consumeAmount).add(sendTokenAmount)
+          );
+        }
+
+        // Verify dealing asset
+        for (let i = 0; i < dealingAssets.length; i++) {
+          expect(tokensOut[i]).to.be.eq(
+            dealingAssets[dealingAssets.length - (i + 1)] // returnTokens = dealingAssets.reverse()
+          );
+        }
+
+        await profileGas(receipt);
+      });
+
+      it('input token == output token: input amount < output amount', async function () {
+        // Send token to faucet
+        await token
+          .connect(tokenProvider)
+          .transfer(faucet.address, ether('100'));
+
+        const amountIn = ether('1');
+        const consumeAmount = amountIn.sub(
+          amountIn.mul(await comptroller.execFeePercentage()).div(FEE_BASE)
+        );
+        const tokensIn = [token.address];
+        const targets = [faucet.address];
+        const tokensOut = [token.address];
+        const amountsIn = [amountIn];
+        const tos = [hFunds.address, hMock.address];
+        const configs = [constants.HashZero, constants.HashZero];
+        const datas = [
+          simpleEncode('updateTokens(address[])', [tokensIn]),
+          simpleEncode('drainTokens(address[],address[],uint256[])', [
+            targets,
+            tokensIn,
+            [consumeAmount],
+          ]),
+        ];
+
+        // TaskExecutorMock data
+        const injectAmounts = [consumeAmount];
+        const data = getCallData(taskExecutor, 'execMock', [
+          tokensIn,
+          amountsIn,
+          aFurucombo.address,
+          getCallData(aFurucombo, 'injectAndBatchExec', [
+            tokensIn,
+            injectAmounts,
+            tokensOut,
+            tos,
+            configs,
+            datas,
+          ]),
+        ]);
+
+        // send token to vault
+        const vault = await proxy.vault();
+        await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
+
+        // Execute
+        const vaultTokenBalanceBefore = await token.balanceOf(vault);
+        const receipt = await proxy
+          .connect(user)
+          .executeMock(taskExecutor.address, data);
+        const vaultTokenBalanceAfter = await token.balanceOf(vault);
+
+        // Record after balance
+        const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
+
+        // Get fundQuotas and dealing asset
+        const fundQuotas = await getTaskExecutorFundQuotas(
+          proxy,
+          taskExecutor,
+          tokensIn
+        );
+
+        const dealingAssets = await getTaskExecutorDealingAssets(
+          proxy,
+          taskExecutor
+        );
+
+        // Verify user dsproxy
+        expect(vaultTokenBalanceAfter).to.be.gt(vaultTokenBalanceBefore);
+
+        // Verify furucombo proxy
+        expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
+
+        // Verify fund Quota
+        for (let i = 0; i < fundQuotas.length; i++) {
+          expect(fundQuotas[i]).to.be.eq(
+            // Set consumeAmount to fund quota at the first
+            // then add generated token from faucet to fund quota
+            amountIn.sub(consumeAmount).add(consumeAmount.mul(2))
+          );
+        }
+
+        // Verify dealing asset
+        for (let i = 0; i < dealingAssets.length; i++) {
+          expect(tokensOut[i]).to.be.eq(
+            dealingAssets[dealingAssets.length - (i + 1)] // returnTokens = dealingAssets.reverse()
+          );
+        }
+
+        await profileGas(receipt);
+      });
+    });
   });
 
   describe('approve delegation to proxy', function () {
@@ -475,6 +746,64 @@ describe('AFurucombo', function () {
         [],
         aFurucombo.address,
         getCallData(aFurucombo, 'approveDelegation', [tokens, amounts]),
+      ]);
+
+      await expect(
+        proxy.connect(user).executeMock(taskExecutor.address, data)
+      ).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+    });
+  });
+
+  describe('approve token to proxy', function () {
+    it('approve token', async function () {
+      const tokenA = token;
+      const tokenB = tokenOut;
+      const tokens = [tokenA.address, tokenB.address];
+      const vault = await proxy.vault();
+
+      expect(await tokenA.allowance(vault, furucombo.address)).to.be.eq(0);
+      expect(await tokenB.allowance(vault, furucombo.address)).to.be.eq(0);
+
+      const approveTokenAAmount = ether('0.05');
+      const approveTokenBAmount = ether('100');
+      const amounts = [approveTokenAAmount, approveTokenBAmount];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        [],
+        [],
+        aFurucombo.address,
+        getCallData(aFurucombo, 'approveToken', [tokens, amounts]),
+      ]);
+
+      // Execute
+      const receipt = await proxy
+        .connect(user)
+        .executeMock(taskExecutor.address, data);
+
+      expect(await tokenA.allowance(vault, furucombo.address)).to.be.eq(
+        approveTokenAAmount
+      );
+      expect(await tokenB.allowance(vault, furucombo.address)).to.be.eq(
+        approveTokenBAmount
+      );
+
+      await profileGas(receipt);
+    });
+
+    it('should revert: inconsistent length', async function () {
+      const tokenA = token;
+      const tokenB = tokenOut;
+      const tokens = [tokenA.address, tokenB.address];
+      const approveTokenAAmount = ether('0.05');
+      const amounts = [approveTokenAAmount];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        [],
+        [],
+        aFurucombo.address,
+        getCallData(aFurucombo, 'approveToken', [tokens, amounts]),
       ]);
 
       await expect(
