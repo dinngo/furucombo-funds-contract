@@ -110,7 +110,7 @@ contract PoolImplementation is
     }
 
     function _resumeWithGrossAssetValue(uint256 grossAssetValue_)
-        public
+        internal
         whenState(State.RedemptionPending)
     {
         Errors._require(
