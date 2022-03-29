@@ -447,8 +447,9 @@ describe('InvestorPurchaseFund', function () {
       expect(afterBalance2).to.be.lt(initDenominationM);
       expect(afterBalance2).to.be.gt(beforeBalance2);
     });
-    // TODO: check again after pending list MR
-    it.skip('after resume + operation', async function () {
+    it('after resume + operation', async function () {
+      const acceptPending = true;
+
       await setObservingAssetFund(
         manager,
         investor,
@@ -468,7 +469,7 @@ describe('InvestorPurchaseFund', function () {
       );
       const beforeBalance = await denomination.balanceOf(investor.address);
 
-      const [shareM] = await purchaseFund(
+      const [redeemShare] = await purchaseFund(
         manager,
         poolProxy,
         denomination,
@@ -476,31 +477,7 @@ describe('InvestorPurchaseFund', function () {
         purchaseAmount
       );
 
-      const bal = await poolProxy.getReserve();
-      console.log('reserve');
-      console.log(bal);
-
-      const redeemShare = await poolProxy.calculateShare(purchaseAmount);
-      console.log('total share:');
-      console.log(shareM);
-      console.log('redeem share');
-      console.log(redeemShare);
-
-      const redeemBal = await poolProxy.calculateBalance(redeemShare);
-      console.log('redeem balance:');
-      console.log(redeemBal);
-
-      // TODO: check again if the state will go back to exec automatically
-      await poolProxy.resume();
       expect(await poolProxy.state()).to.be.eq(POOL_STATE.EXECUTING);
-
-      const bal1 = await poolProxy.getReserve();
-      console.log('reserve');
-      console.log(bal1);
-
-      const redeemBal1 = await poolProxy.calculateBalance(redeemShare);
-      console.log('redeem balance:');
-      console.log(redeemBal1);
 
       await redeemFund(
         manager,
