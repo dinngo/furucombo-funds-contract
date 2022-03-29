@@ -337,7 +337,6 @@ describe('CloseFund', function () {
       );
     });
   });
-
   describe('success', function () {
     it('by manager in executing without any asset', async function () {
       const purchaseAmount = initialFunds;
