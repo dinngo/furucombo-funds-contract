@@ -205,7 +205,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         uint256 penalty = _getPendingRedemptionPenalty();
         uint256 bonus;
         if (state == State.RedemptionPending) {
-            bonus = (share * (penalty)) / (_PENALTY_BASE - penalty);
+            bonus = (share * (penalty)) / (_FUND_PERCENTAGE_BASE - penalty);
             bonus = currentTotalPendingBonus > bonus ? bonus : currentTotalPendingBonus;
             currentTotalPendingBonus -= bonus;
             shareToken.move(address(this), user, bonus);
@@ -261,7 +261,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
 
         // Calculate and update pending information
         uint256 penalty = _getPendingRedemptionPenalty();
-        uint256 effectiveShare = (share * (_PENALTY_BASE - penalty)) / _PENALTY_BASE;
+        uint256 effectiveShare = (share * (_FUND_PERCENTAGE_BASE - penalty)) / _FUND_PERCENTAGE_BASE;
         uint256 penaltyShare = share - effectiveShare;
         pendingUsers[user].pendingShares += effectiveShare;
         currentTotalPendingShare += effectiveShare;

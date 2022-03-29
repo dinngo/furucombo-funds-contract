@@ -15,7 +15,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     int128 private constant FEE_BASE64x64 = 1 << 64;
     uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
-    uint256 private constant FEE_DENOMINATOR = _FEE_BASE * FEE_PERIOD;
+    uint256 private constant FEE_DENOMINATOR = _FUND_PERCENTAGE_BASE * FEE_PERIOD;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
@@ -56,8 +56,11 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     /// @notice Set the performance fee rate.
     /// @param feeRate The fee rate on a 1e4 basis.
     function _setPerformanceFeeRate(uint256 feeRate) internal virtual returns (int128) {
-        Errors._require(feeRate < _FEE_BASE, Errors.Code.PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE);
-        _pFeeRate64x64 = feeRate.divu(_FEE_BASE);
+        Errors._require(
+            feeRate < _FUND_PERCENTAGE_BASE,
+            Errors.Code.PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
+        );
+        _pFeeRate64x64 = feeRate.divu(_FUND_PERCENTAGE_BASE);
         return _pFeeRate64x64;
     }
 

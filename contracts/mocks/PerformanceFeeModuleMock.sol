@@ -49,7 +49,7 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
     }
 
     function getFeeBase() public pure returns (uint256) {
-        return 1e4;
+        return _FUND_PERCENTAGE_BASE;
     }
 
     function getFeeBase64x64() public pure returns (uint256) {

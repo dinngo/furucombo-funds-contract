@@ -10,8 +10,7 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 
 abstract contract FundProxyStorageUtils is FundProxyStorage {
-    uint256 internal constant _PENALTY_BASE = 1e4;
-    uint256 internal constant _FEE_BASE = 1e4;
+    uint256 internal constant _FUND_PERCENTAGE_BASE = 1e4;
 
     event StateTransited(State to);
 
@@ -163,7 +162,7 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
     function _setReserveExecutionRate(uint256 reserveExecutionRate_) internal {
         Errors._require(
-            reserveExecutionRate_ < _FEE_BASE,
+            reserveExecutionRate_ < _FUND_PERCENTAGE_BASE,
             Errors.Code.FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
         );
         reserveExecutionRate = reserveExecutionRate_;

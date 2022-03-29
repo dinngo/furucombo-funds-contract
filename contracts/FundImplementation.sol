@@ -21,9 +21,6 @@ import {Errors} from "./utils/Errors.sol";
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
 contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
-    uint256 private constant _RESERVE_BASE = 1e4;
-    uint256 private constant _TOLERANCE_BASE = 1e4;
-
     IDSProxyRegistry public immutable dsProxyRegistry;
     ISetupAction public immutable setupAction;
 
@@ -284,13 +281,14 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
-        uint256 reserveRate = (getReserve() * _RESERVE_BASE) / grossAssetValue_;
+        uint256 reserveRate = (getReserve() * _FUND_PERCENTAGE_BASE) / grossAssetValue_;
 
         return reserveRate >= reserveExecutionRate;
     }
 
     function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
-        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
+        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) /
+            _FUND_PERCENTAGE_BASE;
 
         return grossAssetValue_ >= minGrossAssetValue;
     }

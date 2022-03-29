@@ -567,7 +567,7 @@ describe('FundImplementation', function () {
 
       it('should revert: set by max value', async function () {
         const maxRate = 1e4;
-        await expect(fundImplementation.setManagementFeeRate(maxRate)).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
+        await expect(fundImplementation.setManagementFeeRate(maxRate)).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
       });
     });
 
@@ -592,7 +592,7 @@ describe('FundImplementation', function () {
 
       it('should revert: set by max value', async function () {
         const maxRate = 1e4;
-        await expect(fundImplementation.setPerformanceFeeRate(maxRate)).to.be.revertedWith('revertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
+        await expect(fundImplementation.setPerformanceFeeRate(maxRate)).to.be.revertedWith('revertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
       });
     });
 

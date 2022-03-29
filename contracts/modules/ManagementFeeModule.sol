@@ -24,8 +24,11 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     /// @notice Set the management fee in a yearly basis.
     /// @param feeRate The fee rate in a 1e4 base.
     function _setManagementFeeRate(uint256 feeRate) internal virtual returns (int128) {
-        Errors._require(feeRate < _FEE_BASE, Errors.Code.MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE);
-        return _setManagementFeeRate(feeRate.divu(_FEE_BASE));
+        Errors._require(
+            feeRate < _FUND_PERCENTAGE_BASE,
+            Errors.Code.MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
+        );
+        return _setManagementFeeRate(feeRate.divu(_FUND_PERCENTAGE_BASE));
     }
 
     /// @dev Calculate the effective fee rate to achieve the fee rate in an

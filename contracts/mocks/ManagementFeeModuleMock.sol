@@ -21,7 +21,7 @@ contract ManagementFeeModuleMock is ManagementFeeModule {
     }
 
     function getFeeBase() public pure returns (uint256) {
-        return 1e4;
+        return _FUND_PERCENTAGE_BASE;
     }
 
     function getRateBase() public pure returns (int128) {
