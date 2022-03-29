@@ -93,7 +93,15 @@ abstract contract ShareModule is FundProxyStorageUtils {
         returns (uint256 balance)
     {
         uint256 shareAmount = shareToken.grossTotalShare();
-        balance = (share_ * grossAssetValue_) / shareAmount;
+        Errors._require(
+            share_ <= shareAmount,
+            Errors.Code.SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE
+        );
+        if (shareAmount == 0) {
+            balance = 0;
+        } else {
+            balance = (share_ * grossAssetValue_) / shareAmount;
+        }
     }
 
     /// @notice Determine user could claim pending redemption or not
