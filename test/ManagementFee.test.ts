@@ -89,6 +89,7 @@ describe('Management fee', function () {
       expectEqWithinBps(feeClaimed, expectAmount, 1);
     });
 
+    // TODO: check again after rebase
     it('should generate fee when rate is not 0 sep', async function () {
       const ONE_QUARTER = ONE_YEAR / 4;
       const feeRate = BigNumber.from('200');

@@ -2,21 +2,8 @@ import { Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { PerformanceFeeModuleMock, ShareToken } from '../typechain';
-import { FUND_PERCENTAGE_BASE } from './utils/constants';
-import { get64x64FromNumber, ether, expectEqWithinBps } from './utils/utils';
-
-/// @notice increase the block time need mine block,
-/// the next view function will be correct.
-async function increaseNextBlockTimeBy(interval: number) {
-  const blockNumber = await ethers.provider.getBlockNumber();
-  let block = null;
-  for (let i = 0; block == null; i++) {
-    block = await ethers.provider.getBlock(blockNumber - i);
-  }
-  const jsonRpc = new ethers.providers.JsonRpcProvider();
-  await jsonRpc.send('evm_setNextBlockTimestamp', [block.timestamp + interval]);
-  await jsonRpc.send('evm_mine', []);
-}
+import { OUTSTANDING_ACCOUNT, FUND_PERCENTAGE_BASE } from './utils/constants';
+import { increaseNextBlockTimeBy, get64x64FromNumber, ether, expectEqWithinBps } from './utils/utils';
 
 describe('Performance fee', function () {
   let pFeeModule: PerformanceFeeModuleMock;
@@ -26,7 +13,7 @@ describe('Performance fee', function () {
   let feeBase: BigNumber;
 
   const totalShare = ethers.utils.parseEther('100');
-  const outstandingAccount = '0x0000000000000000000000000000000000000001';
+  const outstandingAccount = OUTSTANDING_ACCOUNT;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture('');
@@ -97,7 +84,6 @@ describe('Performance fee', function () {
       expect(isCrystallizable).to.be.eq(false);
       expect(nextCrystallizeTime).to.be.eq(startTime.add(period));
     });
-
     it('shoud return next period time after period', async function () {
       await increaseNextBlockTimeBy(period.toNumber() * 1.8);
       const isCrystallizable = await pFeeModule.isCrystallizable();

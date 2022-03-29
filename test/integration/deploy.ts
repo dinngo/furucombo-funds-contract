@@ -1,3 +1,4 @@
+import { Wallet } from 'ethers';
 import { ethers } from 'hardhat';
 import { getEventArgs, asciiToHex32 } from '../utils/utils';
 import { DS_PROXY_REGISTRY } from '../utils/constants';
@@ -79,12 +80,73 @@ export async function deployComptrollerAndFundProxyFactory(
   liquidatorAddress: string,
   pendingExpiration: number,
   mortgageVaultAddress: string,
-  totalAssetValueTolerance: number
+  totalAssetValueTolerance: any
 ): Promise<any> {
   const fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
   await fundImplementation.deployed();
 
   // comptroller
+  const comptroller = await _deployComptroller(
+    fundImplementation.address,
+    assetRouterAddress,
+    collectorAddress,
+    execFeePercentage,
+    liquidatorAddress,
+    pendingExpiration,
+    mortgageVaultAddress,
+    totalAssetValueTolerance
+  );
+
+  // FundProxyFactory
+  const fundProxyFactory = await _deployFundProxyFactory(comptroller.address);
+
+  return [fundImplementation, comptroller, fundProxyFactory];
+}
+
+export async function deployMockComptrollerAndFundProxyFactory(
+  dsProxyRegistry: string,
+  assetRouterAddress: string,
+  collectorAddress: string,
+  execFeePercentage: any,
+  liquidatorAddress: string,
+  pendingExpiration: number,
+  mortgageVaultAddress: string,
+  totalAssetValueTolerance: any
+): Promise<any> {
+  // implementation
+  const poolImplementationMock = await (
+    await ethers.getContractFactory('PoolImplementationMock')
+  ).deploy(dsProxyRegistry);
+  await poolImplementationMock.deployed();
+
+  // comptroller
+  const comptroller = await _deployComptroller(
+    poolImplementationMock.address,
+    assetRouterAddress,
+    collectorAddress,
+    execFeePercentage,
+    liquidatorAddress,
+    pendingExpiration,
+    mortgageVaultAddress,
+    totalAssetValueTolerance
+  );
+
+  // PoolProxyFactory
+  const poolProxyFactory = await _deployFundProxyFactory(comptroller.address);
+
+  return [poolImplementationMock, comptroller, poolProxyFactory];
+}
+
+async function _deployComptroller(
+  poolImplementationAddress: any,
+  assetRouterAddress: any,
+  collectorAddress: any,
+  execFeePercentage: any,
+  liquidatorAddress: any,
+  pendingExpiration: any,
+  mortgageVaultAddress: any,
+  totalAssetValueTolerance: any
+): Promise<any> {
   const comptrollerImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
   await comptrollerImplementation.deployed();
 
@@ -92,7 +154,7 @@ export async function deployComptrollerAndFundProxyFactory(
   await setupAction.deployed();
 
   const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
-    fundImplementation.address,
+    poolImplementationAddress,
     assetRouterAddress,
     collectorAddress,
     execFeePercentage,
@@ -113,11 +175,13 @@ export async function deployComptrollerAndFundProxyFactory(
     await ethers.getContractFactory('ComptrollerImplementation')
   ).attach(comptrollerProxy.address);
 
-  // FundProxyFactory
-  const fundProxyFactory = await (await ethers.getContractFactory('FundProxyFactory')).deploy(comptroller.address);
-  await fundProxyFactory.deployed();
+  return comptroller;
+}
 
-  return [fundImplementation, comptroller, fundProxyFactory];
+async function _deployFundProxyFactory(comptrollerAddress: any): Promise<any> {
+  const fundProxyFactory = await (await ethers.getContractFactory('FundProxyFactory')).deploy(comptrollerAddress);
+  await fundProxyFactory.deployed();
+  return fundProxyFactory;
 }
 
 export async function createFundProxy(
@@ -130,30 +194,79 @@ export async function createFundProxy(
   crystallizationPeriod: any,
   shareTokenName: any
 ): Promise<any> {
-  const receipt = await fundProxyFactory
-    .connect(manager)
-    .createFund(quoteAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName);
+  const receipt = await _createFund(
+    fundProxyFactory,
+    manager,
+    quoteAddress,
+    level,
+    mFeeRate,
+    pFeeRate,
+    crystallizationPeriod,
+    shareTokenName
+  );
   const eventArgs = await getEventArgs(receipt, 'FundCreated');
   console.log('args.newFund', eventArgs.newFund);
   const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
   return fundProxy;
 }
 
+export async function createPoolProxyMock(
+  poolProxyFactory: any,
+  manager: any,
+  quoteAddress: any,
+  level: any,
+  mFeeRate: any,
+  pFeeRate: any,
+  crystallizationPeriod: any,
+  shareTokenName: any
+): Promise<any> {
+  const receipt = await _createFund(
+    poolProxyFactory,
+    manager,
+    quoteAddress,
+    level,
+    mFeeRate,
+    pFeeRate,
+    crystallizationPeriod,
+    shareTokenName
+  );
+  const eventArgs = await getEventArgs(receipt, 'PoolCreated');
+  console.log('args.newPool', eventArgs.newPool);
+  const poolProxy = await ethers.getContractAt('PoolImplementationMock', eventArgs.newPool);
+  return poolProxy;
+}
+
+async function _createFund(
+  fundProxyFactory: any,
+  manager: Wallet,
+  quoteAddress: any,
+  level: any,
+  mFeeRate: any,
+  pFeeRate: any,
+  crystallizationPeriod: any,
+  shareTokenName: any
+): Promise<any> {
+  const receipt = await fundProxyFactory
+    .connect(manager)
+    .createFund(quoteAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName);
+  return receipt;
+}
+
 export async function deployTaskExecutorAndAFurucombo(
-  comptroller: any,
+  comptrollerProxy: any,
   ownerAddress: any,
   furucomboAddress: any
 ): Promise<any> {
   const taskExecutor = await (
     await ethers.getContractFactory('TaskExecutor')
-  ).deploy(ownerAddress, comptroller.address);
+  ).deploy(ownerAddress, comptrollerProxy.address);
   await taskExecutor.deployed();
-  await comptroller.setExecAction(taskExecutor.address);
+  await comptrollerProxy.setExecAction(taskExecutor.address);
 
   // AFurucombo
   const aFurucombo = await (
     await ethers.getContractFactory('AFurucombo')
-  ).deploy(ownerAddress, furucomboAddress, comptroller.address);
+  ).deploy(ownerAddress, furucomboAddress, comptrollerProxy.address);
   await aFurucombo.deployed();
 
   return [taskExecutor, aFurucombo];
