@@ -16,11 +16,7 @@ abstract contract ActionBase is FundQuotaAction, DealingAssetAction {
         return _getBalanceWithAmount(token, type(uint256).max);
     }
 
-    function _getBalanceWithAmount(address token, uint256 amount)
-        internal
-        view
-        returns (uint256)
-    {
+    function _getBalanceWithAmount(address token, uint256 amount) internal view returns (uint256) {
         if (amount != type(uint256).max) {
             return amount;
         }

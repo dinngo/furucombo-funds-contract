@@ -10,10 +10,7 @@ abstract contract DestructibleAction is OwnableAction {
     constructor(address payable _owner) OwnableAction(_owner) {}
 
     function destroy() external {
-        require(
-            msg.sender == actionOwner,
-            "DestructibleAction: caller is not the owner"
-        );
+        require(msg.sender == actionOwner, "DestructibleAction: caller is not the owner");
         selfdestruct(actionOwner);
     }
 }

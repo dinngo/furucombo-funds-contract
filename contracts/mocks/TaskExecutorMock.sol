@@ -9,9 +9,7 @@ contract TaskExecutorMock is TaskExecutor, GasProfiler {
     using Address for address;
     event RecordActionResult(bytes value);
 
-    constructor(address payable _owner, address _comptroller)
-        TaskExecutor(_owner, _comptroller)
-    {}
+    constructor(address payable _owner, address _comptroller) TaskExecutor(_owner, _comptroller) {}
 
     function execMock(
         address[] calldata tokensIn,
@@ -26,19 +24,11 @@ contract TaskExecutorMock is TaskExecutor, GasProfiler {
         emit RecordActionResult(result);
     }
 
-    function callMock(address to, bytes memory data)
-        external
-        payable
-        returns (bytes memory result)
-    {
+    function callMock(address to, bytes memory data) external payable returns (bytes memory result) {
         result = to.functionCallWithValue(data, 0);
     }
 
-    function getFundQuotas(address[] calldata funds)
-        external
-        view
-        returns (uint256[] memory)
-    {
+    function getFundQuotas(address[] calldata funds) external view returns (uint256[] memory) {
         uint256[] memory quotas = new uint256[](funds.length);
         for (uint256 i = 0; i < funds.length; i++) {
             quotas[i] = getFundQuota(funds[i]);

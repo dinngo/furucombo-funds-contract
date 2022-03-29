@@ -54,52 +54,36 @@ describe('RCurveStable', function () {
   // external service
   let liquidityPool: ICurveLiquidityPool;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user] = await (ethers as any).getSigners();
 
-      // Setup token and unlock provider
-      lpTokenProvider = await impersonateAndInjectEther(lpTokenProviderAddress);
-      lpToken = await ethers.getContractAt('ERC20', lpTokenAddress);
+    // Setup token and unlock provider
+    lpTokenProvider = await impersonateAndInjectEther(lpTokenProviderAddress);
+    lpToken = await ethers.getContractAt('ERC20', lpTokenAddress);
 
-      resolver = await (
-        await ethers.getContractFactory('RCurveStable')
-      ).deploy();
-      await resolver.deployed();
+    resolver = await (await ethers.getContractFactory('RCurveStable')).deploy();
+    await resolver.deployed();
 
-      canonicalResolver = await (
-        await ethers.getContractFactory('RCanonical')
-      ).deploy();
-      await canonicalResolver.deployed();
+    canonicalResolver = await (await ethers.getContractFactory('RCanonical')).deploy();
+    await canonicalResolver.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
-      await registry.register(lpToken.address, resolver.address);
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
+    await registry.register(lpToken.address, resolver.address);
 
-      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
-      await oracle.deployed();
-      await oracle
-        .connect(owner)
-        .addAssets(
-          [tokenAAddress, tokenBAddress, quoteAddress],
-          [aggregatorA, aggregatorB, aggregatorC]
-        );
+    oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+    await oracle.deployed();
+    await oracle
+      .connect(owner)
+      .addAssets([tokenAAddress, tokenBAddress, quoteAddress], [aggregatorA, aggregatorB, aggregatorC]);
 
-      router = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await router.deployed();
-      expect(await router.oracle()).to.be.eq(oracle.address);
+    router = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await router.deployed();
+    expect(await router.oracle()).to.be.eq(oracle.address);
 
-      liquidityPool = await ethers.getContractAt(
-        'ICurveLiquidityPool',
-        lpTokenSwapAddress
-      );
-    }
-  );
+    liquidityPool = await ethers.getContractAt('ICurveLiquidityPool', lpTokenSwapAddress);
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -118,23 +102,9 @@ describe('RCurveStable', function () {
 
       // Execution
       const decimals = await token.decimals();
-      await expect(
-        resolver
-          .connect(owner)
-          .setPoolInfo(
-            lpToken.address,
-            liquidityPool.address,
-            token.address,
-            decimals
-          )
-      )
+      await expect(resolver.connect(owner).setPoolInfo(lpToken.address, liquidityPool.address, token.address, decimals))
         .to.emit(resolver, 'PoolInfoSet')
-        .withArgs(
-          lpToken.address,
-          liquidityPool.address,
-          token.address,
-          decimals
-        );
+        .withArgs(lpToken.address, liquidityPool.address, token.address, decimals);
 
       // Verify
       const poolInfoAfter = await resolver.assetToPoolInfo(lpToken.address);
@@ -147,12 +117,7 @@ describe('RCurveStable', function () {
       await expect(
         resolver
           .connect(owner)
-          .setPoolInfo(
-            constants.AddressZero,
-            liquidityPool.address,
-            token.address,
-            await token.decimals()
-          )
+          .setPoolInfo(constants.AddressZero, liquidityPool.address, token.address, await token.decimals())
       ).to.be.revertedWith('revertCode(59)'); // RCURVE_STABLE_ZERO_ASSET_ADDRESS
     });
 
@@ -160,20 +125,13 @@ describe('RCurveStable', function () {
       await expect(
         resolver
           .connect(owner)
-          .setPoolInfo(
-            lpToken.address,
-            liquidityPool.address,
-            constants.AddressZero,
-            await token.decimals()
-          )
+          .setPoolInfo(lpToken.address, liquidityPool.address, constants.AddressZero, await token.decimals())
       ).to.be.revertedWith('revertCode(61)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS
     });
 
     it('should revert: zero asset decimal', async function () {
       await expect(
-        resolver
-          .connect(owner)
-          .setPoolInfo(lpToken.address, liquidityPool.address, token.address, 0)
+        resolver.connect(owner).setPoolInfo(lpToken.address, liquidityPool.address, token.address, 0)
       ).to.be.revertedWith('revertCode(62)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL
     });
 
@@ -181,12 +139,7 @@ describe('RCurveStable', function () {
       await expect(
         resolver
           .connect(owner)
-          .setPoolInfo(
-            lpToken.address,
-            constants.AddressZero,
-            token.address,
-            await token.decimals()
-          )
+          .setPoolInfo(lpToken.address, constants.AddressZero, token.address, await token.decimals())
       ).to.be.revertedWith('revertCode(60)'); // RCURVE_STABLE_ZERO_POOL_ADDRESS
     });
 
@@ -194,12 +147,7 @@ describe('RCurveStable', function () {
       await expect(
         resolver
           .connect(user)
-          .setPoolInfo(
-            lpToken.address,
-            liquidityPool.address,
-            token.address,
-            await token.decimals()
-          )
+          .setPoolInfo(lpToken.address, liquidityPool.address, token.address, await token.decimals())
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
@@ -209,21 +157,14 @@ describe('RCurveStable', function () {
       token = await ethers.getContractAt('ERC20', tokenAAddress);
       await resolver
         .connect(owner)
-        .setPoolInfo(
-          lpToken.address,
-          liquidityPool.address,
-          token.address,
-          await token.decimals()
-        );
+        .setPoolInfo(lpToken.address, liquidityPool.address, token.address, await token.decimals());
     });
 
     it('remove', async function () {
       const poolInfoBefore = await resolver.assetToPoolInfo(lpToken.address);
       expect(poolInfoBefore.pool).to.be.eq(liquidityPool.address);
       expect(poolInfoBefore.valuedAsset).to.be.eq(token.address);
-      expect(poolInfoBefore.valuedAssetDecimals).to.be.eq(
-        await token.decimals()
-      );
+      expect(poolInfoBefore.valuedAssetDecimals).to.be.eq(await token.decimals());
 
       // Execution
       await expect(resolver.connect(owner).removePoolInfo(lpToken.address))
@@ -238,15 +179,13 @@ describe('RCurveStable', function () {
     });
 
     it('should revert: not set yet', async function () {
-      await expect(
-        resolver.connect(owner).removePoolInfo(token.address)
-      ).to.be.revertedWith('revertCode(63)'); // RCURVE_STABLE_POOL_INFO_IS_NOT_SET
+      await expect(resolver.connect(owner).removePoolInfo(token.address)).to.be.revertedWith('revertCode(63)'); // RCURVE_STABLE_POOL_INFO_IS_NOT_SET
     });
 
     it('should revert: non-owner', async function () {
-      await expect(
-        resolver.connect(user).removePoolInfo(token.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(resolver.connect(user).removePoolInfo(token.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -256,12 +195,7 @@ describe('RCurveStable', function () {
       await registry.register(token.address, canonicalResolver.address);
       await resolver
         .connect(owner)
-        .setPoolInfo(
-          lpToken.address,
-          liquidityPool.address,
-          token.address,
-          await token.decimals()
-        );
+        .setPoolInfo(lpToken.address, liquidityPool.address, token.address, await token.decimals());
     });
 
     it('normal', async function () {
@@ -277,9 +211,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
@@ -300,9 +232,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetValue(asset, constants.MaxUint256, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, constants.MaxUint256, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
@@ -315,12 +245,7 @@ describe('RCurveStable', function () {
       await registry.register(token.address, canonicalResolver.address);
       await resolver
         .connect(owner)
-        .setPoolInfo(
-          lpToken.address,
-          liquidityPool.address,
-          token.address,
-          await token.decimals()
-        );
+        .setPoolInfo(lpToken.address, liquidityPool.address, token.address, await token.decimals());
       expect(await token.decimals()).to.be.lt(18);
     });
 
@@ -342,9 +267,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
@@ -369,9 +292,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetValue(asset, constants.MaxUint256, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, constants.MaxUint256, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);

@@ -10,12 +10,7 @@ import {
   IERC20,
 } from '../../typechain';
 
-import {
-  DAI_TOKEN,
-  LINK_TOKEN,
-  CRV_TOKEN,
-  USDC_TOKEN,
-} from '../utils/constants';
+import { DAI_TOKEN, LINK_TOKEN, CRV_TOKEN, USDC_TOKEN } from '../utils/constants';
 
 import { ether, tokenProviderQuick } from '../utils/utils';
 
@@ -40,48 +35,36 @@ describe('AssetRouter', function () {
   let router: AssetRouter;
   let oracle: AssetOracleMock;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user, someone] = await (ethers as any).getSigners();
 
-      // Setup token and unlock provider
-      tokenAProvider = await tokenProviderQuick(tokenAAddress);
-      tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
-      tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
-      tokenC = await ethers.getContractAt('IERC20', tokenCAddress);
+    // Setup token and unlock provider
+    tokenAProvider = await tokenProviderQuick(tokenAAddress);
+    tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
+    tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
+    tokenC = await ethers.getContractAt('IERC20', tokenCAddress);
 
-      resolverA = await (
-        await ethers.getContractFactory('AssetResolverMockA')
-      ).deploy();
-      await resolverA.deployed();
+    resolverA = await (await ethers.getContractFactory('AssetResolverMockA')).deploy();
+    await resolverA.deployed();
 
-      resolverB = await (
-        await ethers.getContractFactory('AssetResolverMockB')
-      ).deploy();
-      await resolverB.deployed();
+    resolverB = await (await ethers.getContractFactory('AssetResolverMockB')).deploy();
+    await resolverB.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
-      await registry.register(tokenA.address, resolverA.address);
-      await registry.register(tokenB.address, resolverA.address);
-      await registry.register(tokenC.address, resolverB.address);
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
+    await registry.register(tokenA.address, resolverA.address);
+    await registry.register(tokenB.address, resolverA.address);
+    await registry.register(tokenC.address, resolverB.address);
 
-      oracle = await (
-        await ethers.getContractFactory('AssetOracleMock')
-      ).deploy();
-      await oracle.deployed();
+    oracle = await (await ethers.getContractFactory('AssetOracleMock')).deploy();
+    await oracle.deployed();
 
-      router = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await router.deployed();
+    router = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await router.deployed();
 
-      expect(await router.oracle()).to.be.eq(oracle.address);
-    }
-  );
+    expect(await router.oracle()).to.be.eq(oracle.address);
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -94,9 +77,9 @@ describe('AssetRouter', function () {
     });
 
     it('should revert: set oracle by non-owner', async function () {
-      await expect(
-        router.connect(user).setOracle(someone.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(router.connect(user).setOracle(someone.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -107,9 +90,9 @@ describe('AssetRouter', function () {
     });
 
     it('should revert: set registry by non-owner', async function () {
-      await expect(
-        router.connect(user).setRegistry(someone.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(router.connect(user).setRegistry(someone.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -118,11 +101,7 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address];
       const amounts = [ether('1')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(
-        assets,
-        amounts,
-        quote
-      );
+      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
 
       expect(assetValue).to.be.eq(amounts[0].mul(2));
     });
@@ -135,9 +114,7 @@ describe('AssetRouter', function () {
 
       await tokenA.connect(tokenAProvider).transfer(user.address, amount);
       amount = await tokenA.balanceOf(user.address);
-      const assetValue = await router
-        .connect(user)
-        .callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote);
 
       const expectValue = amount.mul(2);
       expect(assetValue).to.be.eq(expectValue);
@@ -147,11 +124,7 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address, tokenB.address];
       const amounts = [ether('1'), ether('0.5')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(
-        assets,
-        amounts,
-        quote
-      );
+      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
 
       const expectValue = amounts[0].add(amounts[1]).mul(BigNumber.from('2'));
       expect(assetValue).to.be.eq(expectValue);
@@ -161,15 +134,9 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address, tokenC.address];
       const amounts = [ether('1'), ether('0.5')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(
-        assets,
-        amounts,
-        quote
-      );
+      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
 
-      const expectValue = amounts[0]
-        .mul(BigNumber.from('2'))
-        .sub(amounts[1].mul(BigNumber.from('2')));
+      const expectValue = amounts[0].mul(BigNumber.from('2')).sub(amounts[1].mul(BigNumber.from('2')));
       expect(assetValue).to.be.eq(expectValue);
     });
 
@@ -177,21 +144,13 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address, tokenC.address];
       const amounts = [ether('1'), ether('1')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(
-        assets,
-        amounts,
-        quote
-      );
+      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
       expect(assetValue).to.be.eq(0);
     });
 
     it('zero value with empty assets', async function () {
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(
-        [],
-        [],
-        quote
-      );
+      const assetValue = await router.callStatic.calcAssetsTotalValue([], [], quote);
       expect(assetValue).to.be.eq(0);
     });
 
@@ -200,15 +159,9 @@ describe('AssetRouter', function () {
       const amounts = [constants.MaxInt256.div(2)];
 
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(
-        assets,
-        amounts,
-        quote
-      );
+      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
 
-      expect(assetValue).to.be.eq(
-        await oracle.calcConversionAmount(assets[0], amounts[0], quote)
-      );
+      expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amounts[0], quote));
     });
 
     it('should revert: negative value', async function () {
@@ -216,11 +169,9 @@ describe('AssetRouter', function () {
       const amounts = [ether('1')];
       const quote = quoteAddress;
 
-      await expect(
-        router
-          .connect(user)
-          .callStatic.calcAssetsTotalValue(assets, amounts, quote)
-      ).to.be.revertedWith('revertCode(50)'); // ASSET_ROUTER_NEGATIVE_VALUE
+      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+        'revertCode(50)'
+      ); // ASSET_ROUTER_NEGATIVE_VALUE
     });
 
     it('should revert: assets length and amounts length are different', async function () {
@@ -228,11 +179,9 @@ describe('AssetRouter', function () {
       const amounts = [ether('1')];
       const quote = quoteAddress;
 
-      await expect(
-        router
-          .connect(user)
-          .callStatic.calcAssetsTotalValue(assets, amounts, quote)
-      ).to.be.revertedWith('revertCode(49)'); // ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+        'revertCode(49)'
+      ); // ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
     it('should revert: asset resolver is not registered', async function () {
@@ -240,11 +189,9 @@ describe('AssetRouter', function () {
       const amounts = [ether('1')];
       const quote = quoteAddress;
 
-      await expect(
-        router
-          .connect(user)
-          .callStatic.calcAssetsTotalValue(assets, amounts, quote)
-      ).to.be.revertedWith('revertCode(57)'); // ASSET_REGISTRY_UNREGISTERED
+      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+        'revertCode(57)'
+      ); // ASSET_REGISTRY_UNREGISTERED
     });
 
     it('should revert: asset vale overflow', async function () {
@@ -252,11 +199,9 @@ describe('AssetRouter', function () {
       const amounts = [constants.MaxUint256.div(2)];
       const quote = quoteAddress;
 
-      await expect(
-        router
-          .connect(user)
-          .callStatic.calcAssetsTotalValue(assets, amounts, quote)
-      ).to.be.revertedWith("SafeCast: value doesn't fit in an int256");
+      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+        "SafeCast: value doesn't fit in an int256"
+      );
     });
   });
 });

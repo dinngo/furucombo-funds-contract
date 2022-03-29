@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {Whitelist} from "../libraries/Whitelist.sol";
 
 /// @title Execution module
-abstract contract ExecutionModule is PoolProxyStorageUtils {
+abstract contract ExecutionModule is FundProxyStorageUtils {
     event Executed();
 
-    /// @notice Execute on the pool's behalf. Execution is valid during
+    /// @notice Execute on the fund's behalf. Execution is valid during
     /// Executing and Redemption Pending state.
     /// @param data The data to be applied to the execution.
     function execute(bytes calldata data)
@@ -30,11 +30,7 @@ abstract contract ExecutionModule is PoolProxyStorageUtils {
         return 0;
     }
 
-    function _afterExecute(bytes memory, uint256)
-        internal
-        virtual
-        returns (uint256)
-    {
+    function _afterExecute(bytes memory, uint256) internal virtual returns (uint256) {
         return 0;
     }
 }

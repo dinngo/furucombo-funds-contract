@@ -70,11 +70,7 @@ contract HQuickSwap is HandlerBase {
         _tokenApproveZero(tokenB, UNISWAPV2_ROUTER);
 
         // Update involved token
-        address pair = UniswapV2Library.pairFor(
-            router.factory(),
-            tokenA,
-            tokenB
-        );
+        address pair = UniswapV2Library.pairFor(router.factory(), tokenA, tokenB);
         _updateToken(pair);
     }
 
@@ -87,11 +83,7 @@ contract HQuickSwap is HandlerBase {
     ) external payable returns (uint256 amountA, uint256 amountB) {
         // Get uniswapV2 router
         IUniswapV2Router02 router = IUniswapV2Router02(UNISWAPV2_ROUTER);
-        address pair = UniswapV2Library.pairFor(
-            router.factory(),
-            tokenA,
-            tokenB
-        );
+        address pair = UniswapV2Library.pairFor(router.factory(), tokenA, tokenB);
 
         // Approve token
         liquidity = _getBalance(pair, liquidity);
@@ -99,15 +91,7 @@ contract HQuickSwap is HandlerBase {
 
         // remove liquidity
         try
-            router.removeLiquidity(
-                tokenA,
-                tokenB,
-                liquidity,
-                amountAMin,
-                amountBMin,
-                address(this),
-                block.timestamp
-            )
+            router.removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, address(this), block.timestamp)
         returns (uint256 ret1, uint256 ret2) {
             amountA = ret1;
             amountB = ret2;
@@ -128,11 +112,7 @@ contract HQuickSwap is HandlerBase {
         uint256 amountOutMin,
         address[] calldata path
     ) external payable returns (uint256 amount) {
-        _requireMsg(
-            path.length >= 2,
-            "swapExactTokensForTokens",
-            "invalid path"
-        );
+        _requireMsg(path.length >= 2, "swapExactTokensForTokens", "invalid path");
         address tokenIn = path[0];
         _notMaticToken(tokenIn);
 
@@ -143,15 +123,9 @@ contract HQuickSwap is HandlerBase {
         amountIn = _getBalance(tokenIn, amountIn);
         _tokenApprove(tokenIn, UNISWAPV2_ROUTER, amountIn);
 
-        try
-            router.swapExactTokensForTokens(
-                amountIn,
-                amountOutMin,
-                path,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256[] memory amounts) {
+        try router.swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), block.timestamp) returns (
+            uint256[] memory amounts
+        ) {
             amount = amounts[amounts.length - 1];
         } catch Error(string memory reason) {
             _revertMsg("swapExactTokensForTokens", reason);
@@ -171,11 +145,7 @@ contract HQuickSwap is HandlerBase {
         uint256 amountInMax,
         address[] calldata path
     ) external payable returns (uint256 amount) {
-        _requireMsg(
-            path.length >= 2,
-            "swapTokensForExactTokens",
-            "invalid path"
-        );
+        _requireMsg(path.length >= 2, "swapTokensForExactTokens", "invalid path");
         address tokenIn = path[0];
         _notMaticToken(tokenIn);
 
@@ -188,15 +158,9 @@ contract HQuickSwap is HandlerBase {
         // Approve token
         _tokenApprove(tokenIn, UNISWAPV2_ROUTER, amountInMax);
 
-        try
-            router.swapTokensForExactTokens(
-                amountOut,
-                amountInMax,
-                path,
-                address(this),
-                block.timestamp
-            )
-        returns (uint256[] memory amounts) {
+        try router.swapTokensForExactTokens(amountOut, amountInMax, path, address(this), block.timestamp) returns (
+            uint256[] memory amounts
+        ) {
             amount = amounts[0];
         } catch Error(string memory reason) {
             _revertMsg("swapTokensForExactTokens", reason);

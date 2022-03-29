@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
-import {PoolProxyStorageUtils} from "../PoolProxyStorageUtils.sol";
+import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /// @title Management fee module
-abstract contract ManagementFeeModule is PoolProxyStorageUtils {
+abstract contract ManagementFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
 
@@ -23,31 +23,15 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
 
     /// @notice Set the management fee in a yearly basis.
     /// @param feeRate The fee rate in a 1e4 base.
-    function _setManagementFeeRate(uint256 feeRate)
-        internal
-        virtual
-        returns (int128)
-    {
-        Errors._require(
-            feeRate < _FEE_BASE,
-            Errors.Code.MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE
-        );
+    function _setManagementFeeRate(uint256 feeRate) internal virtual returns (int128) {
+        Errors._require(feeRate < _FEE_BASE, Errors.Code.MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE);
         return _setManagementFeeRate(feeRate.divu(_FEE_BASE));
     }
 
     /// @dev Calculate the effective fee rate to achieve the fee rate in an
     /// exponential model.
-    function _setManagementFeeRate(int128 feeRate64x64)
-        private
-        returns (int128)
-    {
-        _mFeeRate64x64 = uint256(1)
-            .fromUInt()
-            .sub(feeRate64x64)
-            .ln()
-            .neg()
-            .div(FEE_PERIOD.fromUInt())
-            .exp();
+    function _setManagementFeeRate(int128 feeRate64x64) private returns (int128) {
+        _mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64).ln().neg().div(FEE_PERIOD.fromUInt()).exp();
 
         return _mFeeRate64x64;
     }
@@ -71,11 +55,7 @@ abstract contract ManagementFeeModule is PoolProxyStorageUtils {
         uint256 currentTime = block.timestamp;
         uint256 totalShare = shareToken.grossTotalShare();
 
-        uint256 sharesDue = (
-            _mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(
-                _FEE_BASE64x64
-            )
-        ).mulu(totalShare);
+        uint256 sharesDue = (_mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(_FEE_BASE64x64)).mulu(totalShare);
 
         address manager = owner();
         shareToken.mint(manager, sharesDue);

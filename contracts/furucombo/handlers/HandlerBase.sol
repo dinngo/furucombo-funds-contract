@@ -22,11 +22,7 @@ abstract contract HandlerBase is Storage, Config {
         address handler,
         address callee
     ) {
-        _requireMsg(
-            registry.handlerCalleeWhiteList(handler, callee),
-            functionName,
-            "invalid callee"
-        );
+        _requireMsg(registry.handlerCalleeWhiteList(handler, callee), functionName, "invalid callee");
         _;
     }
 
@@ -66,21 +62,8 @@ abstract contract HandlerBase is Storage, Config {
 
     function getContractName() public pure virtual returns (string memory);
 
-    function _revertMsg(string memory functionName, string memory reason)
-        internal
-        pure
-    {
-        revert(
-            string(
-                abi.encodePacked(
-                    getContractName(),
-                    "_",
-                    functionName,
-                    ": ",
-                    reason
-                )
-            )
-        );
+    function _revertMsg(string memory functionName, string memory reason) internal pure {
+        revert(string(abi.encodePacked(getContractName(), "_", functionName, ": ", reason)));
     }
 
     function _revertMsg(string memory functionName) internal pure {
@@ -112,11 +95,7 @@ abstract contract HandlerBase is Storage, Config {
         }
     }
 
-    function _getBalance(address token, uint256 amount)
-        internal
-        view
-        returns (uint256)
-    {
+    function _getBalance(address token, uint256 amount) internal view returns (uint256) {
         if (amount != type(uint256).max) {
             return amount;
         }

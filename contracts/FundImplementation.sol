@@ -17,16 +17,10 @@ import {SetupAction} from "./actions/SetupAction.sol";
 
 import {Errors} from "./utils/Errors.sol";
 
-/// @title The implementation contract for pool.
+/// @title The implementation contract for fund.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
-contract PoolImplementation is
-    AssetModule,
-    ShareModule,
-    ExecutionModule,
-    ManagementFeeModule,
-    PerformanceFeeModule
-{
+contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
     uint256 private constant _RESERVE_BASE = 1e4;
     uint256 private constant _TOLERANCE_BASE = 1e4;
 
@@ -42,15 +36,15 @@ contract PoolImplementation is
     // State Changes
     /////////////////////////////////////////////////////
     /// @notice Initializer.
-    /// @param level_ The tier of the pool.
+    /// @param level_ The tier of the fund.
     /// @param comptroller_ The comptroller address.
     /// @param denomination_ The denomination asset.
     /// @param shareToken_ The share token address.
     /// @param mFeeRate_ The management fee rate.
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
-    /// @param reserveExecutionRatio_ The reserve ratio during execution.
-    /// @param newOwner The owner to be assigned to the pool.
+    /// @param reserveExecutionRate_ The reserve rate during execution.
+    /// @param newOwner The owner to be assigned to the fund.
     function initialize(
         uint256 level_,
         IComptroller comptroller_,
@@ -59,7 +53,7 @@ contract PoolImplementation is
         uint256 mFeeRate_,
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
-        uint256 reserveExecutionRatio_,
+        uint256 reserveExecutionRate_,
         address newOwner
     ) external whenState(State.Initializing) {
         _setLevel(level_);
@@ -69,7 +63,7 @@ contract PoolImplementation is
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
-        _setReserveExecutionRatio(reserveExecutionRatio_);
+        _setReserveExecutionRate(reserveExecutionRate_);
         _setVault(dsProxyRegistry);
         _transferOwnership(newOwner);
         _setMortgageVault(comptroller_);
@@ -77,15 +71,12 @@ contract PoolImplementation is
         _review();
     }
 
-    /// @notice Finalize the initialization of the pool.
+    /// @notice Finalize the initialization of the fund.
     function finalize() public onlyOwner {
         _finalize();
 
         // Add denomination to list and never remove
-        Errors._require(
-            getAssetList().length == 0,
-            Errors.Code.IMPLEMENTATION_ASSET_LIST_NOT_EMPTY
-        );
+        Errors._require(getAssetList().length == 0, Errors.Code.IMPLEMENTATION_ASSET_LIST_NOT_EMPTY);
 
         Errors._require(
             comptroller.isValidDenomination(address(denomination)),
@@ -103,16 +94,13 @@ contract PoolImplementation is
         _initializePerformanceFee();
     }
 
-    /// @notice Resume the pool by anyone if can settle pending redeemption.
+    /// @notice Resume the fund by anyone if can settle pending redemption.
     function resume() public {
         uint256 grossAssetValue = getGrossAssetValue();
         _resumeWithGrossAssetValue(grossAssetValue);
     }
 
-    function _resumeWithGrossAssetValue(uint256 grossAssetValue_)
-        internal
-        whenState(State.RedemptionPending)
-    {
+    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal whenState(State.RedemptionPending) {
         Errors._require(
             _isPendingResolvable(true, grossAssetValue_),
             Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
@@ -121,15 +109,11 @@ contract PoolImplementation is
         _resume();
     }
 
-    /// @notice Liquidate the pool by anyone and transfer owner to liquidator.
+    /// @notice Liquidate the fund by anyone and transfer owner to liquidator.
     function liquidate() public {
+        Errors._require(pendingStartTime != 0, Errors.Code.IMPLEMENTATION_PENDING_NOT_START);
         Errors._require(
-            pendingStartTime != 0,
-            Errors.Code.IMPLEMENTATION_PENDING_NOT_START
-        );
-        Errors._require(
-            block.timestamp >=
-                pendingStartTime + comptroller.pendingExpiration(),
+            block.timestamp >= pendingStartTime + comptroller.pendingExpiration(),
             Errors.Code.IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
 
@@ -139,14 +123,9 @@ contract PoolImplementation is
         _transferOwnership(comptroller.pendingLiquidator());
     }
 
-    /// @notice Close the pool. The pending redemption will be settled
+    /// @notice Close the fund. The pending redemption will be settled
     /// without penalty.
-    function close()
-        public
-        override
-        onlyOwner
-        whenStates(State.Executing, State.Liquidating)
-    {
+    function close() public override onlyOwner whenStates(State.Executing, State.Liquidating) {
         if (_getResolvePendingShares(false) > 0) {
             _settlePendingRedemption(false);
         }
@@ -160,45 +139,29 @@ contract PoolImplementation is
     // Setters
     /////////////////////////////////////////////////////
     /// @notice Set management fee rate only during reviewing.
-    function setManagementFeeRate(uint256 mFeeRate_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
+    function setManagementFeeRate(uint256 mFeeRate_) external onlyOwner whenState(State.Reviewing) {
         _setManagementFeeRate(mFeeRate_);
     }
 
     /// @notice Set performance fee rate only during reviewing.
-    function setPerformanceFeeRate(uint256 pFeeRate_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
+    function setPerformanceFeeRate(uint256 pFeeRate_) external onlyOwner whenState(State.Reviewing) {
         _setPerformanceFeeRate(pFeeRate_);
     }
 
     /// @notice Set crystallization period only during reviewing.
-    function setCrystallizationPeriod(uint256 crystallizationPeriod_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
+    function setCrystallizationPeriod(uint256 crystallizationPeriod_) external onlyOwner whenState(State.Reviewing) {
         _setCrystallizationPeriod(crystallizationPeriod_);
     }
 
-    /// @notice Set reserve ratio only during reviewing.
-    function setReserveExecutionRatio(uint256 reserve_)
-        external
-        onlyOwner
-        whenState(State.Reviewing)
-    {
-        _setReserveExecutionRatio(reserve_);
+    /// @notice Set reserve rate only during reviewing.
+    function setReserveExecutionRate(uint256 reserve_) external onlyOwner whenState(State.Reviewing) {
+        _setReserveExecutionRate(reserve_);
     }
 
     /////////////////////////////////////////////////////
     // Getters
     /////////////////////////////////////////////////////
-    /// @notice Get the current reserve amount of the pool.
+    /// @notice Get the current reserve amount of the fund.
     /// @return The reserve amount.
     function __getReserve() internal view override returns (uint256) {
         return getReserve();
@@ -212,20 +175,10 @@ contract PoolImplementation is
             amounts[i] = IERC20(assets[i]).balanceOf(address(vault));
         }
 
-        return
-            comptroller.assetRouter().calcAssetsTotalValue(
-                assets,
-                amounts,
-                address(denomination)
-            );
+        return comptroller.assetRouter().calcAssetsTotalValue(assets, amounts, address(denomination));
     }
 
-    function __getGrossAssetValue()
-        internal
-        view
-        override(ShareModule, PerformanceFeeModule)
-        returns (uint256)
-    {
+    function __getGrossAssetValue() internal view override(ShareModule, PerformanceFeeModule) returns (uint256) {
         return getGrossAssetValue();
     }
 
@@ -241,18 +194,13 @@ contract PoolImplementation is
     /// @notice Add the asset to the tracking list.
     /// @param asset The asset to be added.
     function _addAsset(address asset) internal override {
-        Errors._require(
-            comptroller.isValidDealingAsset(level, asset),
-            Errors.Code.IMPLEMENTATION_INVALID_ASSET
-        );
+        Errors._require(comptroller.isValidDealingAsset(level, asset), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
 
         if (asset == address(denomination)) {
             super._addAsset(asset);
         } else {
             int256 value = getAssetValue(asset);
-            int256 dust = int256(
-                comptroller.getDenominationDust(address(denomination))
-            );
+            int256 dust = int256(comptroller.getDenominationDust(address(denomination)));
 
             if (value >= dust || value < 0) {
                 super._addAsset(asset);
@@ -273,9 +221,7 @@ contract PoolImplementation is
         address _denomination = address(denomination);
         if (asset != _denomination) {
             int256 value = getAssetValue(asset);
-            int256 dust = int256(
-                comptroller.getDenominationDust(_denomination)
-            );
+            int256 dust = int256(comptroller.getDenominationDust(_denomination));
 
             if (value < dust && value >= 0) {
                 super._removeAsset(asset);
@@ -289,18 +235,13 @@ contract PoolImplementation is
         uint256 balance = IERC20(asset).balanceOf(address(vault));
         if (balance == 0) return 0;
 
-        return
-            comptroller.assetRouter().calcAssetValue(
-                asset,
-                balance,
-                address(denomination)
-            );
+        return comptroller.assetRouter().calcAssetValue(asset, balance, address(denomination));
     }
 
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
-    /// @notice Execute an action on the pool's behalf.
+    /// @notice Execute an action on the fund's behalf.
     function _beforeExecute() internal virtual override returns (uint256) {
         return getGrossAssetValue();
     }
@@ -310,11 +251,7 @@ contract PoolImplementation is
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response, uint256 prevGrossAssetValue)
-        internal
-        override
-        returns (uint256)
-    {
+    function _afterExecute(bytes memory response, uint256 prevGrossAssetValue) internal override returns (uint256) {
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
@@ -336,10 +273,7 @@ contract PoolImplementation is
         }
 
         // Check value after execution
-        Errors._require(
-            _isReserveEnough(grossAssetValue),
-            Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
-        );
+        Errors._require(_isReserveEnough(grossAssetValue), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
 
         Errors._require(
             _isAfterValueEnough(prevGrossAssetValue, grossAssetValue),
@@ -349,23 +283,14 @@ contract PoolImplementation is
         return grossAssetValue;
     }
 
-    function _isReserveEnough(uint256 grossAssetValue_)
-        internal
-        view
-        returns (bool)
-    {
-        uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
-            grossAssetValue_;
+    function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 reserveRate = (getReserve() * _RESERVE_BASE) / grossAssetValue_;
 
-        return reserveRatio >= reserveExecutionRatio;
+        return reserveRate >= reserveExecutionRate;
     }
 
-    function _isAfterValueEnough(
-        uint256 prevAssetValue_,
-        uint256 grossAssetValue_
-    ) internal view returns (bool) {
-        uint256 minGrossAssetValue = (prevAssetValue_ *
-            comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
+    function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
 
         return grossAssetValue_ >= minGrossAssetValue;
     }
@@ -396,15 +321,9 @@ contract PoolImplementation is
     }
 
     /// @notice Update the gross share price after the purchase.
-    function _callAfterPurchase(uint256, uint256 grossAssetValue_)
-        internal
-        override
-    {
+    function _callAfterPurchase(uint256, uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
-        if (
-            state == State.RedemptionPending &&
-            _isPendingResolvable(true, grossAssetValue_)
-        ) {
+        if (state == State.RedemptionPending && _isPendingResolvable(true, grossAssetValue_)) {
             _settlePendingRedemption(true);
             _resume();
         }
@@ -422,10 +341,7 @@ contract PoolImplementation is
 
     /// @notice Payout the performance fee for the redempt portion and update
     /// the gross share price.
-    function _callAfterRedeem(uint256, uint256 grossAssetValue_)
-        internal
-        override
-    {
+    function _callAfterRedeem(uint256, uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
         return;
     }

@@ -5,12 +5,8 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
 import {ComptrollerProxyAdmin} from "./ComptrollerProxyAdmin.sol";
 
 contract ComptrollerProxy is TransparentUpgradeableProxy {
-    constructor(address logic_, bytes memory data_)
-        TransparentUpgradeableProxy(logic_, msg.sender, data_)
-    {
-        ComptrollerProxyAdmin compAdmin = new ComptrollerProxyAdmin(
-            TransparentUpgradeableProxy(this)
-        );
+    constructor(address logic_, bytes memory data_) TransparentUpgradeableProxy(logic_, msg.sender, data_) {
+        ComptrollerProxyAdmin compAdmin = new ComptrollerProxyAdmin(TransparentUpgradeableProxy(this));
         compAdmin.transferOwnership(msg.sender);
         _changeAdmin(address(compAdmin));
     }

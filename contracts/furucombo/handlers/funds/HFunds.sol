@@ -12,11 +12,7 @@ contract HFunds is HandlerBase {
         return "HFunds";
     }
 
-    function updateTokens(address[] calldata tokens)
-        external
-        payable
-        returns (uint256[] memory)
-    {
+    function updateTokens(address[] calldata tokens) external payable returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
@@ -33,19 +29,11 @@ contract HFunds is HandlerBase {
         payable
         returns (uint256[] memory)
     {
-        _requireMsg(
-            tokens.length == amounts.length,
-            "addFunds",
-            "token and amount does not match"
-        );
+        _requireMsg(tokens.length == amounts.length, "addFunds", "token and amount does not match");
         address sender = _getSender();
         for (uint256 i = 0; i < tokens.length; i++) {
             _notMaticToken(tokens[i]);
-            IERC20(tokens[i]).safeTransferFrom(
-                sender,
-                address(this),
-                amounts[i]
-            );
+            IERC20(tokens[i]).safeTransferFrom(sender, address(this), amounts[i]);
 
             // Update involved token
             _updateToken(tokens[i]);
@@ -53,15 +41,8 @@ contract HFunds is HandlerBase {
         return amounts;
     }
 
-    function returnFunds(address[] calldata tokens, uint256[] calldata amounts)
-        external
-        payable
-    {
-        _requireMsg(
-            tokens.length == amounts.length,
-            "returnFunds",
-            "token and amount do not match"
-        );
+    function returnFunds(address[] calldata tokens, uint256[] calldata amounts) external payable {
+        _requireMsg(tokens.length == amounts.length, "returnFunds", "token and amount do not match");
 
         address payable receiver = payable(_getSender());
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -75,15 +56,8 @@ contract HFunds is HandlerBase {
         }
     }
 
-    function checkSlippage(
-        address[] calldata tokens,
-        uint256[] calldata amounts
-    ) external payable {
-        _requireMsg(
-            tokens.length == amounts.length,
-            "checkSlippage",
-            "token and amount do not match"
-        );
+    function checkSlippage(address[] calldata tokens, uint256[] calldata amounts) external payable {
+        _requireMsg(tokens.length == amounts.length, "checkSlippage", "token and amount do not match");
 
         for (uint256 i = 0; i < tokens.length; i++) {
             // token can't be matic token
@@ -91,14 +65,7 @@ contract HFunds is HandlerBase {
 
             uint256 balance = IERC20(tokens[i]).balanceOf(address(this));
             if (balance < amounts[i]) {
-                string memory errMsg = string(
-                    abi.encodePacked(
-                        "error: ",
-                        _uint2String(i),
-                        "_",
-                        _uint2String(balance)
-                    )
-                );
+                string memory errMsg = string(abi.encodePacked("error: ", _uint2String(i), "_", _uint2String(balance)));
                 _revertMsg("checkSlippage", errMsg);
             }
         }

@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ITaskExecutor} from "./interfaces/ITaskExecutor.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
-import {IPool} from "./interfaces/IPool.sol";
+import {IFund} from "./interfaces/IFund.sol";
 import {Errors} from "./utils/Errors.sol";
 import {DestructibleAction} from "./utils/DestructibleAction.sol";
 import {DelegateCallAction} from "./utils/DelegateCallAction.sol";
@@ -14,13 +14,7 @@ import {FundQuotaAction} from "./utils/FundQuotaAction.sol";
 import {DealingAssetAction} from "./utils/DealingAssetAction.sol";
 import {LibParam} from "./libraries/LibParam.sol";
 
-contract TaskExecutor is
-    ITaskExecutor,
-    DestructibleAction,
-    DelegateCallAction,
-    FundQuotaAction,
-    DealingAssetAction
-{
+contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, FundQuotaAction, DealingAssetAction {
     using Address for address;
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
@@ -31,10 +25,7 @@ contract TaskExecutor is
     uint256 private constant _FEE_BASE = 1e4;
     IComptroller public immutable comptroller;
 
-    constructor(address payable _owner, address _comptroller)
-        DestructibleAction(_owner)
-        DelegateCallAction()
-    {
+    constructor(address payable _owner, address _comptroller) DestructibleAction(_owner) DelegateCallAction() {
         // FIXME: get from caller or assign it directly
         comptroller = IComptroller(_comptroller);
     }
@@ -51,15 +42,7 @@ contract TaskExecutor is
         address[] calldata tos,
         bytes32[] calldata configs,
         bytes[] memory datas
-    )
-        external
-        payable
-        override
-        delegateCallOnly
-        quotaCleanUp
-        assetCleanUp
-        returns (address[] memory a)
-    {
+    ) external payable override delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory a) {
         _chargeExecutionFee(tokensIn, amountsIn);
         return _execs(tos, configs, datas);
     }
@@ -78,16 +61,10 @@ contract TaskExecutor is
         bytes32[256] memory localStack;
         uint256 index = 0;
 
-        Errors._require(
-            tos.length == datas.length,
-            Errors.Code.TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT
-        );
-        Errors._require(
-            tos.length == configs.length,
-            Errors.Code.TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT
-        );
+        Errors._require(tos.length == datas.length, Errors.Code.TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT);
+        Errors._require(tos.length == configs.length, Errors.Code.TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT);
 
-        uint256 level = IPool(msg.sender).level();
+        uint256 level = IFund(msg.sender).level();
 
         for (uint256 i = 0; i < tos.length; i++) {
             bytes32 config = configs[i];
@@ -95,11 +72,7 @@ contract TaskExecutor is
             if (config.isDelegateCall()) {
                 // check comptroller delegate call
                 Errors._require(
-                    comptroller.canDelegateCall(
-                        level,
-                        tos[i],
-                        bytes4(datas[i])
-                    ),
+                    comptroller.canDelegateCall(level, tos[i], bytes4(datas[i])),
                     Errors.Code.TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
                 );
 
@@ -116,9 +89,7 @@ contract TaskExecutor is
                 index = _parseReturn(result, config, localStack, index);
             } else {
                 // Decode eth value from data
-                (uint256 ethValue, bytes memory _data) = _decodeEthValue(
-                    datas[i]
-                );
+                (uint256 ethValue, bytes memory _data) = _decodeEthValue(datas[i]);
 
                 // check comptroller contract call
                 Errors._require(
@@ -174,10 +145,7 @@ contract TaskExecutor is
 
         // Trim the data with the reference and parameters
         for (uint256 i = 0; i < refs.length; i++) {
-            Errors._require(
-                refs[i] < index,
-                Errors.Code.TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
-            );
+            Errors._require(refs[i] < index, Errors.Code.TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK);
             bytes32 ref = localStack[refs[i]];
             uint256 offset = params[i];
             uint256 base = PERCENTAGE_BASE;
@@ -217,9 +185,7 @@ contract TaskExecutor is
             uint256 newIndex = _parse(localStack, ret, index);
             Errors._require(
                 newIndex == index + num,
-                Errors
-                    .Code
-                    .TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
+                Errors.Code.TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
             );
             index = newIndex;
         }
@@ -239,16 +205,10 @@ contract TaskExecutor is
     ) internal pure returns (uint256 newIndex) {
         uint256 len = ret.length;
         // The return value should be multiple of 32-bytes to be parsed.
-        Errors._require(
-            len % 32 == 0,
-            Errors.Code.TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE
-        );
+        Errors._require(len % 32 == 0, Errors.Code.TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE);
         // Estimate the tail after the process.
         newIndex = index + len / 32;
-        Errors._require(
-            newIndex <= 256,
-            Errors.Code.TASK_EXECUTOR_STACK_OVERFLOW
-        );
+        Errors._require(newIndex <= 256, Errors.Code.TASK_EXECUTOR_STACK_OVERFLOW);
         assembly {
             let offset := shl(5, index)
             // Store the data into localStack
@@ -257,10 +217,7 @@ contract TaskExecutor is
             } lt(i, len) {
                 i := add(i, 0x20)
             } {
-                mstore(
-                    add(localStack, add(i, offset)),
-                    mload(add(add(ret, i), 0x20))
-                )
+                mstore(add(localStack, add(i, offset)), mload(add(add(ret, i), 0x20)))
             }
         }
     }
@@ -269,11 +226,7 @@ contract TaskExecutor is
      * @notice decode eth value from the execution data.
      * @param data The execution data.
      */
-    function _decodeEthValue(bytes memory data)
-        internal
-        pure
-        returns (uint256, bytes memory)
-    {
+    function _decodeEthValue(bytes memory data) internal pure returns (uint256, bytes memory) {
         return abi.decode(data, (uint256, bytes));
     }
 
@@ -282,12 +235,9 @@ contract TaskExecutor is
      * @param tokensIn The input tokens.
      * @param amountsIn The input token amounts.
      */
-    function _chargeExecutionFee(
-        address[] calldata tokensIn,
-        uint256[] calldata amountsIn
-    ) internal {
+    function _chargeExecutionFee(address[] calldata tokensIn, uint256[] calldata amountsIn) internal {
         // Check initial asset from white list
-        uint256 level = IPool(msg.sender).level();
+        uint256 level = IFund(msg.sender).level();
         Errors._require(
             comptroller.isValidInitialAssets(level, tokensIn),
             Errors.Code.TASK_EXECUTOR_INVALID_INITIAL_ASSET
@@ -299,10 +249,7 @@ contract TaskExecutor is
 
         for (uint256 i = 0; i < tokensIn.length; i++) {
             // make sure all quota should be zero at the begin
-            Errors._require(
-                isFundQuotaZero(tokensIn[i]),
-                Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA
-            );
+            Errors._require(isFundQuotaZero(tokensIn[i]), Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA);
 
             // send fee to collector
             uint256 execFee = (amountsIn[i] * feePercentage) / _FEE_BASE;

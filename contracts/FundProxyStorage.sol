@@ -10,7 +10,7 @@ import {IDSProxy} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
-abstract contract PoolProxyStorageV1 is Ownable, ReentrancyGuard {
+abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
     using LibUniqueAddressList for LibUniqueAddressList.List;
 
     enum State {
@@ -34,7 +34,7 @@ abstract contract PoolProxyStorageV1 is Ownable, ReentrancyGuard {
 
     // Common
     uint256 public level;
-    uint256 public reserveExecutionRatio; // reserve ratio, base is 1e4. 100 means 1%
+    uint256 public reserveExecutionRate; // reserve rate, base is 1e4. 100 means 1%
     uint256 public pendingStartTime;
     State public state;
     IComptroller public comptroller;
@@ -67,4 +67,4 @@ abstract contract PoolProxyStorageV1 is Ownable, ReentrancyGuard {
     uint256 internal _lastCrystallization;
 }
 
-abstract contract PoolProxyStorage is PoolProxyStorageV1 {}
+abstract contract FundProxyStorage is FundProxyStorageV1 {}

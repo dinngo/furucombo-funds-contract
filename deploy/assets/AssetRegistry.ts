@@ -1,13 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import {
-  assets,
-  aaveV2Asset,
-  aaveV2Debt,
-  curveStable,
-  quickSwap,
-  sushiSwap,
-} from './AssetConfig';
+import { assets, aaveV2Asset, aaveV2Debt, curveStable, quickSwap, sushiSwap } from './AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -23,10 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     console.log('executing "AssetRegistry" newly deployed setup');
 
-    const assetRegistry = await ethers.getContractAt(
-      'AssetRegistry',
-      result.address
-    );
+    const assetRegistry = await ethers.getContractAt('AssetRegistry', result.address);
 
     // Register to canonical resolver
     const rCanonical = await deployments.get('RCanonical');
@@ -52,16 +42,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       await assetRegistry.register(info.address, rCurveStable.address);
 
       // Set pool info for lp token
-      const rCurveStableInstance = await ethers.getContractAt(
-        'RCurveStable',
-        rCurveStable.address
-      );
-      await rCurveStableInstance.setPoolInfo(
-        info.address,
-        info.pool,
-        info.valuedAsset,
-        info.valuedAssetDecimals
-      );
+      const rCurveStableInstance = await ethers.getContractAt('RCurveStable', rCurveStable.address);
+      await rCurveStableInstance.setPoolInfo(info.address, info.pool, info.valuedAsset, info.valuedAssetDecimals);
     }
 
     // Register to uniswap v2 like resolver
@@ -78,10 +60,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['AssetRegistry'];
-func.dependencies = [
-  'RAaveProtocolV2Asset',
-  'RAaveProtocolV2Debt',
-  'RCanonical',
-  'RCurveStable',
-  'RUniSwapV2Like',
-];
+func.dependencies = ['RAaveProtocolV2Asset', 'RAaveProtocolV2Debt', 'RCanonical', 'RCurveStable', 'RUniSwapV2Like'];

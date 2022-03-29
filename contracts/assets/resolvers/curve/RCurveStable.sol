@@ -31,22 +31,10 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         address _valuedAsset,
         uint256 _valuedAssetDecimals
     ) external onlyOwner {
-        Errors._require(
-            _asset != address(0),
-            Errors.Code.RCURVE_STABLE_ZERO_ASSET_ADDRESS
-        );
-        Errors._require(
-            _pool != address(0),
-            Errors.Code.RCURVE_STABLE_ZERO_POOL_ADDRESS
-        );
-        Errors._require(
-            _valuedAsset != address(0),
-            Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS
-        );
-        Errors._require(
-            _valuedAssetDecimals > 0,
-            Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL
-        );
+        Errors._require(_asset != address(0), Errors.Code.RCURVE_STABLE_ZERO_ASSET_ADDRESS);
+        Errors._require(_pool != address(0), Errors.Code.RCURVE_STABLE_ZERO_POOL_ADDRESS);
+        Errors._require(_valuedAsset != address(0), Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS);
+        Errors._require(_valuedAssetDecimals > 0, Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL);
 
         assetToPoolInfo[_asset] = PoolInfo({
             pool: _pool,
@@ -58,10 +46,7 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     }
 
     function removePoolInfo(address _asset) external onlyOwner {
-        Errors._require(
-            assetToPoolInfo[_asset].pool != address(0),
-            Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET
-        );
+        Errors._require(assetToPoolInfo[_asset].pool != address(0), Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET);
         assetToPoolInfo[_asset] = PoolInfo(address(0), address(0), 0);
         emit PoolInfoRemoved(_asset);
     }
@@ -73,21 +58,16 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     ) external view override returns (int256) {
         // Get pool info
         PoolInfo memory info = assetToPoolInfo[asset];
-        Errors._require(
-            info.pool != address(0),
-            Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET
-        );
+        Errors._require(info.pool != address(0), Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET);
 
         // Calculate value
         uint256 underlyingAmount;
-        uint256 virtualPrice = ICurveLiquidityPool(info.pool)
-            .get_virtual_price();
+        uint256 virtualPrice = ICurveLiquidityPool(info.pool).get_virtual_price();
         if (info.valuedAssetDecimals == 18) {
             underlyingAmount = (amount * virtualPrice) / VIRTUAL_PRICE_UNIT;
         } else {
             underlyingAmount =
-                ((amount * virtualPrice * (10**info.valuedAssetDecimals)) /
-                    VIRTUAL_PRICE_UNIT) /
+                ((amount * virtualPrice * (10**info.valuedAssetDecimals)) / VIRTUAL_PRICE_UNIT) /
                 VIRTUAL_PRICE_UNIT;
         }
 

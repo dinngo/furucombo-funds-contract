@@ -8,43 +8,36 @@ import {Errors} from "./utils/Errors.sol";
 contract MortgageVault {
     using SafeERC20 for IERC20;
 
-    IERC20 public mortgage;
+    IERC20 public mortgageToken;
     uint256 public totalAmount;
-    mapping(address => uint256) public poolAmounts;
+    mapping(address => uint256) public fundAmounts;
 
-    event Staked(address indexed sender, address indexed pool, uint256 amount);
-    event Claimed(
-        address indexed receiver,
-        address indexed pool,
-        uint256 amount
-    );
+    event Mortgaged(address indexed sender, address indexed fund, uint256 amount);
+    event Claimed(address indexed receiver, address indexed fund, uint256 amount);
 
-    constructor(IERC20 mortgage_) {
-        mortgage = mortgage_;
+    constructor(IERC20 token_) {
+        mortgageToken = token_;
     }
 
-    function stake(
+    function mortgage(
         address sender,
-        address pool,
+        address fund,
         uint256 amount
     ) external {
-        Errors._require(
-            poolAmounts[pool] == 0,
-            Errors.Code.MORTGAGE_VAULT_POOL_STAKED
-        );
-        poolAmounts[pool] += amount;
+        Errors._require(fundAmounts[fund] == 0, Errors.Code.MORTGAGE_VAULT_FUND_MORTGAGED);
+        fundAmounts[fund] += amount;
         totalAmount += amount;
-        mortgage.safeTransferFrom(sender, address(this), amount);
-        emit Staked(sender, pool, amount);
+        mortgageToken.safeTransferFrom(sender, address(this), amount);
+        emit Mortgaged(sender, fund, amount);
     }
 
     function claim(address receiver) external {
-        address pool = msg.sender;
-        uint256 amount = poolAmounts[pool];
-        poolAmounts[pool] = 0;
+        address fund = msg.sender;
+        uint256 amount = fundAmounts[fund];
+        fundAmounts[fund] = 0;
         totalAmount -= amount;
 
-        mortgage.safeTransfer(receiver, amount);
-        emit Claimed(receiver, pool, amount);
+        mortgageToken.safeTransfer(receiver, amount);
+        emit Claimed(receiver, fund, amount);
     }
 }

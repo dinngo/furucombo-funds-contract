@@ -32,11 +32,7 @@ contract Foo2Handler is HandlerBase {
         return IFoo2Factory(getFooFactory()).addressOf(index);
     }
 
-    function bar(uint256 value, uint256 index)
-        public
-        payable
-        returns (uint256 result)
-    {
+    function bar(uint256 value, uint256 index) public payable returns (uint256 result) {
         address target = getFoo(index);
         _updateToken(target);
         return IFoo2(target).bar{value: value}();

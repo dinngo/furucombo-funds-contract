@@ -2,11 +2,7 @@ import { Wallet, BigNumber } from 'ethers';
 import { BigNumber as BigNumberJs } from 'bignumber.js';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import {
-  expectEqWithinBps,
-  get64x64FromBig,
-  increaseNextBlockTimeBy,
-} from './utils/utils';
+import { expectEqWithinBps, get64x64FromBig, increaseNextBlockTimeBy } from './utils/utils';
 import { FEE_BASE, FEE_BASE64x64, ONE_YEAR } from './utils/constants';
 import { ManagementFeeModuleMock, ShareToken } from '../typechain';
 
@@ -19,26 +15,18 @@ describe('Management fee', function () {
 
   const totalShare = ethers.utils.parseEther('100');
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture('');
-      [user, manager] = await (ethers as any).getSigners();
-      mFeeModule = await (
-        await ethers.getContractFactory('ManagementFeeModuleMock')
-      )
-        .connect(user)
-        .deploy();
-      await mFeeModule.deployed();
-      tokenS = await (await ethers.getContractFactory('ShareToken'))
-        .connect(user)
-        .deploy('ShareToken', 'SHT', 18);
-      await tokenS.deployed();
-      // initialize
-      await mFeeModule.setShareToken(tokenS.address);
-      await mFeeModule.transferOwnership(manager.address);
-      await tokenS.transferOwnership(mFeeModule.address);
-    }
-  );
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture('');
+    [user, manager] = await (ethers as any).getSigners();
+    mFeeModule = await (await ethers.getContractFactory('ManagementFeeModuleMock')).connect(user).deploy();
+    await mFeeModule.deployed();
+    tokenS = await (await ethers.getContractFactory('ShareToken')).connect(user).deploy('ShareToken', 'SHT', 18);
+    await tokenS.deployed();
+    // initialize
+    await mFeeModule.setShareToken(tokenS.address);
+    await mFeeModule.transferOwnership(manager.address);
+    await tokenS.transferOwnership(mFeeModule.address);
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -47,9 +35,7 @@ describe('Management fee', function () {
 
   // Lack of precision
   function getEffectiveFeeRate(feeRate: any): BigNumber {
-    const effRate = new BigNumberJs(
-      Math.exp((-1 * Math.log(1 - feeRate)) / ONE_YEAR)
-    );
+    const effRate = new BigNumberJs(Math.exp((-1 * Math.log(1 - feeRate)) / ONE_YEAR));
     return get64x64FromBig(effRate);
   }
 
@@ -59,8 +45,7 @@ describe('Management fee', function () {
       const result = FEE_BASE64x64;
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
-      const effectiveFeeRate =
-        await mFeeModule.callStatic.getManagementFeeRate();
+      const effectiveFeeRate = await mFeeModule.callStatic.getManagementFeeRate();
       expect(effectiveFeeRate).to.eq(result);
     });
 
@@ -69,8 +54,7 @@ describe('Management fee', function () {
       const result = getEffectiveFeeRate(feeRate.toNumber() / FEE_BASE);
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
-      const effectiveFeeRate =
-        await mFeeModule.callStatic.getManagementFeeRate();
+      const effectiveFeeRate = await mFeeModule.callStatic.getManagementFeeRate();
       expectEqWithinBps(effectiveFeeRate, result, 1, 15);
     });
 
@@ -95,17 +79,11 @@ describe('Management fee', function () {
 
     it('should generate fee when rate is not 0', async function () {
       const feeRate = BigNumber.from('200');
-      const expectAmount = totalShare
-        .mul(feeBase)
-        .div(feeBase.sub(feeRate))
-        .sub(totalShare);
+      const expectAmount = totalShare.mul(feeBase).div(feeBase.sub(feeRate)).sub(totalShare);
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
       await increaseNextBlockTimeBy(ONE_YEAR);
-      await expect(mFeeModule.claimManagementFee()).to.emit(
-        mFeeModule,
-        'ManagementFeeClaimed'
-      );
+      await expect(mFeeModule.claimManagementFee()).to.emit(mFeeModule, 'ManagementFeeClaimed');
 
       const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
       expectEqWithinBps(feeClaimed, expectAmount, 1);
@@ -114,10 +92,7 @@ describe('Management fee', function () {
     it('should generate fee when rate is not 0 sep', async function () {
       const ONE_QUARTER = ONE_YEAR / 4;
       const feeRate = BigNumber.from('200');
-      const expectAmount = totalShare
-        .mul(feeBase)
-        .div(feeBase.sub(feeRate))
-        .sub(totalShare);
+      const expectAmount = totalShare.mul(feeBase).div(feeBase.sub(feeRate)).sub(totalShare);
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
       await increaseNextBlockTimeBy(ONE_QUARTER);

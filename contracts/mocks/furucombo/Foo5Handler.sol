@@ -8,11 +8,7 @@ contract Foo5Handler is HandlerBase {
         return "Foo5Handler";
     }
 
-    function exec(address _target, bytes memory _data)
-        public
-        payable
-        returns (bytes memory response)
-    {
+    function exec(address _target, bytes memory _data) public payable returns (bytes memory response) {
         (bool ok, bytes memory ret) = _target.call{value: msg.value}(_data);
         require(ok, string(ret));
         response = ret;

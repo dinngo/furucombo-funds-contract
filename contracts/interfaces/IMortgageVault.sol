@@ -6,11 +6,11 @@ interface IMortgageVault {
 
     function totalAmount() external view returns (uint256);
 
-    function poolAmounts(address pool) external view returns (uint256);
+    function fundAmounts(address fund) external view returns (uint256);
 
-    function stake(
+    function mortgage(
         address sender,
-        address pool,
+        address fund,
         uint256 amount
     ) external;
 

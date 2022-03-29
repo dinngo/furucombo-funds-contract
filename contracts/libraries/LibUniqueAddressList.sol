@@ -15,11 +15,7 @@ library LibUniqueAddressList {
     }
 
     // Getters
-    function get(List storage self)
-        internal
-        view
-        returns (address[] memory list)
-    {
+    function get(List storage self) internal view returns (address[] memory list) {
         if (self.empty()) {
             return list;
         } else {
@@ -40,11 +36,7 @@ library LibUniqueAddressList {
         return self.sz;
     }
 
-    function exist(List storage self, address node)
-        internal
-        view
-        returns (bool)
-    {
+    function exist(List storage self, address node) internal view returns (bool) {
         return (self.successor[node] != _NULL);
     }
 
@@ -56,29 +48,18 @@ library LibUniqueAddressList {
         return self.predecessor[_TAIL];
     }
 
-    function next(List storage self, address node)
-        internal
-        view
-        returns (address)
-    {
+    function next(List storage self, address node) internal view returns (address) {
         address n = self.successor[node];
         return node == n ? _TAIL : n;
     }
 
-    function prev(List storage self, address node)
-        internal
-        view
-        returns (address)
-    {
+    function prev(List storage self, address node) internal view returns (address) {
         address p = self.predecessor[node];
         return node == p ? _HEAD : p;
     }
 
     // Modifiers
-    function pushFront(List storage self, address node)
-        internal
-        returns (bool)
-    {
+    function pushFront(List storage self, address node) internal returns (bool) {
         if (self.exist(node)) {
             return false;
         } else {

@@ -3,14 +3,14 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   ComptrollerImplementation,
-  PoolImplementation,
+  FundImplementation,
   AssetRouter,
   MortgageVault,
   TaskExecutor,
   IDSProxyRegistry,
-  PoolFooAction,
-  PoolFoo,
-  PoolProxyMock,
+  FundFooAction,
+  FundFoo,
+  FundProxyMock,
   IERC20,
   AssetRegistry,
   Chainlink,
@@ -26,28 +26,23 @@ import {
   NATIVE_TOKEN,
   FEE_BASE,
 } from './utils/constants';
-import {
-  getCallData,
-  getCallActionData,
-  ether,
-  impersonateAndInjectEther,
-} from './utils/utils';
+import { getCallData, getCallActionData, ether, impersonateAndInjectEther } from './utils/utils';
 
 describe('Task Executor', function () {
   let comptroller: ComptrollerImplementation;
-  let poolImplementation: PoolImplementation;
+  let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
   let dsProxyRegistry: IDSProxyRegistry;
-  let proxy: PoolProxyMock;
+  let proxy: FundProxyMock;
 
   let owner: Wallet;
   let user: Wallet;
   let collector: Wallet;
 
-  let foo: PoolFoo;
-  let fooAction: PoolFooAction;
+  let foo: FundFoo;
+  let fooAction: FundFooAction;
 
   let tokenA: IERC20;
   let tokenB: IERC20;
@@ -59,104 +54,73 @@ describe('Task Executor', function () {
 
   let tokenD: SimpleToken;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user, collector] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user, collector] = await (ethers as any).getSigners();
 
-      // setup token and unlock provider
-      tokenAProvider = await impersonateAndInjectEther(DAI_PROVIDER);
-      tokenBProvider = await impersonateAndInjectEther(WETH_PROVIDER);
-      tokenA = await ethers.getContractAt('IERC20', DAI_TOKEN);
-      tokenB = await ethers.getContractAt('IERC20', WETH_TOKEN);
+    // setup token and unlock provider
+    tokenAProvider = await impersonateAndInjectEther(DAI_PROVIDER);
+    tokenBProvider = await impersonateAndInjectEther(WETH_PROVIDER);
+    tokenA = await ethers.getContractAt('IERC20', DAI_TOKEN);
+    tokenB = await ethers.getContractAt('IERC20', WETH_TOKEN);
 
-      poolImplementation = await (
-        await ethers.getContractFactory('PoolImplementation')
-      ).deploy(DS_PROXY_REGISTRY);
-      await poolImplementation.deployed();
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    await fundImplementation.deployed();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
 
-      oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
-      await oracle.deployed();
+    oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
+    await oracle.deployed();
 
-      assetRouter = await (
-        await ethers.getContractFactory('AssetRouter')
-      ).deploy(oracle.address, registry.address);
-      await assetRouter.deployed();
+    assetRouter = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
+    await assetRouter.deployed();
 
-      mortgageVault = await (
-        await ethers.getContractFactory('MortgageVault')
-      ).deploy(tokenA.address);
-      await mortgageVault.deployed();
+    mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenA.address);
+    await mortgageVault.deployed();
 
-      comptroller = await (
-        await ethers.getContractFactory('ComptrollerImplementation')
-      ).deploy();
-      await comptroller.deployed();
-      await comptroller.initialize(
-        poolImplementation.address,
-        assetRouter.address,
-        collector.address,
-        0,
-        constants.AddressZero,
-        constants.Zero,
-        mortgageVault.address,
-        0
-      );
+    comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
+    await comptroller.deployed();
+    await comptroller.initialize(
+      fundImplementation.address,
+      assetRouter.address,
+      collector.address,
+      0,
+      constants.AddressZero,
+      constants.Zero,
+      mortgageVault.address,
+      0
+    );
 
-      taskExecutor = await (
-        await ethers.getContractFactory('TaskExecutor')
-      ).deploy(owner.address, comptroller.address);
-      await taskExecutor.deployed();
-      await comptroller.setExecAction(taskExecutor.address);
+    taskExecutor = await (await ethers.getContractFactory('TaskExecutor')).deploy(owner.address, comptroller.address);
+    await taskExecutor.deployed();
+    await comptroller.setExecAction(taskExecutor.address);
 
-      foo = await (await ethers.getContractFactory('PoolFoo')).deploy();
-      await foo.deployed();
+    foo = await (await ethers.getContractFactory('FundFoo')).deploy();
+    await foo.deployed();
 
-      fooAction = await (
-        await ethers.getContractFactory('PoolFooAction')
-      ).deploy();
-      await fooAction.deployed();
+    fooAction = await (await ethers.getContractFactory('FundFooAction')).deploy();
+    await fooAction.deployed();
 
-      dsProxyRegistry = await ethers.getContractAt(
-        'IDSProxyRegistry',
-        DS_PROXY_REGISTRY
-      );
+    dsProxyRegistry = await ethers.getContractAt('IDSProxyRegistry', DS_PROXY_REGISTRY);
 
-      proxy = await (await ethers.getContractFactory('PoolProxyMock'))
-        .connect(user)
-        .deploy(dsProxyRegistry.address);
-      await proxy.deployed();
+    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy(dsProxyRegistry.address);
+    await proxy.deployed();
 
-      tokenD = await (await ethers.getContractFactory('SimpleToken'))
-        .connect(user)
-        .deploy();
-      await tokenD.deployed();
-      // initialize
-      await proxy.setComptroller(comptroller.address);
-      await comptroller.permitDenominations([tokenD.address], [0]);
-      await proxy.setupDenomination(tokenD.address);
-      await proxy.setLevel(1);
-      await proxy.setVault();
+    tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
+    await tokenD.deployed();
+    // initialize
+    await proxy.setComptroller(comptroller.address);
+    await comptroller.permitDenominations([tokenD.address], [0]);
+    await proxy.setupDenomination(tokenD.address);
+    await proxy.setLevel(1);
+    await proxy.setVault();
 
-      // Permit delegate calls
-      comptroller.permitDelegateCalls(
-        await proxy.level(),
-        [fooAction.address],
-        [WL_ANY_SIG]
-      );
+    // Permit delegate calls
+    comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
 
-      comptroller.permitContractCalls(
-        await proxy.level(),
-        [foo.address],
-        [WL_ANY_SIG]
-      );
-    }
-  );
+    comptroller.permitContractCalls(await proxy.level(), [foo.address], [WL_ANY_SIG]);
+  });
 
   // `beforeEach` will run before each test, re-deploying the contract every
   // time. It receives a callback, which can be async.
@@ -169,10 +133,7 @@ describe('Task Executor', function () {
     it('single action', async function () {
       // Prepare action data
       const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint1', [
-        foo.address,
-        expectNValue,
-      ]);
+      const actionData = getCallData(fooAction, 'barUint1', [foo.address, expectNValue]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -195,17 +156,10 @@ describe('Task Executor', function () {
     it('multiple actions', async function () {
       // Prepare action data
       const expectNValue = BigNumber.from('101');
-      const actionAData = getCallData(fooAction, 'barUint1', [
-        foo.address,
-        expectNValue,
-      ]);
+      const actionAData = getCallData(fooAction, 'barUint1', [foo.address, expectNValue]);
 
-      const expectBValue =
-        '0x00000000000000000000000000000000000000000000000000000000000000ff';
-      const actionBData = getCallData(fooAction, 'bar1', [
-        foo.address,
-        expectBValue,
-      ]);
+      const expectBValue = '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionBData = getCallData(fooAction, 'bar1', [foo.address, expectBValue]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -226,16 +180,12 @@ describe('Task Executor', function () {
     });
 
     it('payable action', async function () {
-      const balancePoolFoo = await ethers.provider.getBalance(foo.address);
+      const balanceFundFoo = await ethers.provider.getBalance(foo.address);
 
       // Prepare action data
       const value = ether('1');
       const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint2', [
-        foo.address,
-        expectNValue,
-        value,
-      ]);
+      const actionData = getCallData(fooAction, 'barUint2', [foo.address, expectNValue, value]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -252,26 +202,16 @@ describe('Task Executor', function () {
 
       // Verify
       expect(await foo.nValue()).to.be.eq(expectNValue);
-      expect(
-        (await ethers.provider.getBalance(foo.address)).sub(balancePoolFoo)
-      ).to.be.eq(value);
+      expect((await ethers.provider.getBalance(foo.address)).sub(balanceFundFoo)).to.be.eq(value);
     });
 
     it('should revert: no contract code', async function () {
-      comptroller.permitDelegateCalls(
-        await proxy.level(),
-        [collector.address],
-        [WL_ANY_SIG]
-      );
+      comptroller.permitDelegateCalls(await proxy.level(), [collector.address], [WL_ANY_SIG]);
 
       // Prepare action data
       const value = ether('1');
       const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint2', [
-        foo.address,
-        expectNValue,
-        value,
-      ]);
+      const actionData = getCallData(fooAction, 'barUint2', [foo.address, expectNValue, value]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -311,16 +251,10 @@ describe('Task Executor', function () {
     });
 
     it('should revert: non existed function', async function () {
-      comptroller.permitDelegateCalls(
-        await proxy.level(),
-        [fooAction.address],
-        [WL_ANY_SIG]
-      );
+      comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
 
       // Prepare action data
-      const actionData = ethers.utils
-        .keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'"))
-        .substr(0, 10);
+      const actionData = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'")).substr(0, 10);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -350,11 +284,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const value = ether('1');
       const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint2', [
-        foo.address,
-        expectNValue,
-        value,
-      ]);
+      const actionData = getCallData(fooAction, 'barUint2', [foo.address, expectNValue, value]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -376,11 +306,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const value = ether('1');
       const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint2', [
-        foo.address,
-        expectNValue,
-        value,
-      ]);
+      const actionData = getCallData(fooAction, 'barUint2', [foo.address, expectNValue, value]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -399,20 +325,12 @@ describe('Task Executor', function () {
     });
 
     it('should revert: invalid comptroller delegate call', async function () {
-      await comptroller.canDelegateCall(
-        await proxy.level(),
-        collector.address,
-        WL_ANY_SIG
-      );
+      await comptroller.canDelegateCall(await proxy.level(), collector.address, WL_ANY_SIG);
 
       // Prepare action data
       const value = ether('1');
       const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint2', [
-        foo.address,
-        expectNValue,
-        value,
-      ]);
+      const actionData = getCallData(fooAction, 'barUint2', [foo.address, expectNValue, value]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -434,13 +352,7 @@ describe('Task Executor', function () {
     it('should revert: invalid proxy delegate call', async function () {
       // Prepare task data and execute
       const actionData = '0x11111111';
-      const data = getCallData(taskExecutor, 'batchExec', [
-        [],
-        [],
-        [NATIVE_TOKEN],
-        [constants.HashZero],
-        [actionData],
-      ]);
+      const data = getCallData(taskExecutor, 'batchExec', [[], [], [NATIVE_TOKEN], [constants.HashZero], [actionData]]);
       const target = taskExecutor.address;
 
       await expect(
@@ -456,9 +368,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const actionEthValue = ether('0');
       const expectNValue = BigNumber.from('111');
-      const actionData = getCallActionData(actionEthValue, foo, 'barUint1', [
-        expectNValue,
-      ]);
+      const actionData = getCallActionData(actionEthValue, foo, 'barUint1', [expectNValue]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -481,16 +391,11 @@ describe('Task Executor', function () {
       // Prepare action data
       const actionAEthValue = ether('0');
       const expectNValue = BigNumber.from('111');
-      const actionAData = getCallActionData(actionAEthValue, foo, 'barUint1', [
-        expectNValue,
-      ]);
+      const actionAData = getCallActionData(actionAEthValue, foo, 'barUint1', [expectNValue]);
 
       const actionBEthValue = ether('0');
-      const expectBValue =
-        '0x00000000000000000000000000000000000000000000000000000000000000ff';
-      const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [
-        expectBValue,
-      ]);
+      const expectBValue = '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [expectBValue]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -514,14 +419,12 @@ describe('Task Executor', function () {
     });
 
     it('payable action', async function () {
-      const balancePoolFoo = await ethers.provider.getBalance(foo.address);
+      const balanceFundFoo = await ethers.provider.getBalance(foo.address);
 
       // Prepare action data
       const actionEthValue = ether('5');
       const expectNValue = BigNumber.from('111');
-      const actionData = getCallActionData(actionEthValue, foo, 'barUint2', [
-        expectNValue,
-      ]);
+      const actionData = getCallActionData(actionEthValue, foo, 'barUint2', [expectNValue]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -537,26 +440,17 @@ describe('Task Executor', function () {
       });
 
       // Verify
-      const balancePoolFooEnd = await ethers.provider.getBalance(foo.address);
+      const balanceFundFooEnd = await ethers.provider.getBalance(foo.address);
       expect(await foo.nValue()).to.be.eq(expectNValue);
-      expect(await balancePoolFooEnd.sub(balancePoolFoo)).to.be.eq(
-        actionEthValue
-      );
+      expect(await balanceFundFooEnd.sub(balanceFundFoo)).to.be.eq(actionEthValue);
     });
 
     it('should revert: send token', async function () {
-      await comptroller.permitContractCalls(
-        await proxy.level(),
-        [collector.address],
-        [WL_ANY_SIG]
-      );
+      await comptroller.permitContractCalls(await proxy.level(), [collector.address], [WL_ANY_SIG]);
 
       // Prepare action data
       const actionEthValue = ether('5');
-      const actionData = ethers.utils.defaultAbiCoder.encode(
-        ['uint256', 'bytes'],
-        [actionEthValue, '0x']
-      );
+      const actionData = ethers.utils.defaultAbiCoder.encode(['uint256', 'bytes'], [actionEthValue, '0x']);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -578,12 +472,7 @@ describe('Task Executor', function () {
     it('should revert: call contract revert', async function () {
       // Prepare action data
       const actionEthValue = ether('0');
-      const actionData = getCallActionData(
-        actionEthValue,
-        foo,
-        'revertCall',
-        []
-      );
+      const actionData = getCallActionData(actionEthValue, foo, 'revertCall', []);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -607,12 +496,7 @@ describe('Task Executor', function () {
 
       const actionData = ethers.utils.defaultAbiCoder.encode(
         ['uint256', 'bytes'],
-        [
-          ethValue,
-          ethers.utils
-            .keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'"))
-            .substr(0, 10),
-        ]
+        [ethValue, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'")).substr(0, 10)]
       );
 
       // Prepare task data and execute
@@ -635,10 +519,7 @@ describe('Task Executor', function () {
       // Prepare action data
       const actionEthValue = ether('5');
 
-      const actionData = ethers.utils.defaultAbiCoder.encode(
-        ['uint256', 'bytes'],
-        [actionEthValue, '0x']
-      );
+      const actionData = ethers.utils.defaultAbiCoder.encode(['uint256', 'bytes'], [actionEthValue, '0x']);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -660,10 +541,7 @@ describe('Task Executor', function () {
     it('should revert: invalid proxy contract call', async function () {
       // Prepare action data
       const actionEthValue = ether('5');
-      const actionData = ethers.utils.defaultAbiCoder.encode(
-        ['uint256', 'bytes'],
-        [actionEthValue, '0x11111111']
-      );
+      const actionData = ethers.utils.defaultAbiCoder.encode(['uint256', 'bytes'], [actionEthValue, '0x11111111']);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -687,27 +565,18 @@ describe('Task Executor', function () {
     it('delegate call + call', async function () {
       // Prepare action data
       const expectNValue = BigNumber.from('101');
-      const actionAData = getCallData(fooAction, 'barUint1', [
-        foo.address,
-        expectNValue,
-      ]);
+      const actionAData = getCallData(fooAction, 'barUint1', [foo.address, expectNValue]);
 
       const actionBEthValue = ether('0');
-      const expectBValue =
-        '0x00000000000000000000000000000000000000000000000000000000000000ff';
-      const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [
-        expectBValue,
-      ]);
+      const expectBValue = '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [expectBValue]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
         [],
         [],
         [fooAction.address, foo.address],
-        [
-          constants.HashZero,
-          '0x0200000000000000000000000000000000000000000000000000000000000000',
-        ],
+        [constants.HashZero, '0x0200000000000000000000000000000000000000000000000000000000000000'],
         [actionAData, actionBData],
       ]);
       const target = taskExecutor.address;
@@ -723,27 +592,18 @@ describe('Task Executor', function () {
     it('call + delegate call', async function () {
       // Prepare action data
       const actionAEthValue = ether('0');
-      const expectBValue =
-        '0x00000000000000000000000000000000000000000000000000000000000000ff';
-      const actionAData = getCallActionData(actionAEthValue, foo, 'bar1', [
-        expectBValue,
-      ]);
+      const expectBValue = '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const actionAData = getCallActionData(actionAEthValue, foo, 'bar1', [expectBValue]);
 
       const expectNValue = BigNumber.from('101');
-      const actionBData = getCallData(fooAction, 'barUint1', [
-        foo.address,
-        expectNValue,
-      ]);
+      const actionBData = getCallData(fooAction, 'barUint1', [foo.address, expectNValue]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
         [],
         [],
         [foo.address, fooAction.address],
-        [
-          '0x0200000000000000000000000000000000000000000000000000000000000000',
-          constants.HashZero,
-        ],
+        ['0x0200000000000000000000000000000000000000000000000000000000000000', constants.HashZero],
         [actionAData, actionBData],
       ]);
       const target = taskExecutor.address;
@@ -760,25 +620,15 @@ describe('Task Executor', function () {
   describe('return assets', function () {
     beforeEach(async function () {
       await comptroller.permitAssets(await proxy.level(), [tokenA.address]);
-      expect(
-        await comptroller.isValidDealingAsset(
-          await proxy.level(),
-          tokenA.address
-        )
-      ).to.be.eq(true);
+      expect(await comptroller.isValidDealingAsset(await proxy.level(), tokenA.address)).to.be.eq(true);
     });
 
     it('single asset', async function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address];
-      await comptroller.permitAssets(
-        await proxy.level(),
-        expectedDealingAssets
-      );
+      await comptroller.permitAssets(await proxy.level(), expectedDealingAssets);
 
-      const actionData = getCallData(fooAction, 'addAssets', [
-        expectedDealingAssets,
-      ]);
+      const actionData = getCallData(fooAction, 'addAssets', [expectedDealingAssets]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -790,16 +640,11 @@ describe('Task Executor', function () {
       ]);
 
       const target = taskExecutor.address;
-      const returnData = await proxy
-        .connect(user)
-        .callStatic.executeMock(target, data, {
-          value: ether('0.01'),
-        });
+      const returnData = await proxy.connect(user).callStatic.executeMock(target, data, {
+        value: ether('0.01'),
+      });
 
-      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
-        ['address[]'],
-        returnData
-      )[0];
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(['address[]'], returnData)[0];
 
       // Verify
       expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
@@ -811,14 +656,9 @@ describe('Task Executor', function () {
     it('multiple assets', async function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address, tokenB.address];
-      await comptroller.permitAssets(
-        await proxy.level(),
-        expectedDealingAssets
-      );
+      await comptroller.permitAssets(await proxy.level(), expectedDealingAssets);
 
-      const actionData = getCallData(fooAction, 'addAssets', [
-        expectedDealingAssets,
-      ]);
+      const actionData = getCallData(fooAction, 'addAssets', [expectedDealingAssets]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -830,16 +670,11 @@ describe('Task Executor', function () {
       ]);
 
       const target = taskExecutor.address;
-      const returnData = await proxy
-        .connect(user)
-        .callStatic.executeMock(target, data, {
-          value: ether('0.01'),
-        });
+      const returnData = await proxy.connect(user).callStatic.executeMock(target, data, {
+        value: ether('0.01'),
+      });
 
-      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
-        ['address[]'],
-        returnData
-      )[0];
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(['address[]'], returnData)[0];
 
       // Verify
       expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
@@ -851,17 +686,10 @@ describe('Task Executor', function () {
     it('multiple actions', async function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address, tokenB.address];
-      await comptroller.permitAssets(
-        await proxy.level(),
-        expectedDealingAssets
-      );
+      await comptroller.permitAssets(await proxy.level(), expectedDealingAssets);
 
-      const actionData1 = getCallData(fooAction, 'addAssets', [
-        [tokenA.address],
-      ]);
-      const actionData2 = getCallData(fooAction, 'addAssets', [
-        [tokenB.address],
-      ]);
+      const actionData1 = getCallData(fooAction, 'addAssets', [[tokenA.address]]);
+      const actionData2 = getCallData(fooAction, 'addAssets', [[tokenB.address]]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -873,16 +701,11 @@ describe('Task Executor', function () {
       ]);
 
       const target = taskExecutor.address;
-      const returnData = await proxy
-        .connect(user)
-        .callStatic.executeMock(target, data, {
-          value: ether('0.01'),
-        });
+      const returnData = await proxy.connect(user).callStatic.executeMock(target, data, {
+        value: ether('0.01'),
+      });
 
-      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
-        ['address[]'],
-        returnData
-      )[0];
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(['address[]'], returnData)[0];
 
       // Verify
       expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
@@ -894,17 +717,10 @@ describe('Task Executor', function () {
     it('repeat assets', async function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address, tokenB.address];
-      await comptroller.permitAssets(
-        await proxy.level(),
-        expectedDealingAssets
-      );
+      await comptroller.permitAssets(await proxy.level(), expectedDealingAssets);
 
-      const actionData1 = getCallData(fooAction, 'addAssets', [
-        [tokenA.address],
-      ]);
-      const actionData2 = getCallData(fooAction, 'addAssets', [
-        [tokenA.address, tokenB.address],
-      ]);
+      const actionData1 = getCallData(fooAction, 'addAssets', [[tokenA.address]]);
+      const actionData2 = getCallData(fooAction, 'addAssets', [[tokenA.address, tokenB.address]]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -916,16 +732,11 @@ describe('Task Executor', function () {
       ]);
 
       const target = taskExecutor.address;
-      const returnData = await proxy
-        .connect(user)
-        .callStatic.executeMock(target, data, {
-          value: ether('0.01'),
-        });
+      const returnData = await proxy.connect(user).callStatic.executeMock(target, data, {
+        value: ether('0.01'),
+      });
 
-      const dealingAssets = ethers.utils.defaultAbiCoder.decode(
-        ['address[]'],
-        returnData
-      )[0];
+      const dealingAssets = ethers.utils.defaultAbiCoder.decode(['address[]'], returnData)[0];
 
       // Verify
       expect(dealingAssets.length).to.be.eq(expectedDealingAssets.length);
@@ -937,14 +748,9 @@ describe('Task Executor', function () {
     it('should revert: invalid assets', async function () {
       // Prepare action data
       const expectedDealingAssets = [tokenA.address];
-      await comptroller.permitAssets(
-        await proxy.level(),
-        expectedDealingAssets
-      );
+      await comptroller.permitAssets(await proxy.level(), expectedDealingAssets);
 
-      const actionData = getCallData(fooAction, 'addAssets', [
-        [tokenB.address],
-      ]);
+      const actionData = getCallData(fooAction, 'addAssets', [[tokenB.address]]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -1005,20 +811,13 @@ describe('Task Executor', function () {
       });
 
       // Verify
-      expect(
-        (await tokenA.balanceOf(collector)).sub(collectorTokenABalance)
-      ).to.be.eq(expectExecutionFee);
-      expect(
-        (await tokenB.balanceOf(collector)).sub(collectorTokenBBalance)
-      ).to.be.eq(expectExecutionFee);
+      expect((await tokenA.balanceOf(collector)).sub(collectorTokenABalance)).to.be.eq(expectExecutionFee);
+      expect((await tokenB.balanceOf(collector)).sub(collectorTokenBBalance)).to.be.eq(expectExecutionFee);
     });
 
     it('execution twice for checking fund quota will be reset', async function () {
       await comptroller.setInitialAssetCheck(false);
-      const actionData = getCallData(fooAction, 'decreaseQuota', [
-        [tokenA.address],
-        [BigNumber.from('1')],
-      ]);
+      const actionData = getCallData(fooAction, 'decreaseQuota', [[tokenA.address], [BigNumber.from('1')]]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -1043,17 +842,9 @@ describe('Task Executor', function () {
 
     it('should revert: invalid asset', async function () {
       const consumeQuota = quota.div(BigNumber.from('2'));
-      const actionData = getCallData(fooAction, 'decreaseQuota', [
-        [tokenB.address],
-        [consumeQuota],
-      ]);
+      const actionData = getCallData(fooAction, 'decreaseQuota', [[tokenB.address], [consumeQuota]]);
 
-      expect(
-        await comptroller.isValidInitialAsset(
-          await proxy.level(),
-          tokenB.address
-        )
-      ).to.be.eq(false);
+      expect(await comptroller.isValidInitialAsset(await proxy.level(), tokenB.address)).to.be.eq(false);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -1074,14 +865,9 @@ describe('Task Executor', function () {
 
     it('should revert: native token', async function () {
       const consumeQuota = quota.div(BigNumber.from('2'));
-      const actionData = getCallData(fooAction, 'decreaseQuota', [
-        [NATIVE_TOKEN],
-        [consumeQuota],
-      ]);
+      const actionData = getCallData(fooAction, 'decreaseQuota', [[NATIVE_TOKEN], [consumeQuota]]);
 
-      expect(
-        await comptroller.isValidInitialAsset(await proxy.level(), NATIVE_TOKEN)
-      ).to.be.eq(false);
+      expect(await comptroller.isValidInitialAsset(await proxy.level(), NATIVE_TOKEN)).to.be.eq(false);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [
@@ -1103,10 +889,7 @@ describe('Task Executor', function () {
     it('should revert: insufficient quota', async function () {
       const consumeQuota = quota.add(BigNumber.from('10'));
 
-      const actionData = getCallData(fooAction, 'decreaseQuota', [
-        [tokenA.address],
-        [consumeQuota],
-      ]);
+      const actionData = getCallData(fooAction, 'decreaseQuota', [[tokenA.address], [consumeQuota]]);
 
       // Prepare task data and execute
       const data = getCallData(taskExecutor, 'batchExec', [

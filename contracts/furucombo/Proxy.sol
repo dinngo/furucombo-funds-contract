@@ -21,16 +21,8 @@ contract FurucomboProxy is IProxy, Storage, Config {
     using LibStack for bytes32[];
     using Strings for uint256;
 
-    event LogBegin(
-        address indexed handler,
-        bytes4 indexed selector,
-        bytes payload
-    );
-    event LogEnd(
-        address indexed handler,
-        bytes4 indexed selector,
-        bytes result
-    );
+    event LogBegin(address indexed handler, bytes4 indexed selector, bytes payload);
+    event LogEnd(address indexed handler, bytes4 indexed selector, bytes result);
 
     modifier isNotBanned() {
         require(registry.bannedAgents(address(this)) == 0, "Banned");
@@ -86,14 +78,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
         address[] calldata tos,
         bytes32[] calldata configs,
         bytes[] memory datas
-    )
-        external
-        payable
-        override
-        isNotHalted
-        isNotBanned
-        returns (address[] memory)
-    {
+    ) external payable override isNotHalted isNotBanned returns (address[] memory) {
         _preProcess();
         _execs(tos, configs, datas);
         return _postProcess();
@@ -128,14 +113,8 @@ contract FurucomboProxy is IProxy, Storage, Config {
         uint256 index;
         uint256 counter;
 
-        require(
-            tos.length == datas.length,
-            "Tos and datas length inconsistent"
-        );
-        require(
-            tos.length == configs.length,
-            "Tos and configs length inconsistent"
-        );
+        require(tos.length == datas.length, "Tos and datas length inconsistent");
+        require(tos.length == configs.length, "Tos and configs length inconsistent");
         for (uint256 i = 0; i < tos.length; i++) {
             address to = tos[i];
             bytes32 config = configs[i];
@@ -160,10 +139,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
                 // If so, parse the output and place it into local stack
                 uint256 num = config.getReturnNum();
                 uint256 newIndex = _parse(localStack, result, index);
-                require(
-                    newIndex == index + num,
-                    "Return num and parsed return num not matched"
-                );
+                require(newIndex == index + num, "Return num and parsed return num not matched");
                 index = newIndex;
             }
 
@@ -235,10 +211,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
             } lt(i, len) {
                 i := add(i, 0x20)
             } {
-                mstore(
-                    add(localStack, add(i, offset)),
-                    mload(add(add(ret, i), 0x20))
-                )
+                mstore(add(localStack, add(i, offset)), mload(add(add(ret, i), 0x20)))
             }
         }
     }
@@ -257,21 +230,11 @@ contract FurucomboProxy is IProxy, Storage, Config {
         require(_isValidHandler(_to), "Invalid handler");
         bool success;
         assembly {
-            success := delegatecall(
-                gas(),
-                _to,
-                add(_data, 0x20),
-                mload(_data),
-                0,
-                0
-            )
+            success := delegatecall(gas(), _to, add(_data, 0x20), mload(_data), 0, 0)
             let size := returndatasize()
 
             result := mload(0x40)
-            mstore(
-                0x40,
-                add(result, and(add(add(size, 0x20), 0x1f), not(0x1f)))
-            )
+            mstore(0x40, add(result, and(add(add(size, 0x20), 0x1f), not(0x1f))))
             mstore(result, size)
             returndatacopy(add(result, 0x20), 0, size)
         }
@@ -285,15 +248,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
             if (_counter == type(uint256).max) {
                 revert(abi.decode(result, (string))); // Don't prepend counter
             } else {
-                revert(
-                    string(
-                        abi.encodePacked(
-                            _counter.toString(),
-                            "_",
-                            abi.decode(result, (string))
-                        )
-                    )
-                );
+                revert(string(abi.encodePacked(_counter.toString(), "_", abi.decode(result, (string)))));
             }
         }
     }
@@ -309,8 +264,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
         if (stack.length == 0) {
             return;
         } else if (
-            stack.peek() == bytes32(bytes12(uint96(HandlerType.Custom))) &&
-            bytes4(stack.peek(1)) != 0x00000000
+            stack.peek() == bytes32(bytes12(uint96(HandlerType.Custom))) && bytes4(stack.peek(1)) != 0x00000000
         ) {
             stack.pop();
             stack.setAddress(_to);
@@ -348,11 +302,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
                 _tokenRefund(addr);
             } else if (handlerType == HandlerType.Custom) {
                 address addr = stack.getAddress();
-                _exec(
-                    addr,
-                    abi.encodeWithSelector(POSTPROCESS_SIG),
-                    type(uint256).max
-                );
+                _exec(addr, abi.encodeWithSelector(POSTPROCESS_SIG), type(uint256).max);
             } else if (handlerType == HandlerType.Others) {
                 // For specific asset like maker, aave.
                 address addr = stack.getAddress();
@@ -393,15 +343,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
     }
 
     /// @notice Get payload function selector.
-    function _getSelector(bytes memory payload)
-        internal
-        pure
-        returns (bytes4 selector)
-    {
-        selector =
-            payload[0] |
-            (bytes4(payload[1]) >> 8) |
-            (bytes4(payload[2]) >> 16) |
-            (bytes4(payload[3]) >> 24);
+    function _getSelector(bytes memory payload) internal pure returns (bytes4 selector) {
+        selector = payload[0] | (bytes4(payload[1]) >> 8) | (bytes4(payload[2]) >> 16) | (bytes4(payload[3]) >> 24);
     }
 }

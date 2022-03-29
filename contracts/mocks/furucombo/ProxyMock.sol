@@ -12,11 +12,7 @@ contract FurucomboProxyMock is FurucomboProxy, GasProfiler {
 
     event RecordHandlerResult(bytes value);
 
-    function execMock(address to, bytes memory data)
-        external
-        payable
-        returns (bytes memory result)
-    {
+    function execMock(address to, bytes memory data) external payable returns (bytes memory result) {
         _preProcess();
         _setBase();
         result = _exec(to, data, 0);
@@ -27,11 +23,7 @@ contract FurucomboProxyMock is FurucomboProxy, GasProfiler {
         return result;
     }
 
-    function execMockNotRefund(address to, bytes memory data)
-        external
-        payable
-        returns (bytes memory result)
-    {
+    function execMockNotRefund(address to, bytes memory data) external payable returns (bytes memory result) {
         _preProcess();
         _setBase();
         result = _exec(to, data, 0);

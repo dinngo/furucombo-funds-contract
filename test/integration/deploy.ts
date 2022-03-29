@@ -4,14 +4,10 @@ import { getEventArgs, asciiToHex32 } from '../utils/utils';
 const hre = require('hardhat');
 
 export async function deployFurucomboProxyAndRegistry(): Promise<any> {
-  const fRegistry = await (
-    await ethers.getContractFactory('Registry')
-  ).deploy();
+  const fRegistry = await (await ethers.getContractFactory('Registry')).deploy();
   await fRegistry.deployed();
 
-  const furucombo = await (
-    await ethers.getContractFactory('FurucomboProxy')
-  ).deploy(fRegistry.address);
+  const furucombo = await (await ethers.getContractFactory('FurucomboProxy')).deploy(fRegistry.address);
   await furucombo.deployed();
   return [fRegistry, furucombo];
 }
@@ -28,15 +24,10 @@ export async function deployFurucomboProxyAndRegistry(): Promise<any> {
 //   return result;
 // }
 
-export async function deployContracts(
-  handlers: string[],
-  args: any[]
-): Promise<any> {
+export async function deployContracts(handlers: string[], args: any[]): Promise<any> {
   const result: any[] = [];
   for (let i = 0; i < handlers.length; i++) {
-    const handler = await (
-      await ethers.getContractFactory(handlers[i])
-    ).deploy(...args[i]);
+    const handler = await (await ethers.getContractFactory(handlers[i])).deploy(...args[i]);
     await handler.deployed();
     result.push(handler);
   }
@@ -50,9 +41,7 @@ export async function deployAssetOracleAndRouterAndRegistry(): Promise<any> {
   // console.log('oracle', oracle.address);
 
   // AssetRegistry
-  const assetRegistry = await (
-    await ethers.getContractFactory('AssetRegistry')
-  ).deploy();
+  const assetRegistry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
   await assetRegistry.deployed();
 
   const assetRouter = await (
@@ -64,9 +53,7 @@ export async function deployAssetOracleAndRouterAndRegistry(): Promise<any> {
 }
 
 export async function deployMortgageVault(token: string): Promise<any> {
-  const mortgageVault = await (
-    await ethers.getContractFactory('MortgageVault')
-  ).deploy(token);
+  const mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(token);
   await mortgageVault.deployed();
 
   return mortgageVault;
@@ -76,16 +63,14 @@ export async function deployAssetResolvers(resolvers: string[]): Promise<any> {
   const result: any[] = [];
 
   for (let i = 0; i < resolvers.length; i++) {
-    const resolver = await (
-      await ethers.getContractFactory(resolvers[i])
-    ).deploy();
+    const resolver = await (await ethers.getContractFactory(resolvers[i])).deploy();
     await resolver.deployed();
     result.push(resolver);
   }
   return result;
 }
 
-export async function deployComptrollerAndPoolProxyFactory(
+export async function deployComptrollerAndFundProxyFactory(
   dsProxyRegistry: string,
   assetRouterAddress: string,
   collectorAddress: string,
@@ -95,30 +80,23 @@ export async function deployComptrollerAndPoolProxyFactory(
   mortgageVaultAddress: string,
   totalAssetValueTolerance: number
 ): Promise<any> {
-  const poolImplementation = await (
-    await ethers.getContractFactory('PoolImplementation')
-  ).deploy(dsProxyRegistry);
-  await poolImplementation.deployed();
+  const fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(dsProxyRegistry);
+  await fundImplementation.deployed();
 
   // comptroller
-  const comptrollerImplementation = await (
-    await ethers.getContractFactory('ComptrollerImplementation')
-  ).deploy();
+  const comptrollerImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
   await comptrollerImplementation.deployed();
 
-  const compData = comptrollerImplementation.interface.encodeFunctionData(
-    'initialize',
-    [
-      poolImplementation.address,
-      assetRouterAddress,
-      collectorAddress,
-      execFeePercentage,
-      liquidatorAddress,
-      pendingExpiration,
-      mortgageVaultAddress,
-      totalAssetValueTolerance,
-    ]
-  );
+  const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
+    fundImplementation.address,
+    assetRouterAddress,
+    collectorAddress,
+    execFeePercentage,
+    liquidatorAddress,
+    pendingExpiration,
+    mortgageVaultAddress,
+    totalAssetValueTolerance,
+  ]);
 
   const comptrollerProxy = await (
     await ethers.getContractFactory('ComptrollerProxy')
@@ -129,17 +107,15 @@ export async function deployComptrollerAndPoolProxyFactory(
     await ethers.getContractFactory('ComptrollerImplementation')
   ).attach(comptrollerProxy.address);
 
-  // PoolProxyFactory
-  const poolProxyFactory = await (
-    await ethers.getContractFactory('PoolProxyFactory')
-  ).deploy(comptroller.address);
-  await poolProxyFactory.deployed();
+  // FundProxyFactory
+  const fundProxyFactory = await (await ethers.getContractFactory('FundProxyFactory')).deploy(comptroller.address);
+  await fundProxyFactory.deployed();
 
-  return [poolImplementation, comptroller, poolProxyFactory];
+  return [fundImplementation, comptroller, fundProxyFactory];
 }
 
-export async function createPoolProxy(
-  poolProxyFactory: any,
+export async function createFundProxy(
+  fundProxyFactory: any,
   manager: any,
   quoteAddress: any,
   level: any,
@@ -149,24 +125,13 @@ export async function createPoolProxy(
   reserveExecution: any,
   shareTokenName: any
 ): Promise<any> {
-  const receipt = await poolProxyFactory
+  const receipt = await fundProxyFactory
     .connect(manager)
-    .createPool(
-      quoteAddress,
-      level,
-      mFeeRate,
-      pFeeRate,
-      crystallizationPeriod,
-      reserveExecution,
-      shareTokenName
-    );
-  const eventArgs = await getEventArgs(receipt, 'PoolCreated');
-  console.log('args.newPool', eventArgs.newPool);
-  const poolProxy = await ethers.getContractAt(
-    'PoolImplementation',
-    eventArgs.newPool
-  );
-  return poolProxy;
+    .createFund(quoteAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, reserveExecution, shareTokenName);
+  const eventArgs = await getEventArgs(receipt, 'FundCreated');
+  console.log('args.newFund', eventArgs.newFund);
+  const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
+  return fundProxy;
 }
 
 export async function deployTaskExecutorAndAFurucombo(
@@ -189,21 +154,13 @@ export async function deployTaskExecutorAndAFurucombo(
   return [taskExecutor, aFurucombo];
 }
 
-export async function registerHandlers(
-  registry: any,
-  handlers: string[],
-  descriptions: any[]
-): Promise<any> {
+export async function registerHandlers(registry: any, handlers: string[], descriptions: any[]): Promise<any> {
   for (let i = 0; i < handlers.length; i++) {
     await registry.register(handlers[i], asciiToHex32(descriptions[i]));
   }
 }
 
-export async function registerResolvers(
-  registry: any,
-  tokens: string[],
-  resolvers: any[]
-): Promise<any> {
+export async function registerResolvers(registry: any, tokens: string[], resolvers: any[]): Promise<any> {
   for (let i = 0; i < tokens.length; i++) {
     await registry.register(tokens[i], resolvers[i]);
   }

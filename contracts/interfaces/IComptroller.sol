@@ -35,20 +35,11 @@ interface IComptroller {
 
     function execAssetValueToleranceRate() external view returns (uint256);
 
-    function isValidDealingAsset(uint256 level, address asset)
-        external
-        view
-        returns (bool);
+    function isValidDealingAsset(uint256 level, address asset) external view returns (bool);
 
-    function isValidDealingAssets(uint256 level, address[] calldata assets)
-        external
-        view
-        returns (bool);
+    function isValidDealingAssets(uint256 level, address[] calldata assets) external view returns (bool);
 
-    function isValidInitialAssets(uint256 level, address[] calldata assets)
-        external
-        view
-        returns (bool);
+    function isValidInitialAssets(uint256 level, address[] calldata assets) external view returns (bool);
 
     function assetRouter() external view returns (IAssetRouter);
 
@@ -58,17 +49,11 @@ interface IComptroller {
 
     function execAction() external view returns (address);
 
-    function stakedTier(uint256 tier) external view returns (bool, uint256);
+    function mortgageTier(uint256 tier) external view returns (bool, uint256);
 
-    function isValidDenomination(address _denomination)
-        external
-        view
-        returns (bool);
+    function isValidDenomination(address _denomination) external view returns (bool);
 
-    function getDenominationDust(address _denomination)
-        external
-        view
-        returns (uint256);
+    function getDenominationDust(address _denomination) external view returns (uint256);
 
     function isValidCreator(address creator) external view returns (bool);
 }

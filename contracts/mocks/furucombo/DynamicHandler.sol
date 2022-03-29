@@ -19,27 +19,15 @@ contract DynamicHandler is HandlerBase {
         return v;
     }
 
-    function summitAddressFixArray(address[2] calldata addrs)
-        external
-        payable
-        returns (address)
-    {
+    function summitAddressFixArray(address[2] calldata addrs) external payable returns (address) {
         return addrs[0];
     }
 
-    function summitUintDynamicArray(uint256[] calldata amounts)
-        external
-        payable
-        returns (uint256)
-    {
+    function summitUintDynamicArray(uint256[] calldata amounts) external payable returns (uint256) {
         return amounts[0];
     }
 
-    function summitAddressDynamicArray(address[] calldata addrs)
-        external
-        payable
-        returns (address)
-    {
+    function summitAddressDynamicArray(address[] calldata addrs) external payable returns (address) {
         return addrs[0];
     }
 

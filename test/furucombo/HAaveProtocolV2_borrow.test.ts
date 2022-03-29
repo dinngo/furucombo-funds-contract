@@ -24,13 +24,7 @@ import {
   AAVEPROTOCOL_V2_PROVIDER,
 } from './../utils/constants';
 
-import {
-  ether,
-  profileGas,
-  simpleEncode,
-  asciiToHex32,
-  tokenProviderQuick,
-} from './../utils/utils';
+import { ether, profileGas, simpleEncode, asciiToHex32, tokenProviderQuick } from './../utils/utils';
 
 describe('Aave V2 Borrow', function () {
   const aTokenAddress = ADAI_V2_TOKEN;
@@ -56,47 +50,33 @@ describe('Aave V2 Borrow', function () {
 
   let userBalance: BigNumber;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user, someone] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user, someone] = await (ethers as any).getSigners();
 
-      // Setup token and unlock provider
-      providerAddress = await tokenProviderQuick(tokenAddress);
-      token = await ethers.getContractAt('IERC20', tokenAddress);
-      aToken = await ethers.getContractAt('IATokenV2', aTokenAddress);
-      wmatic = await ethers.getContractAt('IERC20', WMATIC_TOKEN);
-      mockToken = await (
-        await ethers.getContractFactory('SimpleToken')
-      ).deploy();
-      await mockToken.deployed();
+    // Setup token and unlock provider
+    providerAddress = await tokenProviderQuick(tokenAddress);
+    token = await ethers.getContractAt('IERC20', tokenAddress);
+    aToken = await ethers.getContractAt('IATokenV2', aTokenAddress);
+    wmatic = await ethers.getContractAt('IERC20', WMATIC_TOKEN);
+    mockToken = await (await ethers.getContractFactory('SimpleToken')).deploy();
+    await mockToken.deployed();
 
-      // Setup proxy and Aproxy
-      registry = await (await ethers.getContractFactory('Registry')).deploy();
-      await registry.deployed();
+    // Setup proxy and Aproxy
+    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    await registry.deployed();
 
-      proxy = await (
-        await ethers.getContractFactory('FurucomboProxyMock')
-      ).deploy(registry.address);
-      await proxy.deployed();
+    proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);
+    await proxy.deployed();
 
-      hAaveV2 = await (
-        await ethers.getContractFactory('HAaveProtocolV2')
-      ).deploy();
-      await hAaveV2.deployed();
-      await registry.register(hAaveV2.address, asciiToHex32('HAaveProtocolV2'));
+    hAaveV2 = await (await ethers.getContractFactory('HAaveProtocolV2')).deploy();
+    await hAaveV2.deployed();
+    await registry.register(hAaveV2.address, asciiToHex32('HAaveProtocolV2'));
 
-      const provider = await ethers.getContractAt(
-        'ILendingPoolAddressesProviderV2',
-        AAVEPROTOCOL_V2_PROVIDER
-      );
+    const provider = await ethers.getContractAt('ILendingPoolAddressesProviderV2', AAVEPROTOCOL_V2_PROVIDER);
 
-      lendingPool = await ethers.getContractAt(
-        'ILendingPoolV2',
-        await provider.getLendingPool()
-      );
-    }
-  );
+    lendingPool = await ethers.getContractAt('ILendingPoolV2', await provider.getLendingPool());
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -117,22 +97,12 @@ describe('Aave V2 Borrow', function () {
     beforeEach(async function () {
       borrowToken = await ethers.getContractAt('IERC20', borrowTokenAddr);
       wmatic = await ethers.getContractAt('IERC20', WMATIC_TOKEN);
-      debtWMATIC = await ethers.getContractAt(
-        'IVariableDebtToken',
-        debtWMATICAddr
-      );
-      debtToken = await ethers.getContractAt(
-        'IVariableDebtToken',
-        debtTokenAddr
-      );
+      debtWMATIC = await ethers.getContractAt('IVariableDebtToken', debtWMATICAddr);
+      debtToken = await ethers.getContractAt('IVariableDebtToken', debtTokenAddr);
 
       // Deposit
-      await token
-        .connect(providerAddress)
-        .approve(lendingPool.address, depositAmount);
-      await lendingPool
-        .connect(providerAddress)
-        .deposit(token.address, depositAmount, user.address, 0);
+      await token.connect(providerAddress).approve(lendingPool.address, depositAmount);
+      await lendingPool.connect(providerAddress).deposit(token.address, depositAmount, user.address, 0);
 
       borrowTokenUserBefore = await borrowToken.balanceOf(user.address);
       borrowWMATICUserBefore = await wmatic.balanceOf(user.address);
@@ -143,14 +113,8 @@ describe('Aave V2 Borrow', function () {
     it('borrow token', async function () {
       const borrowAmount = ether('1');
       const to = hAaveV2.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [
-        borrowToken.address,
-        borrowAmount,
-        rateMode,
-      ]);
-      await debtToken
-        .connect(user)
-        .approveDelegation(proxy.address, borrowAmount);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [borrowToken.address, borrowAmount, rateMode]);
+      await debtToken.connect(user).approveDelegation(proxy.address, borrowAmount);
       userBalance = await ethers.provider.getBalance(user.address);
       const receipt = await proxy.connect(user).execMock(to, data, {
         value: ether('0.1'),
@@ -163,20 +127,12 @@ describe('Aave V2 Borrow', function () {
       expect(await debtToken.balanceOf(proxy.address)).to.be.eq(0);
 
       // Verify user balance
-      expect(borrowTokenUserAfter.sub(borrowTokenUserBefore)).to.be.eq(
-        borrowAmount
-      );
+      expect(borrowTokenUserAfter.sub(borrowTokenUserBefore)).to.be.eq(borrowAmount);
 
       //  borrowAmount <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
-      const interestMax = borrowAmount
-        .mul(BigNumber.from(1))
-        .div(BigNumber.from(10000));
-      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.gte(
-        borrowAmount
-      );
-      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.lt(
-        borrowAmount.add(interestMax)
-      );
+      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
+      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.gte(borrowAmount);
+      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.lt(borrowAmount.add(interestMax));
 
       await profileGas(receipt);
     });
@@ -184,15 +140,9 @@ describe('Aave V2 Borrow', function () {
     it('borrow wmatic', async function () {
       const borrowAmount = ether('2');
       const to = hAaveV2.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [
-        WMATIC_TOKEN,
-        borrowAmount,
-        rateMode,
-      ]);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [WMATIC_TOKEN, borrowAmount, rateMode]);
 
-      await debtWMATIC
-        .connect(user)
-        .approveDelegation(proxy.address, borrowAmount);
+      await debtWMATIC.connect(user).approveDelegation(proxy.address, borrowAmount);
       userBalance = await ethers.provider.getBalance(user.address);
       const receipt = await proxy.connect(user).execMock(to, data, {
         value: ether('0.1'),
@@ -205,20 +155,12 @@ describe('Aave V2 Borrow', function () {
       expect(await debtToken.balanceOf(proxy.address)).to.be.eq(0);
 
       // Verify user balance
-      expect(borrowWMATICUserAfter.sub(borrowWMATICUserBefore)).to.be.eq(
-        borrowAmount
-      );
+      expect(borrowWMATICUserAfter.sub(borrowWMATICUserBefore)).to.be.eq(borrowAmount);
 
       //  borrowAmount <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
-      const interestMax = borrowAmount
-        .mul(BigNumber.from(1))
-        .div(BigNumber.from(10000));
-      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.gte(
-        borrowAmount
-      );
-      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.lt(
-        borrowAmount.add(interestMax)
-      );
+      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
+      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.gte(borrowAmount);
+      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.lt(borrowAmount.add(interestMax));
 
       await profileGas(receipt);
     });
@@ -226,18 +168,10 @@ describe('Aave V2 Borrow', function () {
     it('should revert: borrow token over the collateral value', async function () {
       const borrowAmount = ether('20000');
       const to = hAaveV2.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [
-        borrowToken.address,
-        borrowAmount,
-        rateMode,
-      ]);
-      await debtWMATIC
-        .connect(user)
-        .approveDelegation(proxy.address, borrowAmount);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [borrowToken.address, borrowAmount, rateMode]);
+      await debtWMATIC.connect(user).approveDelegation(proxy.address, borrowAmount);
 
-      await expect(
-        proxy.connect(user).execMock(to, data, { value: ether('0.1') })
-      ).to.be.revertedWith(
+      await expect(proxy.connect(user).execMock(to, data, { value: ether('0.1') })).to.be.revertedWith(
         'HAaveProtocolV2_borrow: 11' // AAVEV2 Error Code: VL_COLLATERAL_CANNOT_COVER_NEW_BORROW
       );
     });
@@ -245,11 +179,7 @@ describe('Aave V2 Borrow', function () {
     it('should revert: borrow token without approveDelegation', async function () {
       const borrowAmount = ether('0.2');
       const to = hAaveV2.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [
-        borrowToken.address,
-        borrowAmount,
-        rateMode,
-      ]);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [borrowToken.address, borrowAmount, rateMode]);
 
       await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(
         'HAaveProtocolV2_borrow: 59' // AAVEV2 Error Code: BORROW_ALLOWANCE_NOT_ENOUGH
@@ -259,11 +189,7 @@ describe('Aave V2 Borrow', function () {
     it('should revert: borrow token that is not in aaveV2 pool', async function () {
       const borrowAmount = ether('2');
       const to = hAaveV2.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [
-        COMP_TOKEN,
-        borrowAmount,
-        rateMode,
-      ]);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [COMP_TOKEN, borrowAmount, rateMode]);
 
       await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(
         'HAaveProtocolV2_borrow: Unspecified' // Polygon version
@@ -273,15 +199,9 @@ describe('Aave V2 Borrow', function () {
     it('should revert: borrow token with no collateral', async function () {
       const borrowAmount = ether('2');
       const to = hAaveV2.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [
-        borrowToken.address,
-        borrowAmount,
-        rateMode,
-      ]);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [borrowToken.address, borrowAmount, rateMode]);
 
-      await expect(
-        proxy.connect(someone).execMock(to, data)
-      ).to.be.revertedWith(
+      await expect(proxy.connect(someone).execMock(to, data)).to.be.revertedWith(
         'HAaveProtocolV2_borrow: 9' // AAVEV2 Error Code: VL_COLLATERAL_BALANCE_IS_0
       );
     });
@@ -289,15 +209,9 @@ describe('Aave V2 Borrow', function () {
     it('should revert: borrow token is the same with collateral', async function () {
       const borrowAmount = ether('2');
       const to = hAaveV2.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [
-        token.address,
-        borrowAmount,
-        rateMode,
-      ]);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [token.address, borrowAmount, rateMode]);
 
-      await debtWMATIC
-        .connect(user)
-        .approveDelegation(user.address, borrowAmount);
+      await debtWMATIC.connect(user).approveDelegation(user.address, borrowAmount);
 
       await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(
         'HAaveProtocolV2_borrow: 59' // AAVEV2 Error Code: BORROW_ALLOWANCE_NOT_ENOUGH

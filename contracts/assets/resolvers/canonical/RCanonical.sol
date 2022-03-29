@@ -13,11 +13,7 @@ contract RCanonical is IAssetResolver, AssetResolverBase {
         uint256 amount,
         address quote
     ) external view override returns (int256) {
-        uint256 value = _getAssetOracle().calcConversionAmount(
-            asset,
-            amount,
-            quote
-        );
+        uint256 value = _getAssetOracle().calcConversionAmount(asset, amount, quote);
         return _castAssetValue(value);
     }
 }

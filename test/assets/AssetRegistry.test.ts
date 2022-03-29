@@ -15,22 +15,16 @@ describe('AssetRegistry', function () {
   let registry: AssetRegistry;
   let resolver: AssetResolverMockA;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user] = await (ethers as any).getSigners();
 
-      registry = await (
-        await ethers.getContractFactory('AssetRegistry')
-      ).deploy();
-      await registry.deployed();
+    registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
+    await registry.deployed();
 
-      resolver = await (
-        await ethers.getContractFactory('AssetResolverMockA')
-      ).deploy();
-      await resolver.deployed();
-    }
-  );
+    resolver = await (await ethers.getContractFactory('AssetResolverMockA')).deploy();
+    await resolver.deployed();
+  });
 
   beforeEach(async function () {
     await setupTest();
@@ -40,13 +34,9 @@ describe('AssetRegistry', function () {
     it('normal', async function () {
       const assetAddress = token0Address;
 
-      await expect(
-        registry.connect(user).resolvers(assetAddress)
-      ).to.be.revertedWith('revertCode(57)'); // ASSET_REGISTRY_UNREGISTERED
+      await expect(registry.connect(user).resolvers(assetAddress)).to.be.revertedWith('revertCode(57)'); // ASSET_REGISTRY_UNREGISTERED
 
-      await expect(
-        registry.connect(owner).register(assetAddress, resolver.address)
-      )
+      await expect(registry.connect(owner).register(assetAddress, resolver.address))
         .to.emit(registry, 'Registered')
         .withArgs(assetAddress, resolver.address);
 
@@ -57,48 +47,44 @@ describe('AssetRegistry', function () {
       const assetAddress = token0Address;
       await registry.connect(owner).banResolver(resolver.address);
 
-      await expect(
-        registry.connect(owner).register(assetAddress, resolver.address)
-      ).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
+      await expect(registry.connect(owner).register(assetAddress, resolver.address)).to.be.revertedWith(
+        'revertCode(53)'
+      ); // ASSET_REGISTRY_BANNED_RESOLVER
     });
     it('should revert: resolver has been registered', async function () {
       const assetAddress = token0Address;
       await registry.connect(owner).register(assetAddress, resolver.address);
 
-      await expect(
-        registry.connect(owner).register(assetAddress, resolver.address)
-      ).to.be.revertedWith('revertCode(54)'); // ASSET_REGISTRY_REGISTERED_RESOLVER
+      await expect(registry.connect(owner).register(assetAddress, resolver.address)).to.be.revertedWith(
+        'revertCode(54)'
+      ); // ASSET_REGISTRY_REGISTERED_RESOLVER
     });
 
     it('should revert: asset zero address', async function () {
-      await expect(
-        registry
-          .connect(owner)
-          .register(constants.AddressZero, resolver.address)
-      ).to.be.revertedWith('revertCode(52)'); // ASSET_REGISTRY_ZERO_ASSET_ADDRESS
+      await expect(registry.connect(owner).register(constants.AddressZero, resolver.address)).to.be.revertedWith(
+        'revertCode(52)'
+      ); // ASSET_REGISTRY_ZERO_ASSET_ADDRESS
     });
 
     it('should revert: resolver zero address', async function () {
       const assetAddress = token0Address;
-      await expect(
-        registry.connect(owner).register(assetAddress, constants.AddressZero)
-      ).to.be.revertedWith('revertCode(51)'); // ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
+      await expect(registry.connect(owner).register(assetAddress, constants.AddressZero)).to.be.revertedWith(
+        'revertCode(51)'
+      ); // ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
     });
 
     it('should revert: non-owner', async function () {
       const assetAddress = token0Address;
-      await expect(
-        registry.connect(user).register(assetAddress, resolver.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(registry.connect(user).register(assetAddress, resolver.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
   describe('unregister', function () {
     const assetAddress = token0Address;
     beforeEach(async function () {
-      await expect(
-        registry.connect(owner).register(assetAddress, resolver.address)
-      )
+      await expect(registry.connect(owner).register(assetAddress, resolver.address))
         .to.emit(registry, 'Registered')
         .withArgs(assetAddress, resolver.address);
       expect(await registry.resolvers(assetAddress)).to.be.eq(resolver.address);
@@ -111,27 +97,21 @@ describe('AssetRegistry', function () {
         .to.emit(registry, 'Unregistered')
         .withArgs(assetAddress);
 
-      await expect(
-        registry.connect(user).resolvers(assetAddress)
-      ).to.be.revertedWith('revertCode(57)'); // ASSET_REGISTRY_UNREGISTERED
+      await expect(registry.connect(user).resolvers(assetAddress)).to.be.revertedWith('revertCode(57)'); // ASSET_REGISTRY_UNREGISTERED
     });
 
     it('should revert: resolver is not registered', async function () {
-      await expect(
-        registry.connect(owner).unregister(token1Address)
-      ).to.be.revertedWith('revertCode(55)'); // ASSET_REGISTRY_NON_REGISTERED_RESOLVER
+      await expect(registry.connect(owner).unregister(token1Address)).to.be.revertedWith('revertCode(55)'); // ASSET_REGISTRY_NON_REGISTERED_RESOLVER
     });
 
     it('should revert: asset zero address', async function () {
-      await expect(
-        registry.connect(owner).unregister(constants.AddressZero)
-      ).to.be.revertedWith('revertCode(52)'); // ASSET_REGISTRY_ZERO_ASSET_ADDRESS
+      await expect(registry.connect(owner).unregister(constants.AddressZero)).to.be.revertedWith('revertCode(52)'); // ASSET_REGISTRY_ZERO_ASSET_ADDRESS
     });
 
     it('should revert: non-owner', async function () {
-      await expect(
-        registry.connect(user).unregister(constants.AddressZero)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(registry.connect(user).unregister(constants.AddressZero)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -139,9 +119,7 @@ describe('AssetRegistry', function () {
     const assetAAddress = token0Address;
     beforeEach(async function () {
       await registry.connect(owner).register(assetAAddress, resolver.address);
-      expect(await registry.resolvers(assetAAddress)).to.be.eq(
-        resolver.address
-      );
+      expect(await registry.resolvers(assetAAddress)).to.be.eq(resolver.address);
 
       expect(await registry.bannedResolvers(resolver.address)).to.be.eq(false);
     });
@@ -153,9 +131,7 @@ describe('AssetRegistry', function () {
         .to.emit(registry, 'BannedResolver')
         .withArgs(resolver.address);
 
-      await expect(
-        registry.connect(user).resolvers(assetAddress)
-      ).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
+      await expect(registry.connect(user).resolvers(assetAddress)).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
 
       expect(await registry.bannedResolvers(resolver.address)).to.be.eq(true);
     });
@@ -168,34 +144,26 @@ describe('AssetRegistry', function () {
         .to.emit(registry, 'BannedResolver')
         .withArgs(resolver.address);
 
-      await expect(
-        registry.connect(user).resolvers(assetAAddress)
-      ).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
+      await expect(registry.connect(user).resolvers(assetAAddress)).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
 
-      await expect(
-        registry.connect(user).resolvers(assetBAddress)
-      ).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
+      await expect(registry.connect(user).resolvers(assetBAddress)).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
 
       expect(await registry.bannedResolvers(resolver.address)).to.be.eq(true);
     });
 
     it('should revert: resolver has been banned', async function () {
       await registry.connect(owner).banResolver(resolver.address);
-      await expect(
-        registry.connect(owner).banResolver(resolver.address)
-      ).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
+      await expect(registry.connect(owner).banResolver(resolver.address)).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
     });
 
     it('should revert: asset zero address', async function () {
-      await expect(
-        registry.connect(owner).banResolver(constants.AddressZero)
-      ).to.be.revertedWith('revertCode(51)'); // ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
+      await expect(registry.connect(owner).banResolver(constants.AddressZero)).to.be.revertedWith('revertCode(51)'); // ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
     });
 
     it('should revert: non-owner', async function () {
-      await expect(
-        registry.connect(user).banResolver(resolver.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(registry.connect(user).banResolver(resolver.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 
@@ -205,22 +173,16 @@ describe('AssetRegistry', function () {
     beforeEach(async function () {
       await registry.connect(owner).register(assetAAddress, resolver.address);
       await registry.connect(owner).register(assetBAddress, resolver.address);
-      expect(await registry.resolvers(assetAAddress)).to.be.eq(
-        resolver.address
-      );
+      expect(await registry.resolvers(assetAAddress)).to.be.eq(resolver.address);
 
       await registry.connect(owner).banResolver(resolver.address);
       expect(await registry.bannedResolvers(resolver.address)).to.be.eq(true);
     });
 
     it('unban resolver with assets', async function () {
-      await expect(
-        registry.connect(user).resolvers(assetAAddress)
-      ).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
+      await expect(registry.connect(user).resolvers(assetAAddress)).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
 
-      await expect(
-        registry.connect(user).resolvers(assetBAddress)
-      ).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
+      await expect(registry.connect(user).resolvers(assetBAddress)).to.be.revertedWith('revertCode(53)'); // ASSET_REGISTRY_BANNED_RESOLVER
 
       await expect(registry.connect(owner).unbanResolver(resolver.address))
         .to.emit(registry, 'UnbannedResolver')
@@ -228,32 +190,24 @@ describe('AssetRegistry', function () {
 
       expect(await registry.bannedResolvers(resolver.address)).to.be.eq(false);
 
-      expect(await registry.resolvers(assetAAddress)).to.be.eq(
-        resolver.address
-      );
+      expect(await registry.resolvers(assetAAddress)).to.be.eq(resolver.address);
 
-      expect(await registry.resolvers(assetBAddress)).to.be.eq(
-        resolver.address
-      );
+      expect(await registry.resolvers(assetBAddress)).to.be.eq(resolver.address);
     });
 
     it('should revert: resolver is not banned', async function () {
       await registry.connect(owner).unbanResolver(resolver.address);
-      await expect(
-        registry.connect(owner).unbanResolver(resolver.address)
-      ).to.be.revertedWith('revertCode(56)'); // ASSET_REGISTRY_NON_BANNED_RESOLVER
+      await expect(registry.connect(owner).unbanResolver(resolver.address)).to.be.revertedWith('revertCode(56)'); // ASSET_REGISTRY_NON_BANNED_RESOLVER
     });
 
     it('should revert: asset zero address', async function () {
-      await expect(
-        registry.connect(owner).unbanResolver(constants.AddressZero)
-      ).to.be.revertedWith('revertCode(51)'); // ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
+      await expect(registry.connect(owner).unbanResolver(constants.AddressZero)).to.be.revertedWith('revertCode(51)'); // ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
     });
 
     it('should revert: non-owner', async function () {
-      await expect(
-        registry.connect(user).unbanResolver(resolver.address)
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(registry.connect(user).unbanResolver(resolver.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
   });
 });

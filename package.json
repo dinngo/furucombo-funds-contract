@@ -1,7 +1,7 @@
 {
-  "name": "poolcombo-contract",
+  "name": "funds-contract",
   "version": "1.0.0",
-  "description": "Poolcombo contract implementation",
+  "description": "Funds contract implementation",
   "main": "hardhat.config.js",
   "scripts": {
     "test": "yarn build && scripts/test.sh",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@garage.dinngo.co:furucombo/poolcombo-contract.git"
+    "url": "git@garage.dinngo.co:furucombo/funds-contract.git"
   },
   "author": "DINNGO",
   "license": "MIT",

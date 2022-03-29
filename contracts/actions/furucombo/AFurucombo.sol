@@ -5,7 +5,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {DestructibleAction} from "../../utils/DestructibleAction.sol";
 import {DelegateCallAction} from "../../utils/DelegateCallAction.sol";
 import {Errors} from "../../utils/Errors.sol";
-import {IPool} from "../../interfaces/IPool.sol";
+import {IFund} from "../../interfaces/IFund.sol";
 import {ActionBase} from "../ActionBase.sol";
 import {IComptroller} from "../../interfaces/IComptroller.sol";
 import {IDebtToken} from "../../interfaces/IDebtToken.sol";
@@ -56,9 +56,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         }
 
         // Execute furucombo proxy batchExec
-        try IFurucombo(proxy).batchExec(tos, configs, datas) returns (
-            address[] memory dealAssets
-        ) {
+        try IFurucombo(proxy).batchExec(tos, configs, datas) returns (address[] memory dealAssets) {
             for (uint256 i = 0; i < dealAssets.length; i++) {
                 // Update dealing asset
                 addDealingAsset(dealAssets[i]);
@@ -88,14 +86,12 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         return amountsOut;
     }
 
-    function approveDelegation(
-        IDebtToken[] calldata tokens,
-        uint256[] calldata amounts
-    ) external payable delegateCallOnly {
-        Errors._require(
-            tokens.length == amounts.length,
-            Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
-        );
+    function approveDelegation(IDebtToken[] calldata tokens, uint256[] calldata amounts)
+        external
+        payable
+        delegateCallOnly
+    {
+        Errors._require(tokens.length == amounts.length, Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT);
 
         // approve delegation to furucombo proxy only,
         // otherwise manager can borrow tokens base on the collateral of funds
@@ -111,15 +107,8 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         }
     }
 
-    function approveToken(address[] calldata tokens, uint256[] calldata amounts)
-        external
-        payable
-        delegateCallOnly
-    {
-        Errors._require(
-            tokens.length == amounts.length,
-            Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
-        );
+    function approveToken(address[] calldata tokens, uint256[] calldata amounts) external payable delegateCallOnly {
+        Errors._require(tokens.length == amounts.length, Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT);
 
         // approve token to furucombo proxy only,
         // otherwise manager can approve tokens to other address
@@ -130,11 +119,9 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
     }
 
     /// @notice verify valid handler .
-    function _checkHandlerCall(address[] memory tos, bytes[] memory datas)
-        internal
-    {
+    function _checkHandlerCall(address[] memory tos, bytes[] memory datas) internal {
         // check comptroller handler call
-        uint256 level = IPool(msg.sender).level();
+        uint256 level = IFund(msg.sender).level();
         for (uint256 i = 0; i < tos.length; ++i) {
             Errors._require(
                 comptroller.canHandlerCall(level, tos[i], bytes4(datas[i])),
@@ -144,9 +131,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
     }
 
     /// @notice Inject tokens to furucombo.
-    function _inject(address[] memory tokensIn, uint256[] memory amountsIn)
-        internal
-    {
+    function _inject(address[] memory tokensIn, uint256[] memory amountsIn) internal {
         Errors._require(
             tokensIn.length == amountsIn.length,
             Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT

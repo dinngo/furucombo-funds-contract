@@ -27,25 +27,15 @@ library LibCache {
         _cache[_key] = bytes32(_value);
     }
 
-    function getAddress(
-        mapping(bytes32 => bytes32) storage _cache,
-        bytes32 _key
-    ) internal view returns (address ret) {
+    function getAddress(mapping(bytes32 => bytes32) storage _cache, bytes32 _key) internal view returns (address ret) {
         ret = address(uint160(uint256(_cache[_key])));
     }
 
-    function getUint256(
-        mapping(bytes32 => bytes32) storage _cache,
-        bytes32 _key
-    ) internal view returns (uint256 ret) {
+    function getUint256(mapping(bytes32 => bytes32) storage _cache, bytes32 _key) internal view returns (uint256 ret) {
         ret = uint256(_cache[_key]);
     }
 
-    function get(mapping(bytes32 => bytes32) storage _cache, bytes32 _key)
-        internal
-        view
-        returns (bytes32 ret)
-    {
+    function get(mapping(bytes32 => bytes32) storage _cache, bytes32 _key) internal view returns (bytes32 ret) {
         ret = _cache[_key];
     }
 }

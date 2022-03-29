@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IShareToken} from "./IShareToken.sol";
 
-interface IPool {
+interface IFund {
     function initializeOwnership(address newOwner) external;
 
     function level() external returns (uint256);
@@ -15,6 +15,6 @@ interface IPool {
         address comptroller,
         address denomination,
         address shareToken,
-        uint256 reserveExecutionRatio
+        uint256 reserveExecutionRate
     ) external;
 }

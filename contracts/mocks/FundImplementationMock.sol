@@ -4,16 +4,14 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDSProxy, IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
 import {IComptroller} from "../interfaces/IComptroller.sol";
-import {PoolImplementation} from "../PoolImplementation.sol";
+import {FundImplementation} from "../FundImplementation.sol";
 
-contract PoolImplementationMock is PoolImplementation {
+contract FundImplementationMock is FundImplementation {
     bool public grossAssetValueMocked;
     uint256 public grossAssetValueMock;
     uint256 public lastGrossAssetValue;
 
-    constructor(IDSProxyRegistry dsProxyRegistry_)
-        PoolImplementation(dsProxyRegistry_)
-    {}
+    constructor(IDSProxyRegistry dsProxyRegistry_) FundImplementation(dsProxyRegistry_) {}
 
     function reviewingMock() external {
         _enterState(State.Reviewing);
@@ -42,15 +40,8 @@ contract PoolImplementationMock is PoolImplementation {
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
-    function vaultCallMock(address _target, bytes calldata _data)
-        external
-        returns (bytes memory)
-    {
-        bytes memory data = abi.encodeWithSignature(
-            "call(address,bytes)",
-            _target,
-            _data
-        );
+    function vaultCallMock(address _target, bytes calldata _data) external returns (bytes memory) {
+        bytes memory data = abi.encodeWithSignature("call(address,bytes)", _target, _data);
         CallActionMock action = new CallActionMock();
 
         return vault.execute(address(action), data);
@@ -71,10 +62,7 @@ contract PoolImplementationMock is PoolImplementation {
 }
 
 contract CallActionMock {
-    function call(address _target, bytes calldata _data)
-        external
-        returns (bool success)
-    {
+    function call(address _target, bytes calldata _data) external returns (bool success) {
         (success, ) = _target.call(_data);
     }
 }
