@@ -104,9 +104,17 @@ contract PoolImplementation is
     }
 
     /// @notice Resume the pool by anyone if can settle pending redeemption.
-    function resume() public whenState(State.RedemptionPending) {
+    function resume() public {
+        uint256 grossAssetValue = getGrossAssetValue();
+        _resumeWithGrossAssetValue(grossAssetValue);
+    }
+
+    function _resumeWithGrossAssetValue(uint256 grossAssetValue_)
+        internal
+        whenState(State.RedemptionPending)
+    {
         Errors._require(
-            isPendingResolvable(true),
+            _isPendingResolvable(true, grossAssetValue_),
             Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
         );
         _settlePendingRedemption(true);
@@ -196,15 +204,7 @@ contract PoolImplementation is
         return getReserve();
     }
 
-    /// @notice Get the total asset value of the pool.
-    /// @return The value of asset.
-    function getTotalAssetValue()
-        public
-        view
-        virtual
-        override(PerformanceFeeModule, ShareModule)
-        returns (uint256)
-    {
+    function getGrossAssetValue() public view virtual returns (uint256) {
         address[] memory assets = getAssetList();
         uint256 length = assets.length;
         uint256[] memory amounts = new uint256[](length);
@@ -218,6 +218,15 @@ contract PoolImplementation is
                 amounts,
                 address(denomination)
             );
+    }
+
+    function __getGrossAssetValue()
+        internal
+        view
+        override(ShareModule, PerformanceFeeModule)
+        returns (uint256)
+    {
+        return getGrossAssetValue();
     }
 
     /////////////////////////////////////////////////////
@@ -293,7 +302,7 @@ contract PoolImplementation is
     /////////////////////////////////////////////////////
     /// @notice Execute an action on the pool's behalf.
     function _beforeExecute() internal virtual override returns (uint256) {
-        return getTotalAssetValue();
+        return getGrossAssetValue();
     }
 
     function execute(bytes calldata data) public override onlyOwner {
@@ -301,7 +310,7 @@ contract PoolImplementation is
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response, uint256 prevAssetValue)
+    function _afterExecute(bytes memory response, uint256 prevGrossAssetValue)
         internal
         override
         returns (uint256)
@@ -319,34 +328,46 @@ contract PoolImplementation is
             addAsset(dealingAssets[i]);
         }
 
+        // Get new gross asset value
+        uint256 grossAssetValue = getGrossAssetValue();
+
         if (state == State.RedemptionPending) {
-            resume();
+            _resumeWithGrossAssetValue(grossAssetValue);
         }
 
+        // Check value after execution
         Errors._require(
-            _isReserveEnough(),
+            _isReserveEnough(grossAssetValue),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE
         );
 
-        // Check asset value
-        uint256 totalAssetValue = getTotalAssetValue();
-        uint256 minTotalAssetValue = (prevAssetValue *
-            comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
-
         Errors._require(
-            totalAssetValue >= minTotalAssetValue,
+            _isAfterValueEnough(prevGrossAssetValue, grossAssetValue),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
         );
 
-        return totalAssetValue;
+        return grossAssetValue;
     }
 
-    /// @notice Check funds reserve ratio is enough or not.
-    /// @return The reserve ratio is enough or not.
-    function _isReserveEnough() internal view returns (bool) {
+    function _isReserveEnough(uint256 grossAssetValue_)
+        internal
+        view
+        returns (bool)
+    {
         uint256 reserveRatio = (getReserve() * _RESERVE_BASE) /
-            getTotalAssetValue();
+            grossAssetValue_;
+
         return reserveRatio >= reserveExecutionRatio;
+    }
+
+    function _isAfterValueEnough(
+        uint256 prevAssetValue_,
+        uint256 grossAssetValue_
+    ) internal view returns (bool) {
+        uint256 minGrossAssetValue = (prevAssetValue_ *
+            comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
+
+        return grossAssetValue_ >= minGrossAssetValue;
     }
 
     /////////////////////////////////////////////////////
@@ -367,16 +388,23 @@ contract PoolImplementation is
     /////////////////////////////////////////////////////
     /// @notice Update the management fee and performance fee before purchase
     /// to get the lastest share price.
-    function _callBeforePurchase(uint256) internal override {
+    function _callBeforePurchase(uint256) internal override returns (uint256) {
+        uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
-        _updatePerformanceFee();
-        return;
+        _updatePerformanceFee(grossAssetValue);
+        return grossAssetValue;
     }
 
     /// @notice Update the gross share price after the purchase.
-    function _callAfterPurchase(uint256) internal override {
-        _updateGrossSharePrice();
-        if (state == State.RedemptionPending && isPendingResolvable(true)) {
+    function _callAfterPurchase(uint256, uint256 grossAssetValue_)
+        internal
+        override
+    {
+        _updateGrossSharePrice(grossAssetValue_);
+        if (
+            state == State.RedemptionPending &&
+            _isPendingResolvable(true, grossAssetValue_)
+        ) {
             _settlePendingRedemption(true);
             _resume();
         }
@@ -385,16 +413,20 @@ contract PoolImplementation is
 
     /// @notice Update the management fee and performance fee before redeem
     /// to get the latest share price.
-    function _callBeforeRedeem(uint256) internal override {
+    function _callBeforeRedeem(uint256) internal override returns (uint256) {
+        uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
-        _updatePerformanceFee();
-        return;
+        _updatePerformanceFee(grossAssetValue);
+        return grossAssetValue;
     }
 
     /// @notice Payout the performance fee for the redempt portion and update
     /// the gross share price.
-    function _callAfterRedeem(uint256) internal override {
-        _updateGrossSharePrice();
+    function _callAfterRedeem(uint256, uint256 grossAssetValue_)
+        internal
+        override
+    {
+        _updateGrossSharePrice(grossAssetValue_);
         return;
     }
 }
