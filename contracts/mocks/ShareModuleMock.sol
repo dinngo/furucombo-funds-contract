@@ -7,8 +7,9 @@ import {BaseMock} from "./BaseMock.sol";
 
 contract ShareModuleMock is ShareModule, BaseMock {
     uint256 public reserveMock;
-    uint256 public totalAssetValueMock;
+    uint256 public grossAssetValueMock;
     uint256 public pendingRedemptionPenaltyMock;
+    bool public grossAssetValueMocked;
 
     event BeforePurchaseCalled();
     event AfterPurchaseCalled();
@@ -21,8 +22,9 @@ contract ShareModuleMock is ShareModule, BaseMock {
         reserveMock = amount;
     }
 
-    function setTotalAssetValue(uint256 amount) external {
-        totalAssetValueMock = amount;
+    function setGrossAssetValue(uint256 amount) external {
+        grossAssetValueMock = amount;
+        grossAssetValueMocked = true;
     }
 
     function settlePendingRedemption() external {
@@ -37,24 +39,31 @@ contract ShareModuleMock is ShareModule, BaseMock {
         _settlePendingRedemption(false);
     }
 
-    function _callBeforePurchase(uint256) internal override {
-        emit BeforePurchaseCalled();
+    function setPendingUserPendingInfo(
+        address user,
+        uint256 round,
+        uint256 share
+    ) external {
+        pendingUsers[user].pendingRound = round;
+        pendingUsers[user].pendingShares = share;
     }
 
-    function _callAfterPurchase(uint256) internal override {
+    function _callBeforePurchase(uint256) internal override returns (uint256) {
+        emit BeforePurchaseCalled();
+        return grossAssetValueMock;
+    }
+
+    function _callAfterPurchase(uint256, uint256) internal override {
         emit AfterPurchaseCalled();
     }
 
-    function _callBeforeRedeem(uint256) internal override {
+    function _callBeforeRedeem(uint256) internal override returns (uint256) {
         emit BeforeRedeemCalled();
+        return grossAssetValueMock;
     }
 
-    function _callAfterRedeem(uint256) internal override {
+    function _callAfterRedeem(uint256, uint256) internal override {
         emit AfterRedeemCalled();
-    }
-
-    function getTotalAssetValue() public view override returns (uint256) {
-        return totalAssetValueMock;
     }
 
     function _getPendingRedemptionPenalty() internal view override returns (uint256) {
@@ -65,12 +74,7 @@ contract ShareModuleMock is ShareModule, BaseMock {
         return reserveMock;
     }
 
-    function setPendingUserPendingInfo(
-        address user,
-        uint256 round,
-        uint256 share
-    ) external {
-        pendingUsers[user].pendingRound = round;
-        pendingUsers[user].pendingShares = share;
+    function __getGrossAssetValue() internal view override returns (uint256) {
+        return grossAssetValueMock;
     }
 }

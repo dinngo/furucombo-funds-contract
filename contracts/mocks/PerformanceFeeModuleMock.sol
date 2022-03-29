@@ -8,21 +8,24 @@ import {PerformanceFeeModule} from "../modules/PerformanceFeeModule.sol";
 
 contract PerformanceFeeModuleMock is PerformanceFeeModule {
     using ABDKMath64x64 for uint256;
-
-    uint256 public grossAssetValue;
+    uint256 public grossAssetValueMock;
 
     function setShareToken(IShareToken shareToken_) public {
         shareToken = shareToken_;
     }
 
     function setGrossAssetValue(uint256 grossAssetValue_) public {
-        grossAssetValue = grossAssetValue_;
+        grossAssetValueMock = grossAssetValue_;
+    }
+
+    function getGrossAssetValue() public view returns (uint256) {
+        return grossAssetValueMock;
     }
 
     function mintShareToken(address user, uint256 share) public {
-        _updatePerformanceFee();
+        _updatePerformanceFee(grossAssetValueMock);
         shareToken.mint(user, share);
-        _updateGrossSharePrice();
+        _updateGrossSharePrice(grossAssetValueMock);
     }
 
     function setPerformanceFeeRate(uint256 feeRate) public returns (int128) {
@@ -38,11 +41,11 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
     }
 
     function updatePerformanceFee() public {
-        _updatePerformanceFee();
+        _updatePerformanceFee(grossAssetValueMock);
     }
 
     function updateGrossSharePrice() public {
-        _updateGrossSharePrice();
+        _updateGrossSharePrice(grossAssetValueMock);
     }
 
     function getFeeBase() public pure returns (uint256) {
@@ -61,7 +64,7 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
         return 31557600;
     }
 
-    function getTotalAssetValue() public view override returns (uint256) {
-        return grossAssetValue;
+    function __getGrossAssetValue() internal view override returns (uint256) {
+        return grossAssetValueMock;
     }
 }

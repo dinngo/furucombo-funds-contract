@@ -94,9 +94,17 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _initializePerformanceFee();
     }
 
-    /// @notice Resume the fund by anyone if can settle pending redeemption.
-    function resume() public whenState(State.RedemptionPending) {
-        Errors._require(isPendingResolvable(true), Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE);
+    /// @notice Resume the fund by anyone if can settle pending redemption.
+    function resume() public {
+        uint256 grossAssetValue = getGrossAssetValue();
+        _resumeWithGrossAssetValue(grossAssetValue);
+    }
+
+    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal whenState(State.RedemptionPending) {
+        Errors._require(
+            _isPendingResolvable(true, grossAssetValue_),
+            Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
+        );
         _settlePendingRedemption(true);
         _resume();
     }
@@ -159,9 +167,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return getReserve();
     }
 
-    /// @notice Get the total asset value of the fund.
-    /// @return The value of asset.
-    function getTotalAssetValue() public view virtual override(PerformanceFeeModule, ShareModule) returns (uint256) {
+    function getGrossAssetValue() public view virtual returns (uint256) {
         address[] memory assets = getAssetList();
         uint256 length = assets.length;
         uint256[] memory amounts = new uint256[](length);
@@ -170,6 +176,10 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         }
 
         return comptroller.assetRouter().calcAssetsTotalValue(assets, amounts, address(denomination));
+    }
+
+    function __getGrossAssetValue() internal view override(ShareModule, PerformanceFeeModule) returns (uint256) {
+        return getGrossAssetValue();
     }
 
     /////////////////////////////////////////////////////
@@ -233,7 +243,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     /// @notice Execute an action on the fund's behalf.
     function _beforeExecute() internal virtual override returns (uint256) {
-        return getTotalAssetValue();
+        return getGrossAssetValue();
     }
 
     function execute(bytes calldata data) public override onlyOwner {
@@ -241,7 +251,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response, uint256 prevAssetValue) internal override returns (uint256) {
+    function _afterExecute(bytes memory response, uint256 prevGrossAssetValue) internal override returns (uint256) {
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
@@ -255,29 +265,34 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             addAsset(dealingAssets[i]);
         }
 
+        // Get new gross asset value
+        uint256 grossAssetValue = getGrossAssetValue();
+
         if (state == State.RedemptionPending) {
-            resume();
+            _resumeWithGrossAssetValue(grossAssetValue);
         }
 
-        Errors._require(_isReserveEnough(), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
-
-        // Check asset value
-        uint256 totalAssetValue = getTotalAssetValue();
-        uint256 minTotalAssetValue = (prevAssetValue * comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
+        // Check value after execution
+        Errors._require(_isReserveEnough(grossAssetValue), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
 
         Errors._require(
-            totalAssetValue >= minTotalAssetValue,
+            _isAfterValueEnough(prevGrossAssetValue, grossAssetValue),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
         );
 
-        return totalAssetValue;
+        return grossAssetValue;
     }
 
-    /// @notice Check funds reserve rate is enough or not.
-    /// @return The reserve rate is enough or not.
-    function _isReserveEnough() internal view returns (bool) {
-        uint256 reserveRate = (getReserve() * _RESERVE_BASE) / getTotalAssetValue();
+    function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 reserveRate = (getReserve() * _RESERVE_BASE) / grossAssetValue_;
+
         return reserveRate >= reserveExecutionRate;
+    }
+
+    function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
+
+        return grossAssetValue_ >= minGrossAssetValue;
     }
 
     /////////////////////////////////////////////////////
@@ -298,16 +313,17 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     /// @notice Update the management fee and performance fee before purchase
     /// to get the lastest share price.
-    function _callBeforePurchase(uint256) internal override {
+    function _callBeforePurchase(uint256) internal override returns (uint256) {
+        uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
-        _updatePerformanceFee();
-        return;
+        _updatePerformanceFee(grossAssetValue);
+        return grossAssetValue;
     }
 
     /// @notice Update the gross share price after the purchase.
-    function _callAfterPurchase(uint256) internal override {
-        _updateGrossSharePrice();
-        if (state == State.RedemptionPending && isPendingResolvable(true)) {
+    function _callAfterPurchase(uint256, uint256 grossAssetValue_) internal override {
+        _updateGrossSharePrice(grossAssetValue_);
+        if (state == State.RedemptionPending && _isPendingResolvable(true, grossAssetValue_)) {
             _settlePendingRedemption(true);
             _resume();
         }
@@ -316,16 +332,17 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Update the management fee and performance fee before redeem
     /// to get the latest share price.
-    function _callBeforeRedeem(uint256) internal override {
+    function _callBeforeRedeem(uint256) internal override returns (uint256) {
+        uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
-        _updatePerformanceFee();
-        return;
+        _updatePerformanceFee(grossAssetValue);
+        return grossAssetValue;
     }
 
     /// @notice Payout the performance fee for the redempt portion and update
     /// the gross share price.
-    function _callAfterRedeem(uint256) internal override {
-        _updateGrossSharePrice();
+    function _callAfterRedeem(uint256, uint256 grossAssetValue_) internal override {
+        _updateGrossSharePrice(grossAssetValue_);
         return;
     }
 }

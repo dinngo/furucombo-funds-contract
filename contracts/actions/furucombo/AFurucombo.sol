@@ -43,17 +43,19 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         bytes32[] calldata configs,
         bytes[] memory datas
     ) external payable delegateCallOnly returns (uint256[] memory) {
-        // Snapshot output token amounts
-        uint256[] memory amountsOut = new uint256[](tokensOut.length);
-        for (uint256 i = 0; i < tokensOut.length; i++) {
-            amountsOut[i] = _getBalance(tokensOut[i]);
-        }
-
         // check comptroller handler call
         _checkHandlerCall(tos, datas);
 
         // Inject and execute combo
         _inject(tokensIn, amountsIn);
+
+        // Snapshot output token amounts after send token to Furucombo proxy
+        uint256[] memory amountsOut = new uint256[](tokensOut.length);
+        for (uint256 i = 0; i < tokensOut.length; i++) {
+            amountsOut[i] = _getBalance(tokensOut[i]);
+        }
+
+        // Execute furucombo proxy batchExec
         try IFurucombo(proxy).batchExec(tos, configs, datas) returns (address[] memory dealAssets) {
             for (uint256 i = 0; i < dealAssets.length; i++) {
                 // Update dealing asset
@@ -102,6 +104,17 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
             } catch {
                 Errors._revertMsg("approveDelegation");
             }
+        }
+    }
+
+    function approveToken(address[] calldata tokens, uint256[] calldata amounts) external payable delegateCallOnly {
+        Errors._require(tokens.length == amounts.length, Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT);
+
+        // approve token to furucombo proxy only,
+        // otherwise manager can approve tokens to other address
+        for (uint256 i = 0; i < tokens.length; i++) {
+            _tokenApprove(tokens[i], proxy, amounts[i]);
+            addDealingAsset(tokens[i]);
         }
     }
 

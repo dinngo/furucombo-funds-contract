@@ -44,4 +44,21 @@ contract HMock is HandlerBase {
             _updateToken(tokens[i]);
         }
     }
+
+    function sendTokens(
+        address[] calldata targets,
+        address[] calldata tokens,
+        uint256[] calldata amounts
+    ) external payable {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IERC20(tokens[i]).transfer(targets[i], amounts[i]);
+            _updateToken(tokens[i]);
+        }
+    }
+
+    function doUpdateTokenOnly(address[] calldata tokens) external payable {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            _updateToken(tokens[i]);
+        }
+    }
 }

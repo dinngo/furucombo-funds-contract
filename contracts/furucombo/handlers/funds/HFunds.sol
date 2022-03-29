@@ -24,15 +24,19 @@ contract HFunds is HandlerBase {
         return balances;
     }
 
-    function inject(address[] calldata tokens, uint256[] calldata amounts) external payable returns (uint256[] memory) {
-        _requireMsg(tokens.length == amounts.length, "inject", "token and amount does not match");
+    function addFunds(address[] calldata tokens, uint256[] calldata amounts)
+        external
+        payable
+        returns (uint256[] memory)
+    {
+        _requireMsg(tokens.length == amounts.length, "addFunds", "token and amount does not match");
         address sender = _getSender();
         for (uint256 i = 0; i < tokens.length; i++) {
             _notMaticToken(tokens[i]);
             IERC20(tokens[i]).safeTransferFrom(sender, address(this), amounts[i]);
 
             // Update involved token
-            _updateInitialToken(tokens[i]);
+            _updateToken(tokens[i]);
         }
         return amounts;
     }

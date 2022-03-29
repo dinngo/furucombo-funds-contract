@@ -7,9 +7,9 @@ import {IComptroller} from "../interfaces/IComptroller.sol";
 import {FundImplementation} from "../FundImplementation.sol";
 
 contract FundImplementationMock is FundImplementation {
-    uint256 public totalAssetValueMock;
-    bool public totalAssetValueMocked;
-    uint256 public lastTotalAssetValue;
+    bool public grossAssetValueMocked;
+    uint256 public grossAssetValueMock;
+    uint256 public lastGrossAssetValue;
 
     constructor(IDSProxyRegistry dsProxyRegistry_) FundImplementation(dsProxyRegistry_) {}
 
@@ -24,16 +24,16 @@ contract FundImplementationMock is FundImplementation {
     /////////////////////////////////////////////////////
     // General
     /////////////////////////////////////////////////////
-    function setTotalAssetValueMock(uint256 totalAssetValue) external {
-        totalAssetValueMock = totalAssetValue;
-        totalAssetValueMocked = true;
+    function setGrossAssetValueMock(uint256 grossAssetValue) external {
+        grossAssetValueMock = grossAssetValue;
+        grossAssetValueMocked = true;
     }
 
-    function getTotalAssetValue() public view override(FundImplementation) returns (uint256) {
-        if (totalAssetValueMocked) {
-            return totalAssetValueMock;
+    function getGrossAssetValue() public view override returns (uint256) {
+        if (grossAssetValueMocked) {
+            return grossAssetValueMock;
         } else {
-            return super.getTotalAssetValue();
+            return super.getGrossAssetValue();
         }
     }
 
@@ -48,15 +48,16 @@ contract FundImplementationMock is FundImplementation {
     }
 
     function isReserveEnough() external view returns (bool) {
-        return _isReserveEnough();
+        uint256 value = getGrossAssetValue();
+        return _isReserveEnough(value);
     }
 
-    function setLastTotalAssetValue(uint256 value) external {
-        lastTotalAssetValue = value;
+    function setLastGrossAssetValue(uint256 value) external {
+        lastGrossAssetValue = value;
     }
 
     function _beforeExecute() internal view override returns (uint256) {
-        return lastTotalAssetValue;
+        return lastGrossAssetValue;
     }
 }
 

@@ -191,14 +191,14 @@ describe('FundImplementation', function () {
     await fundImplementation.addAsset(tokenA.address);
     await fundImplementation.addAsset(tokenB.address);
 
-    const value = await fundImplementation.getTotalAssetValue();
+    const value = await fundImplementation.getGrossAssetValue();
     expect(value).to.be.eq(expectedA.add(expectedB));
 
     // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
     const denominationReserve = value.div(10);
     await denomination.connect(denominationProvider).transfer(vault.address, denominationReserve);
 
-    const totalAssetValue = await fundImplementation.getTotalAssetValue();
+    const totalAssetValue = await fundImplementation.getGrossAssetValue();
     const currentReserve = denominationReserve.mul(reserveBase).div(totalAssetValue);
 
     return currentReserve;
@@ -518,7 +518,7 @@ describe('FundImplementation', function () {
     let actionData, executionData: any;
     beforeEach(async function () {
       await fundImplementation.finalize();
-      await fundImplementation.setLastTotalAssetValue(valueBefore);
+      await fundImplementation.setLastGrossAssetValue(valueBefore);
       actionData = getCallData(action, 'fooAddress', []);
       executionData = getCallData(taskExecutor, 'batchExec', [
         [],
@@ -532,13 +532,13 @@ describe('FundImplementation', function () {
 
     it('should success', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
-      await fundImplementation.setTotalAssetValueMock(valueCurrent);
+      await fundImplementation.setGrossAssetValueMock(valueCurrent);
       await fundImplementation.execute(executionData);
     });
 
     it('should revert when exceed tolerance', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance - 1).div(TOLERANCE_BASE);
-      await fundImplementation.setTotalAssetValueMock(valueCurrent);
+      await fundImplementation.setGrossAssetValueMock(valueCurrent);
       await expect(fundImplementation.execute(executionData)).to.be.revertedWith(
         'revertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
       );
@@ -667,12 +667,12 @@ describe('FundImplementation', function () {
       await fundImplementation.addAsset(tokenA.address);
       await fundImplementation.addAsset(tokenB.address);
 
-      const value = await fundImplementation.getTotalAssetValue();
+      const value = await fundImplementation.getGrossAssetValue();
       expect(value).to.be.eq(expectedA.add(expectedB));
     });
 
     it('zero total value', async function () {
-      expect(await fundImplementation.getTotalAssetValue()).to.be.eq(0);
+      expect(await fundImplementation.getGrossAssetValue()).to.be.eq(0);
     });
   });
 
@@ -714,7 +714,7 @@ describe('FundImplementation', function () {
       await denomination.connect(denominationProvider).transfer(owner.address, redeemAmount.mul(2)); // Transfer more to owner
 
       // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
-      await fundImplementation.setTotalAssetValueMock(mwei('5000'));
+      await fundImplementation.setGrossAssetValueMock(mwei('5000'));
       await denomination.connect(owner).approve(fundImplementation.address, 500);
       await fundImplementation.purchase(500);
 

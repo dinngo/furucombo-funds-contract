@@ -72,10 +72,11 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
         Errors._require(isCrystallizable(), Errors.Code.PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET);
-        _updatePerformanceFee();
+        uint256 grossAssetValue = __getGrossAssetValue();
+        _updatePerformanceFee(grossAssetValue);
         address manager = owner();
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
-        _updateGrossSharePrice();
+        _updateGrossSharePrice(grossAssetValue);
         uint256 result = _lastOutstandingShare;
         _lastOutstandingShare = 0;
         _pFeeSum = 0;
@@ -88,21 +89,20 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     /// @notice Update the performance fee base on the performance since last
     /// time. The fee will be minted as outstanding share.
-    function _updatePerformanceFee() internal virtual {
+    function _updatePerformanceFee(uint256 grossAssetValue_) internal virtual {
         // Get accumulated wealth
-        uint256 grossAssetValue = getTotalAssetValue();
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
             return;
         }
-        int128 grossSharePrice64x64 = grossAssetValue.divu(totalShare);
+        int128 grossSharePrice64x64 = grossAssetValue_.divu(totalShare);
         int256 wealth = LibFee
             ._max64x64(hwm64x64, grossSharePrice64x64)
             .sub(LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64))
             .muli(int256(totalShare));
         int256 fee = _pFeeRate64x64.muli(wealth);
         _pFeeSum = uint256(LibFee._max(0, int256(_pFeeSum) + fee));
-        uint256 netAssetValue = grossAssetValue - _pFeeSum;
+        uint256 netAssetValue = grossAssetValue_ - _pFeeSum;
         uint256 outstandingShare = (totalShare * _pFeeSum) / netAssetValue;
         if (outstandingShare > _lastOutstandingShare) {
             shareToken.mint(_OUTSTANDING_ACCOUNT, outstandingShare - _lastOutstandingShare);
@@ -110,18 +110,17 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
             shareToken.burn(_OUTSTANDING_ACCOUNT, _lastOutstandingShare - outstandingShare);
         }
         _lastOutstandingShare = outstandingShare;
-        lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+        lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
     }
 
     /// @notice Update the gross share price as the basis for estimating the
     /// future performance.
-    function _updateGrossSharePrice() internal virtual {
-        uint256 grossAssetValue = getTotalAssetValue();
+    function _updateGrossSharePrice(uint256 grossAssetValue_) internal virtual {
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
             lastGrossSharePrice64x64 = FEE_BASE64x64;
         } else {
-            lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+            lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
         }
     }
 
@@ -136,6 +135,5 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         return _crystallizationStart + period * _crystallizationPeriod;
     }
 
-    /// @notice Get the total value of all the asset of the fund.
-    function getTotalAssetValue() public view virtual returns (uint256);
+    function __getGrossAssetValue() internal view virtual returns (uint256);
 }

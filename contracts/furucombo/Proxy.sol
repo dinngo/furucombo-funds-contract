@@ -293,10 +293,12 @@ contract FurucomboProxy is IProxy, Storage, Config {
                 address addr = address(uint160(uint256(top)));
                 _tokenRefund(addr);
 
-                // Only dealing tokens need to return except initial funds
+                // Only dealing tokens need to add to dealing asset except initial funds
                 assets[index++] = addr;
             } else if (handlerType == HandlerType.Initial) {
                 address addr = stack.getAddress();
+
+                // Initial funds do not add to dealing asset, refund only
                 _tokenRefund(addr);
             } else if (handlerType == HandlerType.Custom) {
                 address addr = stack.getAddress();
