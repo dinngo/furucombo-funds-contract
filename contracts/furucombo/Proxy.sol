@@ -320,11 +320,11 @@ contract FurucomboProxy is IProxy, Storage, Config {
         _resetSender();
 
         // Return deal assets, convert fixed array to dynamic array
-        address[] memory dealAssets = new address[](index);
+        address[] memory dealingAssets = new address[](index);
         for (uint256 i = 0; i < index; i++) {
-            dealAssets[i] = assets[i];
+            dealingAssets[i] = assets[i];
         }
-        return dealAssets;
+        return dealingAssets;
     }
 
     function _tokenRefund(address addr) internal {

@@ -56,10 +56,10 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         }
 
         // Execute furucombo proxy batchExec
-        try IFurucombo(proxy).batchExec(tos_, configs_, datas_) returns (address[] memory dealAssets) {
-            for (uint256 i = 0; i < dealAssets.length; i++) {
+        try IFurucombo(proxy).batchExec(tos_, configs_, datas_) returns (address[] memory dealingAssets) {
+            for (uint256 i = 0; i < dealingAssets.length; i++) {
                 // Update dealing asset
-                _addDealingAsset(dealAssets[i]);
+                _addDealingAsset(dealingAssets[i]);
             }
         } catch Error(string memory reason) {
             Errors._revertMsg("injectAndBatchExec", reason);
