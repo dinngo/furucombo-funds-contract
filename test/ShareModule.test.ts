@@ -58,6 +58,46 @@ describe('Share module', function () {
     await shareModule.setPendingRedemptionPenalty(penalty);
   });
 
+  describe('Calculate', function () {
+    beforeEach(async function () {
+      await shareModule.setState(FUND_STATE.EXECUTING);
+      await shareModule.purchase(totalAsset);
+      await shareModule.setReserve(totalAsset);
+      await shareModule.setGrossAssetValue(totalAsset);
+    });
+
+    describe('calculate share by balance', function () {
+      it('same value as the total asset', async function () {
+        const shareAmount = await shareModule.calculateShare(totalAsset);
+        expect(shareAmount).to.be.eq(totalShare);
+      });
+
+      it('0 value', async function () {
+        const shareAmount = await shareModule.calculateShare(0);
+        expect(shareAmount).to.be.eq(0);
+      });
+    });
+
+    describe('calculate balance by share', function () {
+      it('0 share', async function () {
+        const shareAmount = 0;
+        const balanceAmount = await shareModule.calculateBalance(shareAmount);
+        expect(balanceAmount).to.be.eq(0);
+      });
+
+      it('half total share', async function () {
+        const shareAmount = totalShare.div(2);
+        const balanceAmount = await shareModule.calculateBalance(shareAmount);
+        expect(balanceAmount).to.be.eq(totalAsset.div(2));
+      });
+
+      it('should revert: greater than total share', async function () {
+        const shareAmount = totalShare.add(1);
+        await expect(shareModule.calculateBalance(shareAmount)).to.be.revertedWith('revertCode(80)'); // SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE
+      });
+    });
+  });
+
   describe('Purchase', function () {
     it('should fail when initializing', async function () {
       await shareModule.setState(FUND_STATE.INITIALIZING);
