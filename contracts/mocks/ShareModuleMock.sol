@@ -45,7 +45,7 @@ contract ShareModuleMock is ShareModule, BaseMock {
         uint256 share
     ) external {
         pendingUsers[user].pendingRound = round;
-        pendingUsers[user].pendingShares = share;
+        pendingUsers[user].pendingShare = share;
     }
 
     function _beforePurchase() internal override returns (uint256) {

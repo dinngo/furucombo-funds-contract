@@ -79,7 +79,7 @@ library Errors {
         AFURUCOMBO_REMAINING_TOKENS, // 71: "Furucombo has remaining tokens"
         IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE, // 72: "pending share is not resolvable"
         IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION, // 73: "Insufficient total value for execution"
-        SHARE_MODULE_INSUFFICIENT_SHARES, // 74: "Insufficient share amount"
+        SHARE_MODULE_INSUFFICIENT_SHARE, // 74: "Insufficient share amount"
         FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER, // 75: "Mortgage tier not set in comptroller"
         FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE, // 76: "Invalid reserve execution rate"
         SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE, // 77: "Pending redemption is not claimable"

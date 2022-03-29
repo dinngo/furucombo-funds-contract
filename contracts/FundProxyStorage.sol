@@ -24,7 +24,7 @@ abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
 
     struct PendingUserInfo {
         uint256 pendingRound;
-        uint256 pendingShares;
+        uint256 pendingShare;
     }
 
     struct PendingRoundInfo {

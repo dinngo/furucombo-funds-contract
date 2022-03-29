@@ -63,13 +63,13 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
         uint256 currentTime = block.timestamp;
         uint256 totalShare = shareToken.grossTotalShare();
 
-        uint256 sharesDue = (_mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(_FEE_BASE64x64)).mulu(totalShare);
+        uint256 shareDue = (_mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(_FEE_BASE64x64)).mulu(totalShare);
 
         address manager = owner();
-        shareToken.mint(manager, sharesDue);
+        shareToken.mint(manager, shareDue);
         lastMFeeClaimTime = currentTime;
-        emit ManagementFeeClaimed(manager, sharesDue);
+        emit ManagementFeeClaimed(manager, shareDue);
 
-        return sharesDue;
+        return shareDue;
     }
 }
