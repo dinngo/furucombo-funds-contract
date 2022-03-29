@@ -69,7 +69,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         for (uint256 i = 0; i < tos.length; i++) {
             bytes32 config = configs[i];
 
-            if (config.isDelegateCall()) {
+            if (config._isDelegateCall()) {
                 // check comptroller delegate call
                 Errors._require(
                     comptroller.canDelegateCall(level, tos[i], bytes4(datas[i])),
@@ -113,7 +113,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         }
 
         // verify dealing assets
-        address[] memory dealingAssets = getDealingAssets();
+        address[] memory dealingAssets = _getDealingAssets();
         Errors._require(
             comptroller.isValidDealingAssets(level, dealingAssets),
             Errors.Code.TASK_EXECUTOR_INVALID_DEALING_ASSET
@@ -134,14 +134,14 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         bytes32[256] memory localStack,
         uint256 index
     ) internal pure {
-        if (config.isStatic()) {
+        if (config._isStatic()) {
             // Don't need to trim parameters if static
             return;
         }
 
         // Trim the execution data base on the configuration and stack content if dynamic
         // Fetch the parameter configuration from config
-        (uint256[] memory refs, uint256[] memory params) = config.getParams();
+        (uint256[] memory refs, uint256[] memory params) = config._getParams();
 
         // Trim the data with the reference and parameters
         for (uint256 i = 0; i < refs.length; i++) {
@@ -179,9 +179,9 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         bytes32[256] memory localStack,
         uint256 index
     ) internal pure returns (uint256) {
-        if (config.isReferenced()) {
+        if (config._isReferenced()) {
             // If so, parse the output and place it into local stack
-            uint256 num = config.getReturnNum();
+            uint256 num = config._getReturnNum();
             uint256 newIndex = _parse(localStack, ret, index);
             Errors._require(
                 newIndex == index + num,
@@ -249,12 +249,12 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
 
         for (uint256 i = 0; i < tokensIn.length; i++) {
             // make sure all quota should be zero at the begin
-            Errors._require(isFundQuotaZero(tokensIn[i]), Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA);
+            Errors._require(_isFundQuotaZero(tokensIn[i]), Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA);
 
             // send fee to collector
             uint256 execFee = (amountsIn[i] * feePercentage) / _FEE_BASE;
             IERC20(tokensIn[i]).safeTransfer(collector, execFee);
-            setFundQuota(tokensIn[i], amountsIn[i] - execFee);
+            _setFundQuota(tokensIn[i], amountsIn[i] - execFee);
         }
     }
 }

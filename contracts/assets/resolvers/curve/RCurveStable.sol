@@ -22,7 +22,7 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         uint256 valuedAssetDecimals;
     }
 
-    uint256 private constant VIRTUAL_PRICE_UNIT = 10**18;
+    uint256 private constant _VIRTUAL_PRICE_UNIT = 10**18;
     mapping(address => PoolInfo) public assetToPoolInfo;
 
     function setPoolInfo(
@@ -64,11 +64,11 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         uint256 underlyingAmount;
         uint256 virtualPrice = ICurveLiquidityPool(info.pool).get_virtual_price();
         if (info.valuedAssetDecimals == 18) {
-            underlyingAmount = (amount * virtualPrice) / VIRTUAL_PRICE_UNIT;
+            underlyingAmount = (amount * virtualPrice) / _VIRTUAL_PRICE_UNIT;
         } else {
             underlyingAmount =
-                ((amount * virtualPrice * (10**info.valuedAssetDecimals)) / VIRTUAL_PRICE_UNIT) /
-                VIRTUAL_PRICE_UNIT;
+                ((amount * virtualPrice * (10**info.valuedAssetDecimals)) / _VIRTUAL_PRICE_UNIT) /
+                _VIRTUAL_PRICE_UNIT;
         }
 
         // Calculate underlying value

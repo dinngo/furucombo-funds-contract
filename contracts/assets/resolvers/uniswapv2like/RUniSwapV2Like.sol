@@ -9,7 +9,7 @@ import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
     using SafeERC20 for IERC20;
-    uint256 private constant BONE = 10**18;
+    uint256 private constant _BONE = 10**18;
 
     /// @notice Calculate asset value given the amount.
     /// @param asset The asset address.
@@ -36,7 +36,7 @@ contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
         uint256 totalSupply = _getTotalSupplyAtWithdrawal(pair, reserve0, reserve1);
 
         // Use Bone to avoid calculation loss
-        uint256 value = (((2 * square * amount * BONE) / totalSupply) / BONE);
+        uint256 value = (((2 * square * amount * _BONE) / totalSupply) / _BONE);
         return _castAssetValue(value);
     }
 

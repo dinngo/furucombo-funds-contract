@@ -13,60 +13,60 @@ contract AMock is ActionBase {
     }
 
     function doAddDealingAsset(address _a) external payable {
-        addDealingAsset(_a);
+        _addDealingAsset(_a);
     }
 
     function doGetDealingAsset(address _a) external view returns (bool) {
-        return getDealingAsset(_a);
+        return _getDealingAsset(_a);
     }
 
     function doGetDealingAssets() external view returns (address[] memory) {
-        return getDealingAssets();
+        return _getDealingAssets();
     }
 
     function doRemoveDealingAsset(address asset) external {
-        removeDealingAsset(asset);
+        _removeDealingAsset(asset);
     }
 
     function doCleanAssets() external {
-        cleanAssets();
+        _cleanAssets();
     }
 
     function doGetLength() external view returns (uint256) {
-        return getDealingAssetLength();
+        return _getDealingAssetLength();
     }
 
     function doAssetCleanUp(address _a) external assetCleanUp {
-        addDealingAsset(_a);
+        _addDealingAsset(_a);
     }
 
     // Fund Quota functions
 
     function doGetFundQuota(address _a) external view returns (uint256) {
-        return getFundQuota(_a);
+        return _getFundQuota(_a);
     }
 
     function doIsFundQuotaZero(address _a) external view returns (bool) {
-        return isFundQuotaZero(_a);
+        return _isFundQuotaZero(_a);
     }
 
     function doSetFundQuota(address _a, uint256 _v) external {
-        setFundQuota(_a, _v);
+        _setFundQuota(_a, _v);
     }
 
     function doIncreaseFundQuota(address _a, uint256 _v) external {
-        increaseFundQuota(_a, _v);
+        _increaseFundQuota(_a, _v);
     }
 
     function doDecreaseFundQuota(address _a, uint256 _v) external {
-        decreaseFundQuota(_a, _v);
+        _decreaseFundQuota(_a, _v);
     }
 
     function doCleanFundQuota() external {
-        cleanFundQuota();
+        _cleanFundQuota();
     }
 
     function doQuotaCleanUp(address _a, uint256 _v) external quotaCleanUp {
-        increaseFundQuota(_a, _v);
+        _increaseFundQuota(_a, _v);
     }
 }

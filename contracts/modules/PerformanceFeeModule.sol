@@ -13,9 +13,9 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
 
-    int128 private constant FEE_BASE64x64 = 1 << 64;
-    uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
-    uint256 private constant FEE_DENOMINATOR = _FUND_PERCENTAGE_BASE * FEE_PERIOD;
+    int128 private constant _FEE_BASE64x64 = 1 << 64;
+    uint256 private constant _FEE_PERIOD = 31557600; // 365.25*24*60*60
+    uint256 private constant _FEE_DENOMINATOR = _FUND_PERCENTAGE_BASE * _FEE_PERIOD;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
@@ -23,7 +23,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     /// @notice Initial the performance fee crystallization time
     /// and high water mark.
     function _initializePerformanceFee() internal virtual {
-        lastGrossSharePrice64x64 = FEE_BASE64x64;
+        lastGrossSharePrice64x64 = _FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
         _crystallizationStart = block.timestamp;
         _lastCrystallization = block.timestamp;
@@ -121,7 +121,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     function _updateGrossSharePrice(uint256 grossAssetValue_) internal virtual {
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
-            lastGrossSharePrice64x64 = FEE_BASE64x64;
+            lastGrossSharePrice64x64 = _FEE_BASE64x64;
         } else {
             lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
         }

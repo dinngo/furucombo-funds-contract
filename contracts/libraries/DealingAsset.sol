@@ -19,43 +19,43 @@ library DealingAsset {
     bytes32 private constant _ASSET_TRUE_FLAG = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 private constant _ASSET_FALSE_FLAG = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    function get(address _key) internal view returns (bool) {
+    function _get(address _key) internal view returns (bool) {
         bytes32 key = bytes32(bytes20(_key));
-        return _ASSET_MAP_SLOT.get(key) == _ASSET_TRUE_FLAG;
+        return _ASSET_MAP_SLOT._get(key) == _ASSET_TRUE_FLAG;
     }
 
-    function set(address _key, bool _val) internal {
+    function _set(address _key, bool _val) internal {
         bytes32 key = bytes32(bytes20(_key));
-        bytes32 oldVal = _ASSET_MAP_SLOT.get(key);
+        bytes32 oldVal = _ASSET_MAP_SLOT._get(key);
 
         if (oldVal == _ASSET_FALSE_FLAG) {
-            _ASSET_ARR_SLOT.push(key);
+            _ASSET_ARR_SLOT._push(key);
         }
 
         if (_val) {
-            _ASSET_MAP_SLOT.set(key, _ASSET_TRUE_FLAG);
+            _ASSET_MAP_SLOT._set(key, _ASSET_TRUE_FLAG);
         } else {
-            _ASSET_MAP_SLOT.set(key, _ASSET_FALSE_FLAG);
+            _ASSET_MAP_SLOT._set(key, _ASSET_FALSE_FLAG);
         }
     }
 
-    function clean() internal {
-        while (_ASSET_ARR_SLOT.getLength() > 0) {
-            bytes32 key = _ASSET_ARR_SLOT.pop();
-            _ASSET_MAP_SLOT.set(key, _ASSET_FALSE_FLAG);
+    function _clean() internal {
+        while (_ASSET_ARR_SLOT._getLength() > 0) {
+            bytes32 key = _ASSET_ARR_SLOT._pop();
+            _ASSET_MAP_SLOT._set(key, _ASSET_FALSE_FLAG);
         }
     }
 
-    function assets() internal view returns (address[] memory) {
-        uint256 length = _ASSET_ARR_SLOT.getLength();
-        address[] memory _assets = new address[](length);
+    function _assets() internal view returns (address[] memory) {
+        uint256 length = _ASSET_ARR_SLOT._getLength();
+        address[] memory assets = new address[](length);
         for (uint256 i = 0; i < length; i++) {
-            _assets[i] = address(bytes20(_ASSET_ARR_SLOT.get(i)));
+            assets[i] = address(bytes20(_ASSET_ARR_SLOT._get(i)));
         }
-        return _assets;
+        return assets;
     }
 
-    function getLength() internal view returns (uint256) {
-        return _ASSET_ARR_SLOT.getLength();
+    function _getLength() internal view returns (uint256) {
+        return _ASSET_ARR_SLOT._getLength();
     }
 }

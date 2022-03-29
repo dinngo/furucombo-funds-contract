@@ -12,12 +12,12 @@ library StorageMap {
         }
     }
 
-    function get(bytes32 slot, bytes32 key) internal view returns (bytes32 ret) {
+    function _get(bytes32 slot, bytes32 key) internal view returns (bytes32 ret) {
         bytes32 b = keccak256(abi.encodePacked(key, uint256(slot)));
         ret = _getSlot(b).value;
     }
 
-    function set(
+    function _set(
         bytes32 slot,
         bytes32 key,
         bytes32 val

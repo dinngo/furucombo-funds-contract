@@ -59,7 +59,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         try IFurucombo(proxy).batchExec(tos, configs, datas) returns (address[] memory dealAssets) {
             for (uint256 i = 0; i < dealAssets.length; i++) {
                 // Update dealing asset
-                addDealingAsset(dealAssets[i]);
+                _addDealingAsset(dealAssets[i]);
             }
         } catch Error(string memory reason) {
             Errors._revertMsg("injectAndBatchExec", reason);
@@ -80,7 +80,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
             amountsOut[i] = _getBalance(tokensOut[i]) - amountsOut[i];
 
             // Update quota to fund
-            increaseFundQuota(tokensOut[i], amountsOut[i]);
+            _increaseFundQuota(tokensOut[i], amountsOut[i]);
         }
 
         return amountsOut;
@@ -98,7 +98,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         for (uint256 i = 0; i < tokens.length; i++) {
             try tokens[i].approveDelegation(proxy, amounts[i]) {
                 // Update dealing asset
-                addDealingAsset(address(tokens[i]));
+                _addDealingAsset(address(tokens[i]));
             } catch Error(string memory reason) {
                 Errors._revertMsg("approveDelegation", reason);
             } catch {
@@ -142,7 +142,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
 
             if (amount > 0) {
                 // decrease fund quota
-                decreaseFundQuota(tokensIn[i], amount);
+                _decreaseFundQuota(tokensIn[i], amount);
                 IERC20(tokensIn[i]).safeTransfer(proxy, amount);
             }
         }

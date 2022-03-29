@@ -63,19 +63,19 @@ contract FundFooAction is ActionBase {
 
     function addAssets(address[] calldata assets) external payable {
         for (uint256 i = 0; i < assets.length; i++) {
-            addDealingAsset(assets[i]);
+            _addDealingAsset(assets[i]);
         }
     }
 
     function decreaseQuota(address[] calldata assets, uint256[] calldata amounts) external payable {
         for (uint256 i = 0; i < assets.length; i++) {
-            decreaseFundQuota(assets[i], amounts[i]);
+            _decreaseFundQuota(assets[i], amounts[i]);
         }
     }
 
     function increaseQuota(address[] calldata assets, uint256[] calldata amounts) external payable {
         for (uint256 i = 0; i < assets.length; i++) {
-            increaseFundQuota(assets[i], amounts[i]);
+            _increaseFundQuota(assets[i], amounts[i]);
         }
     }
 }

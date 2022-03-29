@@ -8,35 +8,35 @@ import {FundQuota} from "../libraries/FundQuota.sol";
  */
 abstract contract FundQuotaAction {
     modifier quotaCleanUp() {
-        cleanFundQuota();
+        _cleanFundQuota();
         _;
-        cleanFundQuota();
+        _cleanFundQuota();
     }
 
-    function getFundQuota(address fund) internal view returns (uint256) {
-        return FundQuota.get(fund);
+    function _getFundQuota(address fund) internal view returns (uint256) {
+        return FundQuota._get(fund);
     }
 
-    function isFundQuotaZero(address fund) internal view returns (bool) {
-        return getFundQuota(fund) == 0;
+    function _isFundQuotaZero(address fund) internal view returns (bool) {
+        return _getFundQuota(fund) == 0;
     }
 
-    function setFundQuota(address fund, uint256 quota) internal {
-        FundQuota.set(fund, quota);
+    function _setFundQuota(address fund, uint256 quota) internal {
+        FundQuota._set(fund, quota);
     }
 
-    function increaseFundQuota(address fund, uint256 quota) internal {
-        uint256 oldQuota = FundQuota.get(fund);
-        setFundQuota(fund, oldQuota + quota);
+    function _increaseFundQuota(address fund, uint256 quota) internal {
+        uint256 oldQuota = FundQuota._get(fund);
+        _setFundQuota(fund, oldQuota + quota);
     }
 
-    function decreaseFundQuota(address fund, uint256 quota) internal {
-        uint256 oldQuota = FundQuota.get(fund);
+    function _decreaseFundQuota(address fund, uint256 quota) internal {
+        uint256 oldQuota = FundQuota._get(fund);
         require(oldQuota >= quota, "FundQuotaAction: insufficient quota");
-        setFundQuota(fund, oldQuota - quota);
+        _setFundQuota(fund, oldQuota - quota);
     }
 
-    function cleanFundQuota() internal {
-        FundQuota.clean();
+    function _cleanFundQuota() internal {
+        FundQuota._clean();
     }
 }

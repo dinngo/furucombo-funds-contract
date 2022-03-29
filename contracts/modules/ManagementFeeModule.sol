@@ -12,7 +12,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for uint256;
 
     int128 private constant _FEE_BASE64x64 = 1 << 64;
-    uint256 public constant FEE_PERIOD = 31557600; // 365.25*24*60*60
+    uint256 private constant _FEE_PERIOD = 31557600; // 365.25*24*60*60
 
     event ManagementFeeClaimed(address indexed manager, uint256 shareAmount);
 
@@ -34,7 +34,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     /// @dev Calculate the effective fee rate to achieve the fee rate in an
     /// exponential model.
     function _setManagementFeeRate(int128 feeRate64x64) private returns (int128) {
-        _mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64).ln().neg().div(FEE_PERIOD.fromUInt()).exp();
+        _mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64).ln().neg().div(_FEE_PERIOD.fromUInt()).exp();
 
         return _mFeeRate64x64;
     }
