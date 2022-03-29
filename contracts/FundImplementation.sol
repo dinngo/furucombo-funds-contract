@@ -71,7 +71,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _review();
     }
 
-    /// @notice Finalize the initialization of the pool.
+    /// @notice Finalize the initialization of the fund.
     function finalize() external nonReentrant onlyOwner {
         _finalize();
 
@@ -94,7 +94,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _initializePerformanceFee();
     }
 
-    /// @notice Resume the pool by anyone if can settle pending redeemption.
+    /// @notice Resume the fund by anyone if can settle pending redemption.
     function resume() external nonReentrant {
         uint256 grossAssetValue = getGrossAssetValue();
         _resumeWithGrossAssetValue(grossAssetValue);
@@ -109,6 +109,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _resume();
     }
 
+    /// @notice Liquidate the fund by anyone and transfer owner to liquidator.
     function liquidate() external nonReentrant {
         Errors._require(pendingStartTime != 0, Errors.Code.IMPLEMENTATION_PENDING_NOT_START);
         Errors._require(
@@ -245,8 +246,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return getGrossAssetValue();
     }
 
-    function execute(bytes calldata data) public override nonReentrant onlyOwner {
-        super.execute(data);
+    function execute(bytes calldata data_) public override nonReentrant onlyOwner {
+        super.execute(data_);
     }
 
     /// @notice Check the reserve after the execution.
