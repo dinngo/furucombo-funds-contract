@@ -71,8 +71,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _review();
     }
 
-    /// @notice Finalize the initialization of the fund.
-    function finalize() public onlyOwner {
+    /// @notice Finalize the initialization of the pool.
+    function finalize() external nonReentrant onlyOwner {
         _finalize();
 
         // Add denomination to list and never remove
@@ -94,8 +94,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _initializePerformanceFee();
     }
 
-    /// @notice Resume the fund by anyone if can settle pending redemption.
-    function resume() public {
+    /// @notice Resume the pool by anyone if can settle pending redeemption.
+    function resume() external nonReentrant {
         uint256 grossAssetValue = getGrossAssetValue();
         _resumeWithGrossAssetValue(grossAssetValue);
     }
@@ -109,8 +109,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _resume();
     }
 
-    /// @notice Liquidate the fund by anyone and transfer owner to liquidator.
-    function liquidate() public {
+    function liquidate() external nonReentrant {
         Errors._require(pendingStartTime != 0, Errors.Code.IMPLEMENTATION_PENDING_NOT_START);
         Errors._require(
             block.timestamp >= pendingStartTime + comptroller.pendingExpiration(),
@@ -246,12 +245,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return getGrossAssetValue();
     }
 
-    function execute(bytes calldata data)
-        public
-        override
-        onlyOwner
-        nonReentrant
-    {
+    function execute(bytes calldata data) public override nonReentrant onlyOwner {
         super.execute(data);
     }
 
@@ -317,13 +311,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     // Performance fee module
     /////////////////////////////////////////////////////
     /// @notice Crystallize should only be triggered by owner
-    function crystallize()
-        public
-        override
-        onlyOwner
-        nonReentrant
-        returns (uint256)
-    {
+    function crystallize() public override nonReentrant onlyOwner returns (uint256) {
         return super.crystallize();
     }
 
