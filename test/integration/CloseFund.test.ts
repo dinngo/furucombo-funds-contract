@@ -153,13 +153,13 @@ describe('CloseFund', function () {
     await setupTest();
   });
 
-  describe('should fail', function () {
-    it('in reviewing', async function () {
+  describe('fail', function () {
+    it('should revert: in reviewing', async function () {
       await expect(poolProxy.connect(manager).close()).to.be.revertedWith(
         'InvalidState(1)' //REVIEWING
       );
     });
-    it('in executing with assets', async function () {
+    it('should revert: in executing with assets', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
       await poolProxy.connect(manager).finalize();
@@ -184,7 +184,7 @@ describe('CloseFund', function () {
         'revertCode(64)' //ASSET_MODULE_DIFFERENT_ASSET_REMAINING
       );
     });
-    it('in pending', async function () {
+    it('should revert: in pending', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount;
@@ -211,13 +211,13 @@ describe('CloseFund', function () {
         'InvalidState(3)' //REDEMPTION_PENDING
       );
     });
-    it('by non-manager', async function () {
+    it('should revert: by non-manager', async function () {
       await poolProxy.connect(manager).finalize();
       await expect(poolProxy.close()).to.be.revertedWith(
         'Ownable: caller is not the owner'
       );
     });
-    it('by non-liquidator in liquidating ', async function () {
+    it('should revert: by non-liquidator in liquidating ', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount;
@@ -246,7 +246,7 @@ describe('CloseFund', function () {
         'Ownable: caller is not the owner'
       );
     });
-    it('by liquidator in liquidating with assets within oracle stale period', async function () {
+    it('should revert: by liquidator in liquidating with assets within oracle stale period', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount;
@@ -279,7 +279,7 @@ describe('CloseFund', function () {
         'InvalidState(4)' //LIQUIDATING
       );
     });
-    it('by liquidator in liquidating with assets but exceeds oracle stale period ', async function () {
+    it('should revert: by liquidator in liquidating with assets but exceeds oracle stale period ', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount;
@@ -309,7 +309,7 @@ describe('CloseFund', function () {
       );
     });
   });
-  describe('should succeed', function () {
+  describe('success', function () {
     it('by manager in executing without any asset', async function () {
       const purchaseAmount = initialFunds;
       await poolProxy.connect(manager).finalize();

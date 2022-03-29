@@ -81,26 +81,24 @@ describe('ManagerClaimManagementFee', function () {
   let denomination: IERC20;
   let shareToken: ShareToken;
 
-  const setupTest = deployments.createFixture(
+  const setupEachTestM0 = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, collector, manager, investor, liquidator] = await (
-        ethers as any
-      ).getSigners();
 
-      // Setup tokens and providers
-      denominationProvider = await impersonateAndInjectEther(
-        denominationProviderAddress
-      );
+      await _preSetup(ethers);
 
-      // Deploy furucombo
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
-    }
-  );
-  async function setupEachTest(mFeeRate: any) {
-    // Deploy furucombo funds contracts
-    [poolProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds] =
-      [, , , , , , , , , , , , hQuickSwap] = await createFund(
+      const mFeeRate = 0;
+
+      // Deploy furucombo funds contracts
+      [
+        poolProxy,
+        ,
+        denomination,
+        shareToken,
+        taskExecutor,
+        aFurucombo,
+        hFunds,
+      ] = [, , , , , , , , , , , , hQuickSwap] = await createFund(
         owner,
         collector,
         manager,
@@ -125,25 +123,145 @@ describe('ManagerClaimManagementFee', function () {
         furucombo
       );
 
-    // Transfer token to investor
-    await denomination
-      .connect(denominationProvider)
-      .transfer(investor.address, initialFunds);
+      // Transfer token to investor
+      await denomination
+        .connect(denominationProvider)
+        .transfer(investor.address, initialFunds);
 
-    await denomination
-      .connect(denominationProvider)
-      .transfer(manager.address, initialFunds);
+      await denomination
+        .connect(denominationProvider)
+        .transfer(manager.address, initialFunds);
+    }
+  );
+
+  const setupEachTestM02 = deployments.createFixture(
+    async ({ deployments, ethers }, options) => {
+      await deployments.fixture(''); // ensure you start from a fresh deployments
+
+      await _preSetup(ethers);
+
+      const mFeeRate = FEE_BASE * 0.02;
+
+      // Deploy furucombo funds contracts
+      [
+        poolProxy,
+        ,
+        denomination,
+        shareToken,
+        taskExecutor,
+        aFurucombo,
+        hFunds,
+      ] = [, , , , , , , , , , , , hQuickSwap] = await createFund(
+        owner,
+        collector,
+        manager,
+        liquidator,
+        denominationAddress,
+        mortgageAddress,
+        tokenAAddress,
+        tokenBAddress,
+        denominationAggregator,
+        tokenAAggregator,
+        tokenBAggregator,
+        level,
+        stakeAmount,
+        mFeeRate,
+        pFeeRate,
+        execFeePercentage,
+        pendingExpiration,
+        crystallizationPeriod,
+        reserveExecution,
+        shareTokenName,
+        fRegistry,
+        furucombo
+      );
+
+      // Transfer token to investor
+      await denomination
+        .connect(denominationProvider)
+        .transfer(investor.address, initialFunds);
+
+      await denomination
+        .connect(denominationProvider)
+        .transfer(manager.address, initialFunds);
+    }
+  );
+
+  const setupEachTestM99 = deployments.createFixture(
+    async ({ deployments, ethers }, options) => {
+      await deployments.fixture(''); // ensure you start from a fresh deployments
+
+      await _preSetup(ethers);
+
+      const mFeeRate = FEE_BASE * 0.99;
+
+      // Deploy furucombo funds contracts
+      [
+        poolProxy,
+        ,
+        denomination,
+        shareToken,
+        taskExecutor,
+        aFurucombo,
+        hFunds,
+      ] = [, , , , , , , , , , , , hQuickSwap] = await createFund(
+        owner,
+        collector,
+        manager,
+        liquidator,
+        denominationAddress,
+        mortgageAddress,
+        tokenAAddress,
+        tokenBAddress,
+        denominationAggregator,
+        tokenAAggregator,
+        tokenBAggregator,
+        level,
+        stakeAmount,
+        mFeeRate,
+        pFeeRate,
+        execFeePercentage,
+        pendingExpiration,
+        crystallizationPeriod,
+        reserveExecution,
+        shareTokenName,
+        fRegistry,
+        furucombo
+      );
+
+      // Transfer token to investor
+      await denomination
+        .connect(denominationProvider)
+        .transfer(investor.address, initialFunds);
+
+      await denomination
+        .connect(denominationProvider)
+        .transfer(manager.address, initialFunds);
+    }
+  );
+
+  async function _preSetup(ethers: any) {
+    [owner, collector, manager, investor, liquidator] = await (
+      ethers as any
+    ).getSigners();
+
+    // Setup tokens and providers
+    denominationProvider = await impersonateAndInjectEther(
+      denominationProviderAddress
+    );
+
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
   }
 
   beforeEach(async function () {
-    await setupTest();
+    // await setupTest();
   });
   describe('in operation', function () {
     describe('0% management fee', function () {
       const purchaseAmount = initialFunds;
       beforeEach(async function () {
-        const mFeeRate = 0;
-        await setupEachTest(mFeeRate);
+        await setupEachTestM0();
       });
       it('claim 0 fee when user redeem after purchase', async function () {
         const [share] = await purchaseFund(
@@ -182,8 +300,7 @@ describe('ManagerClaimManagementFee', function () {
     describe('2% management fee', function () {
       const purchaseAmount = initialFunds;
       beforeEach(async function () {
-        const mFeeRate = FEE_BASE * 0.02;
-        await setupEachTest(mFeeRate);
+        await setupEachTestM02();
       });
       it('claim management fee when user redeem after purchase', async function () {
         const [share] = await purchaseFund(
@@ -250,8 +367,7 @@ describe('ManagerClaimManagementFee', function () {
       const purchaseAmount = initialFunds;
 
       beforeEach(async function () {
-        const mFeeRate = FEE_BASE * 0.99;
-        await setupEachTest(mFeeRate);
+        await setupEachTestM99();
       });
       it('claim fee', async function () {
         const [share] = await purchaseFund(
@@ -282,8 +398,7 @@ describe('ManagerClaimManagementFee', function () {
       const redeemAmount = purchaseAmount;
 
       beforeEach(async function () {
-        const mFeeRate = FEE_BASE * 0.02;
-        await setupEachTest(mFeeRate);
+        await setupEachTestM02();
         await setObservingAssetFund(
           manager,
           investor,
