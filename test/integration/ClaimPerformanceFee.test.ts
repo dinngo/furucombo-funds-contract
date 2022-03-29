@@ -389,6 +389,7 @@ describe('ManagerClaimPerformanceFee', function () {
     const swapAmount = purchaseAmount.div(2);
     const redeemAmount = purchaseAmount;
     const acceptPending = true;
+    // TODO: add different rate
     describe('99% performance fee', function () {
       beforeEach(async function () {
         await setupEachTestP99();
@@ -481,11 +482,11 @@ describe('ManagerClaimPerformanceFee', function () {
     });
   });
 
-  // TODO: check again
+  // TODO: check again to add more cases
   describe('pending -> operation', function () {
     const swapAmount = purchaseAmount.div(2);
     const redeemAmount = purchaseAmount;
-
+    // TODO: add different rate?
     describe('99% performance fee', function () {
       beforeEach(async function () {
         await setupEachTestP99();

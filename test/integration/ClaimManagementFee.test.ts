@@ -392,6 +392,7 @@ describe('ManagerClaimManagementFee', function () {
     });
   });
   describe('in observation', function () {
+    //TODO: add different fee rate
     describe('2% management fee', function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);

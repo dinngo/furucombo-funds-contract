@@ -212,7 +212,7 @@ describe('InvestorPurchaseFund', function () {
       expect(afterBalance).to.be.lt(initDenomination);
       expect(afterBalance).to.be.gt(beforeBalance);
     });
-    //add two user claim case
+    // two user claim
     it('1 user after resume', async function () {
       const initDenomination = await denomination.balanceOf(investor.address);
       await setObservingAssetFund(
@@ -358,7 +358,7 @@ describe('InvestorPurchaseFund', function () {
       expect(afterBalance2).to.be.lt(initDenominationM);
       expect(afterBalance2).to.be.gt(beforeBalance2);
     });
-    //add two user claim case
+    // two user claim
     it('2 users after resume', async function () {
       const initDenominationI = await denomination.balanceOf(investor.address);
       const initDenominationM = await denomination.balanceOf(manager.address);
