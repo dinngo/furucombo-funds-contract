@@ -522,6 +522,8 @@ describe('PoolExecuteStrategy', function () {
           const afterAssetAmount = await tokenA.balanceOf(poolVault);
           expect(afterAssetAmount).to.be.gt(beforeAssetAmount);
         });
+        // TODO: check again
+        it.skip('get right total asset value', async function () {});
         it('should revert: exec non permit asset', async function () {
           const amountIn = purchaseAmount;
           const invalidToken = await ethers.getContractAt('IERC20', LINK_TOKEN);
@@ -564,6 +566,6 @@ describe('PoolExecuteStrategy', function () {
       });
     });
 
-    // swap with different fee rate
+    //TODO: swap with different fee rate
   });
 });
