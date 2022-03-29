@@ -30,6 +30,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         public
         virtual
         whenStates(State.Executing, State.RedemptionPending)
+        nonReentrant
         returns (uint256 share)
     {
         share = _purchase(msg.sender, balance);
@@ -40,6 +41,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         public
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Closed)
+        nonReentrant
         returns (uint256 balance)
     {
         // Check redeem shares need to greater than user shares they own
