@@ -81,7 +81,6 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     function calculateShare(uint256 balance_)
         external
         view
-        virtual
         returns (uint256 share)
     {
         uint256 grossAssetValue = __getGrossAssetValue();
@@ -110,7 +109,6 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     function calculateBalance(uint256 share_)
         external
         view
-        virtual
         returns (uint256 balance)
     {
         uint256 grossAssetValue = __getGrossAssetValue();
@@ -144,8 +142,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     /// @param user address want to be claim
     /// @return balance The balance being claimed.
     function claimPendingRedemption(address user)
-        public
-        virtual
+        external
         returns (uint256 balance)
     {
         Errors._require(
@@ -190,7 +187,6 @@ abstract contract ShareModule is PoolProxyStorageUtils {
     function calculateRedeemableBalance(uint256 share_)
         external
         view
-        virtual
         returns (uint256 shareLeft, uint256 balance)
     {
         uint256 grossAssetValue = __getGrossAssetValue();

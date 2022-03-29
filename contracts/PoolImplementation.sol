@@ -223,7 +223,6 @@ contract PoolImplementation is
     function __getGrossAssetValue()
         internal
         view
-        virtual
         override(ShareModule, PerformanceFeeModule)
         returns (uint256)
     {
