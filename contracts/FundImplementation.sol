@@ -246,7 +246,12 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return getGrossAssetValue();
     }
 
-    function execute(bytes calldata data) public override onlyOwner {
+    function execute(bytes calldata data)
+        public
+        override
+        onlyOwner
+        nonReentrant
+    {
         super.execute(data);
     }
 
