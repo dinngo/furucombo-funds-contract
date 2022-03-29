@@ -45,7 +45,7 @@ interface IComptroller {
 
     function mortgageVault() external view returns (IMortgageVault);
 
-    function pendingRedemptionPenalty() external view returns (uint256);
+    function pendingPenalty() external view returns (uint256);
 
     function execAction() external view returns (address);
 

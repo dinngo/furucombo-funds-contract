@@ -33,7 +33,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     uint256 public execFeePercentage;
     address public pendingLiquidator;
     uint256 public pendingExpiration;
-    uint256 public pendingRedemptionPenalty;
+    uint256 public pendingPenalty;
     // base = 1e4
     uint256 public execAssetValueToleranceRate;
     IAssetRouter public assetRouter;
@@ -121,7 +121,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         pendingExpiration = pendingExpiration_;
         execAssetValueToleranceRate = execAssetValueToleranceRate_;
         fInitialAssetCheck = true;
-        pendingRedemptionPenalty = 100;
+        pendingPenalty = 100;
         _transferOwnership(msg.sender);
         beacon = new UpgradeableBeacon(implementation_);
         beacon.transferOwnership(msg.sender);
@@ -157,7 +157,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         emit SetExecFeePercentage(percentage_);
     }
 
-    // Pending redemption
+    // Pending
     function setPendingLiquidator(address liquidator_) external nonZeroAddress(liquidator_) onlyOwner {
         pendingLiquidator = liquidator_;
         emit SetPendingLiquidator(liquidator_);
@@ -170,8 +170,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
 
     // Share
     // Notice that the penalty's base is 1e4
-    function setPendingRedemptionPenalty(uint256 penalty_) external onlyOwner {
-        pendingRedemptionPenalty = penalty_;
+    function setPendingPenalty(uint256 penalty_) external onlyOwner {
+        pendingPenalty = penalty_;
     }
 
     // Execution asset value tolerance

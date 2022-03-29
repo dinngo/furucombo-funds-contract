@@ -14,8 +14,8 @@ abstract contract ShareModule is FundProxyStorageUtils {
 
     event Purchased(address indexed user, uint256 assetAmount, uint256 shareAmount, uint256 bonusAmount);
     event Redeemed(address indexed user, uint256 assetAmount, uint256 shareAmount);
-    event RedemptionPended(address indexed user, uint256 shareAmount, uint256 penaltyAmount);
-    event RedemptionPendingSettled();
+    event Pended(address indexed user, uint256 shareAmount, uint256 penaltyAmount);
+    event PendingShareSettled();
     event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
     /// @notice the length of pendingRoundList, means current pending round
@@ -24,12 +24,12 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return pendingRoundList.length;
     }
 
-    /// @notice Purchase share with the given balance. Can only purchase at Executing and Redemption Pending state.
+    /// @notice Purchase share with the given balance. Can only purchase at Executing and Pending state.
     /// @return share The share amount being purchased.
     function purchase(uint256 balance_)
         public
         virtual
-        whenStates(State.Executing, State.RedemptionPending)
+        whenStates(State.Executing, State.Pending)
         nonReentrant
         returns (uint256 share)
     {
@@ -40,7 +40,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     function redeem(uint256 share_, bool acceptPending_)
         public
         virtual
-        when3States(State.Executing, State.RedemptionPending, State.Closed)
+        when3States(State.Executing, State.Pending, State.Closed)
         nonReentrant
         returns (uint256 balance)
     {
@@ -54,7 +54,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
 
         // Execute redeem operation
-        if (state == State.RedemptionPending) {
+        if (state == State.Pending) {
             balance = _redeemPending(msg.sender, share_, acceptPending_);
         } else {
             balance = _redeem(msg.sender, share_, acceptPending_);
@@ -161,12 +161,12 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
     }
 
-    function _settlePendingRedemption(bool applyPenalty_) internal {
+    function _settlePendingShare(bool applyPenalty_) internal {
         // Get total share for the settle
         uint256 redeemShare = _getResolvePendingShare(applyPenalty_);
 
         if (redeemShare > 0) {
-            // Calculate the total redemptions depending on the redeemShare
+            // Calculate the total redemption depending on the redeemShare
             uint256 totalRedemption = _redeem(address(this), redeemShare, false);
 
             // Settle this round and store settle info to round list
@@ -186,7 +186,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
                 currentTotalPendingBonus = 0;
             }
 
-            emit RedemptionPendingSettled();
+            emit PendingShareSettled();
         }
     }
 
@@ -202,9 +202,9 @@ abstract contract ShareModule is FundProxyStorageUtils {
         uint256 grossAssetValue = _beforePurchase();
         share = _addShare(user_, balance_, grossAssetValue);
 
-        uint256 penalty = _getPendingRedemptionPenalty();
+        uint256 penalty = _getPendingPenalty();
         uint256 bonus;
-        if (state == State.RedemptionPending) {
+        if (state == State.Pending) {
             bonus = (share * (penalty)) / (_FUND_PERCENTAGE_BASE - penalty);
             bonus = currentTotalPendingBonus > bonus ? bonus : currentTotalPendingBonus;
             currentTotalPendingBonus -= bonus;
@@ -260,14 +260,14 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
 
         // Calculate and update pending information
-        uint256 penalty = _getPendingRedemptionPenalty();
+        uint256 penalty = _getPendingPenalty();
         uint256 effectiveShare = (share_ * (_FUND_PERCENTAGE_BASE - penalty)) / _FUND_PERCENTAGE_BASE;
         uint256 penaltyShare = share_ - effectiveShare;
         pendingUsers[user_].pendingShare += effectiveShare;
         currentTotalPendingShare += effectiveShare;
         currentTotalPendingBonus += penaltyShare;
         shareToken.move(user_, address(this), share_);
-        emit RedemptionPended(user_, effectiveShare, penaltyShare);
+        emit Pended(user_, effectiveShare, penaltyShare);
 
         return 0;
     }
@@ -299,8 +299,8 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return;
     }
 
-    function _getPendingRedemptionPenalty() internal view virtual returns (uint256) {
-        return comptroller.pendingRedemptionPenalty();
+    function _getPendingPenalty() internal view virtual returns (uint256) {
+        return comptroller.pendingPenalty();
     }
 
     function _calcPendingRedemption(address user_) internal view returns (uint256) {

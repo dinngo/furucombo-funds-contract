@@ -705,7 +705,7 @@ describe('FundImplementation', function () {
     });
   });
 
-  describe('Settle pending', function () {
+  describe('Settle pending share', function () {
     beforeEach(async function () {
       await fundImplementation.finalize();
       const currentReserve = await fundImplementation.getReserve();
@@ -718,18 +718,18 @@ describe('FundImplementation', function () {
       await denomination.connect(owner).approve(fundImplementation.address, 500);
       await fundImplementation.purchase(500);
 
-      // Make fund go to RedemptionPending state
+      // Make fund go to Pending state
       const redeemShare = await fundImplementation.calculateShare(redeemAmount);
       await shareToken.transfer(owner.address, redeemShare);
       await fundImplementation.redeem(redeemShare, true);
 
-      expect(await fundImplementation.state()).to.be.eq(FUND_STATE.REDEMPTION_PENDING);
+      expect(await fundImplementation.state()).to.be.eq(FUND_STATE.PENDING);
 
-      // Transfer some money to vault, so that able to resolve pending redemption
+      // Transfer some money to vault, so that able to resolve pending state
       await denomination.connect(denominationProvider).transfer(vault.address, redeemAmount.mul(2));
     });
 
-    it('resolve RedemptionPending state after execute', async function () {
+    it('resolve Pending state after execute', async function () {
       // Prepare task data and execute
       const expectNValue = BigNumber.from('101');
       const actionData = getCallData(fooAction, 'barUint1', [foo.address, expectNValue]);
@@ -750,7 +750,7 @@ describe('FundImplementation', function () {
       expect(await fundImplementation.state()).to.be.eq(FUND_STATE.EXECUTING);
     });
 
-    it('resolve RedemptionPending state after purchase', async function () {
+    it('resolve Pending state after purchase', async function () {
       // Prepare task data and execute
       const purchaseAmount = mwei('1');
       await denomination.connect(owner).approve(fundImplementation.address, purchaseAmount);
@@ -761,7 +761,7 @@ describe('FundImplementation', function () {
       expect(await fundImplementation.state()).to.be.eq(FUND_STATE.EXECUTING);
     });
 
-    it('settle pending when close', async function () {
+    it('settle pending share when close', async function () {
       // Go to liquidating state
       await increaseNextBlockTimeBy(pendingExpiration);
       await expect(fundImplementation.liquidate())

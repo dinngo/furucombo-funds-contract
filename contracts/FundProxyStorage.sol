@@ -17,7 +17,7 @@ abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
         Initializing,
         Reviewing,
         Executing,
-        RedemptionPending,
+        Pending,
         Liquidating,
         Closed
     }

@@ -8,7 +8,7 @@ import {BaseMock} from "./BaseMock.sol";
 contract ShareModuleMock is ShareModule, BaseMock {
     uint256 public reserveMock;
     uint256 public grossAssetValueMock;
-    uint256 public pendingRedemptionPenaltyMock;
+    uint256 public pendingPenaltyMock;
     bool public grossAssetValueMocked;
 
     event BeforePurchaseCalled();
@@ -27,16 +27,16 @@ contract ShareModuleMock is ShareModule, BaseMock {
         grossAssetValueMocked = true;
     }
 
-    function settlePendingRedemption() external {
-        _settlePendingRedemption(true);
+    function settlePendingShare() external {
+        _settlePendingShare(true);
     }
 
-    function setPendingRedemptionPenalty(uint256 penalty_) external {
-        pendingRedemptionPenaltyMock = penalty_;
+    function setPendingPenalty(uint256 penalty_) external {
+        pendingPenaltyMock = penalty_;
     }
 
-    function settlePendingRedemptionWithoutPenalty() external {
-        _settlePendingRedemption(false);
+    function settlePendingShareWithoutPenalty() external {
+        _settlePendingShare(false);
     }
 
     function setPendingUserPendingInfo(
@@ -66,8 +66,8 @@ contract ShareModuleMock is ShareModule, BaseMock {
         emit AfterRedeemCalled();
     }
 
-    function _getPendingRedemptionPenalty() internal view override returns (uint256) {
-        return pendingRedemptionPenaltyMock;
+    function _getPendingPenalty() internal view override returns (uint256) {
+        return pendingPenaltyMock;
     }
 
     function __getReserve() internal view override returns (uint256) {

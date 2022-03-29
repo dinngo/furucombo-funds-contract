@@ -90,18 +90,18 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _initializePerformanceFee();
     }
 
-    /// @notice Resume the fund by anyone if can settle pending redemption.
+    /// @notice Resume the fund by anyone if can settle pending share.
     function resume() external nonReentrant {
         uint256 grossAssetValue = getGrossAssetValue();
         _resumeWithGrossAssetValue(grossAssetValue);
     }
 
-    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal whenState(State.RedemptionPending) {
+    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal whenState(State.Pending) {
         Errors._require(
             _isPendingResolvable(true, grossAssetValue_),
             Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
         );
-        _settlePendingRedemption(true);
+        _settlePendingShare(true);
         _resume();
     }
 
@@ -119,11 +119,11 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _transferOwnership(comptroller.pendingLiquidator());
     }
 
-    /// @notice Close the fund. The pending redemption will be settled
+    /// @notice Close the fund. The pending share will be settled
     /// without penalty.
     function close() public override onlyOwner nonReentrant whenStates(State.Executing, State.Liquidating) {
         if (_getResolvePendingShare(false) > 0) {
-            _settlePendingRedemption(false);
+            _settlePendingShare(false);
         }
 
         super.close();
@@ -264,7 +264,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         // Get new gross asset value
         uint256 grossAssetValue = getGrossAssetValue();
 
-        if (state == State.RedemptionPending) {
+        if (state == State.Pending) {
             _resumeWithGrossAssetValue(grossAssetValue);
         }
 
@@ -328,8 +328,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// @notice Update the gross share price after the purchase.
     function _afterPurchase(uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
-        if (state == State.RedemptionPending && _isPendingResolvable(true, grossAssetValue_)) {
-            _settlePendingRedemption(true);
+        if (state == State.Pending && _isPendingResolvable(true, grossAssetValue_)) {
+            _settlePendingShare(true);
             _resume();
         }
         return;

@@ -50,16 +50,16 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
     }
 
     function _pend() internal whenState(State.Executing) {
-        _enterState(State.RedemptionPending);
+        _enterState(State.Pending);
         pendingStartTime = block.timestamp;
     }
 
-    function _resume() internal whenState(State.RedemptionPending) {
+    function _resume() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Executing);
     }
 
-    function _liquidate() internal whenState(State.RedemptionPending) {
+    function _liquidate() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Liquidating);
     }
