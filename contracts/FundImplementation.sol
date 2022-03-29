@@ -314,6 +314,20 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /////////////////////////////////////////////////////
+    // Performance fee module
+    /////////////////////////////////////////////////////
+    /// @notice Crystallize should only be triggered by owner
+    function crystallize()
+        public
+        override
+        onlyOwner
+        nonReentrant
+        returns (uint256)
+    {
+        return super.crystallize();
+    }
+
+    /////////////////////////////////////////////////////
     // Share module
     /////////////////////////////////////////////////////
     /// @notice Update the management fee and performance fee before purchase
