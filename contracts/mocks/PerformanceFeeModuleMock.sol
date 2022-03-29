@@ -22,18 +22,18 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
         return grossAssetValueMock;
     }
 
-    function mintShareToken(address user, uint256 share) public {
+    function mintShareToken(address user_, uint256 share_) public {
         _updatePerformanceFee(grossAssetValueMock);
-        shareToken.mint(user, share);
+        shareToken.mint(user_, share_);
         _updateGrossSharePrice(grossAssetValueMock);
     }
 
-    function setPerformanceFeeRate(uint256 feeRate) public returns (int128) {
-        return _setPerformanceFeeRate(feeRate);
+    function setPerformanceFeeRate(uint256 feeRate_) public returns (int128) {
+        return _setPerformanceFeeRate(feeRate_);
     }
 
-    function setCrystallizationPeriod(uint256 period) public {
-        _setCrystallizationPeriod(period);
+    function setCrystallizationPeriod(uint256 period_) public {
+        _setCrystallizationPeriod(period_);
     }
 
     function initializePerformanceFee() public {

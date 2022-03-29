@@ -54,21 +54,21 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Set the performance fee rate.
-    /// @param feeRate The fee rate on a 1e4 basis.
-    function _setPerformanceFeeRate(uint256 feeRate) internal virtual returns (int128) {
+    /// @param feeRate_ The fee rate on a 1e4 basis.
+    function _setPerformanceFeeRate(uint256 feeRate_) internal virtual returns (int128) {
         Errors._require(
-            feeRate < _FUND_PERCENTAGE_BASE,
+            feeRate_ < _FUND_PERCENTAGE_BASE,
             Errors.Code.PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
         );
-        _pFeeRate64x64 = feeRate.divu(_FUND_PERCENTAGE_BASE);
+        _pFeeRate64x64 = feeRate_.divu(_FUND_PERCENTAGE_BASE);
         return _pFeeRate64x64;
     }
 
     /// @notice Set the crystallization period.
-    /// @param period The crystallization period to be set in second.
-    function _setCrystallizationPeriod(uint256 period) internal virtual {
-        Errors._require(period > 0, Errors.Code.PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT);
-        _crystallizationPeriod = period;
+    /// @param period_ The crystallization period to be set in second.
+    function _setCrystallizationPeriod(uint256 period_) internal virtual {
+        Errors._require(period_ > 0, Errors.Code.PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT);
+        _crystallizationPeriod = period_;
     }
 
     /// @notice Crystallize for the performance fee.
@@ -128,14 +128,14 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Convert the time to the number of crystallization periods.
-    function _timeToPeriod(uint256 timestamp) internal view returns (uint256) {
-        Errors._require(timestamp >= _crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
-        return (timestamp - _crystallizationStart) / _crystallizationPeriod;
+    function _timeToPeriod(uint256 timestamp_) internal view returns (uint256) {
+        Errors._require(timestamp_ >= _crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
+        return (timestamp_ - _crystallizationStart) / _crystallizationPeriod;
     }
 
     /// @notice Convert the number of crystallization periods to time.
-    function _periodToTime(uint256 period) internal view returns (uint256) {
-        return _crystallizationStart + period * _crystallizationPeriod;
+    function _periodToTime(uint256 period_) internal view returns (uint256) {
+        return _crystallizationStart + period_ * _crystallizationPeriod;
     }
 
     function __getGrossAssetValue() internal view virtual returns (uint256);

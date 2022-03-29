@@ -19,44 +19,44 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
     uint256 private constant _TOKEN_DUST = 10;
 
     constructor(
-        address payable _owner,
-        address payable _proxy,
-        address _comptroller
-    ) DestructibleAction(_owner) DelegateCallAction() {
-        proxy = _proxy;
-        comptroller = IComptroller(_comptroller);
+        address payable owner_,
+        address payable proxy_,
+        address comptroller_
+    ) DestructibleAction(owner_) DelegateCallAction() {
+        proxy = proxy_;
+        comptroller = IComptroller(comptroller_);
     }
 
     /// @notice Inject tokens and execute combo.
-    /// @param tokensIn The input tokens.
-    /// @param amountsIn The input token amounts.
-    /// @param tokensOut The output tokens.
-    /// @param tos The handlers of combo.
-    /// @param configs The configurations of executing cubes.
-    /// @param datas The combo datas.
+    /// @param tokensIn_ The input tokens.
+    /// @param amountsIn_ The input token amounts.
+    /// @param tokensOut_ The output tokens.
+    /// @param tos_ The handlers of combo.
+    /// @param configs_ The configurations of executing cubes.
+    /// @param datas_ The combo datas.
     /// @return The output token amounts.
     function injectAndBatchExec(
-        address[] calldata tokensIn,
-        uint256[] calldata amountsIn,
-        address[] calldata tokensOut,
-        address[] calldata tos,
-        bytes32[] calldata configs,
-        bytes[] memory datas
+        address[] calldata tokensIn_,
+        uint256[] calldata amountsIn_,
+        address[] calldata tokensOut_,
+        address[] calldata tos_,
+        bytes32[] calldata configs_,
+        bytes[] memory datas_
     ) external payable delegateCallOnly returns (uint256[] memory) {
         // check comptroller handler call
-        _checkHandlerCall(tos, datas);
+        _checkHandlerCall(tos_, datas_);
 
         // Inject and execute combo
-        _inject(tokensIn, amountsIn);
+        _inject(tokensIn_, amountsIn_);
 
         // Snapshot output token amounts after send token to Furucombo proxy
-        uint256[] memory amountsOut = new uint256[](tokensOut.length);
-        for (uint256 i = 0; i < tokensOut.length; i++) {
-            amountsOut[i] = _getBalance(tokensOut[i]);
+        uint256[] memory amountsOut = new uint256[](tokensOut_.length);
+        for (uint256 i = 0; i < tokensOut_.length; i++) {
+            amountsOut[i] = _getBalance(tokensOut_[i]);
         }
 
         // Execute furucombo proxy batchExec
-        try IFurucombo(proxy).batchExec(tos, configs, datas) returns (address[] memory dealAssets) {
+        try IFurucombo(proxy).batchExec(tos_, configs_, datas_) returns (address[] memory dealAssets) {
             for (uint256 i = 0; i < dealAssets.length; i++) {
                 // Update dealing asset
                 _addDealingAsset(dealAssets[i]);
@@ -68,19 +68,19 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         }
 
         // Check no remaining input tokens to ensure updateTokens was called
-        for (uint256 i = 0; i < tokensIn.length; i++) {
+        for (uint256 i = 0; i < tokensIn_.length; i++) {
             Errors._require(
-                IERC20(tokensIn[i]).balanceOf(proxy) < _TOKEN_DUST,
+                IERC20(tokensIn_[i]).balanceOf(proxy) < _TOKEN_DUST,
                 Errors.Code.AFURUCOMBO_REMAINING_TOKENS
             );
         }
 
         // Calculate increased output token amounts
-        for (uint256 i = 0; i < tokensOut.length; i++) {
-            amountsOut[i] = _getBalance(tokensOut[i]) - amountsOut[i];
+        for (uint256 i = 0; i < tokensOut_.length; i++) {
+            amountsOut[i] = _getBalance(tokensOut_[i]) - amountsOut[i];
 
             // Update quota to fund
-            _increaseFundQuota(tokensOut[i], amountsOut[i]);
+            _increaseFundQuota(tokensOut_[i], amountsOut[i]);
         }
 
         return amountsOut;
@@ -114,36 +114,36 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         // otherwise manager can approve tokens to other address
         for (uint256 i = 0; i < tokens.length; i++) {
             _tokenApprove(tokens[i], proxy, amounts[i]);
-            addDealingAsset(tokens[i]);
+            _addDealingAsset(tokens[i]);
         }
     }
 
     /// @notice verify valid handler .
-    function _checkHandlerCall(address[] memory tos, bytes[] memory datas) internal {
+    function _checkHandlerCall(address[] memory tos_, bytes[] memory datas_) internal {
         // check comptroller handler call
         uint256 level = IFund(msg.sender).level();
-        for (uint256 i = 0; i < tos.length; ++i) {
+        for (uint256 i = 0; i < tos_.length; ++i) {
             Errors._require(
-                comptroller.canHandlerCall(level, tos[i], bytes4(datas[i])),
+                comptroller.canHandlerCall(level, tos_[i], bytes4(datas_[i])),
                 Errors.Code.AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
             );
         }
     }
 
     /// @notice Inject tokens to furucombo.
-    function _inject(address[] memory tokensIn, uint256[] memory amountsIn) internal {
+    function _inject(address[] memory tokensIn_, uint256[] memory amountsIn_) internal {
         Errors._require(
-            tokensIn.length == amountsIn.length,
+            tokensIn_.length == amountsIn_.length,
             Errors.Code.AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
         );
 
-        for (uint256 i = 0; i < tokensIn.length; i++) {
-            uint256 amount = amountsIn[i];
+        for (uint256 i = 0; i < tokensIn_.length; i++) {
+            uint256 amount = amountsIn_[i];
 
             if (amount > 0) {
                 // decrease fund quota
-                _decreaseFundQuota(tokensIn[i], amount);
-                IERC20(tokensIn[i]).safeTransfer(proxy, amount);
+                _decreaseFundQuota(tokensIn_[i], amount);
+                IERC20(tokensIn_[i]).safeTransfer(proxy, amount);
             }
         }
     }

@@ -9,15 +9,15 @@ contract Foo6Handler is HandlerBase {
         return "Foo6Handler";
     }
 
-    function injects(address[] calldata tokens) public payable {
-        for (uint256 i = 0; i < tokens.length; i++) {
-            _updateInitialToken(tokens[i]);
+    function injects(address[] calldata tokens_) public payable {
+        for (uint256 i = 0; i < tokens_.length; i++) {
+            _updateInitialToken(tokens_[i]);
         }
     }
 
-    function dealing(address[] calldata tokens) public payable {
-        for (uint256 i = 0; i < tokens.length; i++) {
-            _updateToken(tokens[i]);
+    function dealing(address[] calldata tokens_) public payable {
+        for (uint256 i = 0; i < tokens_.length; i++) {
+            _updateToken(tokens_[i]);
         }
     }
 }

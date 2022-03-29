@@ -8,21 +8,21 @@ interface IComptroller {
     function owner() external view returns (address);
 
     function canDelegateCall(
-        uint256 level,
-        address _to,
-        bytes4 sig
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) external view returns (bool);
 
     function canContractCall(
-        uint256 level,
-        address to,
-        bytes4 sig
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) external view returns (bool);
 
     function canHandlerCall(
-        uint256 level,
-        address to,
-        bytes4 sig
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) external view returns (bool);
 
     function execFeePercentage() external view returns (uint256);
@@ -35,11 +35,11 @@ interface IComptroller {
 
     function execAssetValueToleranceRate() external view returns (uint256);
 
-    function isValidDealingAsset(uint256 level, address asset) external view returns (bool);
+    function isValidDealingAsset(uint256 level_, address asset_) external view returns (bool);
 
-    function isValidDealingAssets(uint256 level, address[] calldata assets) external view returns (bool);
+    function isValidDealingAssets(uint256 level_, address[] calldata assets_) external view returns (bool);
 
-    function isValidInitialAssets(uint256 level, address[] calldata assets) external view returns (bool);
+    function isValidInitialAssets(uint256 level_, address[] calldata assets_) external view returns (bool);
 
     function assetRouter() external view returns (IAssetRouter);
 
@@ -49,11 +49,11 @@ interface IComptroller {
 
     function execAction() external view returns (address);
 
-    function mortgageTier(uint256 tier) external view returns (bool, uint256);
+    function mortgageTier(uint256 tier_) external view returns (bool, uint256);
 
-    function isValidDenomination(address _denomination) external view returns (bool);
+    function isValidDenomination(address denomination_) external view returns (bool);
 
-    function getDenominationDust(address _denomination) external view returns (uint256);
+    function getDenominationDust(address denomination_) external view returns (uint256);
 
-    function isValidCreator(address creator) external view returns (bool);
+    function isValidCreator(address creator_) external view returns (bool);
 }

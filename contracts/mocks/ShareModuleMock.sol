@@ -18,12 +18,12 @@ contract ShareModuleMock is ShareModule, BaseMock {
 
     constructor(IDSProxyRegistry dsProxyRegistry_) BaseMock(dsProxyRegistry_) {}
 
-    function setReserve(uint256 amount) external {
-        reserveMock = amount;
+    function setReserve(uint256 amount_) external {
+        reserveMock = amount_;
     }
 
-    function setGrossAssetValue(uint256 amount) external {
-        grossAssetValueMock = amount;
+    function setGrossAssetValue(uint256 amount_) external {
+        grossAssetValueMock = amount_;
         grossAssetValueMocked = true;
     }
 
@@ -31,8 +31,8 @@ contract ShareModuleMock is ShareModule, BaseMock {
         _settlePendingRedemption(true);
     }
 
-    function setPendingRedemptionPenalty(uint256 penalty) external {
-        pendingRedemptionPenaltyMock = penalty;
+    function setPendingRedemptionPenalty(uint256 penalty_) external {
+        pendingRedemptionPenaltyMock = penalty_;
     }
 
     function settlePendingRedemptionWithoutPenalty() external {

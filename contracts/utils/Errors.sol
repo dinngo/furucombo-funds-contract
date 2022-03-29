@@ -88,15 +88,15 @@ library Errors {
         SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE // 80: "The requesting share amount is greater than total share amount"
     }
 
-    function _require(bool condition, Code errorCode) internal pure {
-        if (!condition) revert revertCode(errorCode);
+    function _require(bool condition_, Code errorCode_) internal pure {
+        if (!condition_) revert revertCode(errorCode_);
     }
 
-    function _revertMsg(string memory functionName, string memory reason) internal pure {
-        revert(string(abi.encodePacked(functionName, ": ", reason)));
+    function _revertMsg(string memory functionName_, string memory reason_) internal pure {
+        revert(string(abi.encodePacked(functionName_, ": ", reason_)));
     }
 
-    function _revertMsg(string memory functionName) internal pure {
-        _revertMsg(functionName, "Unspecified");
+    function _revertMsg(string memory functionName_) internal pure {
+        _revertMsg(functionName_, "Unspecified");
     }
 }

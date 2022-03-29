@@ -9,29 +9,29 @@ contract TaskExecutorMock is TaskExecutor, GasProfiler {
     using Address for address;
     event RecordActionResult(bytes value);
 
-    constructor(address payable _owner, address _comptroller) TaskExecutor(_owner, _comptroller) {}
+    constructor(address payable owner_, address comptroller_) TaskExecutor(owner_, comptroller_) {}
 
     function execMock(
-        address[] calldata tokensIn,
-        uint256[] calldata amountsIn,
-        address to,
-        bytes memory data
+        address[] calldata tokensIn_,
+        uint256[] calldata amountsIn_,
+        address to_,
+        bytes memory data_
     ) external payable returns (bytes memory result) {
         _setBase();
-        _chargeExecutionFee(tokensIn, amountsIn);
-        result = to.functionDelegateCall(data);
+        _chargeExecutionFee(tokensIn_, amountsIn_);
+        result = to_.functionDelegateCall(data_);
         _deltaGas("Gas");
         emit RecordActionResult(result);
     }
 
-    function callMock(address to, bytes memory data) external payable returns (bytes memory result) {
-        result = to.functionCallWithValue(data, 0);
+    function callMock(address to_, bytes memory data_) external payable returns (bytes memory result) {
+        result = to_.functionCallWithValue(data_, 0);
     }
 
-    function getFundQuotas(address[] calldata funds) external view returns (uint256[] memory) {
-        uint256[] memory quotas = new uint256[](funds.length);
-        for (uint256 i = 0; i < funds.length; i++) {
-            quotas[i] = _getFundQuota(funds[i]);
+    function getFundQuotas(address[] calldata funds_) external view returns (uint256[] memory) {
+        uint256[] memory quotas = new uint256[](funds_.length);
+        for (uint256 i = 0; i < funds_.length; i++) {
+            quotas[i] = _getFundQuota(funds_[i]);
         }
         return quotas;
     }

@@ -24,8 +24,8 @@ contract FundImplementationMock is FundImplementation {
     /////////////////////////////////////////////////////
     // General
     /////////////////////////////////////////////////////
-    function setGrossAssetValueMock(uint256 grossAssetValue) external {
-        grossAssetValueMock = grossAssetValue;
+    function setGrossAssetValueMock(uint256 grossAssetValue_) external {
+        grossAssetValueMock = grossAssetValue_;
         grossAssetValueMocked = true;
     }
 
@@ -40,8 +40,8 @@ contract FundImplementationMock is FundImplementation {
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
-    function vaultCallMock(address _target, bytes calldata _data) external returns (bytes memory) {
-        bytes memory data = abi.encodeWithSignature("call(address,bytes)", _target, _data);
+    function vaultCallMock(address target_, bytes calldata data_) external returns (bytes memory) {
+        bytes memory data = abi.encodeWithSignature("call(address,bytes)", target_, data_);
         CallActionMock action = new CallActionMock();
 
         return vault.execute(address(action), data);
@@ -52,8 +52,8 @@ contract FundImplementationMock is FundImplementation {
         return _isReserveEnough(value);
     }
 
-    function setLastGrossAssetValue(uint256 value) external {
-        lastGrossAssetValue = value;
+    function setLastGrossAssetValue(uint256 value_) external {
+        lastGrossAssetValue = value_;
     }
 
     function _beforeExecute() internal view override returns (uint256) {
@@ -62,7 +62,7 @@ contract FundImplementationMock is FundImplementation {
 }
 
 contract CallActionMock {
-    function call(address _target, bytes calldata _data) external returns (bool success) {
-        (success, ) = _target.call(_data);
+    function call(address target_, bytes calldata data_) external returns (bool success) {
+        (success, ) = target_.call(data_);
     }
 }

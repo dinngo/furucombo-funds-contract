@@ -91,13 +91,13 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         _;
     }
 
-    modifier nonZeroAddress(address newSetter) {
-        Errors._require(newSetter != address(0), Errors.Code.COMPTROLLER_ZERO_ADDRESS);
+    modifier nonZeroAddress(address newSetter_) {
+        Errors._require(newSetter_ != address(0), Errors.Code.COMPTROLLER_ZERO_ADDRESS);
         _;
     }
 
-    modifier consistentTosAndSigsLength(address[] calldata tos, bytes4[] calldata sigs) {
-        Errors._require(tos.length == sigs.length, Errors.Code.COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT);
+    modifier consistentTosAndSigsLength(address[] calldata tos_, bytes4[] calldata sigs_) {
+        Errors._require(tos_.length == sigs_.length, Errors.Code.COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT);
         _;
     }
 
@@ -147,167 +147,167 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Fee
-    function setFeeCollector(address collector) external nonZeroAddress(collector) onlyOwner {
-        execFeeCollector = collector;
-        emit SetExecFeeCollector(collector);
+    function setFeeCollector(address collector_) external nonZeroAddress(collector_) onlyOwner {
+        execFeeCollector = collector_;
+        emit SetExecFeeCollector(collector_);
     }
 
-    function setExecFeePercentage(uint256 percentage) external onlyOwner {
-        execFeePercentage = percentage;
-        emit SetExecFeePercentage(execFeePercentage);
+    function setExecFeePercentage(uint256 percentage_) external onlyOwner {
+        execFeePercentage = percentage_;
+        emit SetExecFeePercentage(percentage_);
     }
 
     // Pending redemption
-    function setPendingLiquidator(address liquidator) external nonZeroAddress(liquidator) onlyOwner {
-        pendingLiquidator = liquidator;
-        emit SetPendingLiquidator(liquidator);
+    function setPendingLiquidator(address liquidator_) external nonZeroAddress(liquidator_) onlyOwner {
+        pendingLiquidator = liquidator_;
+        emit SetPendingLiquidator(liquidator_);
     }
 
-    function setPendingExpiration(uint256 expiration) external onlyOwner {
-        pendingExpiration = expiration;
-        emit SetPendingExpiration(expiration);
+    function setPendingExpiration(uint256 expiration_) external onlyOwner {
+        pendingExpiration = expiration_;
+        emit SetPendingExpiration(expiration_);
     }
 
     // Share
     // Notice that the penalty's base is 1e4
-    function setPendingRedemptionPenalty(uint256 penalty) external onlyOwner {
-        pendingRedemptionPenalty = penalty;
+    function setPendingRedemptionPenalty(uint256 penalty_) external onlyOwner {
+        pendingRedemptionPenalty = penalty_;
     }
 
     // Execution asset value tolerance
-    function setExecAssetValueToleranceRate(uint256 tolerance) external onlyOwner {
-        execAssetValueToleranceRate = tolerance;
-        emit SetExecAssetValueToleranceRate(tolerance);
+    function setExecAssetValueToleranceRate(uint256 tolerance_) external onlyOwner {
+        execAssetValueToleranceRate = tolerance_;
+        emit SetExecAssetValueToleranceRate(tolerance_);
     }
 
     // input check
-    function setInitialAssetCheck(bool check) external onlyOwner {
-        fInitialAssetCheck = check;
-        emit SetInitialAssetCheck(check);
+    function setInitialAssetCheck(bool check_) external onlyOwner {
+        fInitialAssetCheck = check_;
+        emit SetInitialAssetCheck(check_);
     }
 
     // Denomination whitelist
-    function permitDenominations(address[] calldata denominations, uint256[] calldata dusts) external onlyOwner {
+    function permitDenominations(address[] calldata denominations_, uint256[] calldata dusts_) external onlyOwner {
         Errors._require(
-            denominations.length == dusts.length,
+            denominations_.length == dusts_.length,
             Errors.Code.COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
         );
 
-        for (uint256 i = 0; i < denominations.length; i++) {
-            denomination[denominations[i]].isPermitted = true;
-            denomination[denominations[i]].dust = dusts[i];
-            emit PermitDenomination(denominations[i], dusts[i]);
+        for (uint256 i = 0; i < denominations_.length; i++) {
+            denomination[denominations_[i]].isPermitted = true;
+            denomination[denominations_[i]].dust = dusts_[i];
+            emit PermitDenomination(denominations_[i], dusts_[i]);
         }
     }
 
-    function forbidDenominations(address[] calldata denominations) external onlyOwner {
-        for (uint256 i = 0; i < denominations.length; i++) {
-            delete denomination[denominations[i]];
-            emit ForbidDenomination(denominations[i]);
+    function forbidDenominations(address[] calldata denominations_) external onlyOwner {
+        for (uint256 i = 0; i < denominations_.length; i++) {
+            delete denomination[denominations_[i]];
+            emit ForbidDenomination(denominations_[i]);
         }
     }
 
-    function isValidDenomination(address _denomination) external view returns (bool) {
-        return denomination[_denomination].isPermitted;
+    function isValidDenomination(address denomination_) external view returns (bool) {
+        return denomination[denomination_].isPermitted;
     }
 
-    function getDenominationDust(address _denomination) external view returns (uint256) {
-        return denomination[_denomination].dust;
+    function getDenominationDust(address denomination_) external view returns (uint256) {
+        return denomination[denomination_].dust;
     }
 
     // Ban Fund Proxy
-    function banFundProxy(address fundProxy) external onlyOwner {
-        bannedFundProxy[fundProxy] = true;
-        emit FundProxyBanned(fundProxy);
+    function banFundProxy(address fundProxy_) external onlyOwner {
+        bannedFundProxy[fundProxy_] = true;
+        emit FundProxyBanned(fundProxy_);
     }
 
-    function unbanFundProxy(address fundProxy) external onlyOwner {
-        bannedFundProxy[fundProxy] = false;
-        emit FundProxyUnbanned(fundProxy);
+    function unbanFundProxy(address fundProxy_) external onlyOwner {
+        bannedFundProxy[fundProxy_] = false;
+        emit FundProxyUnbanned(fundProxy_);
     }
 
     // Mortgage tier amount
-    function setMortgageTier(uint256 level, uint256 amount) external onlyOwner {
-        mortgageTier[level].isSet = true;
-        mortgageTier[level].amount = amount;
-        emit SetMortgageTier(level, amount);
+    function setMortgageTier(uint256 level_, uint256 amount_) external onlyOwner {
+        mortgageTier[level_].isSet = true;
+        mortgageTier[level_].amount = amount_;
+        emit SetMortgageTier(level_, amount_);
     }
 
-    function unsetMortgageTier(uint256 level) external onlyOwner {
-        delete mortgageTier[level];
-        emit UnsetMortgageTier(level);
+    function unsetMortgageTier(uint256 level_) external onlyOwner {
+        delete mortgageTier[level_];
+        emit UnsetMortgageTier(level_);
     }
 
     // Asset Router
-    function setAssetRouter(IAssetRouter _assetRouter) external nonZeroAddress(address(_assetRouter)) onlyOwner {
-        assetRouter = _assetRouter;
-        emit SetAssetRouter(address(_assetRouter));
+    function setAssetRouter(IAssetRouter _assetRouter_) external nonZeroAddress(address(_assetRouter_)) onlyOwner {
+        assetRouter = _assetRouter_;
+        emit SetAssetRouter(address(_assetRouter_));
     }
 
     // Action
-    function setExecAction(address action) external nonZeroAddress(action) onlyOwner {
-        execAction = action;
-        emit SetExecAction(action);
+    function setExecAction(address action_) external nonZeroAddress(action_) onlyOwner {
+        execAction = action_;
+        emit SetExecAction(action_);
     }
 
     // Creator whitelist
-    function permitCreators(address[] calldata creators) external onlyOwner {
-        for (uint256 i = 0; i < creators.length; i++) {
-            _creatorACL._permit(creators[i]);
-            emit PermitCreator(creators[i]);
+    function permitCreators(address[] calldata creators_) external onlyOwner {
+        for (uint256 i = 0; i < creators_.length; i++) {
+            _creatorACL._permit(creators_[i]);
+            emit PermitCreator(creators_[i]);
         }
     }
 
-    function forbidCreators(address[] calldata creators) external onlyOwner {
-        for (uint256 i = 0; i < creators.length; i++) {
-            _creatorACL._forbid(creators[i]);
-            emit ForbidCreator(creators[i]);
+    function forbidCreators(address[] calldata creators_) external onlyOwner {
+        for (uint256 i = 0; i < creators_.length; i++) {
+            _creatorACL._forbid(creators_[i]);
+            emit ForbidCreator(creators_[i]);
         }
     }
 
-    function isValidCreator(address creator) external view returns (bool) {
-        return _creatorACL._canCall(creator);
+    function isValidCreator(address creator_) external view returns (bool) {
+        return _creatorACL._canCall(creator_);
     }
 
     // Asset whitelist
-    function permitAssets(uint256 level, address[] calldata assets) external onlyOwner {
-        for (uint256 i = 0; i < assets.length; i++) {
-            _assetACL._permit(level, assets[i]);
-            emit PermitAsset(level, assets[i]);
+    function permitAssets(uint256 level_, address[] calldata assets_) external onlyOwner {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            _assetACL._permit(level_, assets_[i]);
+            emit PermitAsset(level_, assets_[i]);
         }
     }
 
-    function forbidAssets(uint256 level, address[] calldata assets) external onlyOwner {
-        for (uint256 i = 0; i < assets.length; i++) {
-            _assetACL._forbid(level, assets[i]);
-            emit ForbidAsset(level, assets[i]);
+    function forbidAssets(uint256 level_, address[] calldata assets_) external onlyOwner {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            _assetACL._forbid(level_, assets_[i]);
+            emit ForbidAsset(level_, assets_[i]);
         }
     }
 
-    function isValidDealingAsset(uint256 level, address asset) public view returns (bool) {
-        return _assetACL._canCall(level, asset);
+    function isValidDealingAsset(uint256 level_, address asset_) public view returns (bool) {
+        return _assetACL._canCall(level_, asset_);
     }
 
-    function isValidDealingAssets(uint256 level, address[] calldata assets) external view returns (bool) {
-        for (uint256 i = 0; i < assets.length; i++) {
-            if (!isValidDealingAsset(level, assets[i])) {
+    function isValidDealingAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            if (!isValidDealingAsset(level_, assets_[i])) {
                 return false;
             }
         }
         return true;
     }
 
-    function isValidInitialAsset(uint256 level, address asset) public view returns (bool) {
+    function isValidInitialAsset(uint256 level_, address asset_) public view returns (bool) {
         // check if input check flag is true
         if (fInitialAssetCheck) {
-            return _assetACL._canCall(level, asset);
+            return _assetACL._canCall(level_, asset_);
         }
         return true;
     }
 
-    function isValidInitialAssets(uint256 level, address[] calldata assets) external view returns (bool) {
-        for (uint256 i = 0; i < assets.length; i++) {
-            if (!isValidInitialAsset(level, assets[i])) {
+    function isValidInitialAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            if (!isValidInitialAsset(level_, assets_[i])) {
                 return false;
             }
         }
@@ -316,94 +316,94 @@ contract ComptrollerImplementation is Ownable, IComptroller {
 
     // DelegateCall whitelist function
     function canDelegateCall(
-        uint256 level,
-        address to,
-        bytes4 sig
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) external view returns (bool) {
-        return _delegateCallACL._canCall(level, to, sig);
+        return _delegateCallACL._canCall(level_, to_, sig_);
     }
 
     function permitDelegateCalls(
-        uint256 level,
-        address[] calldata tos,
-        bytes4[] calldata sigs
-    ) external consistentTosAndSigsLength(tos, sigs) onlyOwner {
-        for (uint256 i = 0; i < tos.length; i++) {
-            _delegateCallACL._permit(level, tos[i], sigs[i]);
-            emit PermitDelegateCall(level, tos[i], sigs[i]);
+        uint256 level_,
+        address[] calldata tos_,
+        bytes4[] calldata sigs_
+    ) external consistentTosAndSigsLength(tos_, sigs_) onlyOwner {
+        for (uint256 i = 0; i < tos_.length; i++) {
+            _delegateCallACL._permit(level_, tos_[i], sigs_[i]);
+            emit PermitDelegateCall(level_, tos_[i], sigs_[i]);
         }
     }
 
     function forbidDelegateCalls(
-        uint256 level,
-        address[] calldata tos,
-        bytes4[] calldata sigs
-    ) external consistentTosAndSigsLength(tos, sigs) onlyOwner {
-        for (uint256 i = 0; i < tos.length; i++) {
-            _delegateCallACL._forbid(level, tos[i], sigs[i]);
-            emit ForbidDelegateCall(level, tos[i], sigs[i]);
+        uint256 level_,
+        address[] calldata tos_,
+        bytes4[] calldata sigs_
+    ) external consistentTosAndSigsLength(tos_, sigs_) onlyOwner {
+        for (uint256 i = 0; i < tos_.length; i++) {
+            _delegateCallACL._forbid(level_, tos_[i], sigs_[i]);
+            emit ForbidDelegateCall(level_, tos_[i], sigs_[i]);
         }
     }
 
     // Contract call whitelist function
     function permitContractCalls(
-        uint256 level,
-        address[] calldata tos,
-        bytes4[] calldata sigs
-    ) external consistentTosAndSigsLength(tos, sigs) onlyOwner {
-        for (uint256 i = 0; i < tos.length; i++) {
-            _contractCallACL._permit(level, tos[i], sigs[i]);
-            emit PermitContractCall(level, tos[i], sigs[i]);
+        uint256 level_,
+        address[] calldata tos_,
+        bytes4[] calldata sigs_
+    ) external consistentTosAndSigsLength(tos_, sigs_) onlyOwner {
+        for (uint256 i = 0; i < tos_.length; i++) {
+            _contractCallACL._permit(level_, tos_[i], sigs_[i]);
+            emit PermitContractCall(level_, tos_[i], sigs_[i]);
         }
     }
 
     function forbidContractCalls(
-        uint256 level,
-        address[] calldata tos,
-        bytes4[] calldata sigs
-    ) external consistentTosAndSigsLength(tos, sigs) onlyOwner {
-        for (uint256 i = 0; i < tos.length; i++) {
-            _contractCallACL._forbid(level, tos[i], sigs[i]);
-            emit ForbidContractCall(level, tos[i], sigs[i]);
+        uint256 level_,
+        address[] calldata tos_,
+        bytes4[] calldata sigs_
+    ) external consistentTosAndSigsLength(tos_, sigs_) onlyOwner {
+        for (uint256 i = 0; i < tos_.length; i++) {
+            _contractCallACL._forbid(level_, tos_[i], sigs_[i]);
+            emit ForbidContractCall(level_, tos_[i], sigs_[i]);
         }
     }
 
     function canContractCall(
-        uint256 level,
-        address to,
-        bytes4 sig
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) external view returns (bool) {
-        return _contractCallACL._canCall(level, to, sig);
+        return _contractCallACL._canCall(level_, to_, sig_);
     }
 
     // Handler whitelist function
     function permitHandlers(
-        uint256 level,
-        address[] calldata tos,
-        bytes4[] calldata sigs
-    ) external consistentTosAndSigsLength(tos, sigs) onlyOwner {
-        for (uint256 i = 0; i < tos.length; i++) {
-            _handlerCallACL._permit(level, tos[i], sigs[i]);
-            emit PermitHandler(level, tos[i], sigs[i]);
+        uint256 level_,
+        address[] calldata tos_,
+        bytes4[] calldata sigs_
+    ) external consistentTosAndSigsLength(tos_, sigs_) onlyOwner {
+        for (uint256 i = 0; i < tos_.length; i++) {
+            _handlerCallACL._permit(level_, tos_[i], sigs_[i]);
+            emit PermitHandler(level_, tos_[i], sigs_[i]);
         }
     }
 
     function forbidHandlers(
-        uint256 level,
-        address[] calldata tos,
-        bytes4[] calldata sigs
-    ) external consistentTosAndSigsLength(tos, sigs) onlyOwner {
-        for (uint256 i = 0; i < tos.length; i++) {
-            _handlerCallACL._forbid(level, tos[i], sigs[i]);
-            emit ForbidHandler(level, tos[i], sigs[i]);
+        uint256 level_,
+        address[] calldata tos_,
+        bytes4[] calldata sigs_
+    ) external consistentTosAndSigsLength(tos_, sigs_) onlyOwner {
+        for (uint256 i = 0; i < tos_.length; i++) {
+            _handlerCallACL._forbid(level_, tos_[i], sigs_[i]);
+            emit ForbidHandler(level_, tos_[i], sigs_[i]);
         }
     }
 
     function canHandlerCall(
-        uint256 level,
-        address to,
-        bytes4 sig
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) external view returns (bool) {
-        return _handlerCallACL._canCall(level, to, sig);
+        return _handlerCallACL._canCall(level_, to_, sig_);
     }
 }

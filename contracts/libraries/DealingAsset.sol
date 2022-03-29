@@ -19,20 +19,20 @@ library DealingAsset {
     bytes32 private constant _ASSET_TRUE_FLAG = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 private constant _ASSET_FALSE_FLAG = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    function _get(address _key) internal view returns (bool) {
-        bytes32 key = bytes32(bytes20(_key));
+    function _get(address key_) internal view returns (bool) {
+        bytes32 key = bytes32(bytes20(key_));
         return _ASSET_MAP_SLOT._get(key) == _ASSET_TRUE_FLAG;
     }
 
-    function _set(address _key, bool _val) internal {
-        bytes32 key = bytes32(bytes20(_key));
+    function _set(address key_, bool val_) internal {
+        bytes32 key = bytes32(bytes20(key_));
         bytes32 oldVal = _ASSET_MAP_SLOT._get(key);
 
         if (oldVal == _ASSET_FALSE_FLAG) {
             _ASSET_ARR_SLOT._push(key);
         }
 
-        if (_val) {
+        if (val_) {
             _ASSET_MAP_SLOT._set(key, _ASSET_TRUE_FLAG);
         } else {
             _ASSET_MAP_SLOT._set(key, _ASSET_FALSE_FLAG);

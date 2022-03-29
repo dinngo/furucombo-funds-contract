@@ -7,7 +7,7 @@ import {HandlerBase} from "../../furucombo/handlers/HandlerBase.sol";
 interface IFaucet {
     function drain() external payable;
 
-    function drainToken(address token, uint256 amount) external;
+    function drainToken(address token_, uint256 amount_) external;
 }
 
 contract HMock is HandlerBase {
@@ -17,31 +17,31 @@ contract HMock is HandlerBase {
         return "HMock";
     }
 
-    function drain(address target, uint256 v) external payable {
-        IFaucet(target).drain{value: v}();
+    function drain(address target_, uint256 v_) external payable {
+        IFaucet(target_).drain{value: v_}();
     }
 
     function drainToken(
-        address target,
-        address token,
-        uint256 amount
+        address target_,
+        address token_,
+        uint256 amount_
     ) external payable {
-        IERC20(token).safeApprove(target, amount);
-        IFaucet(target).drainToken(token, amount);
-        IERC20(token).safeApprove(target, 0);
-        _updateToken(token);
+        IERC20(token_).safeApprove(target_, amount_);
+        IFaucet(target_).drainToken(token_, amount_);
+        IERC20(token_).safeApprove(target_, 0);
+        _updateToken(token_);
     }
 
     function drainTokens(
-        address[] calldata targets,
-        address[] calldata tokens,
-        uint256[] calldata amounts
+        address[] calldata targets_,
+        address[] calldata tokens_,
+        uint256[] calldata amounts_
     ) external payable {
-        for (uint256 i = 0; i < targets.length; i++) {
-            IERC20(tokens[i]).safeApprove(targets[i], amounts[i]);
-            IFaucet(targets[i]).drainToken(tokens[i], amounts[i]);
-            IERC20(tokens[i]).safeApprove(targets[i], 0);
-            _updateToken(tokens[i]);
+        for (uint256 i = 0; i < targets_.length; i++) {
+            IERC20(tokens_[i]).safeApprove(targets_[i], amounts_[i]);
+            IFaucet(targets_[i]).drainToken(tokens_[i], amounts_[i]);
+            IERC20(tokens_[i]).safeApprove(targets_[i], 0);
+            _updateToken(tokens_[i]);
         }
     }
 

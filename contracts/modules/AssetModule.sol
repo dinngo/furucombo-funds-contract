@@ -14,25 +14,25 @@ abstract contract AssetModule is FundProxyStorageUtils {
     event AssetRemoved(address asset);
 
     /// @notice Add asset to the asset tracking list.
-    /// @param asset The asset to be tracked.
-    function _addAsset(address asset)
+    /// @param asset_ The asset to be tracked.
+    function _addAsset(address asset_)
         internal
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Liquidating)
     {
-        if (_assetList._pushBack(asset)) {
-            emit AssetAdded(asset);
+        if (_assetList._pushBack(asset_)) {
+            emit AssetAdded(asset_);
         }
     }
 
     /// @notice Remove the asset from the asset tracking list.
-    function _removeAsset(address asset)
+    function _removeAsset(address asset_)
         internal
         virtual
         when3States(State.Executing, State.RedemptionPending, State.Liquidating)
     {
-        if (_assetList._remove(asset)) {
-            emit AssetRemoved(asset);
+        if (_assetList._remove(asset_)) {
+            emit AssetRemoved(asset_);
         }
     }
 

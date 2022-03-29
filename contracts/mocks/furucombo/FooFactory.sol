@@ -11,9 +11,9 @@ contract FooFactory {
         createFoo();
     }
 
-    function addressOf(uint256 index) public view returns (address foo) {
-        require(index < _nFoo);
-        return _foos[index];
+    function addressOf(uint256 index_) public view returns (address foo) {
+        require(index_ < _nFoo);
+        return _foos[index_];
     }
 
     function createFoo() public {

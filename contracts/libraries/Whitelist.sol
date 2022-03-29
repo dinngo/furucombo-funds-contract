@@ -13,30 +13,30 @@ library Whitelist {
     }
 
     function _canCall(
-        ActionWList storage wl,
-        uint256 level,
-        address to,
-        bytes4 sig
+        ActionWList storage wl_,
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) internal view returns (bool) {
-        return wl.acl[level][to][sig] || wl.acl[level][to][_ANY4] || wl.acl[_ANY32][to][sig];
+        return wl_.acl[level_][to_][sig_] || wl_.acl[level_][to_][_ANY4] || wl_.acl[_ANY32][to_][sig_];
     }
 
     function _permit(
-        ActionWList storage wl,
-        uint256 level,
-        address to,
-        bytes4 sig
+        ActionWList storage wl_,
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) internal {
-        wl.acl[level][to][sig] = true;
+        wl_.acl[level_][to_][sig_] = true;
     }
 
     function _forbid(
-        ActionWList storage wl,
-        uint256 level,
-        address to,
-        bytes4 sig
+        ActionWList storage wl_,
+        uint256 level_,
+        address to_,
+        bytes4 sig_
     ) internal {
-        wl.acl[level][to][sig] = false;
+        wl_.acl[level_][to_][sig_] = false;
     }
 
     // Asset white list
@@ -45,27 +45,27 @@ library Whitelist {
     }
 
     function _permit(
-        AssetWList storage wl,
-        uint256 level,
+        AssetWList storage wl_,
+        uint256 level_,
         address asset
     ) internal {
-        wl.acl[level][asset] = true;
+        wl_.acl[level_][asset] = true;
     }
 
     function _forbid(
-        AssetWList storage wl,
-        uint256 level,
+        AssetWList storage wl_,
+        uint256 level_,
         address asset
     ) internal {
-        wl.acl[level][asset] = false;
+        wl_.acl[level_][asset] = false;
     }
 
     function _canCall(
-        AssetWList storage wl,
-        uint256 level,
+        AssetWList storage wl_,
+        uint256 level_,
         address asset
     ) internal view returns (bool) {
-        return wl.acl[level][asset] || wl.acl[_ANY32][asset];
+        return wl_.acl[level_][asset] || wl_.acl[_ANY32][asset];
     }
 
     // Creator white list
@@ -73,15 +73,15 @@ library Whitelist {
         mapping(address => bool) acl;
     }
 
-    function _permit(CreatorWList storage wl, address creator) internal {
-        wl.acl[creator] = true;
+    function _permit(CreatorWList storage wl_, address creator_) internal {
+        wl_.acl[creator_] = true;
     }
 
-    function _forbid(CreatorWList storage wl, address creator) internal {
-        wl.acl[creator] = false;
+    function _forbid(CreatorWList storage wl_, address creator_) internal {
+        wl_.acl[creator_] = false;
     }
 
-    function _canCall(CreatorWList storage wl, address creator) internal view returns (bool) {
-        return wl.acl[creator] || wl.acl[_ANY20];
+    function _canCall(CreatorWList storage wl_, address creator_) internal view returns (bool) {
+        return wl_.acl[creator_] || wl_.acl[_ANY20];
     }
 }

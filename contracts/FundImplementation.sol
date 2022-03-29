@@ -14,7 +14,6 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 import {SetupAction} from "./actions/SetupAction.sol";
-
 import {Errors} from "./utils/Errors.sol";
 
 /// @title The implementation contract for fund.
@@ -41,7 +40,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
     /// @param reserveExecutionRate_ The reserve rate during execution.
-    /// @param newOwner The owner to be assigned to the fund.
+    /// @param newOwner_ The owner to be assigned to the fund.
     function initialize(
         uint256 level_,
         IComptroller comptroller_,
@@ -51,7 +50,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
         uint256 reserveExecutionRate_,
-        address newOwner
+        address newOwner_
     ) external whenState(State.Initializing) {
         _setLevel(level_);
         _setComptroller(comptroller_);
@@ -62,7 +61,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _setCrystallizationPeriod(crystallizationPeriod_);
         _setReserveExecutionRate(reserveExecutionRate_);
         _setVault(dsProxyRegistry);
-        _transferOwnership(newOwner);
+        _transferOwnership(newOwner_);
         _setMortgageVault(comptroller_);
 
         _review();
@@ -183,56 +182,56 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     // Asset Module
     /////////////////////////////////////////////////////
     /// @notice Add the asset to the tracking list by owner.
-    /// @param asset The asset to be added.
-    function addAsset(address asset) external nonReentrant onlyOwner {
-        _addAsset(asset);
+    /// @param asset_ The asset to be added.
+    function addAsset(address asset_) external nonReentrant onlyOwner {
+        _addAsset(asset_);
     }
 
     /// @notice Add the asset to the tracking list.
-    /// @param asset The asset to be added.
-    function _addAsset(address asset) internal override {
-        Errors._require(comptroller.isValidDealingAsset(level, asset), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
+    /// @param asset_ The asset to be added.
+    function _addAsset(address asset_) internal override {
+        Errors._require(comptroller.isValidDealingAsset(level, asset_), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
 
-        if (asset == address(denomination)) {
-            super._addAsset(asset);
+        if (asset_ == address(denomination)) {
+            super._addAsset(asset_);
         } else {
-            int256 value = getAssetValue(asset);
+            int256 value = getAssetValue(asset_);
             int256 dust = int256(comptroller.getDenominationDust(address(denomination)));
 
             if (value >= dust || value < 0) {
-                super._addAsset(asset);
+                super._addAsset(asset_);
             }
         }
     }
 
     /// @notice Remove the asset from the tracking list by owner.
-    /// @param asset The asset to be removed.
-    function removeAsset(address asset) external nonReentrant onlyOwner {
-        _removeAsset(asset);
+    /// @param asset_ The asset to be removed.
+    function removeAsset(address asset_) external nonReentrant onlyOwner {
+        _removeAsset(asset_);
     }
 
     /// @notice Remove the asset from the tracking list.
-    /// @param asset The asset to be removed.
-    function _removeAsset(address asset) internal override {
+    /// @param asset_ The asset to be removed.
+    function _removeAsset(address asset_) internal override {
         // Do not allow to remove denomination from list
         address _denomination = address(denomination);
-        if (asset != _denomination) {
-            int256 value = getAssetValue(asset);
+        if (asset_ != _denomination) {
+            int256 value = getAssetValue(asset_);
             int256 dust = int256(comptroller.getDenominationDust(_denomination));
 
             if (value < dust && value >= 0) {
-                super._removeAsset(asset);
+                super._removeAsset(asset_);
             }
         }
     }
 
     /// @notice Get the value of a give asset.
-    /// @param asset The asset to be queried.
-    function getAssetValue(address asset) public view returns (int256) {
-        uint256 balance = IERC20(asset).balanceOf(address(vault));
+    /// @param asset_ The asset to be queried.
+    function getAssetValue(address asset_) public view returns (int256) {
+        uint256 balance = IERC20(asset_).balanceOf(address(vault));
         if (balance == 0) return 0;
 
-        return comptroller.assetRouter().calcAssetValue(asset, balance, address(denomination));
+        return comptroller.assetRouter().calcAssetValue(asset_, balance, address(denomination));
     }
 
     /////////////////////////////////////////////////////
@@ -248,7 +247,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response, uint256 prevGrossAssetValue) internal override returns (uint256) {
+    function _afterExecute(bytes memory response_, uint256 prevGrossAssetValue_) internal override returns (uint256) {
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
@@ -256,7 +255,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         }
 
         // add new asset to assetList
-        address[] memory dealingAssets = abi.decode(response, (address[]));
+        address[] memory dealingAssets = abi.decode(response_, (address[]));
 
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
             _addAsset(dealingAssets[i]);
@@ -273,7 +272,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         Errors._require(_isReserveEnough(grossAssetValue), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
 
         Errors._require(
-            _isAfterValueEnough(prevGrossAssetValue, grossAssetValue),
+            _isAfterValueEnough(prevGrossAssetValue_, grossAssetValue),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
         );
 

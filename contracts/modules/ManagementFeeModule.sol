@@ -22,19 +22,19 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Set the management fee in a yearly basis.
-    /// @param feeRate The fee rate in a 1e4 base.
-    function _setManagementFeeRate(uint256 feeRate) internal virtual returns (int128) {
+    /// @param feeRate_ The fee rate in a 1e4 base.
+    function _setManagementFeeRate(uint256 feeRate_) internal virtual returns (int128) {
         Errors._require(
-            feeRate < _FUND_PERCENTAGE_BASE,
+            feeRate_ < _FUND_PERCENTAGE_BASE,
             Errors.Code.MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
         );
-        return _setManagementFeeRate(feeRate.divu(_FUND_PERCENTAGE_BASE));
+        return _setManagementFeeRate(feeRate_.divu(_FUND_PERCENTAGE_BASE));
     }
 
     /// @dev Calculate the effective fee rate to achieve the fee rate in an
     /// exponential model.
-    function _setManagementFeeRate(int128 feeRate64x64) private returns (int128) {
-        _mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64).ln().neg().div(_FEE_PERIOD.fromUInt()).exp();
+    function _setManagementFeeRate(int128 feeRate64x64_) private returns (int128) {
+        _mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64_).ln().neg().div(_FEE_PERIOD.fromUInt()).exp();
 
         return _mFeeRate64x64;
     }
@@ -51,7 +51,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Get the calculated effective fee rate.
-    function getManagementFeeRate() public view returns (int128 feeRate) {
+    function getManagementFeeRate() public view returns (int128) {
         return _mFeeRate64x64;
     }
 

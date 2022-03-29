@@ -7,7 +7,7 @@ pragma solidity ^0.8.0;
 abstract contract OwnableAction {
     address payable public immutable actionOwner;
 
-    constructor(address payable _owner) {
-        actionOwner = _owner;
+    constructor(address payable owner_) {
+        actionOwner = owner_;
     }
 }

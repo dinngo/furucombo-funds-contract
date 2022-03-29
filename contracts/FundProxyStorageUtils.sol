@@ -16,27 +16,27 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
     error InvalidState(State current);
 
-    modifier whenState(State expect) {
-        if (state != expect) revert InvalidState(state);
+    modifier whenState(State expect_) {
+        if (state != expect_) revert InvalidState(state);
         _;
     }
 
-    modifier whenStates(State expect1, State expect2) {
-        if (state != expect1 && state != expect2) revert InvalidState(state);
+    modifier whenStates(State expect1_, State expect2_) {
+        if (state != expect1_ && state != expect2_) revert InvalidState(state);
         _;
     }
 
     modifier when3States(
-        State expect1,
-        State expect2,
-        State expect3
+        State expect1_,
+        State expect2_,
+        State expect3_
     ) {
-        if (state != expect1 && state != expect2 && state != expect3) revert InvalidState(state);
+        if (state != expect1_ && state != expect2_ && state != expect3_) revert InvalidState(state);
         _;
     }
 
-    modifier whenNotState(State expectNot) {
-        if (state == expectNot) revert InvalidState(state);
+    modifier whenNotState(State expectNot_) {
+        if (state == expectNot_) revert InvalidState(state);
         _;
     }
 
@@ -129,20 +129,20 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         );
     }
 
-    function _setVault(IDSProxyRegistry dsProxyRegistry) internal {
+    function _setVault(IDSProxyRegistry dsProxyRegistry_) internal {
         Errors._require(address(vault) == address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED);
 
-        Errors._require(address(dsProxyRegistry) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY);
+        Errors._require(address(dsProxyRegistry_) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY);
 
         // deploy vault
-        vault = IDSProxy(dsProxyRegistry.build());
+        vault = IDSProxy(dsProxyRegistry_.build());
         Errors._require(address(vault) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED);
     }
 
-    function _setVaultApproval(ISetupAction setupAction) internal {
+    function _setVaultApproval(ISetupAction setupAction_) internal {
         Errors._require(address(vault) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_VAULT);
         Errors._require(
-            address(setupAction) != address(0),
+            address(setupAction_) != address(0),
             Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
         );
         Errors._require(
@@ -152,7 +152,7 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
         // set vault approval
         bytes memory data = abi.encodeWithSignature("maxApprove(address)", denomination);
-        vault.execute(address(setupAction), data);
+        vault.execute(address(setupAction_), data);
 
         Errors._require(
             denomination.allowance(address(vault), address(this)) == type(uint256).max,

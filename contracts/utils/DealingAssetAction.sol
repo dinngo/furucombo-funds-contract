@@ -13,18 +13,18 @@ abstract contract DealingAssetAction {
         _cleanAssets();
     }
 
-    function _getDealingAsset(address asset) internal view returns (bool) {
-        return DealingAsset._get(asset);
+    function _getDealingAsset(address asset_) internal view returns (bool) {
+        return DealingAsset._get(asset_);
     }
 
-    function _addDealingAsset(address asset) internal {
-        if (!_getDealingAsset(asset)) {
-            DealingAsset._set(asset, true);
+    function _addDealingAsset(address asset_) internal {
+        if (!_getDealingAsset(asset_)) {
+            DealingAsset._set(asset_, true);
         }
     }
 
-    function _removeDealingAsset(address asset) internal {
-        DealingAsset._set(asset, false);
+    function _removeDealingAsset(address asset_) internal {
+        DealingAsset._set(asset_, false);
     }
 
     function _getDealingAssets() internal view returns (address[] memory) {

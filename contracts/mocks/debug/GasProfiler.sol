@@ -27,13 +27,13 @@ contract GasProfiler {
         }
     }
 
-    function _deltaGas(bytes32 tag) internal {
-        emit DeltaGas(tag, int256(_getBase()) - int256(gasleft()));
+    function _deltaGas(bytes32 tag_) internal {
+        emit DeltaGas(tag_, int256(_getBase()) - int256(gasleft()));
         _setBase();
     }
 
-    function _getGas(bytes32 tag) internal {
-        emit GetGas(tag, _getBase());
+    function _getGas(bytes32 tag_) internal {
+        emit GetGas(tag_, _getBase());
         _setBase();
     }
 }

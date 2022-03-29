@@ -11,31 +11,31 @@ contract DynamicHandler is HandlerBase {
         return "DynamicHandler";
     }
 
-    function summitUint(uint256 v) external payable returns (uint256) {
-        return v + 1;
+    function summitUint(uint256 v_) external payable returns (uint256) {
+        return v_ + 1;
     }
 
-    function summitAddress(address v) external payable returns (address) {
-        return v;
+    function summitAddress(address v_) external payable returns (address) {
+        return v_;
     }
 
-    function summitAddressFixArray(address[2] calldata addrs) external payable returns (address) {
-        return addrs[0];
+    function summitAddressFixArray(address[2] calldata addrs_) external payable returns (address) {
+        return addrs_[0];
     }
 
-    function summitUintDynamicArray(uint256[] calldata amounts) external payable returns (uint256) {
-        return amounts[0];
+    function summitUintDynamicArray(uint256[] calldata amounts_) external payable returns (uint256) {
+        return amounts_[0];
     }
 
-    function summitAddressDynamicArray(address[] calldata addrs) external payable returns (address) {
-        return addrs[0];
+    function summitAddressDynamicArray(address[] calldata addrs_) external payable returns (address) {
+        return addrs_[0];
     }
 
     function summitMultiple(
-        uint256 a,
-        address b,
-        address[] calldata addrs,
-        uint256[] calldata amounts
+        uint256 a_,
+        address b_,
+        address[] calldata addrs_,
+        uint256[] calldata amounts_
     )
         external
         payable
