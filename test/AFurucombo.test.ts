@@ -450,10 +450,7 @@ describe('AFurucombo', function () {
         const tokensOut = [token.address];
         const amountsIn = [amountIn];
         const tos = [hFunds.address, hMock.address];
-        const configs = [
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-        ];
+        const configs = [constants.HashZero, constants.HashZero];
         const datas = [
           simpleEncode('updateTokens(address[])', [tokensIn]),
           simpleEncode('doUpdateTokenOnly(address[])', [tokensIn]),
@@ -535,10 +532,7 @@ describe('AFurucombo', function () {
         const tokensOut = [token.address];
         const amountsIn = [amountIn];
         const tos = [hFunds.address, hMock.address];
-        const configs = [
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-        ];
+        const configs = [constants.HashZero, constants.HashZero];
 
         const sendTokenAmount = consumeAmount.div(BigNumber.from(2));
         const datas = [
@@ -630,10 +624,7 @@ describe('AFurucombo', function () {
         const tokensOut = [token.address];
         const amountsIn = [amountIn];
         const tos = [hFunds.address, hMock.address];
-        const configs = [
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-        ];
+        const configs = [constants.HashZero, constants.HashZero];
         const datas = [
           simpleEncode('updateTokens(address[])', [tokensIn]),
           simpleEncode('drainTokens(address[],address[],uint256[])', [
@@ -773,9 +764,9 @@ describe('AFurucombo', function () {
       expect(await tokenA.allowance(vault, furucombo.address)).to.be.eq(0);
       expect(await tokenB.allowance(vault, furucombo.address)).to.be.eq(0);
 
-      const approveTokneAAmount = ether('0.05');
-      const approveTokneBAmount = ether('100');
-      const amounts = [approveTokneAAmount, approveTokneBAmount];
+      const approveTokenAAmount = ether('0.05');
+      const approveTokenBAmount = ether('100');
+      const amounts = [approveTokenAAmount, approveTokenBAmount];
 
       // TaskExecutorMock data
       const data = getCallData(taskExecutor, 'execMock', [
@@ -791,10 +782,10 @@ describe('AFurucombo', function () {
         .executeMock(taskExecutor.address, data);
 
       expect(await tokenA.allowance(vault, furucombo.address)).to.be.eq(
-        approveTokneAAmount
+        approveTokenAAmount
       );
       expect(await tokenB.allowance(vault, furucombo.address)).to.be.eq(
-        approveTokneBAmount
+        approveTokenBAmount
       );
 
       await profileGas(receipt);
@@ -804,8 +795,8 @@ describe('AFurucombo', function () {
       const tokenA = token;
       const tokenB = tokenOut;
       const tokens = [tokenA.address, tokenB.address];
-      const approveTokneAAmount = ether('0.05');
-      const amounts = [approveTokneAAmount];
+      const approveTokenAAmount = ether('0.05');
+      const amounts = [approveTokenAAmount];
 
       // TaskExecutorMock data
       const data = getCallData(taskExecutor, 'execMock', [
