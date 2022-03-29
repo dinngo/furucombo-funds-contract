@@ -114,7 +114,7 @@ abstract contract ShareModule is PoolProxyStorageUtils {
         returns (uint256 balance)
     {
         uint256 grossAssetValue = __getGrossAssetValue();
-        return _calculateBalance(share_, grossAssetValue);
+        balance = _calculateBalance(share_, grossAssetValue);
     }
 
     function _calculateBalance(uint256 share_, uint256 grossAssetValue_)
