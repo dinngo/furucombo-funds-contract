@@ -69,7 +69,7 @@ describe('CreateFund', function () {
 
   let mortgage: IERC20;
 
-  const setupTest = deployments.createFixture(
+  const setupCreateTest = deployments.createFixture(
     async ({ deployments, ethers }, options) => {
       await deployments.fixture(''); // ensure you start from a fresh deployments
       [owner, collector, manager, investor, liquidator] = await (
@@ -82,14 +82,7 @@ describe('CreateFund', function () {
 
       // Deploy furucombo
       [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
-    }
-  );
-  beforeEach(async function () {
-    await setupTest();
-  });
 
-  describe('Create', function () {
-    beforeEach(async function () {
       [
         poolProxyFactory,
         ,
@@ -121,6 +114,73 @@ describe('CreateFund', function () {
         fRegistry,
         furucombo
       );
+    }
+  );
+
+  const setupFinalizeTest = deployments.createFixture(
+    async ({ deployments, ethers }, options) => {
+      await deployments.fixture(''); // ensure you start from a fresh deployments
+      [owner, collector, manager, investor, liquidator] = await (
+        ethers as any
+      ).getSigners();
+
+      mortgageProvider = await impersonateAndInjectEther(
+        mortgageProviderAddress
+      );
+
+      // Deploy furucombo
+      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+
+      // Deploy furucombo funds contracts
+      [poolProxyFactory, , , , , , , mortgage, mortgageVault] =
+        await createFundInfra(
+          owner,
+          collector,
+          manager,
+          liquidator,
+          denominationAddress,
+          mortgageAddress,
+          tokenAAddress,
+          tokenBAddress,
+          denominationAggregator,
+          tokenAAggregator,
+          tokenBAggregator,
+          level,
+          stakeAmount,
+          execFeePercentage,
+          pendingExpiration,
+          fRegistry,
+          furucombo
+        );
+
+      // Transfer mortgage token to manager
+      await mortgage
+        .connect(mortgageProvider)
+        .transfer(manager.address, stakeAmount);
+      await mortgage
+        .connect(manager)
+        .approve(mortgageVault.address, stakeAmount);
+
+      poolProxy = await createPoolProxy(
+        poolProxyFactory,
+        manager,
+        denominationAddress,
+        level,
+        mFeeRate,
+        pFeeRate,
+        crystallizationPeriod,
+        reserveExecutionRatio,
+        shareTokenName
+      );
+    }
+  );
+  beforeEach(async function () {
+    // await setupTest();
+  });
+
+  describe('Create', function () {
+    beforeEach(async function () {
+      await setupCreateTest();
     });
     // create with normal params
     it('in reviewing state', async function () {
@@ -316,47 +376,7 @@ describe('CreateFund', function () {
   });
   describe('Finalize', function () {
     beforeEach(async function () {
-      // Deploy furucombo funds contracts
-      [poolProxyFactory, , , , , , , mortgage, mortgageVault] =
-        await createFundInfra(
-          owner,
-          collector,
-          manager,
-          liquidator,
-          denominationAddress,
-          mortgageAddress,
-          tokenAAddress,
-          tokenBAddress,
-          denominationAggregator,
-          tokenAAggregator,
-          tokenBAggregator,
-          level,
-          stakeAmount,
-          execFeePercentage,
-          pendingExpiration,
-          fRegistry,
-          furucombo
-        );
-
-      // Transfer mortgage token to manager
-      await mortgage
-        .connect(mortgageProvider)
-        .transfer(manager.address, stakeAmount);
-      await mortgage
-        .connect(manager)
-        .approve(mortgageVault.address, stakeAmount);
-
-      poolProxy = await createPoolProxy(
-        poolProxyFactory,
-        manager,
-        denominationAddress,
-        level,
-        mFeeRate,
-        pFeeRate,
-        crystallizationPeriod,
-        reserveExecutionRatio,
-        shareTokenName
-      );
+      await setupFinalizeTest();
     });
     describe('Getter', function () {
       // getter finalize getter

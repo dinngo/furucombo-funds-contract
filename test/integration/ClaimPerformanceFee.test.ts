@@ -40,7 +40,6 @@ import {
   USDC_PROVIDER,
   FEE_BASE,
   OUTSTANDING_ACCOUNT,
-  FINALIZED_ACCOUNT,
   ONE_DAY,
   POOL_STATE,
   DAI_PROVIDER,
@@ -81,7 +80,6 @@ describe('ManagerClaimPerformanceFee', function () {
   const purchaseAmount = initialFunds;
 
   const outstandingAccount = OUTSTANDING_ACCOUNT;
-  // const finalizedAccount = FINALIZED_ACCOUNT;
 
   let fRegistry: Registry;
   let furucombo: FurucomboProxy;
@@ -214,7 +212,6 @@ describe('ManagerClaimPerformanceFee', function () {
         const pFee = await _assetValueGrowTestII(purchaseAmount, acceptPending);
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
-        expect(await shareToken.balanceOf(FINALIZED_ACCOUNT)).to.be.eq(0);
       });
       it('claim 0 fee when asset value grows less than last asset ATH value', async function () {
         await _assetValueHighWaterMarkTest(purchaseAmount.div(2));
@@ -289,7 +286,6 @@ describe('ManagerClaimPerformanceFee', function () {
 
         expect(pFee).to.be.gt(0);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
-        expect(await shareToken.balanceOf(FINALIZED_ACCOUNT)).to.be.eq(0);
       });
       it('claim 0 fee when asset value grows less than last asset ATH value', async function () {
         await _assetValueHighWaterMarkTest(purchaseAmount.div(2));
@@ -363,7 +359,6 @@ describe('ManagerClaimPerformanceFee', function () {
 
         expect(pFee).to.be.gt(0);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
-        expect(await shareToken.balanceOf(FINALIZED_ACCOUNT)).to.be.eq(0);
       });
       it('claim 0 fee when asset value grows less than last asset ATH value', async function () {
         await _assetValueHighWaterMarkTest(purchaseAmount.div(2));
@@ -435,7 +430,7 @@ describe('ManagerClaimPerformanceFee', function () {
         const pFee = await _assetValueNotChangedTest(
           mwei('500'),
           acceptPending
-        ); //500
+        );
 
         expect(pFee).to.be.eq(0);
         expect(await poolProxy.state()).to.be.eq(POOL_STATE.REDEMPTION_PENDING);
@@ -459,7 +454,6 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(pFee).to.be.gt(0);
         expect(await poolProxy.state()).to.be.eq(POOL_STATE.REDEMPTION_PENDING);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
-        expect(await shareToken.balanceOf(FINALIZED_ACCOUNT)).to.be.eq(0);
       });
       it('claim 0 fee when asset value grows less than last asset ATH value', async function () {
         await _assetValueHighWaterMarkTest(mwei('500'));
@@ -491,7 +485,6 @@ describe('ManagerClaimPerformanceFee', function () {
   describe('pending -> operation', function () {
     const swapAmount = purchaseAmount.div(2);
     const redeemAmount = purchaseAmount;
-    // const acceptPending = true;
 
     describe('99% performance fee', function () {
       beforeEach(async function () {
