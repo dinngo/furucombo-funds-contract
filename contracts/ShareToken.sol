@@ -18,8 +18,12 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         _decimals = decimals_;
     }
 
-    function decimals() public view override returns (uint8) {
-        return _decimals;
+    function netTotalShare() external view returns (uint256) {
+        return totalSupply() - balanceOf(_OUTSTANDING_PERFORMANCE_FEE_ACCOUNT);
+    }
+
+    function grossTotalShare() external view returns (uint256) {
+        return totalSupply();
     }
 
     function mint(address account_, uint256 amount_) external onlyOwner {
@@ -38,12 +42,8 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         _transfer(sender_, recipient_, amount_);
     }
 
-    function netTotalShare() external view returns (uint256) {
-        return totalSupply() - balanceOf(_OUTSTANDING_PERFORMANCE_FEE_ACCOUNT);
-    }
-
-    function grossTotalShare() external view returns (uint256) {
-        return totalSupply();
+    function decimals() public view override returns (uint8) {
+        return _decimals;
     }
 
     function _beforeTokenTransfer(

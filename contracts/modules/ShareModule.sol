@@ -77,19 +77,6 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return reserve >= redeemShareBalance;
     }
 
-    /// @notice the length of pendingRoundList, means current pending round
-    /// @return current pending round
-    function currentPendingRound() public view returns (uint256) {
-        return pendingRoundList.length;
-    }
-
-    /// @notice Determine user could claim pending redemption or not
-    /// @param user_ address could be claimable
-    /// @return true if claimable otherwise false
-    function isPendingRedemptionClaimable(address user_) public view returns (bool) {
-        return pendingUsers[user_].pendingRound < currentPendingRound() && pendingUsers[user_].pendingShare > 0;
-    }
-
     /// @notice Calculate the max redeemable balance of the given share amount.
     /// @param share_ The share amount to be queried.
     /// @return shareLeft The share amount left due to insufficient reserve.
@@ -119,7 +106,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Pending state.
     /// @return share The share amount being purchased.
     function purchase(uint256 balance_)
-        public
+        external
         virtual
         whenStates(State.Executing, State.Pending)
         nonReentrant
@@ -148,18 +135,9 @@ abstract contract ShareModule is FundProxyStorageUtils {
         emit Purchased(user_, balance_, share, bonus);
     }
 
-    function _addShare(
-        address user_,
-        uint256 balance_,
-        uint256 grossAssetValue_
-    ) internal virtual returns (uint256 share) {
-        share = _calculateShare(balance_, grossAssetValue_);
-        shareToken.mint(user_, share);
-    }
-
     /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
     function redeem(uint256 share_, bool acceptPending_)
-        public
+        external
         virtual
         when3States(State.Executing, State.Pending, State.Closed)
         nonReentrant
@@ -244,12 +222,6 @@ abstract contract ShareModule is FundProxyStorageUtils {
         balance = _claimPendingRedemption(user_);
     }
 
-    function _calcPendingRedemption(address user_) internal view returns (uint256) {
-        PendingUserInfo storage pendingUser = pendingUsers[user_];
-        PendingRoundInfo storage pendingRoundInfo = pendingRoundList[pendingUser.pendingRound];
-        return (pendingRoundInfo.totalRedemption * pendingUser.pendingShare) / pendingRoundInfo.totalPendingShare;
-    }
-
     function _claimPendingRedemption(address user_) internal returns (uint256 balance) {
         balance = _calcPendingRedemption(user_);
 
@@ -262,12 +234,66 @@ abstract contract ShareModule is FundProxyStorageUtils {
         emit RedemptionClaimed(user_, balance);
     }
 
+    /// @notice the length of pendingRoundList, means current pending round
+    /// @return current pending round
+    function currentPendingRound() public view returns (uint256) {
+        return pendingRoundList.length;
+    }
+
+    /// @notice Determine user could claim pending redemption or not
+    /// @param user_ address could be claimable
+    /// @return true if claimable otherwise false
+    function isPendingRedemptionClaimable(address user_) public view returns (bool) {
+        return pendingUsers[user_].pendingRound < currentPendingRound() && pendingUsers[user_].pendingShare > 0;
+    }
+
+    function _calcPendingRedemption(address user_) internal view returns (uint256) {
+        PendingUserInfo storage pendingUser = pendingUsers[user_];
+        PendingRoundInfo storage pendingRoundInfo = pendingRoundList[pendingUser.pendingRound];
+        return (pendingRoundInfo.totalRedemption * pendingUser.pendingShare) / pendingRoundInfo.totalPendingShare;
+    }
+
     function _getResolvePendingShare(bool applyPenalty_) internal view returns (uint256) {
         if (applyPenalty_) {
             return currentTotalPendingShare;
         } else {
             return currentTotalPendingShare + currentTotalPendingBonus;
         }
+    }
+
+    function _getPendingPenalty() internal view virtual returns (uint256) {
+        return comptroller.pendingPenalty();
+    }
+
+    function __getReserve() internal view virtual returns (uint256);
+
+    function __getGrossAssetValue() internal view virtual returns (uint256);
+
+    function _beforePurchase() internal virtual returns (uint256) {
+        return 0;
+    }
+
+    function _afterPurchase(uint256 grossAssetValue_) internal virtual {
+        grossAssetValue_;
+        return;
+    }
+
+    function _beforeRedeem() internal virtual returns (uint256) {
+        return 0;
+    }
+
+    function _afterRedeem(uint256 grossAssetValue_) internal virtual {
+        grossAssetValue_;
+        return;
+    }
+
+    function _addShare(
+        address user_,
+        uint256 balance_,
+        uint256 grossAssetValue_
+    ) internal virtual returns (uint256 share) {
+        share = _calculateShare(balance_, grossAssetValue_);
+        shareToken.mint(user_, share);
     }
 
     function _settlePendingShare(bool applyPenalty_) internal {
@@ -298,30 +324,4 @@ abstract contract ShareModule is FundProxyStorageUtils {
             emit PendingShareSettled();
         }
     }
-
-    function _getPendingPenalty() internal view virtual returns (uint256) {
-        return comptroller.pendingPenalty();
-    }
-
-    function _beforePurchase() internal virtual returns (uint256) {
-        return 0;
-    }
-
-    function _afterPurchase(uint256 grossAssetValue_) internal virtual {
-        grossAssetValue_;
-        return;
-    }
-
-    function _beforeRedeem() internal virtual returns (uint256) {
-        return 0;
-    }
-
-    function _afterRedeem(uint256 grossAssetValue_) internal virtual {
-        grossAssetValue_;
-        return;
-    }
-
-    function __getReserve() internal view virtual returns (uint256);
-
-    function __getGrossAssetValue() internal view virtual returns (uint256);
 }

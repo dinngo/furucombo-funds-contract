@@ -39,7 +39,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
 
     /// @dev Calculate the effective fee rate to achieve the fee rate in an
     /// exponential model.
-    function _setManagementFeeRate(int128 feeRate64x64_) private returns (int128) {
+    function _setManagementFeeRate(int128 feeRate64x64_) internal returns (int128) {
         mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64_).ln().neg().div(_FEE_PERIOD.fromUInt()).exp();
 
         return mFeeRate64x64;

@@ -64,6 +64,8 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         return crystallizationStart + period_ * crystallizationPeriod;
     }
 
+    function __getGrossAssetValue() internal view virtual returns (uint256);
+
     /// @notice Initial the performance fee crystallization time
     /// and high water mark.
     function _initializePerformanceFee() internal virtual {
@@ -127,6 +129,4 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
             lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
         }
     }
-
-    function __getGrossAssetValue() internal view virtual returns (uint256);
 }

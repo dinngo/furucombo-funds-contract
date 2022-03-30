@@ -17,6 +17,14 @@ abstract contract DealingAssetAction {
         return DealingAsset._get(asset_);
     }
 
+    function _getDealingAssets() internal view returns (address[] memory) {
+        return DealingAsset._assets();
+    }
+
+    function _getDealingAssetLength() internal view returns (uint256) {
+        return DealingAsset._getLength();
+    }
+
     function _addDealingAsset(address asset_) internal {
         if (!_getDealingAsset(asset_)) {
             DealingAsset._set(asset_, true);
@@ -25,14 +33,6 @@ abstract contract DealingAssetAction {
 
     function _removeDealingAsset(address asset_) internal {
         DealingAsset._set(asset_, false);
-    }
-
-    function _getDealingAssets() internal view returns (address[] memory) {
-        return DealingAsset._assets();
-    }
-
-    function _getDealingAssetLength() internal view returns (uint256) {
-        return DealingAsset._getLength();
     }
 
     function _cleanAssets() internal {
