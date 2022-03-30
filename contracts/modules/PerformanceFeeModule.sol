@@ -25,31 +25,21 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = _FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
-        _crystallizationStart = block.timestamp;
-        _lastCrystallization = block.timestamp;
-    }
-
-    /// @notice Get the performance fee rate of the fund.
-    function getPerformanceFeeRate() public view returns (int128) {
-        return _pFeeRate64x64;
-    }
-
-    /// @notice Get the crystallization period of the fund.
-    function getCrystallizationPeriod() public view returns (uint256) {
-        return _crystallizationPeriod;
+        crystallizationStart = block.timestamp;
+        lastCrystallization = block.timestamp;
     }
 
     /// @notice Check if it can be crystallized.
     function isCrystallizable() public view virtual returns (bool) {
         uint256 nowPeriod = _timeToPeriod(block.timestamp);
-        uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
+        uint256 lastPeriod = _timeToPeriod(lastCrystallization);
         return nowPeriod > lastPeriod;
     }
 
     /// @notice Returns the earliest time that can be crystallized next
     /// even if more than one period has passed.
     function getNextCrystallizationTime() public view returns (uint256) {
-        uint256 lastPeriod = _timeToPeriod(_lastCrystallization);
+        uint256 lastPeriod = _timeToPeriod(lastCrystallization);
         return _periodToTime(lastPeriod + 1);
     }
 
@@ -60,15 +50,15 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
             feeRate_ < _FUND_PERCENTAGE_BASE,
             Errors.Code.PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
         );
-        _pFeeRate64x64 = feeRate_.divu(_FUND_PERCENTAGE_BASE);
-        return _pFeeRate64x64;
+        pFeeRate64x64 = feeRate_.divu(_FUND_PERCENTAGE_BASE);
+        return pFeeRate64x64;
     }
 
     /// @notice Set the crystallization period.
     /// @param period_ The crystallization period to be set in second.
     function _setCrystallizationPeriod(uint256 period_) internal virtual {
         Errors._require(period_ > 0, Errors.Code.PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT);
-        _crystallizationPeriod = period_;
+        crystallizationPeriod = period_;
     }
 
     /// @notice Crystallize for the performance fee.
@@ -78,12 +68,12 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         uint256 grossAssetValue = __getGrossAssetValue();
         _updatePerformanceFee(grossAssetValue);
         address manager = owner();
-        shareToken.move(_OUTSTANDING_ACCOUNT, manager, _lastOutstandingShare);
+        shareToken.move(_OUTSTANDING_ACCOUNT, manager, lastOutstandingShare);
         _updateGrossSharePrice(grossAssetValue);
-        uint256 result = _lastOutstandingShare;
-        _lastOutstandingShare = 0;
-        _pFeeSum = 0;
-        _lastCrystallization = block.timestamp;
+        uint256 result = lastOutstandingShare;
+        lastOutstandingShare = 0;
+        pFeeSum = 0;
+        lastCrystallization = block.timestamp;
         hwm64x64 = LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64);
         emit PerformanceFeeClaimed(manager, result);
 
@@ -103,16 +93,16 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
             ._max64x64(hwm64x64, grossSharePrice64x64)
             .sub(LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64))
             .muli(int256(totalShare));
-        int256 fee = _pFeeRate64x64.muli(wealth);
-        _pFeeSum = uint256(LibFee._max(0, int256(_pFeeSum) + fee));
-        uint256 netAssetValue = grossAssetValue_ - _pFeeSum;
-        uint256 outstandingShare = (totalShare * _pFeeSum) / netAssetValue;
-        if (outstandingShare > _lastOutstandingShare) {
-            shareToken.mint(_OUTSTANDING_ACCOUNT, outstandingShare - _lastOutstandingShare);
+        int256 fee = pFeeRate64x64.muli(wealth);
+        pFeeSum = uint256(LibFee._max(0, int256(pFeeSum) + fee));
+        uint256 netAssetValue = grossAssetValue_ - pFeeSum;
+        uint256 outstandingShare = (totalShare * pFeeSum) / netAssetValue;
+        if (outstandingShare > lastOutstandingShare) {
+            shareToken.mint(_OUTSTANDING_ACCOUNT, outstandingShare - lastOutstandingShare);
         } else {
-            shareToken.burn(_OUTSTANDING_ACCOUNT, _lastOutstandingShare - outstandingShare);
+            shareToken.burn(_OUTSTANDING_ACCOUNT, lastOutstandingShare - outstandingShare);
         }
-        _lastOutstandingShare = outstandingShare;
+        lastOutstandingShare = outstandingShare;
         lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
     }
 
@@ -129,13 +119,13 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     /// @notice Convert the time to the number of crystallization periods.
     function _timeToPeriod(uint256 timestamp_) internal view returns (uint256) {
-        Errors._require(timestamp_ >= _crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
-        return (timestamp_ - _crystallizationStart) / _crystallizationPeriod;
+        Errors._require(timestamp_ >= crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
+        return (timestamp_ - crystallizationStart) / crystallizationPeriod;
     }
 
     /// @notice Convert the number of crystallization periods to time.
     function _periodToTime(uint256 period_) internal view returns (uint256) {
-        return _crystallizationStart + period_ * _crystallizationPeriod;
+        return crystallizationStart + period_ * crystallizationPeriod;
     }
 
     function __getGrossAssetValue() internal view virtual returns (uint256);

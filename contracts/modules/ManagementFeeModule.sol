@@ -34,20 +34,15 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     /// @dev Calculate the effective fee rate to achieve the fee rate in an
     /// exponential model.
     function _setManagementFeeRate(int128 feeRate64x64_) private returns (int128) {
-        _mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64_).ln().neg().div(_FEE_PERIOD.fromUInt()).exp();
+        mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64_).ln().neg().div(_FEE_PERIOD.fromUInt()).exp();
 
-        return _mFeeRate64x64;
+        return mFeeRate64x64;
     }
 
     /// @notice Claim the accumulated management fee.
     /// @return The fee amount being claimed.
     function claimManagementFee() public virtual nonReentrant returns (uint256) {
         return _updateManagementFee();
-    }
-
-    /// @notice Get the calculated effective fee rate.
-    function getManagementFeeRate() public view returns (int128) {
-        return _mFeeRate64x64;
     }
 
     /// @notice Update the current management fee and mint to the manager right
@@ -58,7 +53,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
         uint256 currentTime = block.timestamp;
         uint256 totalShare = shareToken.grossTotalShare();
 
-        uint256 shareDue = (_mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(_FEE_BASE64x64)).mulu(totalShare);
+        uint256 shareDue = (mFeeRate64x64.pow(currentTime - lastMFeeClaimTime).sub(_FEE_BASE64x64)).mulu(totalShare);
 
         address manager = owner();
         shareToken.mint(manager, shareDue);

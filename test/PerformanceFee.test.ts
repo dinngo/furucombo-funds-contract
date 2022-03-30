@@ -50,14 +50,14 @@ describe('Performance fee', function () {
     it('zero', async function () {
       const feeRate = BigNumber.from('0');
       await pFeeModule.setPerformanceFeeRate(feeRate);
-      const result = await pFeeModule.callStatic.getPerformanceFeeRate();
+      const result = await pFeeModule.callStatic.pFeeRate64x64();
       expect(result).to.be.eq(BigNumber.from('0'));
     });
 
     it('in normal range', async function () {
       const feeRate = BigNumber.from('1000');
       await pFeeModule.setPerformanceFeeRate(feeRate);
-      const result = await pFeeModule.callStatic.getPerformanceFeeRate();
+      const result = await pFeeModule.callStatic.pFeeRate64x64();
       expect(result).to.be.eq(get64x64FromNumber(feeRate.toNumber() / FEE_BASE));
     });
 
@@ -70,7 +70,7 @@ describe('Performance fee', function () {
     it('in normal range', async function () {
       const period = BigNumber.from(30 * 24 * 60 * 60);
       await pFeeModule.setCrystallizationPeriod(period);
-      const result = await pFeeModule.callStatic.getCrystallizationPeriod();
+      const result = await pFeeModule.callStatic.crystallizationPeriod();
       expect(result).to.be.eq(period);
     });
 

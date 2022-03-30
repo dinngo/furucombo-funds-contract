@@ -45,7 +45,7 @@ describe('Management fee', function () {
       const result = FEE_BASE64x64;
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
-      const effectiveFeeRate = await mFeeModule.callStatic.getManagementFeeRate();
+      const effectiveFeeRate = await mFeeModule.callStatic.mFeeRate64x64();
       expect(effectiveFeeRate).to.eq(result);
     });
 
@@ -54,7 +54,7 @@ describe('Management fee', function () {
       const result = getEffectiveFeeRate(feeRate.toNumber() / FEE_BASE);
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
-      const effectiveFeeRate = await mFeeModule.callStatic.getManagementFeeRate();
+      const effectiveFeeRate = await mFeeModule.callStatic.mFeeRate64x64();
       expectEqWithinBps(effectiveFeeRate, result, 1, 15);
     });
 

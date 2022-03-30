@@ -232,18 +232,18 @@ describe('FundImplementation', function () {
       });
       it('should set management fee rate', async function () {
         const rate = get64x64FromNumber(1);
-        const feeRate = await fundImplementation.getManagementFeeRate();
+        const feeRate = await fundImplementation.mFeeRate64x64();
         expect(feeRate).to.be.eq(rate);
       });
       it('should set performance fee rate', async function () {
         const rate = get64x64FromNumber(performanceFeeRate / FEE_BASE);
-        const feeRate = await fundImplementation.getPerformanceFeeRate();
+        const feeRate = await fundImplementation.pFeeRate64x64();
         expect(feeRate).to.be.eq(rate);
       });
       it('should set crystallization period', async function () {
-        const _crystallizationPeriod = await fundImplementation.getCrystallizationPeriod();
-        expect(_crystallizationPeriod).to.be.gte(CRYSTALLIZATION_PERIOD_MIN);
-        expect(_crystallizationPeriod).to.be.eq(crystallizationPeriod);
+        const crystallizationPeriod = await fundImplementation.crystallizationPeriod();
+        expect(crystallizationPeriod).to.be.gte(CRYSTALLIZATION_PERIOD_MIN);
+        expect(crystallizationPeriod).to.be.eq(crystallizationPeriod);
       });
       it('should set vault', async function () {
         expect(await fundImplementation.vault()).to.be.not.eq(constants.AddressZero);
@@ -551,7 +551,7 @@ describe('FundImplementation', function () {
 
       it('set management fee rate', async function () {
         await fundImplementation.setManagementFeeRate(feeRate);
-        expect(await fundImplementation.getManagementFeeRate()).to.be.eq(BigNumber.from('18446744135297203117'));
+        expect(await fundImplementation.mFeeRate64x64()).to.be.eq(BigNumber.from('18446744135297203117'));
       });
 
       it('should revert: set management fee rate at wrong stage', async function () {
@@ -576,7 +576,7 @@ describe('FundImplementation', function () {
 
       it('set performance fee rate', async function () {
         await fundImplementation.setPerformanceFeeRate(feeRate);
-        expect(await fundImplementation.getPerformanceFeeRate()).to.be.eq(0);
+        expect(await fundImplementation.pFeeRate64x64()).to.be.eq(0);
       });
 
       it('should revert: set performance fee rate at wrong stage', async function () {
@@ -601,7 +601,7 @@ describe('FundImplementation', function () {
 
       it('set crystallization period', async function () {
         await fundImplementation.setCrystallizationPeriod(period);
-        expect(await fundImplementation.getCrystallizationPeriod()).to.be.eq(period);
+        expect(await fundImplementation.crystallizationPeriod()).to.be.eq(period);
       });
 
       it('should revert: set crystallization period at wrong stage', async function () {

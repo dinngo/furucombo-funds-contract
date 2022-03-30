@@ -54,17 +54,17 @@ abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
 
     // Management fee module
     uint256 public lastMFeeClaimTime;
-    int128 internal _mFeeRate64x64;
+    int128 public mFeeRate64x64;
 
     // Performance fee module
     int128 public hwm64x64; // should be a float point number
     int128 public lastGrossSharePrice64x64;
-    int128 internal _pFeeRate64x64;
-    uint256 internal _pFeeSum;
-    uint256 internal _lastOutstandingShare;
-    uint256 internal _crystallizationStart;
-    uint256 internal _crystallizationPeriod;
-    uint256 internal _lastCrystallization;
+    int128 public pFeeRate64x64;
+    uint256 public pFeeSum;
+    uint256 public lastOutstandingShare;
+    uint256 public crystallizationStart;
+    uint256 public crystallizationPeriod;
+    uint256 public lastCrystallization;
 }
 
 abstract contract FundProxyStorage is FundProxyStorageV1 {}
