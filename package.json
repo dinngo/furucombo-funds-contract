@@ -20,7 +20,7 @@
   "author": "DINNGO",
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "4.4.0-rc.0",
+    "@openzeppelin/contracts": "4.5.0",
     "abdk-libraries-solidity": "3.0.0"
   },
   "devDependencies": {
