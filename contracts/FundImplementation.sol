@@ -157,12 +157,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Getters
     /////////////////////////////////////////////////////
-    /// @notice Get the current reserve amount of the fund.
-    /// @return The reserve amount.
-    function __getReserve() internal view override returns (uint256) {
-        return getReserve();
-    }
-
     function getGrossAssetValue() public view virtual returns (uint256) {
         address[] memory assets = getAssetList();
         uint256 length = assets.length;
@@ -176,6 +170,12 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     function __getGrossAssetValue() internal view override(ShareModule, PerformanceFeeModule) returns (uint256) {
         return getGrossAssetValue();
+    }
+
+    /// @notice Get the current reserve amount of the fund.
+    /// @return The reserve amount.
+    function __getReserve() internal view override returns (uint256) {
+        return getReserve();
     }
 
     /////////////////////////////////////////////////////
@@ -237,13 +237,26 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
+    function execute(bytes calldata data_) public override nonReentrant onlyOwner {
+        super.execute(data_);
+    }
+
+    function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 reserveRate = (getReserve() * _FUND_PERCENTAGE_BASE) / grossAssetValue_;
+
+        return reserveRate >= reserveExecutionRate;
+    }
+
+    function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) /
+            _FUND_PERCENTAGE_BASE;
+
+        return grossAssetValue_ >= minGrossAssetValue;
+    }
+
     /// @notice Execute an action on the fund's behalf.
     function _beforeExecute() internal virtual override returns (uint256) {
         return getGrossAssetValue();
-    }
-
-    function execute(bytes calldata data_) public override nonReentrant onlyOwner {
-        super.execute(data_);
     }
 
     /// @notice Check the reserve after the execution.
@@ -277,19 +290,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         );
 
         return grossAssetValue;
-    }
-
-    function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
-        uint256 reserveRate = (getReserve() * _FUND_PERCENTAGE_BASE) / grossAssetValue_;
-
-        return reserveRate >= reserveExecutionRate;
-    }
-
-    function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
-        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) /
-            _FUND_PERCENTAGE_BASE;
-
-        return grossAssetValue_ >= minGrossAssetValue;
     }
 
     /////////////////////////////////////////////////////

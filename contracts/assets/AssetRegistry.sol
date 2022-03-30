@@ -17,6 +17,17 @@ contract AssetRegistry is IAssetRegistry, Ownable {
     event UnbannedResolver(address indexed resolver);
 
     /**
+     * @notice Return the resolver of asset.
+     * @param asset_ The asset want to be calculate value.
+     */
+    function resolvers(address asset_) external view override returns (address) {
+        address resolver = _resolvers[asset_];
+        Errors._require(resolver != address(0), Errors.Code.ASSET_REGISTRY_UNREGISTERED);
+        Errors._require(!bannedResolvers[resolver], Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER);
+        return resolver;
+    }
+
+    /**
      * @notice Register a asset with resolver.
      * @param asset_ asset address.
      * @param resolver_ resolver address.
@@ -62,16 +73,5 @@ contract AssetRegistry is IAssetRegistry, Ownable {
         Errors._require(bannedResolvers[resolver_], Errors.Code.ASSET_REGISTRY_NON_BANNED_RESOLVER);
         bannedResolvers[resolver_] = false;
         emit UnbannedResolver(resolver_);
-    }
-
-    /**
-     * @notice Return the resolver of asset.
-     * @param asset_ The asset want to be calculate value.
-     */
-    function resolvers(address asset_) external view override returns (address) {
-        address resolver = _resolvers[asset_];
-        Errors._require(resolver != address(0), Errors.Code.ASSET_REGISTRY_UNREGISTERED);
-        Errors._require(!bannedResolvers[resolver], Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER);
-        return resolver;
     }
 }

@@ -26,7 +26,6 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
     IComptroller public immutable comptroller;
 
     constructor(address payable owner_, address comptroller_) DestructibleAction(owner_) DelegateCallAction() {
-        // FIXME: get from caller or assign it directly
         comptroller = IComptroller(comptroller_);
     }
 

@@ -143,7 +143,7 @@ describe('FundProxyFactory', function () {
             reserveExecutionRate,
             shareTokenName
           )
-      ).to.be.revertedWith('revertCode(79)'); //FUND_PROXY_FACTORY_INVALID_DENOMINATION
+      ).to.be.revertedWith('RevertCode(79)'); //FUND_PROXY_FACTORY_INVALID_DENOMINATION
     });
     it('should revert: invalid creator', async function () {
       const invalidCreator = collector;
@@ -159,7 +159,7 @@ describe('FundProxyFactory', function () {
             reserveExecutionRate,
             shareTokenName
           )
-      ).to.be.revertedWith('revertCode(13)'); //FUND_PROXY_FACTORY_INVALID_CREATOR
+      ).to.be.revertedWith('RevertCode(13)'); //FUND_PROXY_FACTORY_INVALID_CREATOR
     });
     it('should revert: invalid level', async function () {
       const invalidLevel = 0;
@@ -175,7 +175,7 @@ describe('FundProxyFactory', function () {
             reserveExecutionRate,
             shareTokenName
           )
-      ).to.be.revertedWith('revertCode(75)'); //FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
+      ).to.be.revertedWith('RevertCode(75)'); //FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
     });
     it('should revert: invalid management fee rate', async function () {
       const invalidMFeeRate = FEE_BASE;

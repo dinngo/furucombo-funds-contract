@@ -118,7 +118,7 @@ describe('RCurveStable', function () {
         resolver
           .connect(owner)
           .setPoolInfo(constants.AddressZero, liquidityPool.address, token.address, await token.decimals())
-      ).to.be.revertedWith('revertCode(59)'); // RCURVE_STABLE_ZERO_ASSET_ADDRESS
+      ).to.be.revertedWith('RevertCode(59)'); // RCURVE_STABLE_ZERO_ASSET_ADDRESS
     });
 
     it('should revert: zero valued asset address', async function () {
@@ -126,13 +126,13 @@ describe('RCurveStable', function () {
         resolver
           .connect(owner)
           .setPoolInfo(lpToken.address, liquidityPool.address, constants.AddressZero, await token.decimals())
-      ).to.be.revertedWith('revertCode(61)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS
+      ).to.be.revertedWith('RevertCode(61)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS
     });
 
     it('should revert: zero asset decimal', async function () {
       await expect(
         resolver.connect(owner).setPoolInfo(lpToken.address, liquidityPool.address, token.address, 0)
-      ).to.be.revertedWith('revertCode(62)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL
+      ).to.be.revertedWith('RevertCode(62)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL
     });
 
     it('should revert: zero pool address', async function () {
@@ -140,7 +140,7 @@ describe('RCurveStable', function () {
         resolver
           .connect(owner)
           .setPoolInfo(lpToken.address, constants.AddressZero, token.address, await token.decimals())
-      ).to.be.revertedWith('revertCode(60)'); // RCURVE_STABLE_ZERO_POOL_ADDRESS
+      ).to.be.revertedWith('RevertCode(60)'); // RCURVE_STABLE_ZERO_POOL_ADDRESS
     });
 
     it('should revert: non-owner', async function () {
@@ -179,7 +179,7 @@ describe('RCurveStable', function () {
     });
 
     it('should revert: not set yet', async function () {
-      await expect(resolver.connect(owner).removePoolInfo(token.address)).to.be.revertedWith('revertCode(63)'); // RCURVE_STABLE_POOL_INFO_IS_NOT_SET
+      await expect(resolver.connect(owner).removePoolInfo(token.address)).to.be.revertedWith('RevertCode(63)'); // RCURVE_STABLE_POOL_INFO_IS_NOT_SET
     });
 
     it('should revert: non-owner', async function () {
