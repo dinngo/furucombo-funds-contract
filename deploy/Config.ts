@@ -15,6 +15,7 @@ export const WL_AAVE_V2_SIGS = [
   '0x54296154', // flashLoan(address[],uint256[],uint256[],bytes)
 ];
 export const WL_FUNDS_SIGS = [
+  '0xde41691c', // updateTokens(address[])
   '0x0ce7df36', // addFunds(address[],uint256[])
   '0xb3e38f16', // returnFunds(address[],uint256[])
   '0xdb71410e', // checkSlippage(address[],uint256[])
