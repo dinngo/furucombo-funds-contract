@@ -4,7 +4,7 @@ import { getEventArgs, asciiToHex32 } from '../utils/utils';
 const hre = require('hardhat');
 
 export async function deployFurucomboProxyAndRegistry(): Promise<any> {
-  const fRegistry = await (await ethers.getContractFactory('Registry')).deploy();
+  const fRegistry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
   await fRegistry.deployed();
 
   const furucombo = await (await ethers.getContractFactory('FurucomboProxy')).deploy(fRegistry.address);

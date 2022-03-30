@@ -1,7 +1,7 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { FurucomboProxyMock, Registry, IERC20, IUniswapV2Router02, HSushiSwap } from '../../typechain';
+import { FurucomboProxyMock, FurucomboRegistry, IERC20, IUniswapV2Router02, HSushiSwap } from '../../typechain';
 
 import {
   MATIC_TOKEN,
@@ -36,7 +36,7 @@ describe('Sushiswap Swap', function () {
   let token: IERC20;
 
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   let hSushiSwap: HSushiSwap;
   let router: IUniswapV2Router02;
 
@@ -48,7 +48,7 @@ describe('Sushiswap Swap', function () {
     [owner, user, someone] = await (ethers as any).getSigners();
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

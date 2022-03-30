@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   FurucomboProxyMock,
-  Registry,
+  FurucomboRegistry,
   IERC20,
   HAaveProtocolV2,
   IATokenV2,
@@ -43,7 +43,7 @@ describe('Aave V2', function () {
   let wmaticProviderAddress: Signer;
 
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   let hAaveV2: HAaveProtocolV2;
 
   let lendingPool: ILendingPoolV2;
@@ -66,7 +66,7 @@ describe('Aave V2', function () {
     await mockToken.deployed();
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

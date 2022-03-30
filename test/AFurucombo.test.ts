@@ -11,7 +11,7 @@ import {
   IERC20,
   AFurucombo,
   FurucomboProxy,
-  Registry,
+  FurucomboRegistry,
   HFunds,
   HMock,
   Faucet,
@@ -62,7 +62,7 @@ describe('AFurucombo', function () {
 
   let furucombo: FurucomboProxy;
   let aFurucombo: AFurucombo;
-  let furuRegistry: Registry;
+  let furuRegistry: FurucomboRegistry;
   let hFunds: HFunds;
   let hMock: HMock;
   let hQuickSwap: HQuickSwap;
@@ -126,7 +126,7 @@ describe('AFurucombo', function () {
     await comptroller.setExecAction(taskExecutor.address);
 
     // Setup furucombo and AFurucombo
-    furuRegistry = await (await ethers.getContractFactory('Registry')).deploy();
+    furuRegistry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await furuRegistry.deployed();
 
     furucombo = await (await ethers.getContractFactory('FurucomboProxy')).deploy(furuRegistry.address);

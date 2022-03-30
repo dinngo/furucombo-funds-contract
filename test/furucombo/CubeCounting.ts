@@ -4,7 +4,7 @@ import { ethers, deployments } from 'hardhat';
 import {
   FurucomboProxyMock,
   FurucomboProxy,
-  Registry,
+  FurucomboRegistry,
   HAaveProtocolV2,
   IERC20,
   HFunds,
@@ -19,7 +19,7 @@ describe('CubeCounting', function () {
 
   let proxy: FurucomboProxyMock;
   let furucomboProxy: FurucomboProxy;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   let hAaveV2: HAaveProtocolV2;
   let hFunds: HFunds;
   let lendingPool: ILendingPoolV2;
@@ -34,7 +34,7 @@ describe('CubeCounting', function () {
     tokenA = await ethers.getContractAt('IERC20', WMATIC_TOKEN);
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

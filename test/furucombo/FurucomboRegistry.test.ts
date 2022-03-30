@@ -1,17 +1,17 @@
 import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { Registry } from '../../typechain';
+import { FurucomboRegistry } from '../../typechain';
 
-import { ether, asciiToHex32 } from './../utils/utils';
+import { ether, asciiToHex32 } from '../utils/utils';
 
-describe('Registry', function () {
+describe('FurucomboRegistry', function () {
   let owner: Wallet;
   let contract1: Wallet;
   let contract2: Wallet;
   let someone: Wallet;
 
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   const info = asciiToHex32('test');
   const info2 = asciiToHex32('test2');
   const infoPaddedHex = asciiToHex32('test');
@@ -20,7 +20,7 @@ describe('Registry', function () {
   beforeEach(async function () {
     [owner, contract1, contract2, someone] = await (ethers as any).getSigners();
 
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
   });
 

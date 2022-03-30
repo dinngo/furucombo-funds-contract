@@ -1,7 +1,7 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { FurucomboProxyMock, Registry, IERC20, ICurveHandler, HCurve } from '../../typechain';
+import { FurucomboProxyMock, FurucomboRegistry, IERC20, ICurveHandler, HCurve } from '../../typechain';
 
 import { DAI_TOKEN, USDT_TOKEN, CURVE_AAVE_SWAP, CURVE_AAVECRV, MATIC_TOKEN, NATIVE_TOKEN } from '../utils/constants';
 
@@ -21,7 +21,7 @@ describe('HCurve', function () {
   let aaveSwap: ICurveHandler;
   let hCurve: HCurve;
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   const slippage = BigNumber.from('3');
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
@@ -30,7 +30,7 @@ describe('HCurve', function () {
     aaveSwap = await ethers.getContractAt('ICurveHandler', CURVE_AAVE_SWAP);
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

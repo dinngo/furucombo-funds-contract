@@ -7,7 +7,7 @@ import {
   MortgageVault,
   Chainlink,
   IERC20,
-  Registry,
+  FurucomboRegistry,
   FurucomboProxy,
   HAaveProtocolV2,
   HFunds,
@@ -101,7 +101,7 @@ describe('FundExecuteStrategy', function () {
   let shareToken: ShareToken;
   let denominationProvider: Signer;
 
-  let fRegistry: Registry;
+  let fRegistry: FurucomboRegistry;
   let furucombo: FurucomboProxy;
   let hAaveV2: HAaveProtocolV2;
   let hCurve: HCurve;
