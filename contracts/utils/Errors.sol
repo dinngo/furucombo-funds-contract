@@ -74,7 +74,7 @@ library Errors {
         PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT, // 66: "Crystallization period too short"
         PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET, // 67: "Can not crystallized yet"
         PERFORMANCE_FEE_MODULE_TIME_BEFORE_START, // 68: "Time before start"
-        MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE, // 69: "Fee rate should be less than 100%"
+        MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FUND_BASE, // 69: "Fee rate should be less than 100%"
         SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION, // 70: "Redeem in pending without permission"
         AFURUCOMBO_REMAINING_TOKENS, // 71: "Furucombo has remaining tokens"
         IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE, // 72: "pending share is not resolvable"

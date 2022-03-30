@@ -47,25 +47,25 @@ library Whitelist {
     function _permit(
         AssetWList storage wl_,
         uint256 level_,
-        address asset
+        address asset_
     ) internal {
-        wl_.acl[level_][asset] = true;
+        wl_.acl[level_][asset_] = true;
     }
 
     function _forbid(
         AssetWList storage wl_,
         uint256 level_,
-        address asset
+        address asset_
     ) internal {
-        wl_.acl[level_][asset] = false;
+        wl_.acl[level_][asset_] = false;
     }
 
     function _canCall(
         AssetWList storage wl_,
         uint256 level_,
-        address asset
+        address asset_
     ) internal view returns (bool) {
-        return wl_.acl[level_][asset] || wl_.acl[_ANY32][asset];
+        return wl_.acl[level_][asset_] || wl_.acl[_ANY32][asset_];
     }
 
     // Creator white list

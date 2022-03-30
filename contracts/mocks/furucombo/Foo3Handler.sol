@@ -44,12 +44,12 @@ contract Foo3Handler is HandlerBase {
     function postProcess() external payable override {
         bytes4 sig = stack.getSig();
         if (sig == bytes4(keccak256(bytes("bar1(address)")))) {
-            address foo_ = stack.getAddress();
-            IFoo3 target = IFoo3(foo_);
+            address foo = stack.getAddress();
+            IFoo3 target = IFoo3(foo);
             target.reset1();
         } else if (sig == bytes4(keccak256(bytes("bar2(address)")))) {
-            address foo_ = stack.getAddress();
-            IFoo3 target = IFoo3(foo_);
+            address foo = stack.getAddress();
+            IFoo3 target = IFoo3(foo);
             target.reset2();
         } else revert("Invalid post process");
     }

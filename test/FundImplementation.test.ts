@@ -567,7 +567,7 @@ describe('FundImplementation', function () {
 
       it('should revert: set by max value', async function () {
         const maxRate = 1e4;
-        await expect(fundImplementation.setManagementFeeRate(maxRate)).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
+        await expect(fundImplementation.setManagementFeeRate(maxRate)).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FUND_BASE
       });
     });
 

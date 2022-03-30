@@ -26,7 +26,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     function _setManagementFeeRate(uint256 feeRate_) internal virtual returns (int128) {
         Errors._require(
             feeRate_ < _FUND_PERCENTAGE_BASE,
-            Errors.Code.MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
+            Errors.Code.MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FUND_BASE
         );
         return _setManagementFeeRate(feeRate_.divu(_FUND_PERCENTAGE_BASE));
     }
@@ -41,12 +41,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
 
     /// @notice Claim the accumulated management fee.
     /// @return The fee amount being claimed.
-    function claimManagementFee()
-        public
-        virtual
-        nonReentrant
-        returns (uint256)
-    {
+    function claimManagementFee() public virtual nonReentrant returns (uint256) {
         return _updateManagementFee();
     }
 
