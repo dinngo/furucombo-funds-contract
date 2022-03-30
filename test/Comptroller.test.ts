@@ -571,7 +571,8 @@ describe('Comptroller', function () {
 
   // Pending
   describe('Pending', function () {
-    const expiration = '86400'; // 1 day
+    const expiration = 86400; // 1 day
+    const penalty = 100; // 1%
 
     it('set liquidator', async function () {
       expect(await comptroller.pendingLiquidator()).to.be.eq(liquidator.address);
@@ -605,6 +606,20 @@ describe('Comptroller', function () {
 
     it('should revert: set expiration by non-owner', async function () {
       await expect(comptroller.connect(user).setPendingExpiration(expiration)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+    });
+
+    it('set penalty', async function () {
+      const currentPenalty = await comptroller.pendingPenalty();
+      const penalty = currentPenalty.mul(2);
+      await expect(comptroller.setPendingPenalty(penalty)).to.emit(comptroller, 'SetPendingPenalty').withArgs(penalty);
+      expect(await comptroller.pendingPenalty()).to.be.eq(penalty);
+    });
+
+    it('should revert: set penalty by non-owner', async function () {
+      const penalty = 100;
+      await expect(comptroller.connect(user).setPendingPenalty(penalty)).to.be.revertedWith(
         'Ownable: caller is not the owner'
       );
     });
