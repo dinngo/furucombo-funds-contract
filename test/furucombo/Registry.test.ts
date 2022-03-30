@@ -1,17 +1,17 @@
 import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { Registry } from '../../typechain';
+import { FurucomboRegistry } from '../../typechain';
 
 import { ether, asciiToHex32 } from './../utils/utils';
 
-describe('Registry', function () {
+describe('FurucomboRegistry', function () {
   let owner: Wallet;
   let contract1: Wallet;
   let contract2: Wallet;
   let someone: Wallet;
 
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   const info = asciiToHex32('test');
   const info2 = asciiToHex32('test2');
   const infoPaddedHex = asciiToHex32('test');
@@ -20,7 +20,9 @@ describe('Registry', function () {
   beforeEach(async function () {
     [owner, contract1, contract2, someone] = await (ethers as any).getSigners();
 
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (
+      await ethers.getContractFactory('FurucomboRegistry')
+    ).deploy();
     await registry.deployed();
   });
 
@@ -34,11 +36,13 @@ describe('Registry', function () {
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).register(contract1.address, info)).to.be.reverted;
+      await expect(registry.connect(someone).register(contract1.address, info))
+        .to.be.reverted;
     });
 
     it('zero address', async function () {
-      await expect(registry.register(constants.AddressZero, info)).to.be.reverted;
+      await expect(registry.register(constants.AddressZero, info)).to.be
+        .reverted;
     });
 
     it('set info', async function () {
@@ -51,7 +55,9 @@ describe('Registry', function () {
       await registry.register(contract1.address, info);
       await registry.unregister(contract1.address);
 
-      await expect(registry.register(contract1.address, info)).to.be.revertedWith('unregistered');
+      await expect(
+        registry.register(contract1.address, info)
+      ).to.be.revertedWith('unregistered');
     });
   });
 
@@ -68,16 +74,21 @@ describe('Registry', function () {
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).unregister(contract1.address)).to.be.reverted;
+      await expect(registry.connect(someone).unregister(contract1.address)).to
+        .be.reverted;
     });
 
     it('no registration', async function () {
-      await expect(registry.unregister(contract2.address)).to.be.revertedWith('no registration');
+      await expect(registry.unregister(contract2.address)).to.be.revertedWith(
+        'no registration'
+      );
     });
 
     it('unregistered', async function () {
       await registry.unregister(contract1.address);
-      await expect(registry.unregister(contract1.address)).to.be.revertedWith('unregistered');
+      await expect(registry.unregister(contract1.address)).to.be.revertedWith(
+        'unregistered'
+      );
     });
   });
 
@@ -91,11 +102,14 @@ describe('Registry', function () {
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).registerCaller(contract1.address, info)).to.be.reverted;
+      await expect(
+        registry.connect(someone).registerCaller(contract1.address, info)
+      ).to.be.reverted;
     });
 
     it('zero address', async function () {
-      await expect(registry.registerCaller(constants.AddressZero, info)).to.be.reverted;
+      await expect(registry.registerCaller(constants.AddressZero, info)).to.be
+        .reverted;
     });
 
     it('set info', async function () {
@@ -107,7 +121,9 @@ describe('Registry', function () {
     it('unregistered', async function () {
       await registry.registerCaller(contract1.address, info);
       await registry.unregisterCaller(contract1.address);
-      await expect(registry.registerCaller(contract1.address, info)).to.be.revertedWith('unregistered');
+      await expect(
+        registry.registerCaller(contract1.address, info)
+      ).to.be.revertedWith('unregistered');
     });
   });
 
@@ -125,16 +141,22 @@ describe('Registry', function () {
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).unregisterCaller(constants.AddressZero)).to.be.reverted;
+      await expect(
+        registry.connect(someone).unregisterCaller(constants.AddressZero)
+      ).to.be.reverted;
     });
 
     it('no registration', async function () {
-      await expect(registry.unregisterCaller(contract2.address)).to.be.revertedWith('no registration');
+      await expect(
+        registry.unregisterCaller(contract2.address)
+      ).to.be.revertedWith('no registration');
     });
 
     it('unregistered', async function () {
       await registry.unregisterCaller(contract1.address);
-      await expect(registry.unregisterCaller(contract1.address)).to.be.revertedWith('unregistered');
+      await expect(
+        registry.unregisterCaller(contract1.address)
+      ).to.be.revertedWith('unregistered');
     });
   });
 
@@ -192,7 +214,9 @@ describe('Registry', function () {
 
       it('removed', async function () {
         await registry.unregister(contract1.address);
-        expect(await registry.isValidHandler(contract1.address)).to.be.eq(false);
+        expect(await registry.isValidHandler(contract1.address)).to.be.eq(
+          false
+        );
       });
     });
 
@@ -202,7 +226,9 @@ describe('Registry', function () {
       });
 
       it('wrong type', async function () {
-        expect(await registry.isValidHandler(contract2.address)).to.be.eq(false);
+        expect(await registry.isValidHandler(contract2.address)).to.be.eq(
+          false
+        );
       });
 
       it('removed', async function () {
@@ -225,7 +251,9 @@ describe('Registry', function () {
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).halt()).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(registry.connect(someone).halt()).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('halted', async function () {
@@ -248,7 +276,9 @@ describe('Registry', function () {
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).unhalt()).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(registry.connect(someone).unhalt()).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
     });
 
     it('not halted', async function () {
@@ -266,13 +296,19 @@ describe('Registry', function () {
     it('normal', async function () {
       expect(await registry.bannedAgents(someone.address)).to.be.eq(ether('0'));
 
-      await expect(registry.ban(someone.address)).to.emit(registry, 'Banned').withArgs(someone.address);
+      await expect(registry.ban(someone.address))
+        .to.emit(registry, 'Banned')
+        .withArgs(someone.address);
 
-      expect(await registry.bannedAgents(someone.address)).to.be.not.eq(ether('0'));
+      expect(await registry.bannedAgents(someone.address)).to.be.not.eq(
+        ether('0')
+      );
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).ban(owner.address)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(
+        registry.connect(someone).ban(owner.address)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('banned', async function () {
@@ -289,21 +325,27 @@ describe('Registry', function () {
     });
 
     it('normal', async function () {
-      expect(await registry.bannedAgents(someone.address)).to.be.not.eq(ether('0'));
+      expect(await registry.bannedAgents(someone.address)).to.be.not.eq(
+        ether('0')
+      );
 
-      await expect(registry.unban(someone.address)).to.emit(registry, 'Unbanned').withArgs(someone.address);
+      await expect(registry.unban(someone.address))
+        .to.emit(registry, 'Unbanned')
+        .withArgs(someone.address);
       expect(await registry.bannedAgents(someone.address)).to.be.eq(ether('0'));
     });
 
     it('non owner', async function () {
-      await expect(registry.connect(someone).unban(someone.address)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
-      );
+      await expect(
+        registry.connect(someone).unban(someone.address)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('not banned', async function () {
       await registry.unban(someone.address);
-      await expect(registry.unban(someone.address)).to.be.revertedWith('Not banned');
+      await expect(registry.unban(someone.address)).to.be.revertedWith(
+        'Not banned'
+      );
     });
   });
 });

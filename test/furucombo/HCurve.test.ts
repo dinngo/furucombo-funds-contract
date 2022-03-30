@@ -1,9 +1,22 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { FurucomboProxyMock, Registry, IERC20, ICurveHandler, HCurve } from '../../typechain';
+import {
+  FurucomboProxyMock,
+  FurucomboRegistry,
+  IERC20,
+  ICurveHandler,
+  HCurve,
+} from '../../typechain';
 
-import { DAI_TOKEN, USDT_TOKEN, CURVE_AAVE_SWAP, CURVE_AAVECRV, MATIC_TOKEN, NATIVE_TOKEN } from '../utils/constants';
+import {
+  DAI_TOKEN,
+  USDT_TOKEN,
+  CURVE_AAVE_SWAP,
+  CURVE_AAVECRV,
+  MATIC_TOKEN,
+  NATIVE_TOKEN,
+} from '../utils/constants';
 
 import {
   ether,
@@ -21,28 +34,37 @@ describe('HCurve', function () {
   let aaveSwap: ICurveHandler;
   let hCurve: HCurve;
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   const slippage = BigNumber.from('3');
-  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
-    await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(
+    async ({ deployments, ethers }, options) => {
+      await deployments.fixture(''); // ensure you start from a fresh deployments
+      [owner, user] = await (ethers as any).getSigners();
 
-    aaveSwap = await ethers.getContractAt('ICurveHandler', CURVE_AAVE_SWAP);
+      aaveSwap = await ethers.getContractAt('ICurveHandler', CURVE_AAVE_SWAP);
 
-    // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
-    await registry.deployed();
+      // Setup proxy and Aproxy
+      registry = await (
+        await ethers.getContractFactory('FurucomboRegistry')
+      ).deploy();
+      await registry.deployed();
 
-    proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);
-    await proxy.deployed();
+      proxy = await (
+        await ethers.getContractFactory('FurucomboProxyMock')
+      ).deploy(registry.address);
+      await proxy.deployed();
 
-    hCurve = await (await ethers.getContractFactory('HCurve')).deploy();
-    await hCurve.deployed();
-    await registry.register(hCurve.address, asciiToHex32('HCurve'));
+      hCurve = await (await ethers.getContractFactory('HCurve')).deploy();
+      await hCurve.deployed();
+      await registry.register(hCurve.address, asciiToHex32('HCurve'));
 
-    // register HCurve callee
-    await registry.registerHandlerCalleeWhitelist(hCurve.address, aaveSwap.address);
-  });
+      // register HCurve callee
+      await registry.registerHandlerCalleeWhitelist(
+        hCurve.address,
+        aaveSwap.address
+      );
+    }
+  );
 
   beforeEach(async function () {
     await setupTest();
@@ -63,7 +85,11 @@ describe('HCurve', function () {
       providerAddress = await tokenProviderQuick(token0Address);
       token0 = await ethers.getContractAt('IERC20', token0Address);
       token1 = await ethers.getContractAt('IERC20', token1Address);
-      answer = await aaveSwap['get_dy_underlying(int128,int128,uint256)'](2, 0, value);
+      answer = await aaveSwap['get_dy_underlying(int128,int128,uint256)'](
+        2,
+        0,
+        value
+      );
       token0User = await token0.balanceOf(user.address);
       token1User = await token1.balanceOf(user.address);
       await token0.connect(providerAddress).transfer(proxy.address, value);
@@ -72,19 +98,25 @@ describe('HCurve', function () {
 
     describe('aave pool', function () {
       it('Exact input swap USDT to DAI by exchangeUnderlying', async function () {
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          aaveSwap.address,
-          token0.address,
-          token1.address,
-          2,
-          0,
-          value,
-          mulPercent(answer, BigNumber.from('100').sub(slippage)),
-        ]);
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
+          [
+            aaveSwap.address,
+            token0.address,
+            token1.address,
+            2,
+            0,
+            value,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
 
-        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
-          value: ether('1'), // Ensure handler can correctly deal with ether
-        });
+        const receipt = await proxy
+          .connect(user)
+          .execMock(hCurve.address, data, {
+            value: ether('1'), // Ensure handler can correctly deal with ether
+          });
 
         // Get handler return result
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
@@ -105,19 +137,25 @@ describe('HCurve', function () {
       });
 
       it('Exact input swap USDT to DAI by exchangeUnderlying with max amount', async function () {
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          aaveSwap.address,
-          token0.address,
-          token1.address,
-          2,
-          0,
-          constants.MaxUint256,
-          mulPercent(answer, BigNumber.from('100').sub(slippage)),
-        ]);
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
+          [
+            aaveSwap.address,
+            token0.address,
+            token1.address,
+            2,
+            0,
+            constants.MaxUint256,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
 
-        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
-          value: ether('1'), // Ensure handler can correctly deal with ether
-        });
+        const receipt = await proxy
+          .connect(user)
+          .execMock(hCurve.address, data, {
+            value: ether('1'), // Ensure handler can correctly deal with ether
+          });
 
         // Get handler return result
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
@@ -138,15 +176,11 @@ describe('HCurve', function () {
       });
 
       it('should revert: not support MRC20', async function () {
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          aaveSwap.address,
-          MATIC_TOKEN,
-          token1.address,
-          2,
-          0,
-          value,
-          0,
-        ]);
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
+          [aaveSwap.address, MATIC_TOKEN, token1.address, 2, 0, value, 0]
+        );
 
         await expect(
           proxy.connect(user).execMock(hCurve.address, data, {
@@ -157,17 +191,16 @@ describe('HCurve', function () {
 
       it('should revert: invalid callee when exchangeUnderlying', async function () {
         // Unregister callee
-        await registry.unregisterHandlerCalleeWhitelist(hCurve.address, aaveSwap.address);
+        await registry.unregisterHandlerCalleeWhitelist(
+          hCurve.address,
+          aaveSwap.address
+        );
 
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          aaveSwap.address,
-          MATIC_TOKEN,
-          token1.address,
-          2,
-          0,
-          value,
-          0,
-        ]);
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
+          [aaveSwap.address, MATIC_TOKEN, token1.address, 2, 0, value, 0]
+        );
 
         await expect(
           proxy.connect(user).execMock(hCurve.address, data, {
@@ -178,17 +211,23 @@ describe('HCurve', function () {
 
       it('should revert: input token not support native token', async function () {
         const inputAmount = ether('5');
-        const answer = await aaveSwap['get_dy_underlying(int128,int128,uint256)'](2, 0, inputAmount);
+        const answer = await aaveSwap[
+          'get_dy_underlying(int128,int128,uint256)'
+        ](2, 0, inputAmount);
 
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          aaveSwap.address,
-          NATIVE_TOKEN,
-          token0.address,
-          2,
-          0,
-          inputAmount,
-          mulPercent(answer, BigNumber.from('100').sub(slippage)),
-        ]);
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)',
+          [
+            aaveSwap.address,
+            NATIVE_TOKEN,
+            token0.address,
+            2,
+            0,
+            inputAmount,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
 
         await expect(
           proxy.connect(user).execMock(hCurve.address, data, {
@@ -205,7 +244,9 @@ describe('HCurve', function () {
       const token1Address = USDT_TOKEN;
       const poolTokenAddress = CURVE_AAVECRV;
 
-      let token0User: BigNumber, token1User: BigNumber, poolTokenUser: BigNumber;
+      let token0User: BigNumber,
+        token1User: BigNumber,
+        poolTokenUser: BigNumber;
       let provider0Address: string, provider1Address: string;
       let poolTokenProvider: Signer;
       let token0: IERC20, token1: IERC20, poolToken: IERC20;
@@ -226,27 +267,41 @@ describe('HCurve', function () {
         const token0Amount = ether('1');
         const token1Amount = BigNumber.from('2000000');
         const tokens = [token0.address, constants.AddressZero, token1.address];
-        const amounts: [BigNumber, BigNumber, BigNumber] = [token0Amount, BigNumber.from('0'), token1Amount];
+        const amounts: [BigNumber, BigNumber, BigNumber] = [
+          token0Amount,
+          BigNumber.from('0'),
+          token1Amount,
+        ];
         // Get expected answer
-        const answer = await aaveSwap['calc_token_amount(uint256[3],bool)'](amounts, true);
+        const answer = await aaveSwap['calc_token_amount(uint256[3],bool)'](
+          amounts,
+          true
+        );
 
         // Execute handler
-        await token0.connect(provider0Address).transfer(proxy.address, token0Amount);
-        await token1.connect(provider1Address).transfer(proxy.address, token1Amount);
+        await token0
+          .connect(provider0Address)
+          .transfer(proxy.address, token0Amount);
+        await token1
+          .connect(provider1Address)
+          .transfer(proxy.address, token1Amount);
 
         await proxy.updateTokenMock(token0.address);
         await proxy.updateTokenMock(token1.address);
-        const minMintAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
-        const data = getCallData(hCurve, 'addLiquidityUnderlying(address,address,address[],uint256[],uint256)', [
-          aaveSwap.address,
-          poolToken.address,
-          tokens,
-          amounts,
-          minMintAmount,
-        ]);
-        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
-          value: ether('1'),
-        });
+        const minMintAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
+        );
+        const data = getCallData(
+          hCurve,
+          'addLiquidityUnderlying(address,address,address[],uint256[],uint256)',
+          [aaveSwap.address, poolToken.address, tokens, amounts, minMintAmount]
+        );
+        const receipt = await proxy
+          .connect(user)
+          .execMock(hCurve.address, data, {
+            value: ether('1'),
+          });
 
         // Get handler return result
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
@@ -264,29 +319,48 @@ describe('HCurve', function () {
         expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
         // poolToken amount should be greater than answer * 0.999 which is
         // referenced from tests in curve contract.
-        expect(poolTokenUserEnd).to.be.gte(answer.mul(BigNumber.from('999')).div(BigNumber.from('1000')));
+        expect(poolTokenUserEnd).to.be.gte(
+          answer.mul(BigNumber.from('999')).div(BigNumber.from('1000'))
+        );
         expect(poolTokenUserEnd).to.be.lte(answer);
       });
 
       it('remove from pool to USDT by removeLiquidityOneCoinUnderlying', async function () {
         const poolTokenUser = ether('0.1');
         const token1UserBefore = await token1.balanceOf(user.address);
-        const answer = await aaveSwap['calc_withdraw_one_coin(uint256,int128)'](poolTokenUser, 2);
+        const answer = await aaveSwap['calc_withdraw_one_coin(uint256,int128)'](
+          poolTokenUser,
+          2
+        );
 
-        await poolToken.connect(poolTokenProvider).transfer(proxy.address, poolTokenUser);
+        await poolToken
+          .connect(poolTokenProvider)
+          .transfer(proxy.address, poolTokenUser);
 
         await proxy.updateTokenMock(poolToken.address);
 
-        const minAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
+        const minAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
+        );
         const data = getCallData(
           hCurve,
           'removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)',
-          [aaveSwap.address, poolToken.address, token1.address, poolTokenUser, 2, minAmount]
+          [
+            aaveSwap.address,
+            poolToken.address,
+            token1.address,
+            poolTokenUser,
+            2,
+            minAmount,
+          ]
         );
 
-        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
-          value: ether('1'),
-        });
+        const receipt = await proxy
+          .connect(user)
+          .execMock(hCurve.address, data, {
+            value: ether('1'),
+          });
 
         // Get handler return result
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
@@ -303,29 +377,44 @@ describe('HCurve', function () {
 
       it('should revert: invalid callee when addLiquidityUnderlying', async function () {
         // Unregister callee
-        await registry.unregisterHandlerCalleeWhitelist(hCurve.address, aaveSwap.address);
+        await registry.unregisterHandlerCalleeWhitelist(
+          hCurve.address,
+          aaveSwap.address
+        );
 
         const token0Amount = ether('1');
         const token1Amount = BigNumber.from('2000000');
         const tokens = [token0.address, constants.AddressZero, token1.address];
-        const amounts: [BigNumber, BigNumber, BigNumber] = [token0Amount, BigNumber.from('0'), token1Amount];
+        const amounts: [BigNumber, BigNumber, BigNumber] = [
+          token0Amount,
+          BigNumber.from('0'),
+          token1Amount,
+        ];
         // Get expected answer
-        const answer = await aaveSwap['calc_token_amount(uint256[3],bool)'](amounts, true);
+        const answer = await aaveSwap['calc_token_amount(uint256[3],bool)'](
+          amounts,
+          true
+        );
 
         // Execute handler
-        await token0.connect(provider0Address).transfer(proxy.address, token0Amount);
-        await token1.connect(provider1Address).transfer(proxy.address, token1Amount);
+        await token0
+          .connect(provider0Address)
+          .transfer(proxy.address, token0Amount);
+        await token1
+          .connect(provider1Address)
+          .transfer(proxy.address, token1Amount);
 
         await proxy.updateTokenMock(token0.address);
         await proxy.updateTokenMock(token1.address);
-        const minMintAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
-        const data = getCallData(hCurve, 'addLiquidityUnderlying(address,address,address[],uint256[],uint256)', [
-          aaveSwap.address,
-          poolToken.address,
-          tokens,
-          amounts,
-          minMintAmount,
-        ]);
+        const minMintAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
+        );
+        const data = getCallData(
+          hCurve,
+          'addLiquidityUnderlying(address,address,address[],uint256[],uint256)',
+          [aaveSwap.address, poolToken.address, tokens, amounts, minMintAmount]
+        );
 
         await expect(
           proxy.connect(user).execMock(hCurve.address, data, {
@@ -336,28 +425,48 @@ describe('HCurve', function () {
 
       it('should revert: invalid callee when removeLiquidityOneCoinUnderlying', async function () {
         // Unregister callee
-        await registry.unregisterHandlerCalleeWhitelist(hCurve.address, aaveSwap.address);
+        await registry.unregisterHandlerCalleeWhitelist(
+          hCurve.address,
+          aaveSwap.address
+        );
 
         const poolTokenUser = ether('0.1');
         const token1UserBefore = await token1.balanceOf(user.address);
-        const answer = await aaveSwap['calc_withdraw_one_coin(uint256,int128)'](poolTokenUser, 2);
+        const answer = await aaveSwap['calc_withdraw_one_coin(uint256,int128)'](
+          poolTokenUser,
+          2
+        );
 
-        await poolToken.connect(poolTokenProvider).transfer(proxy.address, poolTokenUser);
+        await poolToken
+          .connect(poolTokenProvider)
+          .transfer(proxy.address, poolTokenUser);
 
         await proxy.updateTokenMock(poolToken.address);
 
-        const minAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
+        const minAmount = mulPercent(
+          answer,
+          BigNumber.from('100').sub(slippage)
+        );
         const data = getCallData(
           hCurve,
           'removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)',
-          [aaveSwap.address, poolToken.address, token1.address, poolTokenUser, 2, minAmount]
+          [
+            aaveSwap.address,
+            poolToken.address,
+            token1.address,
+            poolTokenUser,
+            2,
+            minAmount,
+          ]
         );
 
         await expect(
           proxy.connect(user).execMock(hCurve.address, data, {
             value: ether('1'),
           })
-        ).revertedWith('HCurve_removeLiquidityOneCoinUnderlying: invalid callee');
+        ).revertedWith(
+          'HCurve_removeLiquidityOneCoinUnderlying: invalid callee'
+        );
       });
     });
   });

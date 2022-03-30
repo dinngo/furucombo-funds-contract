@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   FurucomboProxyMock,
-  Registry,
+  FurucomboRegistry,
   FooFactory,
   Foo2Factory,
   Foo,
@@ -17,30 +17,47 @@ import {
   Foo6Handler,
 } from '../../typechain';
 
-import { DAI_TOKEN, WETH_TOKEN, MKR_TOKEN, NATIVE_TOKEN, WMATIC_TOKEN } from './../utils/constants';
-import { ether, simpleEncode, asciiToHex32, balanceDelta } from './../utils/utils';
+import {
+  DAI_TOKEN,
+  WETH_TOKEN,
+  MKR_TOKEN,
+  NATIVE_TOKEN,
+  WMATIC_TOKEN,
+} from './../utils/constants';
+import {
+  ether,
+  simpleEncode,
+  asciiToHex32,
+  balanceDelta,
+} from './../utils/utils';
 
 describe('Proxy', function () {
   let owner: Wallet;
   let user: Wallet;
 
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
 
   let userBalance: BigNumber;
   let proxyBalance: BigNumber;
 
-  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
-    await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(
+    async ({ deployments, ethers }, options) => {
+      await deployments.fixture(''); // ensure you start from a fresh deployments
+      [owner, user] = await (ethers as any).getSigners();
 
-    // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
-    await registry.deployed();
+      // Setup proxy and Aproxy
+      registry = await (
+        await ethers.getContractFactory('FurucomboRegistry')
+      ).deploy();
+      await registry.deployed();
 
-    proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);
-    await proxy.deployed();
-  });
+      proxy = await (
+        await ethers.getContractFactory('FurucomboProxyMock')
+      ).deploy(registry.address);
+      await proxy.deployed();
+    }
+  );
   // `beforeEach` will run before each test, re-deploying the contract every
   // time. It receives a callback, which can be async.
   // setupTest will use the evm_snapshot to reset environment to speed up testing
@@ -56,7 +73,9 @@ describe('Proxy', function () {
     let fooFactory: FooFactory;
 
     beforeEach(async function () {
-      fooFactory = await (await ethers.getContractFactory('FooFactory')).deploy();
+      fooFactory = await (
+        await ethers.getContractFactory('FooFactory')
+      ).deploy();
       await fooFactory.deployed();
 
       await fooFactory.createFoo();
@@ -66,7 +85,9 @@ describe('Proxy', function () {
       foo1 = await ethers.getContractAt('Foo', await fooFactory.addressOf(1));
       foo2 = await ethers.getContractAt('Foo', await fooFactory.addressOf(2));
 
-      fooHandler = await (await ethers.getContractFactory('FooHandler')).deploy(fooFactory.address);
+      fooHandler = await (
+        await ethers.getContractFactory('FooHandler')
+      ).deploy(fooFactory.address);
       await fooHandler.deployed();
       await registry.register(fooHandler.address, asciiToHex32('foo'));
     });
@@ -82,7 +103,9 @@ describe('Proxy', function () {
     });
 
     it('should revert: caller as handler', async function () {
-      const fooHandler2 = await (await ethers.getContractFactory('FooHandler')).deploy(fooFactory.address);
+      const fooHandler2 = await (
+        await ethers.getContractFactory('FooHandler')
+      ).deploy(fooFactory.address);
       await fooHandler.deployed();
 
       await registry.registerCaller(fooHandler2.address, asciiToHex32('foo'));
@@ -92,20 +115,28 @@ describe('Proxy', function () {
       const config = [constants.HashZero];
       const data = [simpleEncode('bar(uint256,uint256)', [index, num])];
 
-      await expect(proxy.connect(user).batchExec(to, config, data)).to.be.revertedWith('Invalid handler');
+      await expect(
+        proxy.connect(user).batchExec(to, config, data)
+      ).to.be.revertedWith('Invalid handler');
     });
 
     it('should revert: handler as caller - directly', async function () {
-      const foo5Handler = await (await ethers.getContractFactory('Foo5Handler')).deploy();
+      const foo5Handler = await (
+        await ethers.getContractFactory('Foo5Handler')
+      ).deploy();
       await foo5Handler.deployed();
       await registry.register(foo5Handler.address, asciiToHex32('foo5'));
 
       const data = simpleEncode('bar()', []);
-      await expect(foo5Handler.connect(user).exec(proxy.address, data)).to.be.revertedWith('Sender is not initialized');
+      await expect(
+        foo5Handler.connect(user).exec(proxy.address, data)
+      ).to.be.revertedWith('Sender is not initialized');
     });
 
     it('should revert: handler as caller - after initialize', async function () {
-      const foo5Handler = await (await ethers.getContractFactory('Foo5Handler')).deploy();
+      const foo5Handler = await (
+        await ethers.getContractFactory('Foo5Handler')
+      ).deploy();
       await foo5Handler.deployed();
       await registry.register(foo5Handler.address, asciiToHex32('foo5'));
 
@@ -114,7 +145,9 @@ describe('Proxy', function () {
       const data1 = simpleEncode('exec(address,bytes)', [proxy.address, data0]);
       const data2 = simpleEncode('exec(address,bytes)', [to, data1]);
 
-      await expect(proxy.connect(user).execMock(to, data2)).to.be.revertedWith('Invalid caller');
+      await expect(proxy.connect(user).execMock(to, data2)).to.be.revertedWith(
+        'Invalid caller'
+      );
     });
 
     it('should revert: banned agent executing batchExec()', async function () {
@@ -125,7 +158,9 @@ describe('Proxy', function () {
       const config = [constants.HashZero];
       const data = [simpleEncode('bar(uint256,uint256)', [index, num])];
 
-      await expect(proxy.connect(user).batchExec(to, config, data)).to.be.revertedWith('Banned');
+      await expect(
+        proxy.connect(user).batchExec(to, config, data)
+      ).to.be.revertedWith('Banned');
     });
 
     it('should revert: banned agent executing fallback()', async function () {
@@ -148,7 +183,9 @@ describe('Proxy', function () {
       const config = [constants.HashZero];
       const data = [simpleEncode('bar(uint256,uint256)', [index, num])];
 
-      await expect(proxy.connect(user).execs(to, config, data)).to.be.revertedWith('Banned');
+      await expect(
+        proxy.connect(user).execs(to, config, data)
+      ).to.be.revertedWith('Banned');
     });
 
     it('should revert: call batchExec() when registry halted', async function () {
@@ -159,7 +196,9 @@ describe('Proxy', function () {
       const config = [constants.HashZero];
       const data = [simpleEncode('bar(uint256,uint256)', [index, num])];
 
-      await expect(proxy.connect(user).batchExec(to, config, data)).to.be.revertedWith('Halted');
+      await expect(
+        proxy.connect(user).batchExec(to, config, data)
+      ).to.be.revertedWith('Halted');
     });
 
     it('should revert: call fallback() when registry halted', async function () {
@@ -181,14 +220,24 @@ describe('Proxy', function () {
       const config = [constants.HashZero];
       const data = [simpleEncode('bar(uint256,uint256)', [index, num])];
 
-      await expect(proxy.connect(user).execs(to, config, data)).to.be.revertedWith('Halted');
+      await expect(
+        proxy.connect(user).execs(to, config, data)
+      ).to.be.revertedWith('Halted');
     });
 
     it('multiple', async function () {
       const index = [0, 1, 2];
-      const num = [BigNumber.from('25'), BigNumber.from('26'), BigNumber.from('27')];
+      const num = [
+        BigNumber.from('25'),
+        BigNumber.from('26'),
+        BigNumber.from('27'),
+      ];
       const to = [fooHandler.address, fooHandler.address, fooHandler.address];
-      const config = [constants.HashZero, constants.HashZero, constants.HashZero];
+      const config = [
+        constants.HashZero,
+        constants.HashZero,
+        constants.HashZero,
+      ];
       const data = [
         simpleEncode('bar(uint256,uint256)', [index[0], num[0]]),
         simpleEncode('bar(uint256,uint256)', [index[1], num[1]]),
@@ -214,7 +263,9 @@ describe('Proxy', function () {
     let fooFactory: Foo2Factory;
 
     beforeEach(async function () {
-      fooFactory = await (await ethers.getContractFactory('Foo2Factory')).deploy();
+      fooFactory = await (
+        await ethers.getContractFactory('Foo2Factory')
+      ).deploy();
       await fooFactory.deployed();
 
       await fooFactory.createFoo();
@@ -224,7 +275,9 @@ describe('Proxy', function () {
       foo1 = await ethers.getContractAt('Foo2', await fooFactory.addressOf(1));
       foo2 = await ethers.getContractAt('Foo2', await fooFactory.addressOf(2));
 
-      fooHandler = await (await ethers.getContractFactory('Foo2Handler')).deploy(fooFactory.address);
+      fooHandler = await (
+        await ethers.getContractFactory('Foo2Handler')
+      ).deploy(fooFactory.address);
       await fooHandler.deployed();
       await registry.register(fooHandler.address, asciiToHex32('foo'));
 
@@ -238,7 +291,9 @@ describe('Proxy', function () {
       const data = simpleEncode('bar(uint256,uint256)', [ether('1'), index]);
       await proxy.execMock(to, data, { value: ether('1') });
 
-      expect((await ethers.provider.getBalance(user.address)).sub(userBalance)).to.be.eq(ether('0'));
+      expect(
+        (await ethers.provider.getBalance(user.address)).sub(userBalance)
+      ).to.be.eq(ether('0'));
       expect(await foo0.balanceOf(proxy.address)).to.be.eq(ether('0'));
     });
 
@@ -246,7 +301,11 @@ describe('Proxy', function () {
       const index = [0, 1, 2];
       const value = [ether('0.1'), ether('0.2'), ether('0.5')];
       const to = [fooHandler.address, fooHandler.address, fooHandler.address];
-      const config = [constants.HashZero, constants.HashZero, constants.HashZero];
+      const config = [
+        constants.HashZero,
+        constants.HashZero,
+        constants.HashZero,
+      ];
       const data = [
         simpleEncode('bar(uint256,uint256)', [value[0], index[0]]),
         simpleEncode('bar(uint256,uint256)', [value[1], index[1]]),
@@ -257,18 +316,28 @@ describe('Proxy', function () {
         value: ether('1'),
       });
 
-      expect(await balanceDelta(proxy.address, proxyBalance)).to.be.eq(ether('0'));
+      expect(await balanceDelta(proxy.address, proxyBalance)).to.be.eq(
+        ether('0')
+      );
 
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(
-        ether('0').sub(value[0].add(value[1]).add(value[2]).div(BigNumber.from('2')))
+        ether('0').sub(
+          value[0].add(value[1]).add(value[2]).div(BigNumber.from('2'))
+        )
       );
 
       expect(await foo0.balanceOf(proxy.address)).to.be.eq(ether('0'));
-      expect(await foo0.balanceOf(user.address)).to.be.eq(value[0].div(BigNumber.from('2')));
+      expect(await foo0.balanceOf(user.address)).to.be.eq(
+        value[0].div(BigNumber.from('2'))
+      );
       expect(await foo1.balanceOf(proxy.address)).to.be.eq(ether('0'));
-      expect(await foo1.balanceOf(user.address)).to.be.eq(value[1].div(BigNumber.from('2')));
+      expect(await foo1.balanceOf(user.address)).to.be.eq(
+        value[1].div(BigNumber.from('2'))
+      );
       expect(await foo2.balanceOf(proxy.address)).to.be.eq(ether('0'));
-      expect(await foo2.balanceOf(user.address)).to.be.eq(value[2].div(BigNumber.from('2')));
+      expect(await foo2.balanceOf(user.address)).to.be.eq(
+        value[2].div(BigNumber.from('2'))
+      );
     });
   });
 
@@ -291,7 +360,9 @@ describe('Proxy', function () {
       foo = await (await ethers.getContractFactory('Foo3')).deploy();
       await foo.deployed();
 
-      fooHandler = await (await ethers.getContractFactory('Foo3Handler')).deploy();
+      fooHandler = await (
+        await ethers.getContractFactory('Foo3Handler')
+      ).deploy();
       await fooHandler.deployed();
       await registry.register(fooHandler.address, asciiToHex32('foo3'));
 
@@ -322,15 +393,20 @@ describe('Proxy', function () {
       foo = await (await ethers.getContractFactory('Foo4')).deploy();
       await foo.deployed();
 
-      fooHandler = await (await ethers.getContractFactory('Foo4Handler')).deploy();
+      fooHandler = await (
+        await ethers.getContractFactory('Foo4Handler')
+      ).deploy();
       await fooHandler.deployed();
       await registry.register(fooHandler.address, asciiToHex32('foo4'));
     });
 
     it('static parameter', async function () {
       const tos = [fooHandler.address];
-      const a = '0x00000000000000000000000000000000000000000000000000000000000000ff';
-      const configs = ['0x0000000000000000000000000000000000000000000000000000000000000000'];
+      const a =
+        '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const configs = [
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+      ];
       const datas = [simpleEncode('bar1(address,bytes32)', [foo.address, a])];
 
       await proxy.connect(user).batchExec(tos, configs, datas, {
@@ -343,7 +419,8 @@ describe('Proxy', function () {
     it('replace parameter', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       const r = await foo.bar();
-      const a = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a =
+        '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         // 1 32-bytes return value to be referenced
         '0x0001000000000000000000000000000000000000000000000000000000000000',
@@ -375,7 +452,12 @@ describe('Proxy', function () {
       ];
 
       const datas = [
-        simpleEncode('barUList(address,uint256,uint256,uint256)', [foo.address, ether('1'), secAmt, ether('1')]),
+        simpleEncode('barUList(address,uint256,uint256,uint256)', [
+          foo.address,
+          ether('1'),
+          secAmt,
+          ether('1'),
+        ]),
         simpleEncode('barUint1(address,uint256)', [foo.address, ratio]),
       ];
 
@@ -389,8 +471,10 @@ describe('Proxy', function () {
     it('replace third parameter', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       const r = await foo.bar();
-      const a = '0x000000000000000000000000000000000000000000000000000000000000000a';
-      const b = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a =
+        '0x000000000000000000000000000000000000000000000000000000000000000a';
+      const b =
+        '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         '0x0001000000000000000000000000000000000000000000000000000000000000',
         '0x0100000000000000000400ffffffffffffffffffffffffffffffffffffffffff',
@@ -430,7 +514,8 @@ describe('Proxy', function () {
     it('should revert: location count less than ref count', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       // const r = await foo.bar();
-      const a = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a =
+        '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         // 1 32-bytes return value to be referenced
         '0x0001000000000000000000000000000000000000000000000000000000000000',
@@ -441,15 +526,18 @@ describe('Proxy', function () {
         simpleEncode('bar1(address,bytes32)', [foo.address, a]),
       ];
 
-      await expect(proxy.connect(user).batchExec(tos, configs, datas, { value: ether('1') })).to.be.revertedWith(
-        'Location count less than ref count'
-      );
+      await expect(
+        proxy
+          .connect(user)
+          .batchExec(tos, configs, datas, { value: ether('1') })
+      ).to.be.revertedWith('Location count less than ref count');
     });
 
     it('should revert: location count greater than ref count', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       // const r = await foo.bar();
-      const a = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a =
+        '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         // 1 32-bytes return value to be referenced
         '0x0001000000000000000000000000000000000000000000000000000000000000',
@@ -460,15 +548,18 @@ describe('Proxy', function () {
         simpleEncode('bar1(address,bytes32)', [foo.address, a]),
       ];
 
-      await expect(proxy.connect(user).batchExec(tos, configs, datas, { value: ether('1') })).to.be.revertedWith(
-        'Location count exceeds ref count'
-      );
+      await expect(
+        proxy
+          .connect(user)
+          .batchExec(tos, configs, datas, { value: ether('1') })
+      ).to.be.revertedWith('Location count exceeds ref count');
     });
 
     it('should revert: ref to out of localStack', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       // const r = await foo.bar();
-      const a = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a =
+        '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         // 1 32-bytes return value to be referenced
         '0x0001000000000000000000000000000000000000000000000000000000000000', // set localStack[0]
@@ -479,15 +570,18 @@ describe('Proxy', function () {
         simpleEncode('bar1(address,bytes32)', [foo.address, a]),
       ];
 
-      await expect(proxy.connect(user).batchExec(tos, configs, datas, { value: ether('1') })).to.be.revertedWith(
-        'Reference to out of localStack'
-      );
+      await expect(
+        proxy
+          .connect(user)
+          .batchExec(tos, configs, datas, { value: ether('1') })
+      ).to.be.revertedWith('Reference to out of localStack');
     });
 
     it('should revert: expected return amount not match', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       // const r = await foo.bar();
-      const a = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a =
+        '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         // expect 2 32-bytes return but will only get 1
         '0x0002000000000000000000000000000000000000000000000000000000000000',
@@ -498,9 +592,11 @@ describe('Proxy', function () {
         simpleEncode('bar1(address,bytes32)', [foo.address, a]),
       ];
 
-      await expect(proxy.connect(user).batchExec(tos, configs, datas, { value: ether('1') })).to.be.revertedWith(
-        'Return num and parsed return num not matched'
-      );
+      await expect(
+        proxy
+          .connect(user)
+          .batchExec(tos, configs, datas, { value: ether('1') })
+      ).to.be.revertedWith('Return num and parsed return num not matched');
     });
 
     it('should revert: overflow during trimming', async function () {
@@ -516,7 +612,11 @@ describe('Proxy', function () {
         simpleEncode('barUint1(address,uint256)', [foo.address, a]),
       ];
 
-      await expect(proxy.connect(user).batchExec(tos, configs, datas, { value: ether('1') })).to.be.reverted;
+      await expect(
+        proxy
+          .connect(user)
+          .batchExec(tos, configs, datas, { value: ether('1') })
+      ).to.be.reverted;
     });
   });
 
@@ -524,7 +624,9 @@ describe('Proxy', function () {
     let fooHandler: Foo6Handler;
 
     beforeEach(async function () {
-      fooHandler = await (await ethers.getContractFactory('Foo6Handler')).deploy();
+      fooHandler = await (
+        await ethers.getContractFactory('Foo6Handler')
+      ).deploy();
       await registry.register(fooHandler.address, asciiToHex32('foo'));
     });
 
@@ -540,7 +642,11 @@ describe('Proxy', function () {
       ];
 
       // Execution
-      const returnTokens = await proxy.callStatic.batchExec(tos, configs, datas);
+      const returnTokens = await proxy.callStatic.batchExec(
+        tos,
+        configs,
+        datas
+      );
 
       // Verify
       for (let i = 0; i < returnTokens.length; i++) {
@@ -562,7 +668,11 @@ describe('Proxy', function () {
       ];
 
       // Execution
-      const returnTokens = await proxy.callStatic.batchExec(tos, configs, datas);
+      const returnTokens = await proxy.callStatic.batchExec(
+        tos,
+        configs,
+        datas
+      );
 
       // Verify
       for (let i = 0; i < returnTokens.length; i++) {
@@ -584,7 +694,11 @@ describe('Proxy', function () {
       ];
 
       // Execution
-      const returnTokens = await proxy.callStatic.batchExec(tos, configs, datas);
+      const returnTokens = await proxy.callStatic.batchExec(
+        tos,
+        configs,
+        datas
+      );
 
       // Verify
       for (let i = 0; i < returnTokens.length; i++) {
@@ -607,7 +721,11 @@ describe('Proxy', function () {
       ];
 
       // Execution
-      const returnTokens = await proxy.callStatic.batchExec(tos, configs, datas);
+      const returnTokens = await proxy.callStatic.batchExec(
+        tos,
+        configs,
+        datas
+      );
 
       // Verify
       for (let i = 0; i < returnTokens.length; i++) {
@@ -629,7 +747,8 @@ describe('Proxy', function () {
         simpleEncode('dealing(address[])', [dealingTokens]),
       ];
 
-      await expect(proxy.connect(user).batchExec(tos, configs, datas)).to.be.reverted;
+      await expect(proxy.connect(user).batchExec(tos, configs, datas)).to.be
+        .reverted;
     });
 
     it('should revert: native token cant update to return tokens', async function () {
@@ -644,7 +763,8 @@ describe('Proxy', function () {
       ];
 
       // Execution
-      await expect(proxy.connect(user).batchExec(tos, configs, datas)).to.be.reverted;
+      await expect(proxy.connect(user).batchExec(tos, configs, datas)).to.be
+        .reverted;
     });
   });
 });

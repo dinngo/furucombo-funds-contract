@@ -4,8 +4,8 @@ pragma solidity 0.8.10;
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IProxy} from "./interfaces/IProxy.sol";
-import {IRegistry} from "./interfaces/IRegistry.sol";
+import {IFurucomboProxy} from "./interfaces/IFurucomboProxy.sol";
+import {IFurucomboRegistry} from "./interfaces/IFurucomboRegistry.sol";
 import {Config} from "./Config.sol";
 import {Storage, LibStack} from "./Storage.sol";
 import {LibParam} from "./lib/LibParam.sol";
@@ -14,7 +14,7 @@ import {LibParam} from "./lib/LibParam.sol";
  * @title The entrance of Furucombo
  * @author Ben Huang
  */
-contract FurucomboProxy is IProxy, Storage, Config {
+contract FurucomboProxy is IFurucomboProxy, Storage, Config {
     using Address for address;
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
@@ -34,7 +34,7 @@ contract FurucomboProxy is IProxy, Storage, Config {
         _;
     }
 
-    constructor(IRegistry registry_) {
+    constructor(IFurucomboRegistry registry_) {
         registry = registry_;
     }
 

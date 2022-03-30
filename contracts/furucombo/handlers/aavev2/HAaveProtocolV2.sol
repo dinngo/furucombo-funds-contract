@@ -6,7 +6,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {ILendingPoolV2} from "../../../interfaces/ILendingPoolV2.sol";
 import {DataTypes} from "../../../libraries/AaveV2DataTypes.sol";
 import {ILendingPoolAddressesProviderV2} from "../../../interfaces/ILendingPoolAddressesProviderV2.sol";
-import {IProxy} from "../../interfaces/IProxy.sol";
+import {IFurucomboProxy} from "../../interfaces/IFurucomboProxy.sol";
 import {HandlerBase} from "../HandlerBase.sol";
 import {IFlashLoanReceiver} from "./IFlashLoanReceiver.sol";
 
@@ -106,7 +106,7 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
             params,
             (address[], bytes32[], bytes[])
         );
-        IProxy(address(this)).execs(tos, configs, datas);
+        IFurucomboProxy(address(this)).execs(tos, configs, datas);
 
         address pool = ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool();
         for (uint256 i = 0; i < assets.length; i++) {

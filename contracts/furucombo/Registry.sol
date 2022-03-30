@@ -3,10 +3,10 @@
 pragma solidity 0.8.10;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IRegistry} from "./interfaces/IRegistry.sol";
+import {IFurucomboRegistry} from "./interfaces/IFurucomboRegistry.sol";
 
 /// @notice The registry database for Furucombo
-contract Registry is IRegistry, Ownable {
+contract FurucomboRegistry is IFurucomboRegistry, Ownable {
     mapping(address => bytes32) public override handlers;
     mapping(address => bytes32) public override callers;
     mapping(address => uint256) public override bannedAgents;

@@ -6,7 +6,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const registry = await deployments.get('Registry');
+  const registry = await deployments.get('FurucomboRegistry');
   await deploy('FurucomboProxy', {
     from: deployer,
     args: [registry.address],
@@ -17,4 +17,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['FurucomboProxy'];
-func.dependencies = ['Registry'];
+func.dependencies = ['FurucomboRegistry'];
