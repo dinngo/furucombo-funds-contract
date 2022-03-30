@@ -84,7 +84,8 @@ library Errors {
         FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE, // 76: "Invalid reserve execution rate"
         SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE, // 77: "Pending redemption is not claimable"
         SHARE_MODULE_PENDING_ROUND_INCONSISTENT, // 78: "user pending round and current pending round are inconsistent"
-        FUND_PROXY_FACTORY_INVALID_DENOMINATION // 79: "Invalid denomination"
+        FUND_PROXY_FACTORY_INVALID_DENOMINATION, // 79: "Invalid denomination"
+        SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE // 80: "The requesting share amount is greater than total share amount"
     }
 
     function _require(bool condition, Code errorCode) internal pure {
