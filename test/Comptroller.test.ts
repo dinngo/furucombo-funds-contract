@@ -118,7 +118,7 @@ describe('Comptroller', function () {
       await expect(comptroller.halt()).to.emit(comptroller, 'Halted');
       expect(await comptroller.fHalt()).to.equal(true);
       await expect(comptroller.implementation()).to.be.revertedWith(
-        'revertCode(0)' // COMPTROLLER_HALTED
+        'RevertCode(0)' // COMPTROLLER_HALTED
       );
     });
 
@@ -127,7 +127,7 @@ describe('Comptroller', function () {
       await comptroller.halt();
       expect(await comptroller.fHalt()).to.equal(true);
       await expect(comptroller.implementation()).to.be.revertedWith(
-        'revertCode(0)' // COMPTROLLER_HALTED
+        'RevertCode(0)' // COMPTROLLER_HALTED
       );
 
       // unHalt
@@ -158,7 +158,7 @@ describe('Comptroller', function () {
 
       // verify banned proxy
       expect(await comptroller.bannedFundProxy(user.address)).to.equal(true);
-      await expect(comptroller.connect(user).implementation()).to.be.revertedWith('revertCode(1)'); // COMPTROLLER_BANNED
+      await expect(comptroller.connect(user).implementation()).to.be.revertedWith('RevertCode(1)'); // COMPTROLLER_BANNED
     });
 
     it('unBan ', async function () {
@@ -397,7 +397,7 @@ describe('Comptroller', function () {
 
     it('should revert: denomination and dust length are inconsistent', async function () {
       await expect(comptroller.connect(owner).permitDenominations([tokenA, tokenB], [dustA])).to.be.revertedWith(
-        'revertCode(4)'
+        'RevertCode(4)'
       ); // COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
     });
   });
@@ -461,14 +461,14 @@ describe('Comptroller', function () {
 
       it('should revert: invalid creator', async function () {
         await expect(factory.connect(user).createFund(tokenD.address, 1, 0, 0, 300, 0, 'TEST')).to.be.revertedWith(
-          'revertCode(13)'
+          'RevertCode(13)'
         ); // FUND_PROXY_FACTORY_INVALID_CREATOR
       });
 
       it('should revert: invalid mortgage tier', async function () {
         await comptroller.permitCreators([user.address]);
         await expect(factory.connect(user).createFund(tokenD.address, 2, 0, 0, 300, 0, 'TEST')).to.be.revertedWith(
-          'revertCode(75)'
+          'RevertCode(75)'
         ); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
       });
 
@@ -518,7 +518,7 @@ describe('Comptroller', function () {
 
     it('should revert: set zero asset router', async function () {
       await expect(comptroller.connect(owner).setAssetRouter(constants.AddressZero)).to.be.revertedWith(
-        'revertCode(2)'
+        'RevertCode(2)'
       ); // COMPTROLLER_ZERO_ADDRESS
     });
   });
@@ -545,7 +545,7 @@ describe('Comptroller', function () {
     });
 
     it('should revert: set zero address fee collector', async function () {
-      await expect(comptroller.setFeeCollector(constants.AddressZero)).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+      await expect(comptroller.setFeeCollector(constants.AddressZero)).to.be.revertedWith('RevertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
 
     it('set fee percentage', async function () {
@@ -590,7 +590,7 @@ describe('Comptroller', function () {
     });
 
     it('should revert: set zero address liquidator', async function () {
-      await expect(comptroller.setPendingLiquidator(constants.AddressZero)).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+      await expect(comptroller.setPendingLiquidator(constants.AddressZero)).to.be.revertedWith('RevertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
 
     it('set expiration', async function () {
@@ -646,7 +646,7 @@ describe('Comptroller', function () {
     });
 
     it('should revert: set zero address execution action', async function () {
-      await expect(comptroller.setExecAction(constants.AddressZero)).to.be.revertedWith('revertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+      await expect(comptroller.setExecAction(constants.AddressZero)).to.be.revertedWith('RevertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
     });
   });
 

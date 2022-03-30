@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 library Errors {
-    error revertCode(Code errorCode);
+    error RevertCode(Code errorCode);
 
     enum Code {
         COMPTROLLER_HALTED, // 0: "Halted"
@@ -89,7 +89,7 @@ library Errors {
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {
-        if (!condition_) revert revertCode(errorCode_);
+        if (!condition_) revert RevertCode(errorCode_);
     }
 
     function _revertMsg(string memory functionName_, string memory reason_) internal pure {

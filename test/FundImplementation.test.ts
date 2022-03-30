@@ -312,7 +312,7 @@ describe('FundImplementation', function () {
       it('should revert: finalize after denomination is forbidden', async function () {
         await comptroller.forbidDenominations([denomination.address]);
         await expect(fundImplementation.finalize()).to.be.revertedWith(
-          'revertCode(12)' // IMPLEMENTATION_INVALID_DENOMINATION
+          'RevertCode(12)' // IMPLEMENTATION_INVALID_DENOMINATION
         );
       });
     });
@@ -354,7 +354,7 @@ describe('FundImplementation', function () {
       it('should revert: pending does not start', async function () {
         await fundImplementation.finalize();
         await expect(fundImplementation.liquidate()).to.be.revertedWith(
-          'revertCode(8)' // IMPLEMENTATION_PENDING_NOT_START
+          'RevertCode(8)' // IMPLEMENTATION_PENDING_NOT_START
         );
       });
 
@@ -362,7 +362,7 @@ describe('FundImplementation', function () {
         await fundImplementation.finalize();
         await fundImplementation.pendMock();
         await expect(fundImplementation.liquidate()).to.be.revertedWith(
-          'revertCode(9)' // IMPLEMENTATION_PENDING_NOT_EXPIRE
+          'RevertCode(9)' // IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
       });
     });
@@ -429,7 +429,7 @@ describe('FundImplementation', function () {
       });
 
       it('should revert: asset is not permitted', async function () {
-        await expect(fundImplementation.addAsset(tokenA.address)).to.be.revertedWith('revertCode(11)'); // IMPLEMENTATION_INVALID_ASSET
+        await expect(fundImplementation.addAsset(tokenA.address)).to.be.revertedWith('RevertCode(11)'); // IMPLEMENTATION_INVALID_ASSET
       });
 
       it('can not be added: zero balance of asset', async function () {
@@ -540,7 +540,7 @@ describe('FundImplementation', function () {
       const valueCurrent = valueBefore.mul(valueTolerance - 1).div(TOLERANCE_BASE);
       await fundImplementation.setGrossAssetValueMock(valueCurrent);
       await expect(fundImplementation.execute(executionData)).to.be.revertedWith(
-        'revertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+        'RevertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
       );
     });
   });
@@ -567,7 +567,7 @@ describe('FundImplementation', function () {
 
       it('should revert: set by max value', async function () {
         const maxRate = 1e4;
-        await expect(fundImplementation.setManagementFeeRate(maxRate)).to.be.revertedWith('revertCode(69)'); // MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FUND_BASE
+        await expect(fundImplementation.setManagementFeeRate(maxRate)).to.be.revertedWith('RevertCode(69)'); // MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FUND_BASE
       });
     });
 
@@ -592,7 +592,7 @@ describe('FundImplementation', function () {
 
       it('should revert: set by max value', async function () {
         const maxRate = 1e4;
-        await expect(fundImplementation.setPerformanceFeeRate(maxRate)).to.be.revertedWith('revertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
+        await expect(fundImplementation.setPerformanceFeeRate(maxRate)).to.be.revertedWith('RevertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
       });
     });
 
@@ -617,7 +617,7 @@ describe('FundImplementation', function () {
 
       it('should revert: set by too short period', async function () {
         const shortPeriod = CRYSTALLIZATION_PERIOD_MIN - 1;
-        await expect(fundImplementation.setCrystallizationPeriod(shortPeriod)).to.be.revertedWith('revertCode(66)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
+        await expect(fundImplementation.setCrystallizationPeriod(shortPeriod)).to.be.revertedWith('RevertCode(66)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
       });
     });
 
@@ -641,7 +641,7 @@ describe('FundImplementation', function () {
       });
 
       it('should revert: invalid reserve execution', async function () {
-        await expect(fundImplementation.setReserveExecutionRate(reserveBase)).to.be.revertedWith('revertCode(76)');
+        await expect(fundImplementation.setReserveExecutionRate(reserveBase)).to.be.revertedWith('RevertCode(76)');
       });
     });
   });

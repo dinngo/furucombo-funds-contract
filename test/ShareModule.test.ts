@@ -93,7 +93,7 @@ describe('Share module', function () {
 
       it('should revert: greater than total share', async function () {
         const shareAmount = totalShare.add(1);
-        await expect(shareModule.calculateBalance(shareAmount)).to.be.revertedWith('revertCode(80)'); // SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE
+        await expect(shareModule.calculateBalance(shareAmount)).to.be.revertedWith('RevertCode(80)'); // SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE
       });
     });
   });
@@ -223,7 +223,7 @@ describe('Share module', function () {
 
     it('should fail with insufficient share', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
-      await expect(shareModule.redeem(totalShare.mul(2), acceptPending)).to.be.revertedWith('revertCode(74)'); // SHARE_MODULE_INSUFFICIENT_SHARE
+      await expect(shareModule.redeem(totalShare.mul(2), acceptPending)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_INSUFFICIENT_SHARE
     });
 
     it('should succeed with insufficient reserve with user permission', async function () {
@@ -268,13 +268,13 @@ describe('Share module', function () {
         currentPendingRound.add(BigNumber.from(1)),
         ether('1')
       );
-      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('revertCode(78)'); // SHARE_MODULE_PENDING_ROUND_INCONSISTENT
+      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('RevertCode(78)'); // SHARE_MODULE_PENDING_ROUND_INCONSISTENT
     });
 
     it('should fail with insufficient reserve without user permission', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.setReserve(partialAsset);
-      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('revertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
+      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
     });
 
     it('should succeed when pending with user permission', async function () {
@@ -370,7 +370,7 @@ describe('Share module', function () {
 
     it('should fail when pending without user permission', async function () {
       await shareModule.setState(FUND_STATE.PENDING);
-      await expect(shareModule.redeem(totalAsset, acceptPending)).to.be.revertedWith('revertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
+      await expect(shareModule.redeem(totalAsset, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
     });
 
     it('should fail when liquidating', async function () {
@@ -746,7 +746,7 @@ describe('Share module', function () {
       await shareModule.setReserve(0);
       await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
-      await expect(shareModule.claimPendingRedemption(user1.address)).to.be.revertedWith('revertCode(77)'); // SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
+      await expect(shareModule.claimPendingRedemption(user1.address)).to.be.revertedWith('RevertCode(77)'); // SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
 
     it('should success when claiming the redemption', async function () {
@@ -757,7 +757,7 @@ describe('Share module', function () {
       await shareModule.settlePendingShare();
 
       await expect(shareModule.connect(user2).claimPendingRedemption(user2.address)).to.be.revertedWith(
-        'revertCode(77)'
+        'RevertCode(77)'
       ); // SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
   });

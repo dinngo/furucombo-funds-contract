@@ -55,7 +55,7 @@ describe('MortgageVault', function () {
     it('should fail when fund is already mortgaged', async function () {
       await mortgageVault.mortgage(user.address, fund.address, stakingAmount);
       await expect(mortgageVault.mortgage(user.address, fund.address, stakingAmount)).to.be.revertedWith(
-        'revertCode(5)'
+        'RevertCode(5)'
       ); // MORTGAGE_VAULT_FUND_MORTGAGED
     });
   });
