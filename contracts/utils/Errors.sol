@@ -70,16 +70,16 @@ library Errors {
         RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL, // 62: "Zero valued asset decimal"
         RCURVE_STABLE_POOL_INFO_IS_NOT_SET, // 63: "Pool info is not set"
         ASSET_MODULE_DIFFERENT_ASSET_REMAINING, // 64: "Different asset remaining"
-        PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE, // 65: "Fee rate should be less than 100%"
+        PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE, // 65: "Fee rate should be less than 100%"
         PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT, // 66: "Crystallization period too short"
         PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET, // 67: "Can not crystallized yet"
         PERFORMANCE_FEE_MODULE_TIME_BEFORE_START, // 68: "Time before start"
-        MANAGEMENT_FEE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE, // 69: "Fee rate should be less than 100%"
+        MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FUND_BASE, // 69: "Fee rate should be less than 100%"
         SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION, // 70: "Redeem in pending without permission"
         AFURUCOMBO_REMAINING_TOKENS, // 71: "Furucombo has remaining tokens"
         IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE, // 72: "pending share is not resolvable"
         IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION, // 73: "Insufficient total value for execution"
-        SHARE_MODULE_INSUFFICIENT_SHARES, // 74: "Insufficient share amount"
+        SHARE_MODULE_INSUFFICIENT_SHARE, // 74: "Insufficient share amount"
         FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER, // 75: "Mortgage tier not set in comptroller"
         FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE, // 76: "Invalid reserve execution rate"
         SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE, // 77: "Pending redemption is not claimable"
@@ -88,15 +88,15 @@ library Errors {
         SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE // 80: "The requesting share amount is greater than total share amount"
     }
 
-    function _require(bool condition, Code errorCode) internal pure {
-        if (!condition) revert revertCode(errorCode);
+    function _require(bool condition_, Code errorCode_) internal pure {
+        if (!condition_) revert revertCode(errorCode_);
     }
 
-    function _revertMsg(string memory functionName, string memory reason) internal pure {
-        revert(string(abi.encodePacked(functionName, ": ", reason)));
+    function _revertMsg(string memory functionName_, string memory reason_) internal pure {
+        revert(string(abi.encodePacked(functionName_, ": ", reason_)));
     }
 
-    function _revertMsg(string memory functionName) internal pure {
-        _revertMsg(functionName, "Unspecified");
+    function _revertMsg(string memory functionName_) internal pure {
+        _revertMsg(functionName_, "Unspecified");
     }
 }

@@ -22,20 +22,20 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         return _decimals;
     }
 
-    function mint(address account, uint256 amount) external onlyOwner {
-        _mint(account, amount);
+    function mint(address account_, uint256 amount_) external onlyOwner {
+        _mint(account_, amount_);
     }
 
-    function burn(address account, uint256 amount) external onlyOwner {
-        _burn(account, amount);
+    function burn(address account_, uint256 amount_) external onlyOwner {
+        _burn(account_, amount_);
     }
 
     function move(
-        address sender,
-        address recipient,
-        uint256 amount
+        address sender_,
+        address recipient_,
+        uint256 amount_
     ) external onlyOwner {
-        _transfer(sender, recipient, amount);
+        _transfer(sender_, recipient_, amount_);
     }
 
     function netTotalShare() external view returns (uint256) {
@@ -47,13 +47,13 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
     }
 
     function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
+        address from_,
+        address to_,
+        uint256 amount_
     ) internal virtual override {
-        if (to == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT) {
-            Errors._require(from == address(0), Errors.Code.SHARE_TOKEN_INVALID_TO);
+        if (to_ == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT) {
+            Errors._require(from_ == address(0), Errors.Code.SHARE_TOKEN_INVALID_TO);
         }
-        super._beforeTokenTransfer(from, to, amount);
+        super._beforeTokenTransfer(from_, to_, amount_);
     }
 }

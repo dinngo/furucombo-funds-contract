@@ -9,8 +9,8 @@ import {IComptroller} from "../interfaces/IComptroller.sol";
 contract FundProxyMock is FundImplementation {
     constructor(IDSProxyRegistry dsProxyRegistry_) FundImplementation(dsProxyRegistry_) {}
 
-    function executeMock(address _target, bytes calldata _data) external payable onlyOwner returns (bytes memory) {
-        return vault.execute{value: msg.value}(_target, _data);
+    function executeMock(address target_, bytes calldata data_) external payable onlyOwner returns (bytes memory) {
+        return vault.execute{value: msg.value}(target_, data_);
     }
 
     function setLevel(uint256 level_) external {

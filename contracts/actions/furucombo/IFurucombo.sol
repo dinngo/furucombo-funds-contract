@@ -4,8 +4,8 @@ pragma experimental ABIEncoderV2;
 
 interface IFurucombo {
     function batchExec(
-        address[] calldata tos,
-        bytes32[] calldata configs,
-        bytes[] memory datas
+        address[] calldata tos_,
+        bytes32[] calldata configs_,
+        bytes[] memory datas_
     ) external payable returns (address[] memory);
 }

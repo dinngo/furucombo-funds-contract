@@ -13,9 +13,9 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
 
-    int128 private constant FEE_BASE64x64 = 1 << 64;
-    uint256 private constant FEE_PERIOD = 31557600; // 365.25*24*60*60
-    uint256 private constant FEE_DENOMINATOR = _FEE_BASE * FEE_PERIOD;
+    int128 private constant _FEE_BASE64x64 = 1 << 64;
+    uint256 private constant _FEE_PERIOD = 31557600; // 365.25*24*60*60
+    uint256 private constant _FEE_DENOMINATOR = _FUND_PERCENTAGE_BASE * _FEE_PERIOD;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
@@ -23,7 +23,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     /// @notice Initial the performance fee crystallization time
     /// and high water mark.
     function _initializePerformanceFee() internal virtual {
-        lastGrossSharePrice64x64 = FEE_BASE64x64;
+        lastGrossSharePrice64x64 = _FEE_BASE64x64;
         hwm64x64 = lastGrossSharePrice64x64;
         _crystallizationStart = block.timestamp;
         _lastCrystallization = block.timestamp;
@@ -54,18 +54,21 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Set the performance fee rate.
-    /// @param feeRate The fee rate on a 1e4 basis.
-    function _setPerformanceFeeRate(uint256 feeRate) internal virtual returns (int128) {
-        Errors._require(feeRate < _FEE_BASE, Errors.Code.PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FEE_BASE);
-        _pFeeRate64x64 = feeRate.divu(_FEE_BASE);
+    /// @param feeRate_ The fee rate on a 1e4 basis.
+    function _setPerformanceFeeRate(uint256 feeRate_) internal virtual returns (int128) {
+        Errors._require(
+            feeRate_ < _FUND_PERCENTAGE_BASE,
+            Errors.Code.PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
+        );
+        _pFeeRate64x64 = feeRate_.divu(_FUND_PERCENTAGE_BASE);
         return _pFeeRate64x64;
     }
 
     /// @notice Set the crystallization period.
-    /// @param period The crystallization period to be set in second.
-    function _setCrystallizationPeriod(uint256 period) internal virtual {
-        Errors._require(period > 0, Errors.Code.PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT);
-        _crystallizationPeriod = period;
+    /// @param period_ The crystallization period to be set in second.
+    function _setCrystallizationPeriod(uint256 period_) internal virtual {
+        Errors._require(period_ > 0, Errors.Code.PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT);
+        _crystallizationPeriod = period_;
     }
 
     /// @notice Crystallize for the performance fee.
@@ -118,21 +121,21 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     function _updateGrossSharePrice(uint256 grossAssetValue_) internal virtual {
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
-            lastGrossSharePrice64x64 = FEE_BASE64x64;
+            lastGrossSharePrice64x64 = _FEE_BASE64x64;
         } else {
             lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
         }
     }
 
     /// @notice Convert the time to the number of crystallization periods.
-    function _timeToPeriod(uint256 timestamp) internal view returns (uint256) {
-        Errors._require(timestamp >= _crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
-        return (timestamp - _crystallizationStart) / _crystallizationPeriod;
+    function _timeToPeriod(uint256 timestamp_) internal view returns (uint256) {
+        Errors._require(timestamp_ >= _crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
+        return (timestamp_ - _crystallizationStart) / _crystallizationPeriod;
     }
 
     /// @notice Convert the number of crystallization periods to time.
-    function _periodToTime(uint256 period) internal view returns (uint256) {
-        return _crystallizationStart + period * _crystallizationPeriod;
+    function _periodToTime(uint256 period_) internal view returns (uint256) {
+        return _crystallizationStart + period_ * _crystallizationPeriod;
     }
 
     function __getGrossAssetValue() internal view virtual returns (uint256);

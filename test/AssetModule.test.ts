@@ -126,7 +126,7 @@ describe('Asset module', function () {
     });
 
     it('should fail when not Executing or Liquidating', async function () {
-      await assetModule.setState(FUND_STATE.REDEMPTION_PENDING);
+      await assetModule.setState(FUND_STATE.PENDING);
       await assetModule.addAsset(tokenD.address);
       await expect(assetModule.close()).to.be.revertedWith('InvalidState(3)');
     });

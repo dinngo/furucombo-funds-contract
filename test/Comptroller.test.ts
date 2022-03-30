@@ -569,8 +569,8 @@ describe('Comptroller', function () {
     });
   });
 
-  // Pending redemption
-  describe('Pending redemption', function () {
+  // Pending
+  describe('Pending', function () {
     const expiration = '86400'; // 1 day
 
     it('set liquidator', async function () {

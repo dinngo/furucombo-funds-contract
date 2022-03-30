@@ -9,13 +9,13 @@ import {IAssetOracle} from "./interfaces/IAssetOracle.sol";
 abstract contract AssetResolverBase {
     using SafeCast for uint256;
 
-    function _castAssetValue(uint256 amount) internal pure returns (int256) {
-        return amount.toInt256();
+    function _castAssetValue(uint256 amount_) internal pure returns (int256) {
+        return amount_.toInt256();
     }
 
-    function _toNegativeValue(int256 amount) internal pure returns (int256) {
-        Errors._require(amount >= 0, Errors.Code.RESOLVER_BASE_NEGATIVE_AMOUNT);
-        return amount * -1;
+    function _toNegativeValue(int256 amount_) internal pure returns (int256) {
+        Errors._require(amount_ >= 0, Errors.Code.RESOLVER_BASE_NEGATIVE_AMOUNT);
+        return amount_ * -1;
     }
 
     function _getAssetOracle() internal view returns (IAssetOracle) {
@@ -23,10 +23,10 @@ abstract contract AssetResolverBase {
     }
 
     function _calcAssetValue(
-        address asset,
-        uint256 amount,
-        address quote
+        address asset_,
+        uint256 amount_,
+        address quote_
     ) internal view returns (int256) {
-        return IAssetRouter(msg.sender).calcAssetValue(asset, amount, quote);
+        return IAssetRouter(msg.sender).calcAssetValue(asset_, amount_, quote_);
     }
 }

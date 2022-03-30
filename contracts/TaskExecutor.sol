@@ -25,63 +25,63 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
     uint256 private constant _FEE_BASE = 1e4;
     IComptroller public immutable comptroller;
 
-    constructor(address payable _owner, address _comptroller) DestructibleAction(_owner) DelegateCallAction() {
+    constructor(address payable owner_, address comptroller_) DestructibleAction(owner_) DelegateCallAction() {
         // FIXME: get from caller or assign it directly
-        comptroller = IComptroller(_comptroller);
+        comptroller = IComptroller(comptroller_);
     }
 
     /**
      * @notice task execution function.
-     * @param tos The address of action.
-     * @param configs The configurations of executing actions.
-     * @param datas The action datas.
+     * @param tos_ The address of action.
+     * @param configs_ The configurations of executing actions.
+     * @param datas_ The action datas.
      */
     function batchExec(
-        address[] calldata tokensIn,
-        uint256[] calldata amountsIn,
-        address[] calldata tos,
-        bytes32[] calldata configs,
-        bytes[] memory datas
+        address[] calldata tokensIn_,
+        uint256[] calldata amountsIn_,
+        address[] calldata tos_,
+        bytes32[] calldata configs_,
+        bytes[] memory datas_
     ) external payable override delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory a) {
-        _chargeExecutionFee(tokensIn, amountsIn);
-        return _execs(tos, configs, datas);
+        _chargeExecutionFee(tokensIn_, amountsIn_);
+        return _execs(tos_, configs_, datas_);
     }
 
     /**
      * @notice The execution phase.
-     * @param tos The address of action.
-     * @param configs The configurations of executing actions.
-     * @param datas The action datas.
+     * @param tos_ The address of action.
+     * @param configs_ The configurations of executing actions.
+     * @param datas_ The action datas.
      */
     function _execs(
-        address[] memory tos,
-        bytes32[] memory configs,
-        bytes[] memory datas
+        address[] memory tos_,
+        bytes32[] memory configs_,
+        bytes[] memory datas_
     ) internal returns (address[] memory) {
         bytes32[256] memory localStack;
         uint256 index = 0;
 
-        Errors._require(tos.length == datas.length, Errors.Code.TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT);
-        Errors._require(tos.length == configs.length, Errors.Code.TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT);
+        Errors._require(tos_.length == datas_.length, Errors.Code.TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT);
+        Errors._require(tos_.length == configs_.length, Errors.Code.TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT);
 
         uint256 level = IFund(msg.sender).level();
 
-        for (uint256 i = 0; i < tos.length; i++) {
-            bytes32 config = configs[i];
+        for (uint256 i = 0; i < tos_.length; i++) {
+            bytes32 config = configs_[i];
 
-            if (config.isDelegateCall()) {
+            if (config._isDelegateCall()) {
                 // check comptroller delegate call
                 Errors._require(
-                    comptroller.canDelegateCall(level, tos[i], bytes4(datas[i])),
+                    comptroller.canDelegateCall(level, tos_[i], bytes4(datas_[i])),
                     Errors.Code.TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
                 );
 
                 // Trim params from local stack depend on config
-                _trimParams(datas[i], config, localStack, index);
+                _trimParams(datas_[i], config, localStack, index);
 
                 // Execute action by delegate call
-                bytes memory result = tos[i].functionDelegateCall(
-                    datas[i],
+                bytes memory result = tos_[i].functionDelegateCall(
+                    datas_[i],
                     "TaskExecutor: low-level delegate call failed"
                 ); // use openzeppelin address delegate call, use error message directly
 
@@ -89,11 +89,11 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
                 index = _parseReturn(result, config, localStack, index);
             } else {
                 // Decode eth value from data
-                (uint256 ethValue, bytes memory _data) = _decodeEthValue(datas[i]);
+                (uint256 ethValue, bytes memory _data) = _decodeEthValue(datas_[i]);
 
                 // check comptroller contract call
                 Errors._require(
-                    comptroller.canContractCall(level, tos[i], bytes4(_data)),
+                    comptroller.canContractCall(level, tos_[i], bytes4(_data)),
                     Errors.Code.TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
                 );
 
@@ -101,7 +101,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
                 _trimParams(_data, config, localStack, index);
 
                 // Execute action by call
-                bytes memory result = tos[i].functionCallWithValue(
+                bytes memory result = tos_[i].functionCallWithValue(
                     _data,
                     ethValue,
                     "TaskExecutor: low-level call with value failed"
@@ -113,7 +113,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         }
 
         // verify dealing assets
-        address[] memory dealingAssets = getDealingAssets();
+        address[] memory dealingAssets = _getDealingAssets();
         Errors._require(
             comptroller.isValidDealingAssets(level, dealingAssets),
             Errors.Code.TASK_EXECUTOR_INVALID_DEALING_ASSET
@@ -123,34 +123,34 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
 
     /**
      * @notice Trimming the execution parameter if needed.
-     * @param data The execution data.
-     * @param config The configuration.
-     * @param localStack The stack the be referenced.
-     * @param index Current element count of localStack.
+     * @param data_ The execution data.
+     * @param config_ The configuration.
+     * @param localStack_ The stack the be referenced.
+     * @param index_ Current element count of localStack.
      */
     function _trimParams(
-        bytes memory data,
-        bytes32 config,
-        bytes32[256] memory localStack,
-        uint256 index
+        bytes memory data_,
+        bytes32 config_,
+        bytes32[256] memory localStack_,
+        uint256 index_
     ) internal pure {
-        if (config.isStatic()) {
+        if (config_._isStatic()) {
             // Don't need to trim parameters if static
             return;
         }
 
         // Trim the execution data base on the configuration and stack content if dynamic
         // Fetch the parameter configuration from config
-        (uint256[] memory refs, uint256[] memory params) = config.getParams();
+        (uint256[] memory refs, uint256[] memory params) = config_._getParams();
 
         // Trim the data with the reference and parameters
         for (uint256 i = 0; i < refs.length; i++) {
-            Errors._require(refs[i] < index, Errors.Code.TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK);
-            bytes32 ref = localStack[refs[i]];
+            Errors._require(refs[i] < index_, Errors.Code.TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK);
+            bytes32 ref = localStack_[refs[i]];
             uint256 offset = params[i];
             uint256 base = PERCENTAGE_BASE;
             assembly {
-                let loc := add(add(data, 0x20), offset)
+                let loc := add(add(data_, 0x20), offset)
                 let m := mload(loc)
                 // Adjust the value by multiplier if a dynamic parameter is not zero
                 if iszero(iszero(m)) {
@@ -168,78 +168,78 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
 
     /**
      * @notice Parse the execution return data to the local stack if needed.
-     * @param ret The return data.
-     * @param config The configuration.
-     * @param localStack The local stack to place the return values.
-     * @param index The current tail.
+     * @param ret_ The return data.
+     * @param config_ The configuration.
+     * @param localStack_ The local stack to place the return values.
+     * @param index_ The current tail.
      */
     function _parseReturn(
-        bytes memory ret,
-        bytes32 config,
-        bytes32[256] memory localStack,
-        uint256 index
+        bytes memory ret_,
+        bytes32 config_,
+        bytes32[256] memory localStack_,
+        uint256 index_
     ) internal pure returns (uint256) {
-        if (config.isReferenced()) {
+        if (config_._isReferenced()) {
             // If so, parse the output and place it into local stack
-            uint256 num = config.getReturnNum();
-            uint256 newIndex = _parse(localStack, ret, index);
+            uint256 num = config_._getReturnNum();
+            uint256 newIndex = _parse(localStack_, ret_, index_);
             Errors._require(
-                newIndex == index + num,
+                newIndex == index_ + num,
                 Errors.Code.TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
             );
-            index = newIndex;
+            index_ = newIndex;
         }
-        return index;
+        return index_;
     }
 
     /**
      * @notice Parse the return data to the local stack.
-     * @param localStack The local stack to place the return values.
-     * @param ret The return data.
-     * @param index The current tail.
+     * @param localStack_ The local stack to place the return values.
+     * @param ret_ The return data.
+     * @param index_ The current tail.
      */
     function _parse(
-        bytes32[256] memory localStack,
-        bytes memory ret,
-        uint256 index
+        bytes32[256] memory localStack_,
+        bytes memory ret_,
+        uint256 index_
     ) internal pure returns (uint256 newIndex) {
-        uint256 len = ret.length;
+        uint256 len = ret_.length;
         // The return value should be multiple of 32-bytes to be parsed.
         Errors._require(len % 32 == 0, Errors.Code.TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE);
         // Estimate the tail after the process.
-        newIndex = index + len / 32;
+        newIndex = index_ + len / 32;
         Errors._require(newIndex <= 256, Errors.Code.TASK_EXECUTOR_STACK_OVERFLOW);
         assembly {
-            let offset := shl(5, index)
+            let offset := shl(5, index_)
             // Store the data into localStack
             for {
                 let i := 0
             } lt(i, len) {
                 i := add(i, 0x20)
             } {
-                mstore(add(localStack, add(i, offset)), mload(add(add(ret, i), 0x20)))
+                mstore(add(localStack_, add(i, offset)), mload(add(add(ret_, i), 0x20)))
             }
         }
     }
 
     /**
      * @notice decode eth value from the execution data.
-     * @param data The execution data.
+     * @param data_ The execution data.
      */
-    function _decodeEthValue(bytes memory data) internal pure returns (uint256, bytes memory) {
-        return abi.decode(data, (uint256, bytes));
+    function _decodeEthValue(bytes memory data_) internal pure returns (uint256, bytes memory) {
+        return abi.decode(data_, (uint256, bytes));
     }
 
     /**
      * @notice charge execution from input tokens
-     * @param tokensIn The input tokens.
-     * @param amountsIn The input token amounts.
+     * @param tokensIn_ The input tokens.
+     * @param amountsIn_ The input token amounts.
      */
-    function _chargeExecutionFee(address[] calldata tokensIn, uint256[] calldata amountsIn) internal {
+    function _chargeExecutionFee(address[] calldata tokensIn_, uint256[] calldata amountsIn_) internal {
         // Check initial asset from white list
         uint256 level = IFund(msg.sender).level();
         Errors._require(
-            comptroller.isValidInitialAssets(level, tokensIn),
+            comptroller.isValidInitialAssets(level, tokensIn_),
             Errors.Code.TASK_EXECUTOR_INVALID_INITIAL_ASSET
         );
 
@@ -247,14 +247,14 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         uint256 feePercentage = comptroller.execFeePercentage();
         address payable collector = payable(comptroller.execFeeCollector());
 
-        for (uint256 i = 0; i < tokensIn.length; i++) {
+        for (uint256 i = 0; i < tokensIn_.length; i++) {
             // make sure all quota should be zero at the begin
-            Errors._require(isFundQuotaZero(tokensIn[i]), Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA);
+            Errors._require(_isFundQuotaZero(tokensIn_[i]), Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA);
 
             // send fee to collector
-            uint256 execFee = (amountsIn[i] * feePercentage) / _FEE_BASE;
-            IERC20(tokensIn[i]).safeTransfer(collector, execFee);
-            setFundQuota(tokensIn[i], amountsIn[i] - execFee);
+            uint256 execFee = (amountsIn_[i] * feePercentage) / _FEE_BASE;
+            IERC20(tokensIn_[i]).safeTransfer(collector, execFee);
+            _setFundQuota(tokensIn_[i], amountsIn_[i] - execFee);
         }
     }
 }

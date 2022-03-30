@@ -19,34 +19,34 @@ contract FundProxyFactory {
     }
 
     function createFund(
-        IERC20Metadata denomination,
-        uint256 level,
-        uint256 mFeeRate,
-        uint256 pFeeRate,
-        uint256 crystallizationPeriod,
-        uint256 reserveExecutionRate,
-        string memory shareTokenName
+        IERC20Metadata denomination_,
+        uint256 level_,
+        uint256 mFeeRate_,
+        uint256 pFeeRate_,
+        uint256 crystallizationPeriod_,
+        uint256 reserveExecutionRate_,
+        string memory shareTokenName_
     ) external returns (address) {
         Errors._require(comptroller.isValidCreator(msg.sender), Errors.Code.FUND_PROXY_FACTORY_INVALID_CREATOR);
         Errors._require(
-            comptroller.isValidDenomination(address(denomination)),
+            comptroller.isValidDenomination(address(denomination_)),
             Errors.Code.FUND_PROXY_FACTORY_INVALID_DENOMINATION
         );
         IMortgageVault mortgageVault = comptroller.mortgageVault();
-        (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(level);
+        (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(level_);
         Errors._require(isMortgageTierSet, Errors.Code.FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER);
         // Can be customized
-        ShareToken share = new ShareToken(shareTokenName, "FFST", denomination.decimals());
+        ShareToken share = new ShareToken(shareTokenName_, "FFST", denomination_.decimals());
         bytes memory data = abi.encodeWithSignature(
             "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
-            level,
+            level_,
             address(comptroller),
-            address(denomination),
+            address(denomination_),
             address(share),
-            mFeeRate,
-            pFeeRate,
-            crystallizationPeriod,
-            reserveExecutionRate,
+            mFeeRate_,
+            pFeeRate_,
+            crystallizationPeriod_,
+            reserveExecutionRate_,
             msg.sender
         );
 

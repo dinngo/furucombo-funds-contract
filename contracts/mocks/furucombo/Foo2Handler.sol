@@ -8,7 +8,7 @@ interface IFoo2 {
 }
 
 interface IFoo2Factory {
-    function addressOf(uint256 index) external view returns (address result);
+    function addressOf(uint256 index_) external view returns (address result);
 
     function createFoo() external;
 }
@@ -16,8 +16,8 @@ interface IFoo2Factory {
 contract Foo2Handler is HandlerBase {
     address public immutable factory;
 
-    constructor(address _factory) {
-        factory = _factory;
+    constructor(address factory_) {
+        factory = factory_;
     }
 
     function getContractName() public pure override returns (string memory) {
@@ -28,13 +28,13 @@ contract Foo2Handler is HandlerBase {
         return factory;
     }
 
-    function getFoo(uint256 index) public view returns (address target) {
-        return IFoo2Factory(getFooFactory()).addressOf(index);
+    function getFoo(uint256 index_) public view returns (address target) {
+        return IFoo2Factory(getFooFactory()).addressOf(index_);
     }
 
-    function bar(uint256 value, uint256 index) public payable returns (uint256 result) {
-        address target = getFoo(index);
+    function bar(uint256 value_, uint256 index_) public payable returns (uint256 result) {
+        address target = getFoo(index_);
         _updateToken(target);
-        return IFoo2(target).bar{value: value}();
+        return IFoo2(target).bar{value: value_}();
     }
 }

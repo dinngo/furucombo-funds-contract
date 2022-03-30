@@ -5,13 +5,13 @@ pragma solidity ^0.8.0;
 interface IAssetRegistry {
     function bannedResolvers(address) external view returns (bool);
 
-    function register(address asset, address resolver) external;
+    function register(address asset_, address resolver_) external;
 
-    function unregister(address asset) external;
+    function unregister(address asset_) external;
 
-    function banResolver(address resolver) external;
+    function banResolver(address resolver_) external;
 
-    function unbanResolver(address resolver) external;
+    function unbanResolver(address resolver_) external;
 
-    function resolvers(address asset) external view returns (address);
+    function resolvers(address asset_) external view returns (address);
 }

@@ -9,19 +9,19 @@ interface IAssetRouter {
 
     function registry() external view returns (IAssetRegistry);
 
-    function setOracle(address oracle) external;
+    function setOracle(address oracle_) external;
 
-    function setRegistry(address registry) external;
+    function setRegistry(address registry_) external;
 
     function calcAssetsTotalValue(
-        address[] calldata bases,
-        uint256[] calldata amounts,
-        address quote
+        address[] calldata bases_,
+        uint256[] calldata amounts_,
+        address quote_
     ) external view returns (uint256);
 
     function calcAssetValue(
-        address asset,
-        uint256 amount,
-        address quote
+        address asset_,
+        uint256 amount_,
+        address quote_
     ) external view returns (int256);
 }

@@ -8,12 +8,12 @@ contract AssetResolverMockA is IAssetResolver {
     using SafeCast for uint256;
 
     function calcAssetValue(
-        address asset,
-        uint256 amount,
-        address quote
+        address asset_,
+        uint256 amount_,
+        address quote_
     ) external pure override returns (int256) {
-        asset;
-        quote;
-        return (amount * 2).toInt256();
+        asset_;
+        quote_;
+        return (amount_ * 2).toInt256();
     }
 }

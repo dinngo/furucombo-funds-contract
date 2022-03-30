@@ -8,35 +8,35 @@ import {FundQuota} from "../libraries/FundQuota.sol";
  */
 abstract contract FundQuotaAction {
     modifier quotaCleanUp() {
-        cleanFundQuota();
+        _cleanFundQuota();
         _;
-        cleanFundQuota();
+        _cleanFundQuota();
     }
 
-    function getFundQuota(address fund) internal view returns (uint256) {
-        return FundQuota.get(fund);
+    function _getFundQuota(address fund_) internal view returns (uint256) {
+        return FundQuota._get(fund_);
     }
 
-    function isFundQuotaZero(address fund) internal view returns (bool) {
-        return getFundQuota(fund) == 0;
+    function _isFundQuotaZero(address fund_) internal view returns (bool) {
+        return _getFundQuota(fund_) == 0;
     }
 
-    function setFundQuota(address fund, uint256 quota) internal {
-        FundQuota.set(fund, quota);
+    function _setFundQuota(address fund_, uint256 quota_) internal {
+        FundQuota._set(fund_, quota_);
     }
 
-    function increaseFundQuota(address fund, uint256 quota) internal {
-        uint256 oldQuota = FundQuota.get(fund);
-        setFundQuota(fund, oldQuota + quota);
+    function _increaseFundQuota(address fund_, uint256 quota_) internal {
+        uint256 oldQuota = FundQuota._get(fund_);
+        _setFundQuota(fund_, oldQuota + quota_);
     }
 
-    function decreaseFundQuota(address fund, uint256 quota) internal {
-        uint256 oldQuota = FundQuota.get(fund);
-        require(oldQuota >= quota, "FundQuotaAction: insufficient quota");
-        setFundQuota(fund, oldQuota - quota);
+    function _decreaseFundQuota(address fund_, uint256 quota_) internal {
+        uint256 oldQuota = FundQuota._get(fund_);
+        require(oldQuota >= quota_, "FundQuotaAction: insufficient quota");
+        _setFundQuota(fund_, oldQuota - quota_);
     }
 
-    function cleanFundQuota() internal {
-        FundQuota.clean();
+    function _cleanFundQuota() internal {
+        FundQuota._clean();
     }
 }

@@ -17,14 +17,14 @@ abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
         Initializing,
         Reviewing,
         Executing,
-        RedemptionPending,
+        Pending,
         Liquidating,
         Closed
     }
 
     struct PendingUserInfo {
         uint256 pendingRound;
-        uint256 pendingShares;
+        uint256 pendingShare;
     }
 
     struct PendingRoundInfo {
@@ -34,7 +34,7 @@ abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
 
     // Common
     uint256 public level;
-    uint256 public reserveExecutionRate; // reserve rate, base is 1e4. 100 means 1%
+    uint256 public reserveExecutionRate;
     uint256 public pendingStartTime;
     State public state;
     IComptroller public comptroller;
