@@ -18,7 +18,7 @@ contract ComptrollerProxyAdmin is Ownable {
      *
      * - This contract must be the admin of `proxy`.
      */
-    function getProxyImplementation() public view returns (address) {
+    function getProxyImplementation() external view returns (address) {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("implementation()")) == 0x5c60da1b
         (bool success, bytes memory returndata) = address(proxy).staticcall(hex"5c60da1b");
@@ -33,7 +33,7 @@ contract ComptrollerProxyAdmin is Ownable {
      *
      * - This contract must be the admin of `proxy`.
      */
-    function getProxyAdmin() public view returns (address) {
+    function getProxyAdmin() external view returns (address) {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("admin()")) == 0xf851a440
         (bool success, bytes memory returndata) = address(proxy).staticcall(hex"f851a440");
@@ -48,7 +48,7 @@ contract ComptrollerProxyAdmin is Ownable {
      *
      * - This contract must be the current admin of `proxy`.
      */
-    function changeProxyAdmin(address newAdmin_) public onlyOwner {
+    function changeProxyAdmin(address newAdmin_) external onlyOwner {
         proxy.changeAdmin(newAdmin_);
     }
 
@@ -59,7 +59,7 @@ contract ComptrollerProxyAdmin is Ownable {
      *
      * - This contract must be the admin of `proxy`.
      */
-    function upgrade(address implementation_) public onlyOwner {
+    function upgrade(address implementation_) external onlyOwner {
         proxy.upgradeTo(implementation_);
     }
 
@@ -71,7 +71,7 @@ contract ComptrollerProxyAdmin is Ownable {
      *
      * - This contract must be the admin of `proxy`.
      */
-    function upgradeAndCall(address implementation_, bytes memory data_) public payable onlyOwner {
+    function upgradeAndCall(address implementation_, bytes memory data_) external payable onlyOwner {
         proxy.upgradeToAndCall{value: msg.value}(implementation_, data_);
     }
 }

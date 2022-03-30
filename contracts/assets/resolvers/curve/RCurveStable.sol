@@ -8,14 +8,6 @@ import {AssetResolverBase} from "../../AssetResolverBase.sol";
 import {ICurveLiquidityPool} from "./ICurveLiquidityPool.sol";
 
 contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
-    event PoolInfoSet(
-        address indexed asset,
-        address indexed pool,
-        address indexed valuedAsset,
-        uint256 valuedAssetDecimals
-    );
-    event PoolInfoRemoved(address indexed asset);
-
     struct PoolInfo {
         address pool;
         address valuedAsset;
@@ -24,6 +16,14 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
 
     uint256 private constant _VIRTUAL_PRICE_UNIT = 10**18;
     mapping(address => PoolInfo) public assetToPoolInfo;
+
+    event PoolInfoSet(
+        address indexed asset,
+        address indexed pool,
+        address indexed valuedAsset,
+        uint256 valuedAssetDecimals
+    );
+    event PoolInfoRemoved(address indexed asset);
 
     function setPoolInfo(
         address asset_,

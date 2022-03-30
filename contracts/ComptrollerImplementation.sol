@@ -31,11 +31,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     address public execAction;
     address public execFeeCollector;
     uint256 public execFeePercentage;
+    uint256 public execAssetValueToleranceRate;
     address public pendingLiquidator;
     uint256 public pendingExpiration;
     uint256 public pendingPenalty;
-    // base = 1e4
-    uint256 public execAssetValueToleranceRate;
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
     UpgradeableBeacon public beacon;
@@ -102,7 +101,6 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         _;
     }
 
-    // Public Function
     function initialize(
         address implementation_,
         IAssetRouter assetRouter_,
@@ -128,7 +126,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         beacon.transferOwnership(msg.sender);
     }
 
-    function implementation() public view onlyUnHalted onlyUnbannedFundProxy returns (address) {
+    function implementation() external view onlyUnHalted onlyUnbannedFundProxy returns (address) {
         return beacon.implementation();
     }
 
@@ -170,7 +168,6 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     }
 
     // Share
-    // Notice that the penalty's base is 1e4
     function setPendingPenalty(uint256 penalty_) external onlyOwner {
         pendingPenalty = penalty_;
         emit SetPendingPenalty(penalty_);
@@ -182,7 +179,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         emit SetExecAssetValueToleranceRate(tolerance_);
     }
 
-    // input check
+    // Initial asset check
     function setInitialAssetCheck(bool check_) external onlyOwner {
         fInitialAssetCheck = check_;
         emit SetInitialAssetCheck(check_);
@@ -217,7 +214,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return denomination[denomination_].dust;
     }
 
-    // Ban Fund Proxy
+    // Ban fund proxy
     function banFundProxy(address fundProxy_) external onlyOwner {
         bannedFundProxy[fundProxy_] = true;
         emit FundProxyBanned(fundProxy_);
@@ -240,7 +237,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         emit UnsetMortgageTier(level_);
     }
 
-    // Asset Router
+    // Asset router
     function setAssetRouter(IAssetRouter _assetRouter_) external nonZeroAddress(address(_assetRouter_)) onlyOwner {
         assetRouter = _assetRouter_;
         emit SetAssetRouter(address(_assetRouter_));
@@ -286,13 +283,22 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    function isValidDealingAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            if (!isValidDealingAsset(level_, assets_[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function isValidDealingAsset(uint256 level_, address asset_) public view returns (bool) {
         return _assetACL._canCall(level_, asset_);
     }
 
-    function isValidDealingAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
+    function isValidInitialAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
         for (uint256 i = 0; i < assets_.length; i++) {
-            if (!isValidDealingAsset(level_, assets_[i])) {
+            if (!isValidInitialAsset(level_, assets_[i])) {
                 return false;
             }
         }
@@ -303,15 +309,6 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         // check if input check flag is true
         if (fInitialAssetCheck) {
             return _assetACL._canCall(level_, asset_);
-        }
-        return true;
-    }
-
-    function isValidInitialAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
-        for (uint256 i = 0; i < assets_.length; i++) {
-            if (!isValidInitialAsset(level_, assets_[i])) {
-                return false;
-            }
         }
         return true;
     }
