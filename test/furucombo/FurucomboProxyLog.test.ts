@@ -3,9 +3,9 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { FurucomboProxyMock, FurucomboRegistry, FooFactory, Foo, Foo4, FooHandler, Foo4Handler } from '../../typechain';
 
-import { ether, simpleEncode, asciiToHex32, getFuncSig } from './../utils/utils';
+import { ether, simpleEncode, asciiToHex32, getFuncSig } from '../utils/utils';
 
-describe('ProxyLog', function () {
+describe('FurucmboProxyLog', function () {
   let owner: Wallet;
   let user: Wallet;
 

@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { FurucomboRegistry } from '../../typechain';
 
-import { ether, asciiToHex32 } from './../utils/utils';
+import { ether, asciiToHex32 } from '../utils/utils';
 
 describe('FurucomboRegistry', function () {
   let owner: Wallet;

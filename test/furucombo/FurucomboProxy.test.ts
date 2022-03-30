@@ -17,10 +17,10 @@ import {
   Foo6Handler,
 } from '../../typechain';
 
-import { DAI_TOKEN, WETH_TOKEN, MKR_TOKEN, NATIVE_TOKEN, WMATIC_TOKEN } from './../utils/constants';
-import { ether, simpleEncode, asciiToHex32, balanceDelta } from './../utils/utils';
+import { DAI_TOKEN, WETH_TOKEN, MKR_TOKEN, NATIVE_TOKEN, WMATIC_TOKEN } from '../utils/constants';
+import { ether, simpleEncode, asciiToHex32, balanceDelta } from '../utils/utils';
 
-describe('Proxy', function () {
+describe('FurucmboProxy', function () {
   let owner: Wallet;
   let user: Wallet;
 
