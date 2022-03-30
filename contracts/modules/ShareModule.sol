@@ -18,49 +18,6 @@ abstract contract ShareModule is FundProxyStorageUtils {
     event PendingShareSettled();
     event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
-    /// @notice the length of pendingRoundList, means current pending round
-    /// @return current pending round
-    function currentPendingRound() public view returns (uint256) {
-        return pendingRoundList.length;
-    }
-
-    /// @notice Purchase share with the given balance. Can only purchase at Executing and Pending state.
-    /// @return share The share amount being purchased.
-    function purchase(uint256 balance_)
-        public
-        virtual
-        whenStates(State.Executing, State.Pending)
-        nonReentrant
-        returns (uint256 share)
-    {
-        share = _purchase(msg.sender, balance_);
-    }
-
-    /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
-    function redeem(uint256 share_, bool acceptPending_)
-        public
-        virtual
-        when3States(State.Executing, State.Pending, State.Closed)
-        nonReentrant
-        returns (uint256 balance)
-    {
-        // Check redeem share need to greater than user share they own
-        uint256 userShare = shareToken.balanceOf(msg.sender);
-        Errors._require(share_ <= userShare, Errors.Code.SHARE_MODULE_INSUFFICIENT_SHARE);
-
-        // Claim pending redemption if need
-        if (isPendingRedemptionClaimable(msg.sender)) {
-            _claimPendingRedemption(msg.sender);
-        }
-
-        // Execute redeem operation
-        if (state == State.Pending) {
-            balance = _redeemPending(msg.sender, share_, acceptPending_);
-        } else {
-            balance = _redeem(msg.sender, share_, acceptPending_);
-        }
-    }
-
     /// @notice Calculate the share amount corresponding to the given balance.
     /// @param balance_ The balance to be queried.
     /// @return share The share amount.
@@ -103,21 +60,6 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
     }
 
-    /// @notice Determine user could claim pending redemption or not
-    /// @param user_ address could be claimable
-    /// @return true if claimable otherwise false
-    function isPendingRedemptionClaimable(address user_) public view returns (bool) {
-        return pendingUsers[user_].pendingRound < currentPendingRound() && pendingUsers[user_].pendingShare > 0;
-    }
-
-    /// @notice Claim the settled pending redemption.
-    /// @param user_ address want to be claim
-    /// @return balance The balance being claimed.
-    function claimPendingRedemption(address user_) external nonReentrant returns (uint256 balance) {
-        Errors._require(isPendingRedemptionClaimable(user_), Errors.Code.SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE);
-        balance = _claimPendingRedemption(user_);
-    }
-
     /// @notice determine pending statue could be resolvable or not
     /// @param applyPenalty_ true if enable penalty otherwise false
     /// @return true if resolvable otherwise false
@@ -133,6 +75,19 @@ abstract contract ShareModule is FundProxyStorageUtils {
         uint256 reserve = __getReserve();
 
         return reserve >= redeemShareBalance;
+    }
+
+    /// @notice the length of pendingRoundList, means current pending round
+    /// @return current pending round
+    function currentPendingRound() public view returns (uint256) {
+        return pendingRoundList.length;
+    }
+
+    /// @notice Determine user could claim pending redemption or not
+    /// @param user_ address could be claimable
+    /// @return true if claimable otherwise false
+    function isPendingRedemptionClaimable(address user_) public view returns (bool) {
+        return pendingUsers[user_].pendingRound < currentPendingRound() && pendingUsers[user_].pendingShare > 0;
     }
 
     /// @notice Calculate the max redeemable balance of the given share amount.
@@ -161,41 +116,16 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
     }
 
-    function _settlePendingShare(bool applyPenalty_) internal {
-        // Get total share for the settle
-        uint256 redeemShare = _getResolvePendingShare(applyPenalty_);
-
-        if (redeemShare > 0) {
-            // Calculate the total redemption depending on the redeemShare
-            uint256 totalRedemption = _redeem(address(this), redeemShare, false);
-
-            // Settle this round and store settle info to round list
-            pendingRoundList.push(
-                PendingRoundInfo({totalPendingShare: currentTotalPendingShare, totalRedemption: totalRedemption})
-            );
-
-            currentTotalPendingShare = 0; // reset currentTotalPendingShare
-            if (applyPenalty_) {
-                // if applyPenalty is true that means there are some share as bonus share
-                // need to burn these bonus share if they are remaining
-                if (currentTotalPendingBonus != 0) {
-                    shareToken.burn(address(this), currentTotalPendingBonus); // burn unused bonus
-                    currentTotalPendingBonus = 0;
-                }
-            } else {
-                currentTotalPendingBonus = 0;
-            }
-
-            emit PendingShareSettled();
-        }
-    }
-
-    function _getResolvePendingShare(bool applyPenalty_) internal view returns (uint256) {
-        if (applyPenalty_) {
-            return currentTotalPendingShare;
-        } else {
-            return currentTotalPendingShare + currentTotalPendingBonus;
-        }
+    /// @notice Purchase share with the given balance. Can only purchase at Executing and Pending state.
+    /// @return share The share amount being purchased.
+    function purchase(uint256 balance_)
+        public
+        virtual
+        whenStates(State.Executing, State.Pending)
+        nonReentrant
+        returns (uint256 share)
+    {
+        share = _purchase(msg.sender, balance_);
     }
 
     function _purchase(address user_, uint256 balance_) internal virtual returns (uint256 share) {
@@ -216,6 +146,40 @@ abstract contract ShareModule is FundProxyStorageUtils {
         _afterPurchase(grossAssetValue);
 
         emit Purchased(user_, balance_, share, bonus);
+    }
+
+    function _addShare(
+        address user_,
+        uint256 balance_,
+        uint256 grossAssetValue_
+    ) internal virtual returns (uint256 share) {
+        share = _calculateShare(balance_, grossAssetValue_);
+        shareToken.mint(user_, share);
+    }
+
+    /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
+    function redeem(uint256 share_, bool acceptPending_)
+        public
+        virtual
+        when3States(State.Executing, State.Pending, State.Closed)
+        nonReentrant
+        returns (uint256 balance)
+    {
+        // Check redeem share need to greater than user share they own
+        uint256 userShare = shareToken.balanceOf(msg.sender);
+        Errors._require(share_ <= userShare, Errors.Code.SHARE_MODULE_INSUFFICIENT_SHARE);
+
+        // Claim pending redemption if need
+        if (isPendingRedemptionClaimable(msg.sender)) {
+            _claimPendingRedemption(msg.sender);
+        }
+
+        // Execute redeem operation
+        if (state == State.Pending) {
+            balance = _redeemPending(msg.sender, share_, acceptPending_);
+        } else {
+            balance = _redeem(msg.sender, share_, acceptPending_);
+        }
     }
 
     function _redeem(
@@ -272,35 +236,12 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return 0;
     }
 
-    function _addShare(
-        address user_,
-        uint256 balance_,
-        uint256 grossAssetValue_
-    ) internal virtual returns (uint256 share) {
-        share = _calculateShare(balance_, grossAssetValue_);
-        shareToken.mint(user_, share);
-    }
-
-    function _beforePurchase() internal virtual returns (uint256) {
-        return 0;
-    }
-
-    function _afterPurchase(uint256 grossAssetValue_) internal virtual {
-        grossAssetValue_;
-        return;
-    }
-
-    function _beforeRedeem() internal virtual returns (uint256) {
-        return 0;
-    }
-
-    function _afterRedeem(uint256 grossAssetValue_) internal virtual {
-        grossAssetValue_;
-        return;
-    }
-
-    function _getPendingPenalty() internal view virtual returns (uint256) {
-        return comptroller.pendingPenalty();
+    /// @notice Claim the settled pending redemption.
+    /// @param user_ address want to be claim
+    /// @return balance The balance being claimed.
+    function claimPendingRedemption(address user_) external nonReentrant returns (uint256 balance) {
+        Errors._require(isPendingRedemptionClaimable(user_), Errors.Code.SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE);
+        balance = _claimPendingRedemption(user_);
     }
 
     function _calcPendingRedemption(address user_) internal view returns (uint256) {
@@ -319,6 +260,65 @@ abstract contract ShareModule is FundProxyStorageUtils {
             denomination.safeTransfer(user_, balance);
         }
         emit RedemptionClaimed(user_, balance);
+    }
+
+    function _getResolvePendingShare(bool applyPenalty_) internal view returns (uint256) {
+        if (applyPenalty_) {
+            return currentTotalPendingShare;
+        } else {
+            return currentTotalPendingShare + currentTotalPendingBonus;
+        }
+    }
+
+    function _settlePendingShare(bool applyPenalty_) internal {
+        // Get total share for the settle
+        uint256 redeemShare = _getResolvePendingShare(applyPenalty_);
+
+        if (redeemShare > 0) {
+            // Calculate the total redemption depending on the redeemShare
+            uint256 totalRedemption = _redeem(address(this), redeemShare, false);
+
+            // Settle this round and store settle info to round list
+            pendingRoundList.push(
+                PendingRoundInfo({totalPendingShare: currentTotalPendingShare, totalRedemption: totalRedemption})
+            );
+
+            currentTotalPendingShare = 0; // reset currentTotalPendingShare
+            if (applyPenalty_) {
+                // if applyPenalty is true that means there are some share as bonus share
+                // need to burn these bonus share if they are remaining
+                if (currentTotalPendingBonus != 0) {
+                    shareToken.burn(address(this), currentTotalPendingBonus); // burn unused bonus
+                    currentTotalPendingBonus = 0;
+                }
+            } else {
+                currentTotalPendingBonus = 0;
+            }
+
+            emit PendingShareSettled();
+        }
+    }
+
+    function _getPendingPenalty() internal view virtual returns (uint256) {
+        return comptroller.pendingPenalty();
+    }
+
+    function _beforePurchase() internal virtual returns (uint256) {
+        return 0;
+    }
+
+    function _afterPurchase(uint256 grossAssetValue_) internal virtual {
+        grossAssetValue_;
+        return;
+    }
+
+    function _beforeRedeem() internal virtual returns (uint256) {
+        return 0;
+    }
+
+    function _afterRedeem(uint256 grossAssetValue_) internal virtual {
+        grossAssetValue_;
+        return;
     }
 
     function __getReserve() internal view virtual returns (uint256);

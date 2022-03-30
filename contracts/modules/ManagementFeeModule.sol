@@ -16,6 +16,12 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
 
     event ManagementFeeClaimed(address indexed manager, uint256 shareAmount);
 
+    /// @notice Claim the accumulated management fee.
+    /// @return The fee amount being claimed.
+    function claimManagementFee() public virtual nonReentrant returns (uint256) {
+        return _updateManagementFee();
+    }
+
     /// @notice Initial the management fee claim time.
     function _initializeManagementFee() internal virtual {
         lastMFeeClaimTime = block.timestamp;
@@ -37,12 +43,6 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
         mFeeRate64x64 = uint256(1).fromUInt().sub(feeRate64x64_).ln().neg().div(_FEE_PERIOD.fromUInt()).exp();
 
         return mFeeRate64x64;
-    }
-
-    /// @notice Claim the accumulated management fee.
-    /// @return The fee amount being claimed.
-    function claimManagementFee() public virtual nonReentrant returns (uint256) {
-        return _updateManagementFee();
     }
 
     /// @notice Update the current management fee and mint to the manager right

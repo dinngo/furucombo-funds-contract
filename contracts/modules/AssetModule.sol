@@ -13,6 +13,28 @@ abstract contract AssetModule is FundProxyStorageUtils {
     event AssetAdded(address asset);
     event AssetRemoved(address asset);
 
+    /// @notice Get the permitted asset list.
+    /// @return Return the permitted asset list array.
+    function getAssetList() public view returns (address[] memory) {
+        return _assetList._get();
+    }
+
+    /// @notice Get the balance of the denomination asset.
+    /// @return The balance of reserve.
+    function getReserve() public view returns (uint256) {
+        return denomination.balanceOf(address(vault));
+    }
+
+    /// @notice Check the remaining asset should be only the denomination asset
+    /// when closing the vault.
+    function close() public virtual {
+        Errors._require(
+            _assetList._size() == 1 && _assetList._front() == address(denomination),
+            Errors.Code.ASSET_MODULE_DIFFERENT_ASSET_REMAINING
+        );
+        _close();
+    }
+
     /// @notice Add asset to the asset tracking list.
     /// @param asset_ The asset to be tracked.
     function _addAsset(address asset_) internal virtual when3States(State.Executing, State.Pending, State.Liquidating) {
@@ -30,27 +52,5 @@ abstract contract AssetModule is FundProxyStorageUtils {
         if (_assetList._remove(asset_)) {
             emit AssetRemoved(asset_);
         }
-    }
-
-    /// @notice Check the remaining asset should be only the denomination asset
-    /// when closing the vault.
-    function close() public virtual {
-        Errors._require(
-            _assetList._size() == 1 && _assetList._front() == address(denomination),
-            Errors.Code.ASSET_MODULE_DIFFERENT_ASSET_REMAINING
-        );
-        _close();
-    }
-
-    /// @notice Get the permitted asset list.
-    /// @return Return the permitted asset list array.
-    function getAssetList() public view returns (address[] memory) {
-        return _assetList._get();
-    }
-
-    /// @notice Get the balance of the denomination asset.
-    /// @return The balance of reserve.
-    function getReserve() public view returns (uint256) {
-        return denomination.balanceOf(address(vault));
     }
 }

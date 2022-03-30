@@ -157,12 +157,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Getters
     /////////////////////////////////////////////////////
-    /// @notice Get the current reserve amount of the fund.
-    /// @return The reserve amount.
-    function __getReserve() internal view override returns (uint256) {
-        return getReserve();
-    }
-
     function getGrossAssetValue() public view virtual returns (uint256) {
         address[] memory assets = getAssetList();
         uint256 length = assets.length;
@@ -178,9 +172,24 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return getGrossAssetValue();
     }
 
+    /// @notice Get the current reserve amount of the fund.
+    /// @return The reserve amount.
+    function __getReserve() internal view override returns (uint256) {
+        return getReserve();
+    }
+
     /////////////////////////////////////////////////////
     // Asset Module
     /////////////////////////////////////////////////////
+    /// @notice Get the value of a give asset.
+    /// @param asset_ The asset to be queried.
+    function getAssetValue(address asset_) public view returns (int256) {
+        uint256 balance = IERC20(asset_).balanceOf(address(vault));
+        if (balance == 0) return 0;
+
+        return comptroller.assetRouter().calcAssetValue(asset_, balance, address(denomination));
+    }
+
     /// @notice Add the asset to the tracking list by owner.
     /// @param asset_ The asset to be added.
     function addAsset(address asset_) external nonReentrant onlyOwner {
@@ -225,25 +234,16 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         }
     }
 
-    /// @notice Get the value of a give asset.
-    /// @param asset_ The asset to be queried.
-    function getAssetValue(address asset_) public view returns (int256) {
-        uint256 balance = IERC20(asset_).balanceOf(address(vault));
-        if (balance == 0) return 0;
-
-        return comptroller.assetRouter().calcAssetValue(asset_, balance, address(denomination));
-    }
-
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
+    function execute(bytes calldata data_) public override nonReentrant onlyOwner {
+        super.execute(data_);
+    }
+
     /// @notice Execute an action on the fund's behalf.
     function _beforeExecute() internal virtual override returns (uint256) {
         return getGrossAssetValue();
-    }
-
-    function execute(bytes calldata data_) public override nonReentrant onlyOwner {
-        super.execute(data_);
     }
 
     /// @notice Check the reserve after the execution.

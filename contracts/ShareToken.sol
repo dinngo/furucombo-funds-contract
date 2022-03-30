@@ -7,8 +7,8 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {Errors} from "./utils/Errors.sol";
 
 contract ShareToken is ERC20Permit, Ownable, IShareToken {
-    uint8 private immutable _decimals;
     address private constant _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT = address(1);
+    uint8 private immutable _decimals;
 
     constructor(
         string memory name_,
