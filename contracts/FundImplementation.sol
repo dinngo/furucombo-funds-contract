@@ -82,7 +82,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             comptroller.isValidDenomination(address(denomination)),
             Errors.Code.IMPLEMENTATION_INVALID_DENOMINATION
         );
-        addAsset(address(denomination));
+        _addAsset(address(denomination));
 
         // Set approval for investor to redeem
         _setVaultApproval(setupAction);
@@ -187,7 +187,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     /// @notice Add the asset to the tracking list by owner.
     /// @param asset The asset to be added.
-    function addAsset(address asset) public onlyOwner {
+    function addAsset(address asset) external nonReentrant onlyOwner {
         _addAsset(asset);
     }
 
@@ -210,7 +210,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Remove the asset from the tracking list by owner.
     /// @param asset The asset to be removed.
-    function removeAsset(address asset) public onlyOwner {
+    function removeAsset(address asset) external nonReentrant onlyOwner {
         _removeAsset(asset);
     }
 
@@ -255,14 +255,14 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
-            removeAsset(assetList[i]);
+            _removeAsset(assetList[i]);
         }
 
         // add new asset to assetList
         address[] memory dealingAssets = abi.decode(response, (address[]));
 
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
-            addAsset(dealingAssets[i]);
+            _addAsset(dealingAssets[i]);
         }
 
         // Get new gross asset value

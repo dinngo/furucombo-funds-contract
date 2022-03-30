@@ -95,10 +95,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         returns (uint256 balance)
     {
         uint256 shareAmount = shareToken.grossTotalShare();
-        Errors._require(
-            share_ <= shareAmount,
-            Errors.Code.SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE
-        );
+        Errors._require(share_ <= shareAmount, Errors.Code.SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE);
         if (shareAmount == 0) {
             balance = 0;
         } else {
@@ -116,7 +113,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     /// @notice Claim the settled pending redemption.
     /// @param user address want to be claim
     /// @return balance The balance being claimed.
-    function claimPendingRedemption(address user) external returns (uint256 balance) {
+    function claimPendingRedemption(address user) external nonReentrant returns (uint256 balance) {
         Errors._require(isPendingRedemptionClaimable(user), Errors.Code.SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE);
         balance = _claimPendingRedemption(user);
     }
