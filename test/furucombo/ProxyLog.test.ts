@@ -1,22 +1,9 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import {
-  FurucomboProxyMock,
-  FurucomboRegistry,
-  FooFactory,
-  Foo,
-  Foo4,
-  FooHandler,
-  Foo4Handler,
-} from '../../typechain';
+import { FurucomboProxyMock, FurucomboRegistry, FooFactory, Foo, Foo4, FooHandler, Foo4Handler } from '../../typechain';
 
-import {
-  ether,
-  simpleEncode,
-  asciiToHex32,
-  getFuncSig,
-} from './../utils/utils';
+import { ether, simpleEncode, asciiToHex32, getFuncSig } from './../utils/utils';
 
 describe('ProxyLog', function () {
   let owner: Wallet;
@@ -25,23 +12,17 @@ describe('ProxyLog', function () {
   let proxy: FurucomboProxyMock;
   let registry: FurucomboRegistry;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, user] = await (ethers as any).getSigners();
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, user] = await (ethers as any).getSigners();
 
-      // Setup proxy and Aproxy
-      registry = await (
-        await ethers.getContractFactory('FurucomboRegistry')
-      ).deploy();
-      await registry.deployed();
+    // Setup proxy and Aproxy
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
+    await registry.deployed();
 
-      proxy = await (
-        await ethers.getContractFactory('FurucomboProxyMock')
-      ).deploy(registry.address);
-      await proxy.deployed();
-    }
-  );
+    proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);
+    await proxy.deployed();
+  });
   // `beforeEach` will run before each test, re-deploying the contract every
   // time. It receives a callback, which can be async.
   // setupTest will use the evm_snapshot to reset environment to speed up testing
@@ -57,9 +38,7 @@ describe('ProxyLog', function () {
     let fooFactory: FooFactory;
 
     beforeEach(async function () {
-      fooFactory = await (
-        await ethers.getContractFactory('FooFactory')
-      ).deploy();
+      fooFactory = await (await ethers.getContractFactory('FooFactory')).deploy();
       await fooFactory.deployed();
 
       await fooFactory.createFoo();
@@ -69,9 +48,7 @@ describe('ProxyLog', function () {
       foo1 = await ethers.getContractAt('Foo', await fooFactory.addressOf(1));
       foo2 = await ethers.getContractAt('Foo', await fooFactory.addressOf(2));
 
-      fooHandler = await (
-        await ethers.getContractFactory('FooHandler')
-      ).deploy(fooFactory.address);
+      fooHandler = await (await ethers.getContractFactory('FooHandler')).deploy(fooFactory.address);
       await fooHandler.deployed();
       await registry.register(fooHandler.address, asciiToHex32('foo'));
     });
@@ -79,17 +56,9 @@ describe('ProxyLog', function () {
     it('multiple', async function () {
       const indices = [0, 1, 2];
 
-      const nums = [
-        BigNumber.from('25'),
-        BigNumber.from('26'),
-        BigNumber.from('27'),
-      ];
+      const nums = [BigNumber.from('25'), BigNumber.from('26'), BigNumber.from('27')];
       const tos = [fooHandler.address, fooHandler.address, fooHandler.address];
-      const configs = [
-        constants.HashZero,
-        constants.HashZero,
-        constants.HashZero,
-      ];
+      const configs = [constants.HashZero, constants.HashZero, constants.HashZero];
       const datas = [
         simpleEncode('bar(uint256,uint256)', [indices[0], nums[0]]),
         simpleEncode('bar(uint256,uint256)', [indices[1], nums[1]]),
@@ -108,29 +77,17 @@ describe('ProxyLog', function () {
       expect(result[2]).to.be.eq(nums[2]);
 
       // check events
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selector, datas[0]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selector, datas[0]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selector, result[0]);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selector, result[0]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selector, datas[1]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selector, datas[1]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selector, result[1]);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selector, result[1]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selector, datas[2]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selector, datas[2]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selector, result[2]);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selector, result[2]);
     });
   });
 
@@ -141,20 +98,15 @@ describe('ProxyLog', function () {
       foo = await (await ethers.getContractFactory('Foo4')).deploy();
       await foo.deployed();
 
-      fooHandler = await (
-        await ethers.getContractFactory('Foo4Handler')
-      ).deploy();
+      fooHandler = await (await ethers.getContractFactory('Foo4Handler')).deploy();
       await fooHandler.deployed();
       await registry.register(fooHandler.address, asciiToHex32('foo4'));
     });
 
     it('static parameter', async function () {
       const tos = [fooHandler.address];
-      const a =
-        '0x00000000000000000000000000000000000000000000000000000000000000ff';
-      const configs = [
-        '0x0000000000000000000000000000000000000000000000000000000000000000',
-      ];
+      const a = '0x00000000000000000000000000000000000000000000000000000000000000ff';
+      const configs = ['0x0000000000000000000000000000000000000000000000000000000000000000'];
       const datas = [simpleEncode('bar1(address,bytes32)', [foo.address, a])];
       const selector = getFuncSig(fooHandler, 'bar1');
 
@@ -164,20 +116,15 @@ describe('ProxyLog', function () {
 
       expect(await foo.bValue()).eq(a);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selector, datas[0]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selector, datas[0]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selector, a);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selector, a);
     });
 
     it('replace parameter', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       const r = await foo.bar();
-      const a =
-        '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a = '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         // 1 32-bytes return value to be referenced
         '0x0001000000000000000000000000000000000000000000000000000000000000',
@@ -187,10 +134,7 @@ describe('ProxyLog', function () {
         simpleEncode('bar(address)', [foo.address]),
         simpleEncode('bar1(address,bytes32)', [foo.address, a]),
       ];
-      const selectors = [
-        getFuncSig(fooHandler, 'bar'),
-        getFuncSig(fooHandler, 'bar1'),
-      ];
+      const selectors = [getFuncSig(fooHandler, 'bar'), getFuncSig(fooHandler, 'bar1')];
 
       const receipt = await proxy.connect(user).batchExec(tos, configs, datas, {
         value: ether('1'),
@@ -199,21 +143,13 @@ describe('ProxyLog', function () {
       const paddedData = datas[1].slice(0, 74) + r.slice(2);
 
       expect(await foo.bValue()).eq(r);
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[0], datas[0]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[0], datas[0]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selectors[0], r);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selectors[0], r);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[1], paddedData);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[1], paddedData);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selectors[1], r);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selectors[1], r);
     });
 
     it('replace parameter with dynamic array return', async function () {
@@ -229,18 +165,10 @@ describe('ProxyLog', function () {
         '0x0100000000000000000203ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] -> local stack[3]
       ];
       const datas = [
-        simpleEncode('barUList(address,uint256,uint256,uint256)', [
-          foo.address,
-          ether('1'),
-          secAmt,
-          ether('1'),
-        ]),
+        simpleEncode('barUList(address,uint256,uint256,uint256)', [foo.address, ether('1'), secAmt, ether('1')]),
         simpleEncode('barUint1(address,uint256)', [foo.address, ratio]),
       ];
-      const selectors = [
-        getFuncSig(fooHandler, 'barUList'),
-        getFuncSig(fooHandler, 'barUint1'),
-      ];
+      const selectors = [getFuncSig(fooHandler, 'barUList'), getFuncSig(fooHandler, 'barUint1')];
 
       const r = ethers.utils.defaultAbiCoder.encode(
         ['uint256[]'],
@@ -255,36 +183,24 @@ describe('ProxyLog', function () {
 
       // Pad the data by replacing the parameter part with 0.7 * the execution result of first handler
       // 0x:2, functionSig: 8, first parameter: 64
-      const paddedData =
-        datas[1].slice(0, 2 + 8 + 64) +
-        ethers.utils.hexZeroPad(n.toHexString(), 32).slice(2);
+      const paddedData = datas[1].slice(0, 2 + 8 + 64) + ethers.utils.hexZeroPad(n.toHexString(), 32).slice(2);
 
       expect(await foo.nValue()).to.be.eq(n);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[0], datas[0]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[0], datas[0]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selectors[0], r);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selectors[0], r);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[1], paddedData);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[1], paddedData);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selectors[1], n);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selectors[1], n);
     });
 
     it('replace third parameter', async function () {
       const tos = [fooHandler.address, fooHandler.address];
       const r = await foo.bar();
-      const a =
-        '0x000000000000000000000000000000000000000000000000000000000000000a';
-      const b =
-        '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const a = '0x000000000000000000000000000000000000000000000000000000000000000a';
+      const b = '0x0000000000000000000000000000000000000000000000000000000000000000';
       const configs = [
         '0x0001000000000000000000000000000000000000000000000000000000000000',
         '0x0100000000000000000400ffffffffffffffffffffffffffffffffffffffffff',
@@ -293,10 +209,7 @@ describe('ProxyLog', function () {
         simpleEncode('bar(address)', [foo.address]),
         simpleEncode('bar2(address,bytes32,bytes32)', [foo.address, a, b]),
       ];
-      const selectors = [
-        getFuncSig(fooHandler, 'bar'),
-        getFuncSig(fooHandler, 'bar2'),
-      ];
+      const selectors = [getFuncSig(fooHandler, 'bar'), getFuncSig(fooHandler, 'bar2')];
 
       const receipt = await proxy.connect(user).batchExec(tos, configs, datas, {
         value: ether('1'),
@@ -307,21 +220,13 @@ describe('ProxyLog', function () {
       const paddedData = datas[1].slice(0, 2 + 8 + 64 + 64) + r.slice(2);
 
       expect(await foo.bValue()).eq(r);
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[0], datas[0]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[0], datas[0]);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selectors[0], r);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selectors[0], r);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[1], paddedData);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[1], paddedData);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogEnd')
-        .withArgs(fooHandler.address, selectors[1], r);
+      await expect(receipt).to.emit(proxy, 'LogEnd').withArgs(fooHandler.address, selectors[1], r);
     });
 
     it('replace parameter by 50% of ref value', async function () {
@@ -337,44 +242,27 @@ describe('ProxyLog', function () {
         simpleEncode('barUint(address)', [foo.address]),
         simpleEncode('barUint1(address,uint256)', [foo.address, a]),
       ];
-      const selectors = [
-        getFuncSig(fooHandler, 'barUint'),
-        getFuncSig(fooHandler, 'barUint1'),
-      ];
+      const selectors = [getFuncSig(fooHandler, 'barUint'), getFuncSig(fooHandler, 'barUint1')];
 
       const receipt = await proxy.connect(user).batchExec(tos, configs, datas, {
         value: ether('1'),
       });
       // Pad the data by replacing the parameter part with 0.5 * the execution result of first handler
-      const paddedData =
-        datas[1].slice(0, 2 + 8 + 64) +
-        ethers.utils.hexZeroPad(n.toHexString(), 32).slice(2);
+      const paddedData = datas[1].slice(0, 2 + 8 + 64) + ethers.utils.hexZeroPad(n.toHexString(), 32).slice(2);
 
       expect(await foo.nValue()).to.be.eq(n);
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[0], datas[0]);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[0], datas[0]);
 
       await expect(receipt)
         .to.emit(proxy, 'LogEnd')
-        .withArgs(
-          fooHandler.address,
-          selectors[0],
-          ethers.utils.hexZeroPad(ether('1').toHexString(), 32)
-        );
+        .withArgs(fooHandler.address, selectors[0], ethers.utils.hexZeroPad(ether('1').toHexString(), 32));
 
-      await expect(receipt)
-        .to.emit(proxy, 'LogBegin')
-        .withArgs(fooHandler.address, selectors[1], paddedData);
+      await expect(receipt).to.emit(proxy, 'LogBegin').withArgs(fooHandler.address, selectors[1], paddedData);
 
       await expect(receipt)
         .to.emit(proxy, 'LogEnd')
-        .withArgs(
-          fooHandler.address,
-          selectors[1],
-          ethers.utils.hexZeroPad(n.toHexString(), 32)
-        );
+        .withArgs(fooHandler.address, selectors[1], ethers.utils.hexZeroPad(n.toHexString(), 32));
     });
   });
 });
