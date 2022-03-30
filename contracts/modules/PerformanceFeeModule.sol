@@ -20,18 +20,18 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
 
+    /// @notice Returns the earliest time that can be crystallized next
+    /// even if more than one period has passed.
+    function getNextCrystallizationTime() external view returns (uint256) {
+        uint256 lastPeriod = _timeToPeriod(lastCrystallization);
+        return _periodToTime(lastPeriod + 1);
+    }
+
     /// @notice Check if it can be crystallized.
     function isCrystallizable() public view virtual returns (bool) {
         uint256 nowPeriod = _timeToPeriod(block.timestamp);
         uint256 lastPeriod = _timeToPeriod(lastCrystallization);
         return nowPeriod > lastPeriod;
-    }
-
-    /// @notice Returns the earliest time that can be crystallized next
-    /// even if more than one period has passed.
-    function getNextCrystallizationTime() public view returns (uint256) {
-        uint256 lastPeriod = _timeToPeriod(lastCrystallization);
-        return _periodToTime(lastPeriod + 1);
     }
 
     /// @notice Crystallize for the performance fee.
