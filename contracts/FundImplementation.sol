@@ -181,9 +181,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Asset Module
     /////////////////////////////////////////////////////
-    /// @notice Get the value of a give asset.
-    /// @param asset_ The asset to be queried.
-
     /// @notice Add the asset to the tracking list by owner.
     /// @param asset_ The asset to be added.
     function addAsset(address asset_) external nonReentrant onlyOwner {
@@ -228,6 +225,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         }
     }
 
+    /// @notice Get the value of a give asset.
+    /// @param asset_ The asset to be queried.
     function getAssetValue(address asset_) public view returns (int256) {
         uint256 balance = IERC20(asset_).balanceOf(address(vault));
         if (balance == 0) return 0;
