@@ -72,7 +72,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Finalize the initialization of the fund.
-    function finalize() public onlyOwner {
+    function finalize() external nonReentrant onlyOwner {
         _finalize();
 
         // Add denomination to list and never remove
@@ -82,7 +82,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             comptroller.isValidDenomination(address(denomination)),
             Errors.Code.IMPLEMENTATION_INVALID_DENOMINATION
         );
-        addAsset(address(denomination));
+        _addAsset(address(denomination));
 
         // Set approval for investor to redeem
         _setVaultApproval(setupAction);
@@ -95,7 +95,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Resume the fund by anyone if can settle pending redemption.
-    function resume() public {
+    function resume() external nonReentrant {
         uint256 grossAssetValue = getGrossAssetValue();
         _resumeWithGrossAssetValue(grossAssetValue);
     }
@@ -110,7 +110,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Liquidate the fund by anyone and transfer owner to liquidator.
-    function liquidate() public {
+    function liquidate() external nonReentrant {
         Errors._require(pendingStartTime != 0, Errors.Code.IMPLEMENTATION_PENDING_NOT_START);
         Errors._require(
             block.timestamp >= pendingStartTime + comptroller.pendingExpiration(),
@@ -125,7 +125,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Close the fund. The pending redemption will be settled
     /// without penalty.
-    function close() public override onlyOwner whenStates(State.Executing, State.Liquidating) {
+    function close() public override onlyOwner nonReentrant whenStates(State.Executing, State.Liquidating) {
         if (_getResolvePendingShares(false) > 0) {
             _settlePendingRedemption(false);
         }
@@ -187,7 +187,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     /// @notice Add the asset to the tracking list by owner.
     /// @param asset The asset to be added.
-    function addAsset(address asset) public onlyOwner {
+    function addAsset(address asset) external nonReentrant onlyOwner {
         _addAsset(asset);
     }
 
@@ -210,7 +210,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Remove the asset from the tracking list by owner.
     /// @param asset The asset to be removed.
-    function removeAsset(address asset) public onlyOwner {
+    function removeAsset(address asset) external nonReentrant onlyOwner {
         _removeAsset(asset);
     }
 
@@ -246,8 +246,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return getGrossAssetValue();
     }
 
-    function execute(bytes calldata data) public override onlyOwner {
-        super.execute(data);
+    function execute(bytes calldata data_) public override nonReentrant onlyOwner {
+        super.execute(data_);
     }
 
     /// @notice Check the reserve after the execution.
@@ -255,14 +255,14 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
-            removeAsset(assetList[i]);
+            _removeAsset(assetList[i]);
         }
 
         // add new asset to assetList
         address[] memory dealingAssets = abi.decode(response, (address[]));
 
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
-            addAsset(dealingAssets[i]);
+            _addAsset(dealingAssets[i]);
         }
 
         // Get new gross asset value
@@ -306,6 +306,14 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             lastMFeeClaimTime = block.timestamp;
             return 0;
         }
+    }
+
+    /////////////////////////////////////////////////////
+    // Performance fee module
+    /////////////////////////////////////////////////////
+    /// @notice Crystallize should only be triggered by owner
+    function crystallize() public override nonReentrant onlyOwner returns (uint256) {
+        return super.crystallize();
     }
 
     /////////////////////////////////////////////////////

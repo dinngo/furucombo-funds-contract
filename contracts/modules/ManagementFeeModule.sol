@@ -38,7 +38,12 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
 
     /// @notice Claim the accumulated management fee.
     /// @return The fee amount being claimed.
-    function claimManagementFee() public virtual returns (uint256) {
+    function claimManagementFee()
+        public
+        virtual
+        nonReentrant
+        returns (uint256)
+    {
         return _updateManagementFee();
     }
 
