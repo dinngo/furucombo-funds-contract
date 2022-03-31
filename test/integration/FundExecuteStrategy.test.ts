@@ -1,20 +1,13 @@
-import { constants, Wallet, Signer, BigNumber } from 'ethers';
+import { Wallet, Signer, BigNumber } from 'ethers';
 import { expect } from 'chai';
-import { ethers, deployments } from 'hardhat';
+import { deployments, ethers } from 'hardhat';
 import {
-  AssetRegistry,
-  AssetRouter,
-  MortgageVault,
-  Chainlink,
   IERC20,
   FurucomboRegistry,
   FurucomboProxy,
-  HAaveProtocolV2,
   HFunds,
   AFurucombo,
   TaskExecutor,
-  ComptrollerImplementation,
-  FundProxyFactory,
   FundImplementation,
   ShareToken,
   IUniswapV2Router02,
@@ -30,40 +23,20 @@ import {
   CHAINLINK_DAI_USD,
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
-  DS_PROXY_REGISTRY,
-  WL_ANY_SIG,
   QUICKSWAP_ROUTER,
   SUSHISWAP_ROUTER,
-  WMATIC_TOKEN,
-  QUICKSWAP_USDC_WETH,
-  BAT_PROVIDER,
-  WETH_PROVIDER,
   USDC_PROVIDER,
   FUND_PERCENTAGE_BASE,
+  FUND_STATE,
+  ONE_DAY,
+  LINK_TOKEN,
 } from '../utils/constants';
 
-import {
-  mwei,
-  ether,
-  asciiToHex32,
-  tokenProviderSushi,
-  simpleEncode,
-  getCallData,
-  impersonateAndInjectEther,
-} from '../utils/utils';
+import { mwei, impersonateAndInjectEther } from '../utils/utils';
 
-import {
-  deployFurucomboProxyAndRegistry,
-  deployAssetOracleAndRouterAndRegistry,
-  deployComptrollerAndFundProxyFactory,
-  deployContracts,
-  createFundProxy,
-  deployMortgageVault,
-  deployTaskExecutorAndAFurucombo,
-  registerHandlers,
-  registerResolvers,
-} from './deploy';
-import { HCurve } from '../../typechain/HCurve';
+import { createFund, execSwap, purchaseFund, getSwapData, redeemFund } from './fund';
+
+import { deployFurucomboProxyAndRegistry } from './deploy';
 
 describe('FundExecuteStrategy', function () {
   const denominationAddress = USDC_TOKEN;
@@ -77,13 +50,17 @@ describe('FundExecuteStrategy', function () {
   const tokenBAggregator = CHAINLINK_ETH_USD;
 
   const level = 1;
-  const mFeeRate = 10;
-  const pFeeRate = 10;
-  const execFeePercentage = 200; // 20%
+  const mortgageAmount = 0;
+  const mFeeRate = 0;
+  const pFeeRate = 0;
+  const execFeePercentage = 200; // 2%
   const valueTolerance = 9000; // 90%
-  const pendingExpiration = 86400; // 1 day
+  const pendingExpiration = ONE_DAY; // 1 day
   const crystallizationPeriod = 300; // 5m
   const shareTokenName = 'TEST';
+
+  const initialFunds = mwei('3000');
+  const purchaseAmount = mwei('2000');
 
   let owner: Wallet;
   let collector: Wallet;
@@ -92,7 +69,6 @@ describe('FundExecuteStrategy', function () {
   let liquidator: Wallet;
 
   let denomination: IERC20;
-  let mortgage: IERC20;
   let tokenA: IERC20;
   let tokenB: IERC20;
   let shareToken: ShareToken;
@@ -100,20 +76,12 @@ describe('FundExecuteStrategy', function () {
 
   let fRegistry: FurucomboRegistry;
   let furucombo: FurucomboProxy;
-  let hAaveV2: HAaveProtocolV2;
-  let hCurve: HCurve;
+
   let hQuickSwap: HQuickSwap;
   let hSushiSwap: HSushiSwap;
   let hFunds: HFunds;
   let aFurucombo: AFurucombo;
   let taskExecutor: TaskExecutor;
-  let oracle: Chainlink;
-  let assetRegistry: AssetRegistry;
-  let assetRouter: AssetRouter;
-  let mortgageVault: MortgageVault;
-  let implementation: FundImplementation;
-  let comptroller: ComptrollerImplementation;
-  let fundProxyFactory: FundProxyFactory;
   let fundProxy: FundImplementation;
   let fundVault: string;
 
@@ -125,282 +93,414 @@ describe('FundExecuteStrategy', function () {
     [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
 
     // Setup tokens and providers
+    // TODO: check again to see if this is necessary
     // denominationProvider = await tokenProviderSushi(denominationAddress);
     denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
-    denomination = await ethers.getContractAt('IERC20', denominationAddress);
-    mortgage = await ethers.getContractAt('IERC20', mortgageAddress);
-    tokenA = await ethers.getContractAt('IERC20', tokenAAddress);
-    tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
+
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
     // Deploy furucombo funds contracts
-    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
-    [oracle, assetRegistry, assetRouter] = await deployAssetOracleAndRouterAndRegistry();
-    mortgageVault = await deployMortgageVault(mortgage.address);
-
-    [implementation, comptroller, fundProxyFactory] = await deployComptrollerAndFundProxyFactory(
-      DS_PROXY_REGISTRY,
-      assetRouter.address,
-      collector.address,
-      execFeePercentage,
-      liquidator.address,
-      pendingExpiration,
-      mortgageVault.address,
-      valueTolerance
-    );
-    [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(comptroller, owner.address, furucombo.address);
-
-    // Register furucombo handlers
-    [hAaveV2, hFunds, hCurve, hQuickSwap, hSushiSwap] = await deployContracts(
-      ['HAaveProtocolV2', 'HFunds', 'HCurve', 'HQuickSwap', 'HSushiSwap'],
-      [[], [], [], [], []]
-    );
-    await registerHandlers(
-      fRegistry,
-      [hFunds.address, hAaveV2.address, hCurve.address, hQuickSwap.address, hSushiSwap.address],
-      ['HFunds', 'HAaveProtocolV2', 'HCurve', 'HQuickswap', 'HSushiswap']
-    );
-
-    // Setup comptroller whitelist
-    await comptroller.permitDenominations([denomination.address], [BigNumber.from('10')]);
-
-    await comptroller.permitCreators([manager.address]);
-
-    await comptroller.permitAssets(level, [denominationAddress, tokenA.address, tokenB.address]);
-
-    await comptroller.permitDelegateCalls(level, [aFurucombo.address], [WL_ANY_SIG]);
-
-    await comptroller.permitHandlers(
-      level,
-      [hAaveV2.address, hFunds.address, hCurve.address, hQuickSwap.address, hSushiSwap.address],
-      [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
-    );
-
-    await comptroller.setMortgageTier(level, 0);
-
-    // Add Assets to oracle
-    await oracle
-      .connect(owner)
-      .addAssets(
-        [denominationAddress, tokenAAddress, tokenBAddress],
-        [denominationAggregator, tokenAAggregator, tokenBAggregator]
-      );
-
-    // Register resolvers
-    const [canonicalResolver] = await deployContracts(['RCanonical'], [[]]);
-    await registerResolvers(
-      assetRegistry,
-      [denomination.address, tokenA.address, tokenB.address],
-      [canonicalResolver.address, canonicalResolver.address, canonicalResolver.address]
-    );
-
-    // Create and finalize furucombo fund
-    fundProxy = await createFundProxy(
-      fundProxyFactory,
+    [
+      fundProxy,
+      fundVault,
+      denomination,
+      shareToken,
+      taskExecutor,
+      aFurucombo,
+      hFunds,
+      tokenA,
+      tokenB,
+      ,
+      ,
+      ,
+      hQuickSwap,
+      hSushiSwap,
+    ] = await createFund(
+      owner,
+      collector,
       manager,
+      liquidator,
       denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
       level,
+      mortgageAmount,
       mFeeRate,
       pFeeRate,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
       crystallizationPeriod,
-      shareTokenName
+      shareTokenName,
+      fRegistry,
+      furucombo
     );
-    await fundProxy.connect(manager).finalize();
-    shareToken = await ethers.getContractAt('ShareToken', await fundProxy.shareToken());
-    fundVault = await fundProxy.vault();
 
     // External
     quickRouter = await ethers.getContractAt('IUniswapV2Router02', QUICKSWAP_ROUTER);
     sushiRouter = await ethers.getContractAt('IUniswapV2Router02', SUSHISWAP_ROUTER);
 
     // Transfer token to investor
-    const initialFunds = mwei('3000');
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
 
-    // print log
-    console.log('fRegistry', fRegistry.address);
-    console.log('furucombo', furucombo.address);
-    console.log('oracle', oracle.address);
-    console.log('assetRegistry', assetRegistry.address);
-    console.log('assetRouter', assetRouter.address);
-    console.log('implementation', implementation.address);
-    console.log('comptroller', comptroller.address);
-    console.log('fundProxyFactory', fundProxyFactory.address);
-    console.log('fundProxy', fundProxy.address);
-    console.log('taskExecutor', taskExecutor.address);
-    console.log('aFurucombo', aFurucombo.address);
+    await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
   });
   beforeEach(async function () {
     await setupTest();
   });
 
-  describe('execute strategy in operation', function () {
-    const purchaseAmount = mwei('2000');
-    let ownedShare: BigNumber;
-    let tokenAFundVaultBalance: BigNumber;
-    let tokenBFundVaultBalance: BigNumber;
-    let denominationProxyBalance: BigNumber;
-    let denominationCollectorBalance: BigNumber;
+  describe('execute strategy in executing', function () {
+    // beforeEach(async function () {});
 
-    beforeEach(async function () {
-      // Deposit denomination to get share
-      await denomination.connect(investor).approve(fundProxy.address, purchaseAmount);
-      await fundProxy.connect(investor).purchase(purchaseAmount);
-      ownedShare = await shareToken.balanceOf(investor.address);
+    describe('Router', function () {
+      let ownedShares: BigNumber;
+      let tokenAPoolVaultBalance: BigNumber;
+      let denominationProxyBalance: BigNumber;
+      let denominationCollectorBalance: BigNumber;
 
-      tokenAFundVaultBalance = await tokenA.balanceOf(fundVault);
-      tokenBFundVaultBalance = await tokenB.balanceOf(fundVault);
-      denominationProxyBalance = await denomination.balanceOf(fundVault);
-      denominationCollectorBalance = await denomination.balanceOf(collector.address);
-    });
+      beforeEach(async function () {
+        ownedShares = await shareToken.balanceOf(investor.address);
 
-    it('quickswap', async function () {
-      // Prepare action data
-      const amountIn = mwei('1000');
-      const actionAmountIn = amountIn
-        .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
-        .div(FUND_PERCENTAGE_BASE);
-      const tokensIn = [denomination.address];
-      const amountsIn = [amountIn];
-      const tokensOut = [tokenA.address];
-      const path = [denomination.address, tokenB.address, tokenA.address];
-      const tos = [hFunds.address, hQuickSwap.address];
-      const configs = [constants.HashZero, constants.HashZero];
+        tokenAPoolVaultBalance = await tokenA.balanceOf(fundVault);
+        denominationProxyBalance = await denomination.balanceOf(fundVault);
+        denominationCollectorBalance = await denomination.balanceOf(collector.address);
+      });
+      it('quickswap', async function () {
+        // Prepare action data
+        const amountIn = mwei('1000');
 
-      // Furucombo data
-      const datas = [
-        simpleEncode('updateTokens(address[])', [tokensIn]),
-        simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
-          actionAmountIn, // amountIn
-          1, // amountOutMin
+        const actionAmountIn = amountIn
+          .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
+          .div(FUND_PERCENTAGE_BASE);
+        const path = [denomination.address, tokenB.address, tokenA.address];
+        const tos = [hFunds.address, hQuickSwap.address];
+
+        // Get expect amount out
+        const amountOuts = await quickRouter.getAmountsOut(actionAmountIn, path);
+        const amountOut = amountOuts[amountOuts.length - 1];
+
+        await execSwap(
+          amountIn,
+          execFeePercentage,
+          denomination.address,
+          tokenA.address,
           path,
-        ]),
-      ];
+          tos,
+          aFurucombo,
+          taskExecutor,
+          fundProxy,
+          manager
+        );
 
-      // Action data
-      const actionData = getCallData(aFurucombo, 'injectAndBatchExec', [
-        tokensIn,
-        [actionAmountIn],
-        tokensOut,
-        tos,
-        configs,
-        datas,
-      ]);
+        // Verify
+        // check shares are the same
+        expect(ownedShares).to.be.eq(await shareToken.balanceOf(investor.address));
 
-      // TaskExecutor data
-      const data = getCallData(taskExecutor, 'batchExec', [
-        tokensIn,
-        amountsIn,
-        [aFurucombo.address],
-        [constants.HashZero],
-        [actionData],
-      ]);
+        // check denomination will decrease and token will increase
+        expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAPoolVaultBalance.add(amountOut));
+        expect(await denomination.balanceOf(fundVault)).to.be.eq(denominationProxyBalance.sub(amountIn));
 
-      // Get expect amount out
-      const amountOuts = await quickRouter.getAmountsOut(actionAmountIn, path);
-      const amountOut = amountOuts[amountOuts.length - 1];
+        // check collector will get execute fee
+        expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
+          amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
+        );
 
-      // Execute strategy
-      await fundProxy.connect(manager).execute(data);
+        // TODO: check it after refine quickswap handler
+        // check asset list will be updated
+        // const assetList = await fundProxy.getAssetList();
+        // const expectedAssets = [denomination.address].concat(
+        //   path.slice(1, path.length)
+        // );
 
-      // Verify
-      // check share are the same
-      expect(ownedShare).to.be.eq(await shareToken.balanceOf(investor.address));
+        // expect(assetList.length).to.be.eq(expectedAssets.length);
+        // for (let i = 0; i < assetList.length; ++i) {
+        //   expect(assetList[i]).to.be.eq(expectedAssets[i]);
+        // }
+      });
 
-      // check denomination will decrease and token will increase
-      expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAFundVaultBalance.add(amountOut));
-      expect(await denomination.balanceOf(fundVault)).to.be.eq(denominationProxyBalance.sub(amountIn));
+      it('sushiswap', async function () {
+        // Prepare action data
+        const amountIn = mwei('1000');
+        const actionAmountIn = amountIn
+          .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
+          .div(FUND_PERCENTAGE_BASE);
+        const path = [denomination.address, tokenB.address, tokenA.address];
+        const tos = [hFunds.address, hSushiSwap.address];
 
-      // check collector will get execute fee
-      expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
-        amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
-      );
+        // Get expect amount out
+        const amountOuts = await sushiRouter.getAmountsOut(actionAmountIn, path);
+        const amountOut = amountOuts[amountOuts.length - 1];
 
-      // TODO: check it after refine quickswap handler
-      // check asset list will be updated
-      // const assetList = await fundProxy.getAssetList();
-      // const expectedAssets = [denomination.address].concat(
-      //   path.slice(1, path.length)
-      // );
-
-      // expect(assetList.length).to.be.eq(expectedAssets.length);
-      // for (let i = 0; i < assetList.length; ++i) {
-      //   expect(assetList[i]).to.be.eq(expectedAssets[i]);
-      // }
-    });
-
-    it('sushiswap', async function () {
-      // Prepare action data
-      const amountIn = mwei('1000');
-      const actionAmountIn = amountIn
-        .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
-        .div(FUND_PERCENTAGE_BASE);
-      const tokensIn = [denomination.address];
-      const amountsIn = [amountIn];
-      const tokensOut = [tokenA.address];
-      const path = [denomination.address, tokenB.address, tokenA.address];
-      const tos = [hFunds.address, hSushiSwap.address];
-      const configs = [constants.HashZero, constants.HashZero];
-
-      // Furucombo data
-      const datas = [
-        simpleEncode('updateTokens(address[])', [tokensIn]),
-        simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
-          actionAmountIn, // amountIn
-          1, // amountOutMin
+        await execSwap(
+          amountIn,
+          execFeePercentage,
+          denomination.address,
+          tokenA.address,
           path,
-        ]),
-      ];
+          tos,
+          aFurucombo,
+          taskExecutor,
+          fundProxy,
+          manager
+        );
 
-      // Action data
-      const actionData = getCallData(aFurucombo, 'injectAndBatchExec', [
-        tokensIn,
-        [actionAmountIn],
-        tokensOut,
-        tos,
-        configs,
-        datas,
-      ]);
+        // Verify
+        // check shares are the same
+        expect(ownedShares).to.be.eq(await shareToken.balanceOf(investor.address));
 
-      // TaskExecutor data
-      const data = getCallData(taskExecutor, 'batchExec', [
-        tokensIn,
-        amountsIn,
-        [aFurucombo.address],
-        [constants.HashZero],
-        [actionData],
-      ]);
+        // check denomination will decrease and token will increase
+        expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAPoolVaultBalance.add(amountOut));
+        expect(await denomination.balanceOf(fundVault)).to.be.eq(denominationProxyBalance.sub(amountIn));
 
-      // Get expect amount out
-      const amountOuts = await sushiRouter.getAmountsOut(actionAmountIn, path);
-      const amountOut = amountOuts[amountOuts.length - 1];
+        // check collector will get execute fee
+        expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
+          amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
+        );
 
-      // Execute strategy
-      await fundProxy.connect(manager).execute(data);
+        // TODO: check it after refine sushiswap handler
+        // check asset list will be updated
+        // const assetList = await fundProxy.getAssetList();
+        // const expectedAssets = [denomination.address].concat(
+        //   path.slice(1, path.length)
+        // );
 
-      // Verify
-      // check share are the same
-      expect(ownedShare).to.be.eq(await shareToken.balanceOf(investor.address));
-
-      // check denomination will decrease and token will increase
-      expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAFundVaultBalance.add(amountOut));
-      expect(await denomination.balanceOf(fundVault)).to.be.eq(denominationProxyBalance.sub(amountIn));
-
-      // check collector will get execute fee
-      expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
-        amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
-      );
-
-      // TODO: check it after refine sushiswap handler
-      // check asset list will be updated
-      // const assetList = await fundProxy.getAssetList();
-      // const expectedAssets = [denomination.address].concat(
-      //   path.slice(1, path.length)
-      // );
-
-      // expect(assetList.length).to.be.eq(expectedAssets.length);
-      // for (let i = 0; i < assetList.length; ++i) {
-      //   expect(assetList[i]).to.be.eq(expectedAssets[i]);
-      // }
+        // expect(assetList.length).to.be.eq(expectedAssets.length);
+        // for (let i = 0; i < assetList.length; ++i) {
+        //   expect(assetList[i]).to.be.eq(expectedAssets[i]);
+        // }
+      });
     });
+    describe('Swap', function () {
+      let path: string[];
+      let tos: string[];
+
+      beforeEach(async function () {
+        path = [denomination.address, tokenA.address];
+        tos = [hFunds.address, hQuickSwap.address];
+      });
+
+      it('swap with all denomination', async function () {
+        const amountIn = purchaseAmount;
+        await execSwap(
+          amountIn,
+          execFeePercentage,
+          denomination.address,
+          tokenA.address,
+          path,
+          tos,
+          aFurucombo,
+          taskExecutor,
+          fundProxy,
+          manager
+        );
+        const denominationAmount = await fundProxy.getReserve();
+        const state = await fundProxy.state();
+        expect(denominationAmount).to.be.eq(0);
+        expect(state).to.be.eq(FUND_STATE.EXECUTING);
+      });
+      it('swap with partial denomination', async function () {
+        const amountIn = purchaseAmount.div(2);
+        await execSwap(
+          amountIn,
+          execFeePercentage,
+          denomination.address,
+          tokenA.address,
+          path,
+          tos,
+          aFurucombo,
+          taskExecutor,
+          fundProxy,
+          manager
+        );
+        const denominationAmount = await fundProxy.getReserve();
+        const state = await fundProxy.state();
+        expect(denominationAmount.eq(purchaseAmount.sub(amountIn))).to.be.true;
+        expect(state).to.be.eq(FUND_STATE.EXECUTING);
+      });
+      it('should revert: swap with 0 denomination', async function () {
+        const amountIn = BigNumber.from('0');
+        const data = await getSwapData(
+          amountIn,
+          execFeePercentage,
+          denomination.address,
+          tokenA.address,
+          path,
+          tos,
+          aFurucombo,
+          taskExecutor
+        );
+        await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
+          'injectAndBatchExec: 1_HQuickSwap_swapExactTokensForTokens: UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT'
+        );
+      });
+      it('resolve pending', async function () {
+        const amountIn = purchaseAmount.div(2);
+        await execSwap(
+          amountIn,
+          execFeePercentage,
+          denomination.address,
+          tokenA.address,
+          path,
+          tos,
+          aFurucombo,
+          taskExecutor,
+          fundProxy,
+          manager
+        );
+
+        const tokenABalance = await tokenA.balanceOf(fundVault);
+
+        const redeemShare = purchaseAmount;
+        const acceptPending = true;
+
+        const [, state] = await redeemFund(investor, fundProxy, denomination, redeemShare, acceptPending);
+        expect(state).to.be.eq(FUND_STATE.PENDING);
+
+        await execSwap(
+          tokenABalance,
+          execFeePercentage,
+          tokenA.address,
+          denomination.address,
+          [tokenA.address, denomination.address],
+          tos,
+          aFurucombo,
+          taskExecutor,
+          fundProxy,
+          manager
+        );
+
+        expect(await fundProxy.state()).to.be.eq(FUND_STATE.EXECUTING);
+      });
+      describe('asset', function () {
+        it('add new asset in asset list', async function () {
+          const amountIn = purchaseAmount.div(2);
+
+          const beforeAssetList = await fundProxy.getAssetList();
+
+          await execSwap(
+            amountIn,
+            execFeePercentage,
+            denomination.address,
+            tokenA.address,
+            path,
+            tos,
+            aFurucombo,
+            taskExecutor,
+            fundProxy,
+            manager
+          );
+
+          const afterAssetList = await fundProxy.getAssetList();
+          expect(afterAssetList.length - beforeAssetList.length).to.be.eq(1);
+          expect(afterAssetList[afterAssetList.length - 1]).to.be.eq(tokenA.address);
+        });
+        it('remove 0 balance asset from asset list', async function () {
+          const amountIn = purchaseAmount.div(2);
+
+          // swap denomination to token
+          await execSwap(
+            amountIn,
+            execFeePercentage,
+            denomination.address,
+            tokenA.address,
+            path,
+            tos,
+            aFurucombo,
+            taskExecutor,
+            fundProxy,
+            manager
+          );
+
+          // swap token back to denomination
+          const beforeAssetList = await fundProxy.getAssetList();
+          const reversePath = [tokenA.address, denomination.address];
+          const tokenAmountIn = await tokenA.balanceOf(fundVault);
+
+          await execSwap(
+            tokenAmountIn,
+            execFeePercentage,
+            tokenA.address,
+            denomination.address,
+            reversePath,
+            tos,
+            aFurucombo,
+            taskExecutor,
+            fundProxy,
+            manager
+          );
+          const afterAssetList = await fundProxy.getAssetList();
+          expect(beforeAssetList.length - afterAssetList.length).to.be.eq(1);
+        });
+        // TODO: replace with formula
+        it('get right amount target token', async function () {
+          const amountIn = purchaseAmount;
+          const beforeAssetAmount = await tokenA.balanceOf(fundVault);
+
+          await execSwap(
+            amountIn,
+            execFeePercentage,
+            denomination.address,
+            tokenA.address,
+            path,
+            tos,
+            aFurucombo,
+            taskExecutor,
+            fundProxy,
+            manager
+          );
+
+          const afterAssetAmount = await tokenA.balanceOf(fundVault);
+          expect(afterAssetAmount).to.be.gt(beforeAssetAmount);
+        });
+        // TODO: check again
+        it.skip('get right total asset value', async function () {});
+        it('should revert: exec non permit asset', async function () {
+          const amountIn = purchaseAmount;
+          const invalidToken = await ethers.getContractAt('IERC20', LINK_TOKEN);
+
+          await expect(
+            execSwap(
+              amountIn,
+              execFeePercentage,
+              denomination.address,
+              invalidToken.address,
+              [denomination.address, invalidToken.address],
+              tos,
+              aFurucombo,
+              taskExecutor,
+              fundProxy,
+              manager
+            )
+          ).to.be.revertedWith('RevertCode(33)');
+        });
+      });
+
+      it('should revert: less exec fee', async function () {
+        const amountIn = purchaseAmount.div(2);
+        const execFeePercentage = 0;
+
+        await expect(
+          execSwap(
+            amountIn,
+            execFeePercentage,
+            denomination.address,
+            tokenA.address,
+            path,
+            tos,
+            aFurucombo,
+            taskExecutor,
+            fundProxy,
+            manager
+          )
+        ).to.be.revertedWith('FundQuotaAction: insufficient quota');
+      });
+    });
+
+    //TODO: swap with different fee rate
   });
 });

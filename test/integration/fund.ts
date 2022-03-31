@@ -1,10 +1,5 @@
 import { constants, Wallet, Signer, BigNumber } from 'ethers';
-import {
-  simpleEncode,
-  getCallData,
-  mwei,
-  increaseNextBlockTimeBy,
-} from '../utils/utils';
+import { simpleEncode, getCallData, mwei, increaseNextBlockTimeBy } from '../utils/utils';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 
@@ -14,35 +9,29 @@ import {
   MortgageVault,
   Chainlink,
   IERC20,
-  Registry,
+  FurucomboRegistry,
   FurucomboProxy,
   HAaveProtocolV2,
   HFunds,
   AFurucombo,
   TaskExecutor,
-  PoolProxyFactory,
-  PoolImplementation,
-  PoolImplementationMock,
+  FundProxyFactory,
+  FundImplementation,
+  FundImplementationMock,
   ShareToken,
   HCurve,
   HQuickSwap,
   HSushiSwap,
 } from '../../typechain';
 
-import {
-  DS_PROXY_REGISTRY,
-  WL_ANY_SIG,
-  POOL_STATE,
-  FEE_BASE,
-  ONE_YEAR,
-} from '../utils/constants';
+import { DS_PROXY_REGISTRY, WL_ANY_SIG, FUND_STATE, FEE_BASE, ONE_YEAR } from '../utils/constants';
 
 import {
   deployAssetOracleAndRouterAndRegistry,
-  deployComptrollerAndPoolProxyFactory,
-  deployMockComptrollerAndPoolProxyFactory,
+  deployComptrollerAndFundProxyFactory,
+  deployMockComptrollerAndFundProxyFactory,
   deployContracts,
-  createPoolProxy,
+  createFundProxy,
   deployMortgageVault,
   deployTaskExecutorAndAFurucombo,
   registerHandlers,
@@ -63,15 +52,15 @@ export async function createFund(
   tokenAAggregator: string,
   tokenBAggregator: string,
   level: any,
-  stakeAmount: any,
+  mortgageAmount: any,
   mFeeRate: any,
   pFeeRate: any,
   execFeePercentage: any,
   pendingExpiration: any,
+  valueTolerance: any,
   crystallizationPeriod: any,
-  reserveExecution: any,
   shareTokenName: string,
-  fRegistry: Registry,
+  fRegistry: FurucomboRegistry,
   furucombo: FurucomboProxy
 ): Promise<any> {
   let denomination: IERC20;
@@ -80,9 +69,9 @@ export async function createFund(
   let aFurucombo: AFurucombo;
   let taskExecutor: TaskExecutor;
   let hFunds: HFunds;
-  let poolProxy: PoolImplementation;
+  let fundProxy: FundImplementation;
   let shareToken: ShareToken;
-  let poolVault: string;
+  let fundVault: string;
   let oracle: Chainlink;
   let comptrollerProxy: ComptrollerImplementation;
   let assetRouter: AssetRouter;
@@ -90,8 +79,8 @@ export async function createFund(
   let hSushiSwap: HSushiSwap;
 
   [
-    poolProxy,
-    poolVault,
+    fundProxy,
+    fundVault,
     denomination,
     shareToken,
     taskExecutor,
@@ -117,24 +106,24 @@ export async function createFund(
     tokenAAggregator,
     tokenBAggregator,
     level,
-    stakeAmount,
+    mortgageAmount,
     mFeeRate,
     pFeeRate,
     execFeePercentage,
     pendingExpiration,
+    valueTolerance,
     crystallizationPeriod,
-    reserveExecution,
     shareTokenName,
     fRegistry,
     furucombo
   );
 
-  await poolProxy.connect(manager).finalize();
-  expect(await poolProxy.state()).to.be.eq(POOL_STATE.EXECUTING);
+  await fundProxy.connect(manager).finalize();
+  expect(await fundProxy.state()).to.be.eq(FUND_STATE.EXECUTING);
 
   return [
-    poolProxy,
-    poolVault,
+    fundProxy,
+    fundVault,
     denomination,
     shareToken,
     taskExecutor,
@@ -163,29 +152,29 @@ export async function createReviewingFund(
   tokenAAggregator: string,
   tokenBAggregator: string,
   level: any,
-  stakeAmount: any,
+  mortgageAmount: any,
   mFeeRate: any,
   pFeeRate: any,
   execFeePercentage: any,
   pendingExpiration: any,
+  valueTolerance: any,
   crystallizationPeriod: any,
-  reserveExecutionRatio: any,
   shareTokenName: string,
-  fRegistry: Registry,
+  fRegistry: FurucomboRegistry,
   furucombo: FurucomboProxy
 ): Promise<any> {
   let denomination: IERC20;
   let tokenA: IERC20;
   let tokenB: IERC20;
   let mortgage: IERC20;
-  let poolProxyFactory: PoolProxyFactory;
+  let fundProxyFactory: FundProxyFactory;
   let aFurucombo: AFurucombo;
   let taskExecutor: TaskExecutor;
   let hFunds: HFunds;
-  let poolProxy: PoolImplementation;
+  let fundProxy: FundImplementation;
   let mortgageVault: MortgageVault;
   let shareToken: ShareToken;
-  let poolVault: string;
+  let fundVault: string;
   let oracle: Chainlink;
   let comptrollerProxy: ComptrollerImplementation;
   let assetRouter: AssetRouter;
@@ -193,7 +182,7 @@ export async function createReviewingFund(
   let hSushiSwap: HSushiSwap;
 
   [
-    poolProxyFactory,
+    fundProxyFactory,
     taskExecutor,
     aFurucombo,
     hFunds,
@@ -220,43 +209,40 @@ export async function createReviewingFund(
     tokenAAggregator,
     tokenBAggregator,
     level,
-    stakeAmount,
+    mortgageAmount,
     execFeePercentage,
     pendingExpiration,
+    valueTolerance,
     fRegistry,
     furucombo
   );
 
   // Create and finalize furucombo fund
-  poolProxy = await createPoolProxy(
-    poolProxyFactory,
+  fundProxy = await createFundProxy(
+    fundProxyFactory,
     manager,
     denominationAddress,
     level,
     mFeeRate,
     pFeeRate,
     crystallizationPeriod,
-    reserveExecutionRatio,
     shareTokenName
   );
-  shareToken = await ethers.getContractAt(
-    'ShareToken',
-    await poolProxy.shareToken()
-  );
-  poolVault = await poolProxy.vault();
+  shareToken = await ethers.getContractAt('ShareToken', await fundProxy.shareToken());
+  fundVault = await fundProxy.vault();
 
-  expect(await poolProxy.state()).to.be.eq(POOL_STATE.REVIEWING);
+  expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
 
   // print log
   console.log('fRegistry', fRegistry.address);
   console.log('furucombo', furucombo.address);
   console.log('shareToken', shareToken.address);
-  console.log('poolProxyFactory', poolProxyFactory.address);
-  console.log('poolProxy', poolProxy.address);
+  console.log('fundProxyFactory', fundProxyFactory.address);
+  console.log('fundProxy', fundProxy.address);
 
   return [
-    poolProxy,
-    poolVault,
+    fundProxy,
+    fundVault,
     denomination,
     shareToken,
     taskExecutor,
@@ -285,10 +271,11 @@ export async function createFundInfra(
   tokenAAggregator: string,
   tokenBAggregator: string,
   level: any,
-  stakeAmount: any,
+  mortgageAmount: any,
   execFeePercentage: any,
   pendingExpiration: any,
-  fRegistry: Registry,
+  valueTolerance: any,
+  fRegistry: FurucomboRegistry,
   furucombo: FurucomboProxy
 ): Promise<any> {
   let denomination: IERC20;
@@ -297,9 +284,9 @@ export async function createFundInfra(
   let tokenB: IERC20;
   let oracle: Chainlink;
   let assetRegistry: AssetRegistry;
-  let poolImplementation: PoolImplementation;
+  let fundImplementation: FundImplementation;
   let comptrollerProxy: ComptrollerImplementation;
-  let poolProxyFactory: PoolProxyFactory;
+  let fundProxyFactory: FundProxyFactory;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let aFurucombo: AFurucombo;
@@ -316,22 +303,20 @@ export async function createFundInfra(
   tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
 
   // Deploy furucombo funds contracts
-  [oracle, assetRegistry, assetRouter] =
-    await deployAssetOracleAndRouterAndRegistry();
+  [oracle, assetRegistry, assetRouter] = await deployAssetOracleAndRouterAndRegistry();
 
   mortgageVault = await deployMortgageVault(mortgage.address);
 
-  [poolImplementation, comptrollerProxy, poolProxyFactory] =
-    await deployComptrollerAndPoolProxyFactory(
-      DS_PROXY_REGISTRY,
-      assetRouter.address,
-      collector.address,
-      execFeePercentage,
-      liquidator.address,
-      pendingExpiration,
-      mortgageVault.address,
-      0
-    );
+  [fundImplementation, comptrollerProxy, fundProxyFactory] = await deployComptrollerAndFundProxyFactory(
+    DS_PROXY_REGISTRY,
+    assetRouter.address,
+    collector.address,
+    execFeePercentage,
+    liquidator.address,
+    pendingExpiration,
+    mortgageVault.address,
+    valueTolerance
+  );
 
   [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(
     comptrollerProxy,
@@ -354,7 +339,7 @@ export async function createFundInfra(
     tokenAAggregator,
     tokenBAggregator,
     level,
-    stakeAmount,
+    mortgageAmount,
     fRegistry,
     comptrollerProxy,
     aFurucombo,
@@ -370,13 +355,13 @@ export async function createFundInfra(
   console.log('oracle', oracle.address);
   console.log('assetRegistry', assetRegistry.address);
   console.log('assetRouter', assetRouter.address);
-  console.log('poolImplementation', poolImplementation.address);
+  console.log('fundImplementation', fundImplementation.address);
   console.log('comptrollerProxy', comptrollerProxy.address);
   console.log('taskExecutor', taskExecutor.address);
   console.log('aFurucombo', aFurucombo.address);
 
   return [
-    poolProxyFactory,
+    fundProxyFactory,
     taskExecutor,
     aFurucombo,
     hFunds,
@@ -406,10 +391,10 @@ export async function createMockFundInfra(
   tokenAAggregator: string,
   tokenBAggregator: string,
   level: any,
-  stakeAmount: any,
+  mortgageAmount: any,
   execFeePercentage: any,
   pendingExpiration: any,
-  fRegistry: Registry,
+  fRegistry: FurucomboRegistry,
   furucombo: FurucomboProxy
 ): Promise<any> {
   let denomination: IERC20;
@@ -418,9 +403,9 @@ export async function createMockFundInfra(
   let tokenB: IERC20;
   let oracle: Chainlink;
   let assetRegistry: AssetRegistry;
-  let poolImplementationMock: PoolImplementationMock;
+  let fundImplementationMock: FundImplementationMock;
   let comptrollerProxy: ComptrollerImplementation;
-  let poolProxyFactory: PoolProxyFactory;
+  let fundProxyFactory: FundProxyFactory;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let aFurucombo: AFurucombo;
@@ -437,22 +422,20 @@ export async function createMockFundInfra(
   tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
 
   // Deploy furucombo funds contracts
-  [oracle, assetRegistry, assetRouter] =
-    await deployAssetOracleAndRouterAndRegistry();
+  [oracle, assetRegistry, assetRouter] = await deployAssetOracleAndRouterAndRegistry();
 
   mortgageVault = await deployMortgageVault(mortgage.address);
 
-  [poolImplementationMock, comptrollerProxy, poolProxyFactory] =
-    await deployMockComptrollerAndPoolProxyFactory(
-      DS_PROXY_REGISTRY,
-      assetRouter.address,
-      collector.address,
-      execFeePercentage,
-      liquidator.address,
-      pendingExpiration,
-      mortgageVault.address,
-      0
-    );
+  [fundImplementationMock, comptrollerProxy, fundProxyFactory] = await deployMockComptrollerAndFundProxyFactory(
+    DS_PROXY_REGISTRY,
+    assetRouter.address,
+    collector.address,
+    execFeePercentage,
+    liquidator.address,
+    pendingExpiration,
+    mortgageVault.address,
+    0
+  );
 
   [taskExecutor, aFurucombo] = await deployTaskExecutorAndAFurucombo(
     comptrollerProxy,
@@ -475,7 +458,7 @@ export async function createMockFundInfra(
     tokenAAggregator,
     tokenBAggregator,
     level,
-    stakeAmount,
+    mortgageAmount,
     fRegistry,
     comptrollerProxy,
     aFurucombo,
@@ -491,13 +474,13 @@ export async function createMockFundInfra(
   console.log('oracle', oracle.address);
   console.log('assetRegistry', assetRegistry.address);
   console.log('assetRouter', assetRouter.address);
-  console.log('pool implementationMock', poolImplementationMock.address);
+  console.log('fundImplementationMock', fundImplementationMock.address);
   console.log('comptrollerProxy', comptrollerProxy.address);
   console.log('taskExecutor', taskExecutor.address);
   console.log('aFurucombo', aFurucombo.address);
 
   return [
-    poolProxyFactory,
+    fundProxyFactory,
     taskExecutor,
     aFurucombo,
     hFunds,
@@ -520,8 +503,8 @@ async function _setupFundInfra(
   tokenAAggregator: string,
   tokenBAggregator: string,
   level: any,
-  stakeAmount: any,
-  fRegistry: Registry,
+  mortgageAmount: any,
+  fRegistry: FurucomboRegistry,
   comptrollerProxy: ComptrollerImplementation,
   aFurucombo: AFurucombo,
   assetRegistry: AssetRegistry,
@@ -542,45 +525,22 @@ async function _setupFundInfra(
 
   await registerHandlers(
     fRegistry,
-    [
-      hFunds.address,
-      hAaveV2.address,
-      hCurve.address,
-      hQuickSwap.address,
-      hSushiSwap.address,
-    ],
+    [hFunds.address, hAaveV2.address, hCurve.address, hQuickSwap.address, hSushiSwap.address],
     ['HFunds', 'HAaveProtocolV2', 'HCurve', 'HQuickswap', 'HSushiswap']
   );
 
   // Setup comptroller whitelist
-  await comptrollerProxy.permitDenominations(
-    [denomination.address],
-    [BigNumber.from('10')]
-  );
+  await comptrollerProxy.permitDenominations([denomination.address], [BigNumber.from('10')]);
 
   await comptrollerProxy.permitCreators([manager.address]);
 
-  await comptrollerProxy.permitAssets(level, [
-    denominationAddress,
-    tokenA.address,
-    tokenB.address,
-  ]);
+  await comptrollerProxy.permitAssets(level, [denominationAddress, tokenA.address, tokenB.address]);
 
-  await comptrollerProxy.permitDelegateCalls(
-    level,
-    [aFurucombo.address],
-    [WL_ANY_SIG]
-  );
+  await comptrollerProxy.permitDelegateCalls(level, [aFurucombo.address], [WL_ANY_SIG]);
 
   await comptrollerProxy.permitHandlers(
     level,
-    [
-      hAaveV2.address,
-      hFunds.address,
-      hCurve.address,
-      hQuickSwap.address,
-      hSushiSwap.address,
-    ],
+    [hAaveV2.address, hFunds.address, hCurve.address, hQuickSwap.address, hSushiSwap.address],
     [WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG, WL_ANY_SIG]
   );
 
@@ -597,42 +557,32 @@ async function _setupFundInfra(
   await registerResolvers(
     assetRegistry,
     [denomination.address, tokenA.address, tokenB.address],
-    [
-      canonicalResolver.address,
-      canonicalResolver.address,
-      canonicalResolver.address,
-    ]
+    [canonicalResolver.address, canonicalResolver.address, canonicalResolver.address]
   );
 
   // Set stake amount
-  await comptrollerProxy.setStakedTier(level, stakeAmount);
+  await comptrollerProxy.setMortgageTier(level, mortgageAmount);
 }
 
 // fund with denomination only
-export async function setOperatingDenominationFund(
+export async function setExecutingDenominationFund(
   investor: Wallet,
-  poolProxy: PoolImplementation,
+  fundProxy: FundImplementation,
   denomination: IERC20,
   shareToken: ShareToken,
   purchaseAmount: BigNumber
 ): Promise<any> {
   // purchase shares
-  const [share, state] = await purchaseFund(
-    investor,
-    poolProxy,
-    denomination,
-    shareToken,
-    purchaseAmount
-  );
-  expect(state).to.be.eq(POOL_STATE.EXECUTING);
+  const [share, state] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+  expect(state).to.be.eq(FUND_STATE.EXECUTING);
   return share;
 }
 
 // fund with denomination and asset
-export async function setOperatingAssetFund(
+export async function setExecutingAssetFund(
   manager: Wallet,
   investor: Wallet,
-  poolProxy: PoolImplementation,
+  fundProxy: FundImplementation,
   denomination: IERC20,
   shareToken: ShareToken,
   purchaseAmount: BigNumber,
@@ -647,13 +597,7 @@ export async function setOperatingAssetFund(
 ): Promise<any> {
   expect(swapAmount).to.be.gt(BigNumber.from('0'));
 
-  const share = await setOperatingDenominationFund(
-    investor,
-    poolProxy,
-    denomination,
-    shareToken,
-    purchaseAmount
-  );
+  const share = await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
   // spend denomination
   await execSwap(
@@ -665,19 +609,19 @@ export async function setOperatingAssetFund(
     [hFunds.address, hSwap.address],
     aFurucombo,
     taskExecutor,
-    poolProxy,
+    fundProxy,
     manager
   );
 
-  expect(await poolProxy.state()).to.be.eq(POOL_STATE.EXECUTING);
+  expect(await fundProxy.state()).to.be.eq(FUND_STATE.EXECUTING);
 
   return share;
 }
 
-export async function setObservingAssetFund(
+export async function setPendingAssetFund(
   manager: Wallet,
   investor: Wallet,
-  poolProxy: PoolImplementation,
+  fundProxy: FundImplementation,
   denomination: IERC20,
   shareToken: ShareToken,
   purchaseAmount: BigNumber,
@@ -693,10 +637,10 @@ export async function setObservingAssetFund(
 ): Promise<any> {
   expect(redeemAmount.lte(purchaseAmount)).to.be.true;
 
-  await setOperatingAssetFund(
+  await setExecutingAssetFund(
     manager,
     investor,
-    poolProxy,
+    fundProxy,
     denomination,
     shareToken,
     purchaseAmount,
@@ -711,21 +655,15 @@ export async function setObservingAssetFund(
   );
 
   // redeem shares to enter pending state
-  const [, state] = await redeemFund(
-    investor,
-    poolProxy,
-    denomination,
-    redeemAmount,
-    true
-  );
-  expect(state).to.be.eq(POOL_STATE.REDEMPTION_PENDING);
+  const [, state] = await redeemFund(investor, fundProxy, denomination, redeemAmount, true);
+  expect(state).to.be.eq(FUND_STATE.PENDING);
 }
 
 export async function setLiquidatingAssetFund(
   manager: Wallet,
   investor: Wallet,
   liquidator: Wallet,
-  poolProxy: PoolImplementation,
+  fundProxy: FundImplementation,
   denomination: IERC20,
   shareToken: ShareToken,
   purchaseAmount: BigNumber,
@@ -740,10 +678,10 @@ export async function setLiquidatingAssetFund(
   hSwap: HQuickSwap | HSushiSwap,
   pendingExpiration: any
 ): Promise<any> {
-  await setObservingAssetFund(
+  await setPendingAssetFund(
     manager,
     investor,
-    poolProxy,
+    fundProxy,
     denomination,
     shareToken,
     purchaseAmount,
@@ -759,64 +697,54 @@ export async function setLiquidatingAssetFund(
   );
 
   await increaseNextBlockTimeBy(pendingExpiration);
-  await poolProxy.connect(liquidator).liquidate();
-  expect(await poolProxy.state()).to.be.eq(POOL_STATE.LIQUIDATING);
+  await fundProxy.connect(liquidator).liquidate();
+  expect(await fundProxy.state()).to.be.eq(FUND_STATE.LIQUIDATING);
 }
 
 export async function setClosedDenominationFund(
   manager: Wallet,
   investor: Wallet,
-  poolProxy: PoolImplementation,
+  fundProxy: FundImplementation,
   denomination: IERC20,
   shareToken: ShareToken,
   purchaseAmount: BigNumber
 ): Promise<any> {
-  const share = await setOperatingDenominationFund(
-    investor,
-    poolProxy,
-    denomination,
-    shareToken,
-    purchaseAmount
-  );
-  await poolProxy.connect(manager).close();
-  const state = await poolProxy.state();
-  expect(state).to.be.eq(POOL_STATE.CLOSED);
+  const share = await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+  await fundProxy.connect(manager).close();
+  const state = await fundProxy.state();
+  expect(state).to.be.eq(FUND_STATE.CLOSED);
 
   return share;
 }
 
 export async function purchaseFund(
   investor: Wallet,
-  poolProxy: PoolImplementation | PoolImplementationMock,
+  fundProxy: FundImplementation | FundImplementationMock,
   denomination: IERC20,
   shareToken: ShareToken,
   amount: any
 ): Promise<any> {
   const initShareTokenAmount = await shareToken.balanceOf(investor.address);
-  await denomination.connect(investor).approve(poolProxy.address, amount);
-  await poolProxy.connect(investor).purchase(amount);
+  await denomination.connect(investor).approve(fundProxy.address, amount);
+  await fundProxy.connect(investor).purchase(amount);
   const afterShareTokenAmount = await shareToken.balanceOf(investor.address);
   const share = await afterShareTokenAmount.sub(initShareTokenAmount);
-  const state = await poolProxy.state();
+  const state = await fundProxy.state();
   return [share, state];
 }
 
 export async function redeemFund(
   investor: Wallet,
-  poolProxy: PoolImplementation | PoolImplementationMock,
+  fundProxy: FundImplementation | FundImplementationMock,
   denomination: IERC20,
   shareAmount: any,
   acceptPending: any
 ): Promise<any> {
   const initDenominationAmount = await denomination.balanceOf(investor.address);
-  await poolProxy.connect(investor).redeem(shareAmount, acceptPending);
-  const afterDenominationAmount = await denomination.balanceOf(
-    investor.address
-  );
-  const denominationBalance = afterDenominationAmount.sub(
-    initDenominationAmount
-  );
-  const state = await poolProxy.state();
+  await fundProxy.connect(investor).redeem(shareAmount, acceptPending);
+  const afterDenominationAmount = await denomination.balanceOf(investor.address);
+  const denominationBalance = afterDenominationAmount.sub(initDenominationAmount);
+  const state = await fundProxy.state();
   return [denominationBalance, state];
 }
 
@@ -830,7 +758,7 @@ export async function execSwap(
   tos: string[],
   aFurucombo: AFurucombo,
   taskExecutor: TaskExecutor,
-  poolProxy: PoolImplementation,
+  fundProxy: FundImplementation,
   manager: Wallet
 ): Promise<any> {
   const data = await getSwapData(
@@ -845,7 +773,7 @@ export async function execSwap(
   );
 
   // Execute strategy
-  await poolProxy.connect(manager).execute(data);
+  await fundProxy.connect(manager).execute(data);
 }
 
 export async function getSwapData(
@@ -859,9 +787,7 @@ export async function getSwapData(
   taskExecutor: TaskExecutor
 ): Promise<any> {
   // Prepare action data
-  const actionAmountIn = amountIn
-    .mul(BigNumber.from(FEE_BASE).sub(execFeePercentage))
-    .div(FEE_BASE);
+  const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
   const tokensIn = [inTokenAddress];
   const amountsIn = [amountIn];
   const tokensOut = [outTokenAddress];

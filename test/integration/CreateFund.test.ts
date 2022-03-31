@@ -3,11 +3,11 @@ import { deployments, ethers } from 'hardhat';
 import { expect } from 'chai';
 
 import {
-  Registry,
+  FurucomboRegistry,
   FurucomboProxy,
-  PoolImplementation,
+  FundImplementation,
   IERC20,
-  PoolProxyFactory,
+  FundProxyFactory,
   MortgageVault,
   ComptrollerImplementation,
 } from '../../typechain';
@@ -15,7 +15,7 @@ import {
 import { mwei, impersonateAndInjectEther, getEventArgs } from '../utils/utils';
 
 import { createFundInfra } from './fund';
-import { deployFurucomboProxyAndRegistry, createPoolProxy } from './deploy';
+import { deployFurucomboProxyAndRegistry, createFundProxy } from './deploy';
 import {
   BAT_TOKEN,
   USDC_TOKEN,
@@ -24,7 +24,7 @@ import {
   CHAINLINK_DAI_USD,
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
-  POOL_STATE,
+  FUND_STATE,
   ONE_DAY,
   FEE_BASE,
   ONE_YEAR,
@@ -50,130 +50,104 @@ describe('CreateFund', function () {
   const tokenBAggregator = CHAINLINK_ETH_USD;
 
   const level = 1;
-  const stakeAmount = mwei('10');
+  const mortgageAmount = mwei('10');
   const mFeeRate = 0;
   const pFeeRate = 0;
   const execFeePercentage = 200; // 2%
   const pendingExpiration = ONE_DAY; // 1 day
+  const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 5000; // 50%
+  const reserveExecutionRate = 5000; // 50%
 
   const shareTokenName = 'TEST';
 
-  let fRegistry: Registry;
+  let fRegistry: FurucomboRegistry;
   let furucombo: FurucomboProxy;
-  let poolProxyFactory: PoolProxyFactory;
+  let fundProxyFactory: FundProxyFactory;
   let mortgageVault: MortgageVault;
-  let poolProxy: PoolImplementation;
+  let fundProxy: FundImplementation;
   let comptrollerProxy: ComptrollerImplementation;
 
   let mortgage: IERC20;
 
-  const setupCreateTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, collector, manager, investor, liquidator] = await (
-        ethers as any
-      ).getSigners();
+  const setupCreateTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
 
-      mortgageProvider = await impersonateAndInjectEther(
-        mortgageProviderAddress
-      );
+    mortgageProvider = await impersonateAndInjectEther(mortgageProviderAddress);
 
-      // Deploy furucombo
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
-      [
-        poolProxyFactory,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        mortgage,
-        mortgageVault,
-        ,
-        comptrollerProxy,
-      ] = await createFundInfra(
-        owner,
-        collector,
-        manager,
-        liquidator,
-        denominationAddress,
-        mortgageAddress,
-        tokenAAddress,
-        tokenBAddress,
-        denominationAggregator,
-        tokenAAggregator,
-        tokenBAggregator,
-        level,
-        stakeAmount,
-        execFeePercentage,
-        pendingExpiration,
-        fRegistry,
-        furucombo
-      );
-    }
-  );
+    [fundProxyFactory, , , , , , , mortgage, mortgageVault, , comptrollerProxy] = await createFundInfra(
+      owner,
+      collector,
+      manager,
+      liquidator,
+      denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
+      level,
+      mortgageAmount,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
+      fRegistry,
+      furucombo
+    );
+  });
 
-  const setupFinalizeTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, collector, manager, investor, liquidator] = await (
-        ethers as any
-      ).getSigners();
+  const setupFinalizeTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
 
-      mortgageProvider = await impersonateAndInjectEther(
-        mortgageProviderAddress
-      );
+    mortgageProvider = await impersonateAndInjectEther(mortgageProviderAddress);
 
-      // Deploy furucombo
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
-      // Deploy furucombo funds contracts
-      [poolProxyFactory, , , , , , , mortgage, mortgageVault] =
-        await createFundInfra(
-          owner,
-          collector,
-          manager,
-          liquidator,
-          denominationAddress,
-          mortgageAddress,
-          tokenAAddress,
-          tokenBAddress,
-          denominationAggregator,
-          tokenAAggregator,
-          tokenBAggregator,
-          level,
-          stakeAmount,
-          execFeePercentage,
-          pendingExpiration,
-          fRegistry,
-          furucombo
-        );
+    // Deploy furucombo funds contracts
+    [fundProxyFactory, , , , , , , mortgage, mortgageVault] = await createFundInfra(
+      owner,
+      collector,
+      manager,
+      liquidator,
+      denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
+      level,
+      mortgageAmount,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
+      fRegistry,
+      furucombo
+    );
 
-      // Transfer mortgage token to manager
-      await mortgage
-        .connect(mortgageProvider)
-        .transfer(manager.address, stakeAmount);
-      await mortgage
-        .connect(manager)
-        .approve(mortgageVault.address, stakeAmount);
+    // Transfer mortgage token to manager
+    await mortgage.connect(mortgageProvider).transfer(manager.address, mortgageAmount);
+    await mortgage.connect(manager).approve(mortgageVault.address, mortgageAmount);
 
-      poolProxy = await createPoolProxy(
-        poolProxyFactory,
-        manager,
-        denominationAddress,
-        level,
-        mFeeRate,
-        pFeeRate,
-        crystallizationPeriod,
-        reserveExecutionRatio,
-        shareTokenName
-      );
-    }
-  );
+    fundProxy = await createFundProxy(
+      fundProxyFactory,
+      manager,
+      denominationAddress,
+      level,
+      mFeeRate,
+      pFeeRate,
+      crystallizationPeriod,
+      reserveExecutionRate,
+      shareTokenName
+    );
+  });
   beforeEach(async function () {
     // await setupTest();
   });
@@ -187,75 +161,60 @@ describe('CreateFund', function () {
       const inititalMortgageBalance = await mortgage.balanceOf(manager.address);
 
       // Transfer mortgage token to manager
-      await mortgage
-        .connect(mortgageProvider)
-        .transfer(manager.address, stakeAmount);
-      await mortgage
-        .connect(manager)
-        .approve(mortgageVault.address, stakeAmount);
+      await mortgage.connect(mortgageProvider).transfer(manager.address, mortgageAmount);
+      await mortgage.connect(manager).approve(mortgageVault.address, mortgageAmount);
 
       // Create and finalize furucombo fund
-      const receipt = await poolProxyFactory
+      const receipt = await fundProxyFactory
         .connect(manager)
-        .createPool(
+        .createFund(
           denominationAddress,
           level,
           mFeeRate,
           pFeeRate,
           crystallizationPeriod,
-          reserveExecutionRatio,
+          reserveExecutionRate,
           shareTokenName
         );
-      const eventArgs = await getEventArgs(receipt, 'PoolCreated');
-      const poolProxy = await ethers.getContractAt(
-        'PoolImplementation',
-        eventArgs.newPool
-      );
-      expect(await poolProxy.state()).to.be.eq(POOL_STATE.REVIEWING);
-      expect(await mortgage.balanceOf(manager.address)).to.be.eq(
-        inititalMortgageBalance
-      );
+      const eventArgs = await getEventArgs(receipt, 'FundCreated');
+      const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
+      expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
+      expect(await mortgage.balanceOf(manager.address)).to.be.eq(inititalMortgageBalance);
     });
     it('should revert: manager mortgage balance < stake amount', async function () {
       // approve mortgage
-      await mortgage
-        .connect(manager)
-        .approve(mortgageVault.address, stakeAmount);
+      await mortgage.connect(manager).approve(mortgageVault.address, mortgageAmount);
       // Create and finalize furucombo fund
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
     });
     it('should revert: manager approve mortgage < stake amount', async function () {
       // Transfer mortgage token to manager
-      await mortgage
-        .connect(mortgageProvider)
-        .transfer(manager.address, stakeAmount);
-      await mortgage
-        .connect(manager)
-        .approve(mortgageVault.address, stakeAmount.sub(1));
+      await mortgage.connect(mortgageProvider).transfer(manager.address, mortgageAmount);
+      await mortgage.connect(manager).approve(mortgageVault.address, mortgageAmount.sub(1));
 
       // Create and finalize furucombo fund
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.revertedWith('ERC20: transfer amount exceeds allowance');
@@ -263,15 +222,15 @@ describe('CreateFund', function () {
     it('should revert: invalid denomination address', async function () {
       const invalidDenominationAddress = constants.AddressZero;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             invalidDenominationAddress,
             level,
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
@@ -280,15 +239,15 @@ describe('CreateFund', function () {
       const level = 5;
       // Create and finalize furucombo fund
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
@@ -296,15 +255,15 @@ describe('CreateFund', function () {
     it('should revert: invalid management fee rate', async function () {
       const mFeeRate = FEE_BASE;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
@@ -312,15 +271,15 @@ describe('CreateFund', function () {
     it('should revert: invalid performance fee rate', async function () {
       const pFeeRate = FEE_BASE;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
@@ -328,15 +287,15 @@ describe('CreateFund', function () {
     it('should revert: invalid crystallization period', async function () {
       const crystallizationPeriod = 0;
       await expect(
-        poolProxyFactory
+        fundProxyFactory
           .connect(manager)
-          .createPool(
+          .createFund(
             denominationAddress,
             level,
             mFeeRate,
             pFeeRate,
             crystallizationPeriod,
-            reserveExecutionRatio,
+            reserveExecutionRate,
             shareTokenName
           )
       ).to.be.reverted;
@@ -344,8 +303,8 @@ describe('CreateFund', function () {
     it('should revert: invalid reserve execution rate', async function () {
       const invalidReserveExecutionRate = FEE_BASE;
       await expect(
-        createPoolProxy(
-          poolProxyFactory,
+        createFundProxy(
+          fundProxyFactory,
           manager,
           denominationAddress,
           level,
@@ -358,20 +317,20 @@ describe('CreateFund', function () {
       ).to.be.reverted;
     });
     it('should revert: unset stake tier', async function () {
-      await comptrollerProxy.unsetStakedTier(level);
+      await comptrollerProxy.unsetMortgageTier(level);
       await expect(
-        createPoolProxy(
-          poolProxyFactory,
+        createFundProxy(
+          fundProxyFactory,
           manager,
           denominationAddress,
           level,
           mFeeRate,
           pFeeRate,
           crystallizationPeriod,
-          reserveExecutionRatio,
+          reserveExecutionRate,
           shareTokenName
         )
-      ).to.be.revertedWith('revertCode(75');
+      ).to.be.revertedWith('RevertCode(75');
     });
   });
   describe('Finalize', function () {
@@ -381,71 +340,63 @@ describe('CreateFund', function () {
     describe('Getter', function () {
       // getter finalize getter
       it('get the right level value', async function () {
-        expect(await poolProxy.level()).to.be.eq(level);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.level()).to.be.eq(level);
+        expect(await fundProxy.level()).to.be.eq(level);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.level()).to.be.eq(level);
       });
       it('get the comptroller address', async function () {
-        const _comptroller = await poolProxy.comptroller();
+        const _comptroller = await fundProxy.comptroller();
         expect(_comptroller).to.be.not.eq(constants.AddressZero);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.comptroller()).to.be.eq(_comptroller);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.comptroller()).to.be.eq(_comptroller);
       });
       it('get the right denomination address', async function () {
-        expect(await poolProxy.denomination()).to.be.eq(denominationAddress);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.denomination()).to.be.eq(denominationAddress);
+        expect(await fundProxy.denomination()).to.be.eq(denominationAddress);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.denomination()).to.be.eq(denominationAddress);
       });
       it('get the share token address', async function () {
-        const _shareToken = await poolProxy.shareToken();
+        const _shareToken = await fundProxy.shareToken();
         expect(_shareToken).to.be.not.eq(constants.AddressZero);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.shareToken()).to.be.eq(_shareToken);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.shareToken()).to.be.eq(_shareToken);
       });
       it('get the right management fee rate', async function () {
         const _mFeeRate = BigNumber.from('18446744073709551616');
-        expect(await poolProxy.getManagementFeeRate()).to.be.eq(_mFeeRate);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.getManagementFeeRate()).to.be.eq(_mFeeRate);
+        expect(await fundProxy.mFeeRate64x64()).to.be.eq(_mFeeRate);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.mFeeRate64x64()).to.be.eq(_mFeeRate);
       });
       it('get the right performance fee rate', async function () {
-        expect(await poolProxy.getPerformanceFeeRate()).to.be.eq(pFeeRate);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.getPerformanceFeeRate()).to.be.eq(pFeeRate);
+        expect(await fundProxy.pFeeRate64x64()).to.be.eq(pFeeRate);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.pFeeRate64x64()).to.be.eq(pFeeRate);
       });
       it('get the right crystallization period', async function () {
-        expect(await poolProxy.getCrystallizationPeriod()).to.be.eq(
-          crystallizationPeriod
-        );
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.getCrystallizationPeriod()).to.be.eq(
-          crystallizationPeriod
-        );
+        expect(await fundProxy.crystallizationPeriod()).to.be.eq(crystallizationPeriod);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.crystallizationPeriod()).to.be.eq(crystallizationPeriod);
       });
       it('get the reserve ratio', async function () {
-        expect(await poolProxy.reserveExecutionRatio()).to.be.eq(
-          reserveExecutionRatio
-        );
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.reserveExecutionRatio()).to.be.eq(
-          reserveExecutionRatio
-        );
+        expect(await fundProxy.reserveExecutionRate()).to.be.eq(reserveExecutionRate);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.reserveExecutionRate()).to.be.eq(reserveExecutionRate);
       });
       it('get the vault address', async function () {
-        const _vault = await poolProxy.vault();
+        const _vault = await fundProxy.vault();
         expect(_vault).to.be.not.eq(constants.AddressZero);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.vault()).to.be.eq(_vault);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.vault()).to.be.eq(_vault);
       });
       it('get the right owner address', async function () {
-        expect(await poolProxy.owner()).to.be.eq(manager.address);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.owner()).to.be.eq(manager.address);
+        expect(await fundProxy.owner()).to.be.eq(manager.address);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.owner()).to.be.eq(manager.address);
       });
       it('get the mortgage vault address', async function () {
-        expect(await poolProxy.mortgageVault()).to.be.eq(mortgageVault.address);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.mortgageVault()).to.be.eq(mortgageVault.address);
+        expect(await fundProxy.mortgageVault()).to.be.eq(mortgageVault.address);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.mortgageVault()).to.be.eq(mortgageVault.address);
       });
     });
     describe('Setter', function () {
@@ -453,40 +404,30 @@ describe('CreateFund', function () {
       it('set the right management fee rate', async function () {
         const _feeRate = BigNumber.from('1000');
         const _expectFeeRate = BigNumber.from('18446744135297203117');
-        await poolProxy.connect(manager).setManagementFeeRate(_feeRate);
-        expect(await poolProxy.getManagementFeeRate()).to.be.eq(_expectFeeRate);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.getManagementFeeRate()).to.be.eq(_expectFeeRate);
+        await fundProxy.connect(manager).setManagementFeeRate(_feeRate);
+        expect(await fundProxy.mFeeRate64x64()).to.be.eq(_expectFeeRate);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.mFeeRate64x64()).to.be.eq(_expectFeeRate);
       });
       it('set the right performance fee rate', async function () {
         const _pFeeRate = BigNumber.from('1000');
         const expectedPFeeRate = BigNumber.from('1844674407370955161');
-        await poolProxy.connect(manager).setPerformanceFeeRate(_pFeeRate);
-        expect(await poolProxy.getPerformanceFeeRate()).to.be.eq(
-          expectedPFeeRate
-        );
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.getPerformanceFeeRate()).to.be.eq(
-          expectedPFeeRate
-        );
+        await fundProxy.connect(manager).setPerformanceFeeRate(_pFeeRate);
+        expect(await fundProxy.pFeeRate64x64()).to.be.eq(expectedPFeeRate);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.pFeeRate64x64()).to.be.eq(expectedPFeeRate);
       });
       it('set the right crystallization period', async function () {
         const _crystallizationPeriod = ONE_YEAR;
-        await poolProxy
-          .connect(manager)
-          .setCrystallizationPeriod(_crystallizationPeriod);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.getCrystallizationPeriod()).to.be.eq(
-          _crystallizationPeriod
-        );
+        await fundProxy.connect(manager).setCrystallizationPeriod(_crystallizationPeriod);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.crystallizationPeriod()).to.be.eq(_crystallizationPeriod);
       });
       it('set the right reserve ratio', async function () {
         const _reserveRatio = 100;
-        await poolProxy
-          .connect(manager)
-          .setReserveExecutionRatio(_reserveRatio);
-        await poolProxy.connect(manager).finalize();
-        expect(await poolProxy.reserveExecutionRatio()).to.be.eq(_reserveRatio);
+        await fundProxy.connect(manager).setReserveExecutionRate(_reserveRatio);
+        await fundProxy.connect(manager).finalize();
+        expect(await fundProxy.reserveExecutionRate()).to.be.eq(_reserveRatio);
       });
     });
   });

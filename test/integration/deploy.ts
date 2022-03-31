@@ -114,14 +114,14 @@ export async function deployMockComptrollerAndFundProxyFactory(
   totalAssetValueTolerance: any
 ): Promise<any> {
   // implementation
-  const poolImplementationMock = await (
-    await ethers.getContractFactory('PoolImplementationMock')
+  const fundImplementationMock = await (
+    await ethers.getContractFactory('FundImplementationMock')
   ).deploy(dsProxyRegistry);
-  await poolImplementationMock.deployed();
+  await fundImplementationMock.deployed();
 
   // comptroller
   const comptroller = await _deployComptroller(
-    poolImplementationMock.address,
+    fundImplementationMock.address,
     assetRouterAddress,
     collectorAddress,
     execFeePercentage,
@@ -131,14 +131,14 @@ export async function deployMockComptrollerAndFundProxyFactory(
     totalAssetValueTolerance
   );
 
-  // PoolProxyFactory
-  const poolProxyFactory = await _deployFundProxyFactory(comptroller.address);
+  // FundProxyFactory
+  const fundProxyFactory = await _deployFundProxyFactory(comptroller.address);
 
-  return [poolImplementationMock, comptroller, poolProxyFactory];
+  return [fundImplementationMock, comptroller, fundProxyFactory];
 }
 
 async function _deployComptroller(
-  poolImplementationAddress: any,
+  fundImplementationAddress: any,
   assetRouterAddress: any,
   collectorAddress: any,
   execFeePercentage: any,
@@ -154,7 +154,7 @@ async function _deployComptroller(
   await setupAction.deployed();
 
   const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
-    poolImplementationAddress,
+    fundImplementationAddress,
     assetRouterAddress,
     collectorAddress,
     execFeePercentage,
@@ -210,8 +210,8 @@ export async function createFundProxy(
   return fundProxy;
 }
 
-export async function createPoolProxyMock(
-  poolProxyFactory: any,
+export async function createFundProxyMock(
+  fundProxyFactory: any,
   manager: any,
   quoteAddress: any,
   level: any,
@@ -221,7 +221,7 @@ export async function createPoolProxyMock(
   shareTokenName: any
 ): Promise<any> {
   const receipt = await _createFund(
-    poolProxyFactory,
+    fundProxyFactory,
     manager,
     quoteAddress,
     level,
@@ -230,10 +230,10 @@ export async function createPoolProxyMock(
     crystallizationPeriod,
     shareTokenName
   );
-  const eventArgs = await getEventArgs(receipt, 'PoolCreated');
-  console.log('args.newPool', eventArgs.newPool);
-  const poolProxy = await ethers.getContractAt('PoolImplementationMock', eventArgs.newPool);
-  return poolProxy;
+  const eventArgs = await getEventArgs(receipt, 'FundCreated');
+  console.log('args.newFund', eventArgs.newFund);
+  const fundProxy = await ethers.getContractAt('FundImplementationMock', eventArgs.newFund);
+  return fundProxy;
 }
 
 async function _createFund(
