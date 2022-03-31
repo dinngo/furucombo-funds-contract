@@ -42,9 +42,10 @@ describe('InvestorPurchaseFund', function () {
   let owner: Wallet;
   let collector: Wallet;
   let manager: Wallet;
-  let investor: Wallet;
+  let investor0: Wallet;
   let liquidator: Wallet;
   let denominationProvider: Signer;
+  let investor1: Wallet, investor2: Wallet, investor3: Wallet;
 
   const denominationProviderAddress = USDC_PROVIDER;
   const denominationAddress = USDC_TOKEN;
@@ -57,7 +58,7 @@ describe('InvestorPurchaseFund', function () {
   const tokenBAggregator = CHAINLINK_ETH_USD;
 
   const level = 1;
-  const mortgageAmount = 0;
+  const stakeAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
   const execFeePercentage = 200; // 2%
@@ -66,7 +67,7 @@ describe('InvestorPurchaseFund', function () {
   const crystallizationPeriod = 300; // 5m
   const reserveExecutionRatio = 0; // 0%
 
-  const initialFunds = mwei('3000');
+  const initialFunds = mwei('6000');
 
   const shareTokenName = 'TEST';
 
@@ -87,7 +88,9 @@ describe('InvestorPurchaseFund', function () {
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
+    [owner, collector, manager, investor0, investor1, investor2, investor3, liquidator] = await (
+      ethers as any
+    ).getSigners();
 
     // Setup tokens and providers
     denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
@@ -123,7 +126,7 @@ describe('InvestorPurchaseFund', function () {
       tokenAAggregator,
       tokenBAggregator,
       level,
-      mortgageAmount,
+      stakeAmount,
       mFeeRate,
       pFeeRate,
       execFeePercentage,
@@ -136,66 +139,87 @@ describe('InvestorPurchaseFund', function () {
       furucombo
     );
 
-    // Transfer token to investor
-    await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
-
+    // Transfer token to investor0
+    await denomination.connect(denominationProvider).transfer(investor0.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(investor1.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(investor2.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(investor3.address, initialFunds);
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
   });
   beforeEach(async function () {
     await setupTest();
   });
 
-  describe('purchase fund in executing and stay in executing', function () {
-    const purchaseAmount = mwei('1500');
+  describe('Without state change', function () {
+    const purchaseAmount = mwei('2000');
 
-    describe('purchase empty fund', function () {
-      it('1 user purchase', async function () {
-        const initBalance = await denomination.balanceOf(fundVault);
-        const [share, state] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+    describe('Executing state', function () {
+      it('investor1 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+        const [share] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
 
-        const afterBalance = await denomination.balanceOf(fundVault);
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(share).to.be.eq(purchaseAmount);
-        expect(afterBalance).to.be.eq(initBalance.add(purchaseAmount));
+        expect(share).to.be.eq(purchaseAmount); // initial mint, share = purchaseAmount
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
       });
-    });
-    describe('purchase denomination fund', function () {
-      beforeEach(async function () {
-        await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
-      });
-      it('with the same user purchase', async function () {
-        const [share, state] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(purchaseAmount.eq(BigNumber.from(share))).to.be.true;
-      });
-      it('with different user purchase', async function () {
-        const [share, state] = await purchaseFund(manager, fundProxy, denomination, shareToken, purchaseAmount);
+      it('investor1 and investor2 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(purchaseAmount.eq(BigNumber.from(share))).to.be.true;
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+
+        // investor2 purchase
+        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('2'))));
+        expect(share1).to.be.eq(share2);
       });
-      it('send denomination to vault', async function () {
-        const initBalance = await denomination.balanceOf(fundVault);
-        const [, state] = await purchaseFund(manager, fundProxy, denomination, shareToken, purchaseAmount);
-        const afterBalance = await denomination.balanceOf(fundVault);
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(afterBalance).to.be.eq(initBalance.add(purchaseAmount));
+
+      it('investor1, investor2 and investor3 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+
+        // investor2 purchase
+        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+
+        // investor3 purchase
+        const [share3] = await purchaseFund(
+          investor3,
+          fundProxy,
+          denomination,
+          shareToken,
+          purchaseAmount.mul(BigNumber.from('2'))
+        );
+
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('4'))));
+        expect(share1).to.be.eq(share2);
+        expect(share3).to.be.eq(share1.add(share2));
       });
-    });
-    describe('purchase asset fund', function () {
+    }); // describe('Executing state') ends
+
+    describe('Pending state', function () {
       const swapAmount = purchaseAmount.div(2);
-
+      const reserveAmount = purchaseAmount.sub(swapAmount);
+      const redeemAmount = reserveAmount.add(mwei('500'));
+      const pendingPurchaseAmount = mwei('50');
       beforeEach(async function () {
-        await setExecutingAssetFund(
+        await setPendingAssetFund(
           manager,
-          investor,
+          investor0,
           fundProxy,
           denomination,
           shareToken,
           purchaseAmount,
           swapAmount,
+          redeemAmount,
           execFeePercentage,
           denominationAddress,
           tokenAAddress,
@@ -205,98 +229,297 @@ describe('InvestorPurchaseFund', function () {
           hQuickSwap
         );
       });
-      it('with the same user purchase', async function () {
+
+      it('investor1 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+        const [share, state] = await purchaseFund(
+          investor1,
+          fundProxy,
+          denomination,
+          shareToken,
+          pendingPurchaseAmount
+        );
+
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount));
+        expect(state).to.be.eq(FUND_STATE.PENDING);
+      });
+      it('investor1 and investor2 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+
+        // investor2 purchase
+        const [share2, state] = await purchaseFund(
+          investor2,
+          fundProxy,
+          denomination,
+          shareToken,
+          pendingPurchaseAmount
+        );
+
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(2)));
+        expect(share1).to.be.eq(share2);
+        expect(state).to.be.eq(FUND_STATE.PENDING);
+      });
+
+      it('investor1, investor2 and investor3 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+
+        // investor2 purchase
+        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+
+        // investor3 purchase
+        const [share3, state] = await purchaseFund(
+          investor3,
+          fundProxy,
+          denomination,
+          shareToken,
+          pendingPurchaseAmount.mul(2)
+        );
+
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(4)));
+        expect(share1).to.be.eq(share2);
+        expect(share3).to.be.gte(share1.add(share2));
+        expect(state).to.be.eq(FUND_STATE.PENDING);
+      });
+    }); // describe('Pending state') end
+
+    describe('Executing state, funds with other asset', function () {
+      const swapAmount = purchaseAmount.div(2);
+      beforeEach(async function () {
+        await setExecutingAssetFund(
+          manager,
+          investor0,
+          fundProxy,
+          denomination,
+          shareToken,
+          purchaseAmount,
+          swapAmount,
+          execFeePercentage,
+          denominationAddress,
+          tokenBAddress,
+          hFunds,
+          aFurucombo,
+          taskExecutor,
+          hQuickSwap
+        );
+      });
+
+      it('investor1 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+        const [share] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
         const expectedShare = await fundProxy.calculateShare(purchaseAmount);
-        const [share, state] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(BigNumber.from(share)).to.be.eq(expectedShare);
+
+        expect(share).to.be.eq(expectedShare);
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
       });
-      it('different user purchase', async function () {
-        const expectedShare = await fundProxy.calculateShare(purchaseAmount);
-        const [share, state] = await purchaseFund(manager, fundProxy, denomination, shareToken, purchaseAmount);
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(BigNumber.from(share)).to.be.eq(expectedShare);
+
+      it('investor1 and investor2 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+
+        // investor2 purchase
+        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(share1).to.be.eq(share2);
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(2)));
       });
-      it('send denomination to vault', async function () {
-        const initBalance = await denomination.balanceOf(fundVault);
-        const [, state] = await purchaseFund(manager, fundProxy, denomination, shareToken, purchaseAmount);
-        const afterBalance = await denomination.balanceOf(fundVault);
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(afterBalance).to.be.eq(initBalance.add(purchaseAmount));
+
+      it('investor1, investor2 and investor3 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+
+        // investor2 purchase
+        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+
+        // investor3 purchase
+        const [share3] = await purchaseFund(investor3, fundProxy, denomination, shareToken, purchaseAmount.mul(2));
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(share1).to.be.eq(share2);
+        expect(share3).to.be.eq(share1.add(share2));
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(4)));
       });
-      it('with 1 swap between 2 different user purchase', async function () {
-        const _swapAmount = purchaseAmount.sub(swapAmount);
-        const path = [denomination.address, tokenB.address, tokenA.address];
-        const tos = [hFunds.address, hQuickSwap.address];
-        await execSwap(
-          _swapAmount,
+    });
+
+    describe.only('Pending state, funds with other asset', function () {
+      const swapAmount = purchaseAmount.div(2);
+      const reserveAmount = purchaseAmount.sub(swapAmount);
+      const redeemAmount = reserveAmount.add(mwei('500'));
+      const pendingPurchaseAmount = mwei('50');
+      beforeEach(async function () {
+        await setPendingAssetFund(
+          manager,
+          investor0,
+          fundProxy,
+          denomination,
+          shareToken,
+          purchaseAmount,
+          swapAmount,
+          redeemAmount,
           execFeePercentage,
           denominationAddress,
           tokenAAddress,
-          path,
-          tos,
-
+          hFunds,
           aFurucombo,
           taskExecutor,
-          fundProxy,
-          manager
+          hQuickSwap
         );
+      });
 
-        const expectedShare = await fundProxy.calculateShare(purchaseAmount);
-        const [share, state] = await purchaseFund(manager, fundProxy, denomination, shareToken, purchaseAmount);
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-        expect(BigNumber.from(share)).to.be.eq(expectedShare);
+      it('investor1 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+        const [share, state] = await purchaseFund(
+          investor1,
+          fundProxy,
+          denomination,
+          shareToken,
+          pendingPurchaseAmount
+        );
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+        const expectedShare = await fundProxy.calculateShare(pendingPurchaseAmount);
+
+        expect(share).to.be.eq(expectedShare);
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount));
+        expect(state).to.be.eq(FUND_STATE.PENDING);
+      });
+
+      it('investor1 and investor2 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+
+        const expectedShare1 = await fundProxy.calculateShare(pendingPurchaseAmount);
+
+        // investor2 purchase
+        const [share2, state] = await purchaseFund(
+          investor2,
+          fundProxy,
+          denomination,
+          shareToken,
+          pendingPurchaseAmount
+        );
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        expect(share1).to.be.eq(expectedShare1);
+        expect(share1).to.be.eq(share2);
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(2)));
+        expect(state).to.be.eq(FUND_STATE.PENDING);
+      });
+
+      it('investor1, investor2 and investor3 purchase', async function () {
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+
+        // investor1 purchase
+        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+
+        const expectedShare1 = await fundProxy.calculateShare(pendingPurchaseAmount);
+
+        // investor2 purchase
+        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+
+        // investor3 purchase
+        const [share3, state] = await purchaseFund(
+          investor3,
+          fundProxy,
+          denomination,
+          shareToken,
+          pendingPurchaseAmount.mul(2)
+        );
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+
+        const expectedShare3 = await fundProxy.calculateShare(pendingPurchaseAmount.mul(2));
+
+        expect(share1).to.be.eq(expectedShare1);
+        expect(share1).to.be.eq(share2);
+        expect(share3).to.be.gte(share1.add(share2));
+        expect(share3).to.be.eq(expectedShare3);
+        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(4)));
+        expect(state).to.be.eq(FUND_STATE.PENDING);
       });
     });
-  });
+  }); // describe('Without state change') end
 
-  describe('purchase fund in pending', function () {
-    const purchaseAmount = mwei('2000');
-    const swapAmount = purchaseAmount.div(2);
-    const reserveAmount = purchaseAmount.sub(swapAmount);
-    const redeemAmount = reserveAmount.add(mwei('100')); //1100
-    const pendingAmount = redeemAmount.sub(reserveAmount);
+  describe('With state change', function () {
+    describe('Pending state', function () {});
+  }); // describe('With state change') end
 
-    beforeEach(async function () {
-      await setPendingAssetFund(
-        manager,
-        investor,
-        fundProxy,
-        denomination,
-        shareToken,
-        purchaseAmount,
-        swapAmount,
-        redeemAmount,
-        execFeePercentage,
-        denominationAddress,
-        tokenAAddress,
-        hFunds,
-        aFurucombo,
-        taskExecutor,
-        hQuickSwap
-      );
-    });
+  // describe('purchase fund in observation', function () {
+  //   const purchaseAmount = mwei('2000');
+  //   const swapAmount = purchaseAmount.div(2);
+  //   const reserveAmount = purchaseAmount.sub(swapAmount);
+  //   const redeemAmount = reserveAmount.add(mwei('100')); //1100
+  //   const pendingAmount = redeemAmount.sub(reserveAmount);
 
-    it('stay in pending when the same user purchase succeeds', async function () {
-      const _purchaseAmount = pendingAmount.div(2);
-      const expectedShare = await fundProxy.calculateShare(_purchaseAmount);
+  //   beforeEach(async function () {
+  //     await setObservingAssetFund(
+  //       manager,
+  //       investor0,
+  //       fundProxy,
+  //       denomination,
+  //       shareToken,
+  //       purchaseAmount,
+  //       swapAmount,
+  //       redeemAmount,
+  //       execFeePercentage,
+  //       denominationAddress,
+  //       tokenAAddress,
+  //       hFunds,
+  //       aFurucombo,
+  //       taskExecutor,
+  //       hQuickSwap
+  //     );
+  //   });
 
-      const [share, state] = await purchaseFund(investor, fundProxy, denomination, shareToken, _purchaseAmount);
+  //   it('stay in observation when the same user purchase succeeds', async function () {
+  //     const _purchaseAmount = pendingAmount.div(2);
+  //     const expectedShare = await fundProxy.calculateShare(_purchaseAmount);
 
-      // check state & bonus
-      expect(state).to.be.eq(FUND_STATE.PENDING);
-      expect(BigNumber.from(share)).to.be.gt(expectedShare);
-    });
+  //     const [share, state] = await purchaseFund(
+  //       investor0,
+  //       fundProxy,
+  //       denomination,
+  //       shareToken,
+  //       _purchaseAmount
+  //     );
 
-    it('change from pending to executing when purchase succeeeds', async function () {
-      const _purchaseAmount = pendingAmount;
-      const expectedShare = await fundProxy.calculateShare(_purchaseAmount);
+  //     // check state & bonus
+  //     expect(state).to.be.eq(FUND_STATE.REDEMPTION_PENDING);
+  //     expect(BigNumber.from(share)).to.be.gt(expectedShare);
+  //   });
 
-      const [share, state] = await purchaseFund(investor, fundProxy, denomination, shareToken, _purchaseAmount);
+  //   it('change from observation to operation when purchase succeeeds', async function () {
+  //     const _purchaseAmount = pendingAmount;
+  //     const expectedShare = await fundProxy.calculateShare(_purchaseAmount);
 
-      // check state & bonus
-      expect(state).to.be.eq(FUND_STATE.EXECUTING);
-      expect(BigNumber.from(share)).to.be.gt(expectedShare);
-    });
-  });
+  //     const [share, state] = await purchaseFund(
+  //       investor0,
+  //       fundProxy,
+  //       denomination,
+  //       shareToken,
+  //       _purchaseAmount
+  //     );
+
+  //     // check state & bonus
+  //     expect(state).to.be.eq(FUND_STATE.EXECUTING);
+  //     expect(BigNumber.from(share)).to.be.gt(expectedShare);
+  //   });
+  // });
 });
