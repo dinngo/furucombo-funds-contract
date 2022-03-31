@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { PerformanceFeeModuleMock, ShareToken } from '../typechain';
 import { DS_PROXY_REGISTRY, FEE_BASE } from './utils/constants';
-import { get64x64FromNumber } from './utils/utils';
+import { get64x64FromNumber, expectEqWithinBps } from './utils/utils';
 
 /// @notice increase the block time need mine block,
 /// the next view function will be correct.
@@ -150,12 +150,11 @@ describe('Performance fee', function () {
         await pFeeModule.initializePerformanceFee();
         await pFeeModule.setGrossAssetValue(currentGrossAssetValue);
         await pFeeModule.updatePerformanceFee();
-        const outstandingShare = await tokenS.callStatic.balanceOf(outstandingAccount);
+        const outstandingShare = await tokenS.balanceOf(outstandingAccount);
 
         const fee = growth.mul(feeRate).div(feeBase);
         const expectShare = fee.mul(totalShare).div(currentGrossAssetValue.sub(fee));
-        expect(outstandingShare).to.be.gt(expectShare.mul(999).div(1000));
-        expect(outstandingShare).to.be.lt(expectShare.mul(1001).div(1000));
+        expectEqWithinBps(outstandingShare, expectShare, 10);
       });
 
       describe('crystallization', function () {
@@ -189,11 +188,10 @@ describe('Performance fee', function () {
           const expectShare = fee.mul(totalShare).div(currentGrossAssetValue.sub(fee));
           const lastPrice = await pFeeModule.lastGrossSharePrice64x64();
           const expectPrice = highWaterMarkBefore.mul(feeBase.mul(2).sub(feeRate)).div(feeBase);
-          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
-          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
+
+          expectEqWithinBps(shareManager, expectShare, 10);
           expect(highWaterMarkAfter).to.be.eq(lastPrice);
-          expect(highWaterMarkAfter).to.be.gt(expectPrice.mul(999).div(1000));
-          expect(highWaterMarkAfter).to.be.lt(expectPrice.mul(1001).div(1000));
+          expectEqWithinBps(highWaterMarkAfter, expectPrice, 10);
         });
 
         it('should get fee when crystallization at next period', async function () {
@@ -207,8 +205,7 @@ describe('Performance fee', function () {
           const fee = growth.mul(feeRate).div(feeBase);
           const expectShare = fee.mul(totalShare).div(currentGrossAssetValue.sub(fee));
           const lastPrice = await pFeeModule.callStatic.lastGrossSharePrice64x64();
-          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
-          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
+          expectEqWithinBps(shareManager, expectShare, 10);
           expect(highWaterMarkAfter).to.be.eq(lastPrice);
         });
 
@@ -222,11 +219,10 @@ describe('Performance fee', function () {
           const expectShare = fee.mul(totalShare).div(currentGrossAssetValue.sub(fee));
           const lastPrice = await pFeeModule.callStatic.lastGrossSharePrice64x64();
           const expectPrice = highWaterMarkBefore.mul(feeBase.mul(2).sub(feeRate)).div(feeBase);
-          expect(shareManager).to.be.gt(expectShare.mul(999).div(1000));
-          expect(shareManager).to.be.lt(expectShare.mul(1001).div(1000));
+
+          expectEqWithinBps(shareManager, expectShare, 10);
           expect(highWaterMarkAfter).to.be.eq(lastPrice);
-          expect(highWaterMarkAfter).to.be.gt(expectPrice.mul(999).div(1000));
-          expect(highWaterMarkAfter).to.be.lt(expectPrice.mul(1001).div(1000));
+          expectEqWithinBps(highWaterMarkAfter, expectPrice, 10);
         });
       });
     });
