@@ -144,9 +144,12 @@ describe('SetComptroller', function () {
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
       // remove asset
+<<<<<<< HEAD
       await oracle.removeAssets([tokenA.address]);
 
       // execute
+=======
+>>>>>>> e19a20c (rebase develop)
       const amountIn = purchaseAmount;
       const path = [denomination.address, tokenA.address];
       const tos = [hFunds.address, hQuickSwap.address];
@@ -169,6 +172,7 @@ describe('SetComptroller', function () {
 
       await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
+<<<<<<< HEAD
     });
 
     it('zero stale period', async function () {
@@ -200,6 +204,8 @@ describe('SetComptroller', function () {
 
       await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
+=======
+>>>>>>> e19a20c (rebase develop)
     });
   });
 });

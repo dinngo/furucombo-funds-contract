@@ -26,7 +26,11 @@ import {
   QUICKSWAP_ROUTER,
   SUSHISWAP_ROUTER,
   USDC_PROVIDER,
+<<<<<<< HEAD
   FUND_PERCENTAGE_BASE,
+=======
+  FEE_BASE,
+>>>>>>> e19a20c (rebase develop)
   FUND_STATE,
   ONE_DAY,
   LINK_TOKEN,
@@ -38,7 +42,11 @@ import { createFund, execSwap, purchaseFund, getSwapData, redeemFund } from './f
 
 import { deployFurucomboProxyAndRegistry } from './deploy';
 
+<<<<<<< HEAD
 describe('FundExecuteStrategy', function () {
+=======
+describe('PoolExecuteStrategy', function () {
+>>>>>>> e19a20c (rebase develop)
   const denominationAddress = USDC_TOKEN;
   const mortgageAddress = BAT_TOKEN;
   const tokenAAddress = DAI_TOKEN;
@@ -57,6 +65,10 @@ describe('FundExecuteStrategy', function () {
   const valueTolerance = 9000; // 90%
   const pendingExpiration = ONE_DAY; // 1 day
   const crystallizationPeriod = 300; // 5m
+<<<<<<< HEAD
+=======
+  const reserveExecutionRate = 0; // 0%
+>>>>>>> e19a20c (rebase develop)
   const shareTokenName = 'TEST';
 
   const initialFunds = mwei('3000');
@@ -136,6 +148,10 @@ describe('FundExecuteStrategy', function () {
       pendingExpiration,
       valueTolerance,
       crystallizationPeriod,
+<<<<<<< HEAD
+=======
+      reserveExecutionRate,
+>>>>>>> e19a20c (rebase develop)
       shareTokenName,
       fRegistry,
       furucombo
@@ -174,9 +190,13 @@ describe('FundExecuteStrategy', function () {
         // Prepare action data
         const amountIn = mwei('1000');
 
+<<<<<<< HEAD
         const actionAmountIn = amountIn
           .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
           .div(FUND_PERCENTAGE_BASE);
+=======
+        const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
+>>>>>>> e19a20c (rebase develop)
         const path = [denomination.address, tokenB.address, tokenA.address];
         const tos = [hFunds.address, hQuickSwap.address];
 
@@ -207,7 +227,11 @@ describe('FundExecuteStrategy', function () {
 
         // check collector will get execute fee
         expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
+<<<<<<< HEAD
           amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
+=======
+          amountIn.mul(execFeePercentage).div(FEE_BASE)
+>>>>>>> e19a20c (rebase develop)
         );
 
         // TODO: check it after refine quickswap handler
@@ -226,9 +250,13 @@ describe('FundExecuteStrategy', function () {
       it('sushiswap', async function () {
         // Prepare action data
         const amountIn = mwei('1000');
+<<<<<<< HEAD
         const actionAmountIn = amountIn
           .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
           .div(FUND_PERCENTAGE_BASE);
+=======
+        const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
+>>>>>>> e19a20c (rebase develop)
         const path = [denomination.address, tokenB.address, tokenA.address];
         const tos = [hFunds.address, hSushiSwap.address];
 
@@ -259,7 +287,11 @@ describe('FundExecuteStrategy', function () {
 
         // check collector will get execute fee
         expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
+<<<<<<< HEAD
           amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
+=======
+          amountIn.mul(execFeePercentage).div(FEE_BASE)
+>>>>>>> e19a20c (rebase develop)
         );
 
         // TODO: check it after refine sushiswap handler
