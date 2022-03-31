@@ -7,6 +7,7 @@ import {
   WL_SUSHISWAP_SIGS,
   WL_CURVE_SIGS,
   LEVEL,
+  LEVEL_AMOUNT,
   EXEC_FEE_PERCENTAGE,
   PENDING_EXPIRATION,
   VALUE_TOLERANCE,
@@ -59,6 +60,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log('executing "Comptroller" newly deployed setup');
 
     const comptroller = await ethers.getContractAt('ComptrollerImplementation', result.address);
+
+    // Set mortgage tier
+    await comptroller.setMortgageTier(LEVEL, LEVEL_AMOUNT);
 
     // Permit denomination and dust pair
     const mappedDenominations = Object.keys(denominations).map((denomination) => {
