@@ -51,7 +51,11 @@ describe('CreateFund', function () {
   const tokenBAggregator = CHAINLINK_ETH_USD;
 
   const level = 1;
+<<<<<<< HEAD
   const mortgageAmount = ether('10');
+=======
+  const mortgageAmount = mwei('10');
+>>>>>>> e19a20c (rebase develop)
   const mFeeRate = 0;
   const pFeeRate = 0;
   const execFeePercentage = 200; // 2%
@@ -59,6 +63,10 @@ describe('CreateFund', function () {
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
   const reserveExecutionRate = 5000; // 50%
+<<<<<<< HEAD
+=======
+
+>>>>>>> e19a20c (rebase develop)
   const shareTokenName = 'TEST';
 
   let fRegistry: FurucomboRegistry;
@@ -346,7 +354,11 @@ describe('CreateFund', function () {
           reserveExecutionRate,
           shareTokenName
         )
+<<<<<<< HEAD
       ).to.be.revertedWith('RevertCode(75)'); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
+=======
+      ).to.be.revertedWith('RevertCode(75');
+>>>>>>> e19a20c (rebase develop)
     });
   });
   describe('Finalize', function () {
@@ -378,7 +390,11 @@ describe('CreateFund', function () {
         expect(await fundProxy.shareToken()).to.be.eq(_shareToken);
       });
       it('get the right management fee rate', async function () {
+<<<<<<< HEAD
         const _mFeeRate = FEE_BASE64x64;
+=======
+        const _mFeeRate = BigNumber.from('18446744073709551616');
+>>>>>>> e19a20c (rebase develop)
         expect(await fundProxy.mFeeRate64x64()).to.be.eq(_mFeeRate);
         await fundProxy.connect(manager).finalize();
         expect(await fundProxy.mFeeRate64x64()).to.be.eq(_mFeeRate);
