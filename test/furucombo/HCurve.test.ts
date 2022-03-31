@@ -413,7 +413,8 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
         expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
 
-        expectEqWithinBps(poolTokenUserEnd, answer, 10);
+        // Check pool token balance
+        expectEqWithinBps(poolTokenUserEnd, poolTokenUser.add(answer), 10);
       });
 
       it('remove from pool to USDT by removeLiquidityOneCoinUnderlying', async function () {
@@ -574,10 +575,8 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
         expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
 
-        // poolToken amount should be greater than answer * 0.999 which is
-        // referenced from tests in curve contract.
-        expect(poolTokenUserEnd).to.be.gte(answer.mul(BigNumber.from('999')).div(BigNumber.from('1000')));
-        expect(poolTokenUserEnd).to.be.lte(poolTokenUser.add(answer));
+        // Check pool token balance
+        expectEqWithinBps(poolTokenUserEnd, poolTokenUser.add(answer), 10);
       });
 
       it('remove from pool to RENBTC by removeLiquidityOneCoinUnderlying', async function () {
