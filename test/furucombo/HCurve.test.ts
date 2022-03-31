@@ -13,6 +13,7 @@ import {
   tokenProviderQuick,
   getCallData,
   tokenProviderCurveGauge,
+  expectEqWithinBps,
 } from '../utils/utils';
 
 describe('HCurve', function () {
@@ -262,10 +263,8 @@ describe('HCurve', function () {
         // Check user balance
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
         expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
-        // poolToken amount should be greater than answer * 0.999 which is
-        // referenced from tests in curve contract.
-        expect(poolTokenUserEnd).to.be.gte(answer.mul(BigNumber.from('999')).div(BigNumber.from('1000')));
-        expect(poolTokenUserEnd).to.be.lte(answer);
+
+        expectEqWithinBps(poolTokenUserEnd, answer, 10);
       });
 
       it('remove from pool to USDT by removeLiquidityOneCoinUnderlying', async function () {
