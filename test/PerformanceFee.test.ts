@@ -1,8 +1,8 @@
-import { constants, Wallet, BigNumber } from 'ethers';
+import { Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { PerformanceFeeModuleMock, ShareToken } from '../typechain';
-import { DS_PROXY_REGISTRY, FEE_BASE } from './utils/constants';
+import { FUND_PERCENTAGE_BASE } from './utils/constants';
 import { get64x64FromNumber, expectEqWithinBps } from './utils/utils';
 
 /// @notice increase the block time need mine block,
@@ -58,7 +58,7 @@ describe('Performance fee', function () {
       const feeRate = BigNumber.from('1000');
       await pFeeModule.setPerformanceFeeRate(feeRate);
       const result = await pFeeModule.pFeeRate64x64();
-      expect(result).to.be.eq(get64x64FromNumber(feeRate.toNumber() / FEE_BASE));
+      expect(result).to.be.eq(get64x64FromNumber(feeRate.toNumber() / FUND_PERCENTAGE_BASE));
     });
 
     it('should revert: equal to 100%', async function () {

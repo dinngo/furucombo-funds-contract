@@ -30,7 +30,7 @@ import {
   WETH_TOKEN,
   WL_ANY_SIG,
   AWETH_V2_DEBT_VARIABLE,
-  FEE_BASE,
+  FUND_PERCENTAGE_BASE,
 } from './utils/constants';
 import {
   getActionReturn,
@@ -349,7 +349,9 @@ describe('AFurucombo', function () {
     describe('fund Quota', function () {
       it('input token == output token: the same amount', async function () {
         const amountIn = ether('1');
-        const consumeAmount = amountIn.sub(amountIn.mul(await comptroller.execFeePercentage()).div(FEE_BASE));
+        const consumeAmount = amountIn.sub(
+          amountIn.mul(await comptroller.execFeePercentage()).div(FUND_PERCENTAGE_BASE)
+        );
         const tokensIn = [token.address];
         const tokensOut = [token.address];
         const amountsIn = [amountIn];
@@ -395,7 +397,7 @@ describe('AFurucombo', function () {
         // Verify fund Quota
         const feePercentage = await comptroller.execFeePercentage();
         for (let i = 0; i < fundQuotas.length; i++) {
-          expect(fundQuotas[i]).to.be.eq(amountsIn[i].sub(amountsIn[i].mul(feePercentage).div(FEE_BASE)));
+          expect(fundQuotas[i]).to.be.eq(amountsIn[i].sub(amountsIn[i].mul(feePercentage).div(FUND_PERCENTAGE_BASE)));
         }
 
         // Verify dealing asset
@@ -410,7 +412,9 @@ describe('AFurucombo', function () {
 
       it('input token == output token: input amount > output amount', async function () {
         const amountIn = ether('1');
-        const consumeAmount = amountIn.sub(amountIn.mul(await comptroller.execFeePercentage()).div(FEE_BASE));
+        const consumeAmount = amountIn.sub(
+          amountIn.mul(await comptroller.execFeePercentage()).div(FUND_PERCENTAGE_BASE)
+        );
         const tokensIn = [token.address];
         const targets = [await tokenProvider.getAddress()];
         const tokensOut = [token.address];
@@ -476,7 +480,9 @@ describe('AFurucombo', function () {
         await token.connect(tokenProvider).transfer(faucet.address, ether('100'));
 
         const amountIn = ether('1');
-        const consumeAmount = amountIn.sub(amountIn.mul(await comptroller.execFeePercentage()).div(FEE_BASE));
+        const consumeAmount = amountIn.sub(
+          amountIn.mul(await comptroller.execFeePercentage()).div(FUND_PERCENTAGE_BASE)
+        );
         const tokensIn = [token.address];
         const targets = [faucet.address];
         const tokensOut = [token.address];

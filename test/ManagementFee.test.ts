@@ -3,7 +3,7 @@ import { BigNumber as BigNumberJs } from 'bignumber.js';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { expectEqWithinBps, get64x64FromBig, increaseNextBlockTimeBy } from './utils/utils';
-import { FEE_BASE, FEE_BASE64x64, ONE_YEAR } from './utils/constants';
+import { FUND_PERCENTAGE_BASE, FEE_BASE64x64, ONE_YEAR } from './utils/constants';
 import { ManagementFeeModuleMock, ShareToken } from '../typechain';
 
 describe('Management fee', function () {
@@ -51,7 +51,7 @@ describe('Management fee', function () {
 
     it('should success in normal range', async function () {
       const feeRate = BigNumber.from('1000');
-      const result = getEffectiveFeeRate(feeRate.toNumber() / FEE_BASE);
+      const result = getEffectiveFeeRate(feeRate.toNumber() / FUND_PERCENTAGE_BASE);
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
       const effectiveFeeRate = await mFeeModule.mFeeRate64x64();
