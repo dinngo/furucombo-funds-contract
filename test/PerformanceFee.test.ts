@@ -225,6 +225,44 @@ describe('Performance fee', function () {
           expectEqWithinBps(highWaterMarkAfter, expectPrice, 10);
         });
       });
+
+      describe('price changing cases', function () {
+        describe('among single period', function () {
+          describe('from low to high', function () {
+            it('hwm lower than the lower price', async function () {});
+
+            it('hwm higher than the higher price', async function () {});
+
+            it('hwm between two prices', async function () {});
+          });
+
+          describe('from high to low', function () {
+            it('hwm lower than the lower price', async function () {});
+
+            it('hwm higher than the higher price', async function () {});
+
+            it('hwm between two prices', async function () {});
+          });
+        });
+
+        describe('cross period', function () {
+          describe('from low to high', function () {
+            it('hwm lower than the lower price', async function () {});
+
+            it('hwm higher than the higher price', async function () {});
+
+            it('hwm between two prices', async function () {});
+          });
+
+          describe('from high to low', function () {
+            it('hwm lower than the lower price', async function () {});
+
+            it('hwm higher than the higher price', async function () {});
+
+            it('hwm between two prices', async function () {});
+          });
+        });
+      });
     });
   });
 });
