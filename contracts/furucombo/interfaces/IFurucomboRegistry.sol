@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface IRegistry {
+interface IFurucomboRegistry {
     function handlers(address) external view returns (bytes32);
 
     function callers(address) external view returns (bytes32);

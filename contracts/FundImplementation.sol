@@ -14,16 +14,12 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 import {SetupAction} from "./actions/SetupAction.sol";
-
 import {Errors} from "./utils/Errors.sol";
 
 /// @title The implementation contract for fund.
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
 contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
-    uint256 private constant _RESERVE_BASE = 1e4;
-    uint256 private constant _TOLERANCE_BASE = 1e4;
-
     IDSProxyRegistry public immutable dsProxyRegistry;
     ISetupAction public immutable setupAction;
 
@@ -44,7 +40,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
     /// @param reserveExecutionRate_ The reserve rate during execution.
-    /// @param newOwner The owner to be assigned to the fund.
+    /// @param newOwner_ The owner to be assigned to the fund.
     function initialize(
         uint256 level_,
         IComptroller comptroller_,
@@ -54,7 +50,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
         uint256 reserveExecutionRate_,
-        address newOwner
+        address newOwner_
     ) external whenState(State.Initializing) {
         _setLevel(level_);
         _setComptroller(comptroller_);
@@ -65,14 +61,14 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _setCrystallizationPeriod(crystallizationPeriod_);
         _setReserveExecutionRate(reserveExecutionRate_);
         _setVault(dsProxyRegistry);
-        _transferOwnership(newOwner);
+        _transferOwnership(newOwner_);
         _setMortgageVault(comptroller_);
 
         _review();
     }
 
     /// @notice Finalize the initialization of the fund.
-    function finalize() public onlyOwner {
+    function finalize() external nonReentrant onlyOwner {
         _finalize();
 
         // Add denomination to list and never remove
@@ -82,7 +78,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             comptroller.isValidDenomination(address(denomination)),
             Errors.Code.IMPLEMENTATION_INVALID_DENOMINATION
         );
-        addAsset(address(denomination));
+        _addAsset(address(denomination));
 
         // Set approval for investor to redeem
         _setVaultApproval(setupAction);
@@ -94,23 +90,23 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _initializePerformanceFee();
     }
 
-    /// @notice Resume the fund by anyone if can settle pending redemption.
-    function resume() public {
+    /// @notice Resume the fund by anyone if can settle pending share.
+    function resume() external nonReentrant {
         uint256 grossAssetValue = getGrossAssetValue();
         _resumeWithGrossAssetValue(grossAssetValue);
     }
 
-    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal whenState(State.RedemptionPending) {
+    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal whenState(State.Pending) {
         Errors._require(
             _isPendingResolvable(true, grossAssetValue_),
             Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
         );
-        _settlePendingRedemption(true);
+        _settlePendingShare(true);
         _resume();
     }
 
     /// @notice Liquidate the fund by anyone and transfer owner to liquidator.
-    function liquidate() public {
+    function liquidate() external nonReentrant {
         Errors._require(pendingStartTime != 0, Errors.Code.IMPLEMENTATION_PENDING_NOT_START);
         Errors._require(
             block.timestamp >= pendingStartTime + comptroller.pendingExpiration(),
@@ -123,11 +119,11 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _transferOwnership(comptroller.pendingLiquidator());
     }
 
-    /// @notice Close the fund. The pending redemption will be settled
+    /// @notice Close the fund. The pending share will be settled
     /// without penalty.
-    function close() public override onlyOwner whenStates(State.Executing, State.Liquidating) {
-        if (_getResolvePendingShares(false) > 0) {
-            _settlePendingRedemption(false);
+    function close() public override onlyOwner nonReentrant whenStates(State.Executing, State.Liquidating) {
+        if (_getResolvePendingShare(false) > 0) {
+            _settlePendingShare(false);
         }
 
         super.close();
@@ -161,12 +157,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Getters
     /////////////////////////////////////////////////////
-    /// @notice Get the current reserve amount of the fund.
-    /// @return The reserve amount.
-    function __getReserve() internal view override returns (uint256) {
-        return getReserve();
-    }
-
     function getGrossAssetValue() public view virtual returns (uint256) {
         address[] memory assets = getAssetList();
         uint256 length = assets.length;
@@ -182,93 +172,112 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return getGrossAssetValue();
     }
 
+    /// @notice Get the current reserve amount of the fund.
+    /// @return The reserve amount.
+    function __getReserve() internal view override returns (uint256) {
+        return getReserve();
+    }
+
     /////////////////////////////////////////////////////
     // Asset Module
     /////////////////////////////////////////////////////
     /// @notice Add the asset to the tracking list by owner.
-    /// @param asset The asset to be added.
-    function addAsset(address asset) public onlyOwner {
-        _addAsset(asset);
+    /// @param asset_ The asset to be added.
+    function addAsset(address asset_) external nonReentrant onlyOwner {
+        _addAsset(asset_);
     }
 
     /// @notice Add the asset to the tracking list.
-    /// @param asset The asset to be added.
-    function _addAsset(address asset) internal override {
-        Errors._require(comptroller.isValidDealingAsset(level, asset), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
+    /// @param asset_ The asset to be added.
+    function _addAsset(address asset_) internal override {
+        Errors._require(comptroller.isValidDealingAsset(level, asset_), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
 
-        if (asset == address(denomination)) {
-            super._addAsset(asset);
+        if (asset_ == address(denomination)) {
+            super._addAsset(asset_);
         } else {
-            int256 value = getAssetValue(asset);
+            int256 value = getAssetValue(asset_);
             int256 dust = int256(comptroller.getDenominationDust(address(denomination)));
 
             if (value >= dust || value < 0) {
-                super._addAsset(asset);
+                super._addAsset(asset_);
             }
         }
     }
 
     /// @notice Remove the asset from the tracking list by owner.
-    /// @param asset The asset to be removed.
-    function removeAsset(address asset) public onlyOwner {
-        _removeAsset(asset);
+    /// @param asset_ The asset to be removed.
+    function removeAsset(address asset_) external nonReentrant onlyOwner {
+        _removeAsset(asset_);
     }
 
     /// @notice Remove the asset from the tracking list.
-    /// @param asset The asset to be removed.
-    function _removeAsset(address asset) internal override {
+    /// @param asset_ The asset to be removed.
+    function _removeAsset(address asset_) internal override {
         // Do not allow to remove denomination from list
         address _denomination = address(denomination);
-        if (asset != _denomination) {
-            int256 value = getAssetValue(asset);
+        if (asset_ != _denomination) {
+            int256 value = getAssetValue(asset_);
             int256 dust = int256(comptroller.getDenominationDust(_denomination));
 
             if (value < dust && value >= 0) {
-                super._removeAsset(asset);
+                super._removeAsset(asset_);
             }
         }
     }
 
     /// @notice Get the value of a give asset.
-    /// @param asset The asset to be queried.
-    function getAssetValue(address asset) public view returns (int256) {
-        uint256 balance = IERC20(asset).balanceOf(address(vault));
+    /// @param asset_ The asset to be queried.
+    function getAssetValue(address asset_) public view returns (int256) {
+        uint256 balance = IERC20(asset_).balanceOf(address(vault));
         if (balance == 0) return 0;
 
-        return comptroller.assetRouter().calcAssetValue(asset, balance, address(denomination));
+        return comptroller.assetRouter().calcAssetValue(asset_, balance, address(denomination));
     }
 
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
+    function execute(bytes calldata data_) public override nonReentrant onlyOwner {
+        super.execute(data_);
+    }
+
+    function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 reserveRate = (getReserve() * _FUND_PERCENTAGE_BASE) / grossAssetValue_;
+
+        return reserveRate >= reserveExecutionRate;
+    }
+
+    function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
+        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) /
+            _FUND_PERCENTAGE_BASE;
+
+        return grossAssetValue_ >= minGrossAssetValue;
+    }
+
     /// @notice Execute an action on the fund's behalf.
     function _beforeExecute() internal virtual override returns (uint256) {
         return getGrossAssetValue();
     }
 
-    function execute(bytes calldata data) public override onlyOwner {
-        super.execute(data);
-    }
-
     /// @notice Check the reserve after the execution.
-    function _afterExecute(bytes memory response, uint256 prevGrossAssetValue) internal override returns (uint256) {
+    function _afterExecute(bytes memory response_, uint256 prevGrossAssetValue_) internal override returns (uint256) {
         // remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
-            removeAsset(assetList[i]);
+            _removeAsset(assetList[i]);
         }
 
         // add new asset to assetList
-        address[] memory dealingAssets = abi.decode(response, (address[]));
+        address[] memory dealingAssets = abi.decode(response_, (address[]));
 
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
-            addAsset(dealingAssets[i]);
+            _addAsset(dealingAssets[i]);
         }
 
         // Get new gross asset value
         uint256 grossAssetValue = getGrossAssetValue();
 
-        if (state == State.RedemptionPending) {
+        if (state == State.Pending) {
             _resumeWithGrossAssetValue(grossAssetValue);
         }
 
@@ -276,23 +285,11 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         Errors._require(_isReserveEnough(grossAssetValue), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
 
         Errors._require(
-            _isAfterValueEnough(prevGrossAssetValue, grossAssetValue),
+            _isAfterValueEnough(prevGrossAssetValue_, grossAssetValue),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
         );
 
         return grossAssetValue;
-    }
-
-    function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
-        uint256 reserveRate = (getReserve() * _RESERVE_BASE) / grossAssetValue_;
-
-        return reserveRate >= reserveExecutionRate;
-    }
-
-    function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
-        uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) / _TOLERANCE_BASE;
-
-        return grossAssetValue_ >= minGrossAssetValue;
     }
 
     /////////////////////////////////////////////////////
@@ -309,11 +306,19 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /////////////////////////////////////////////////////
+    // Performance fee module
+    /////////////////////////////////////////////////////
+    /// @notice Crystallize should only be triggered by owner
+    function crystallize() public override nonReentrant onlyOwner returns (uint256) {
+        return super.crystallize();
+    }
+
+    /////////////////////////////////////////////////////
     // Share module
     /////////////////////////////////////////////////////
     /// @notice Update the management fee and performance fee before purchase
     /// to get the lastest share price.
-    function _callBeforePurchase(uint256) internal override returns (uint256) {
+    function _beforePurchase() internal override returns (uint256) {
         uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
         _updatePerformanceFee(grossAssetValue);
@@ -321,10 +326,10 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Update the gross share price after the purchase.
-    function _callAfterPurchase(uint256, uint256 grossAssetValue_) internal override {
+    function _afterPurchase(uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
-        if (state == State.RedemptionPending && _isPendingResolvable(true, grossAssetValue_)) {
-            _settlePendingRedemption(true);
+        if (state == State.Pending && _isPendingResolvable(true, grossAssetValue_)) {
+            _settlePendingShare(true);
             _resume();
         }
         return;
@@ -332,7 +337,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Update the management fee and performance fee before redeem
     /// to get the latest share price.
-    function _callBeforeRedeem(uint256) internal override returns (uint256) {
+    function _beforeRedeem() internal override returns (uint256) {
         uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
         _updatePerformanceFee(grossAssetValue);
@@ -341,7 +346,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Payout the performance fee for the redempt portion and update
     /// the gross share price.
-    function _callAfterRedeem(uint256, uint256 grossAssetValue_) internal override {
+    function _afterRedeem(uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
         return;
     }

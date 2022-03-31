@@ -7,8 +7,8 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {Errors} from "./utils/Errors.sol";
 
 contract ShareToken is ERC20Permit, Ownable, IShareToken {
-    uint8 private immutable _decimals;
     address private constant _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT = address(1);
+    uint8 private immutable _decimals;
 
     constructor(
         string memory name_,
@@ -16,26 +16,6 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         uint8 decimals_
     ) ERC20Permit(name_) ERC20(name_, symbol_) {
         _decimals = decimals_;
-    }
-
-    function decimals() public view override returns (uint8) {
-        return _decimals;
-    }
-
-    function mint(address account, uint256 amount) external onlyOwner {
-        _mint(account, amount);
-    }
-
-    function burn(address account, uint256 amount) external onlyOwner {
-        _burn(account, amount);
-    }
-
-    function move(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
-        _transfer(sender, recipient, amount);
     }
 
     function netTotalShare() external view returns (uint256) {
@@ -46,14 +26,34 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         return totalSupply();
     }
 
+    function mint(address account_, uint256 amount_) external onlyOwner {
+        _mint(account_, amount_);
+    }
+
+    function burn(address account_, uint256 amount_) external onlyOwner {
+        _burn(account_, amount_);
+    }
+
+    function move(
+        address sender_,
+        address recipient_,
+        uint256 amount_
+    ) external onlyOwner {
+        _transfer(sender_, recipient_, amount_);
+    }
+
+    function decimals() public view override returns (uint8) {
+        return _decimals;
+    }
+
     function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
+        address from_,
+        address to_,
+        uint256 amount_
     ) internal virtual override {
-        if (to == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT) {
-            Errors._require(from == address(0), Errors.Code.SHARE_TOKEN_INVALID_TO);
+        if (to_ == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT) {
+            Errors._require(from_ == address(0), Errors.Code.SHARE_TOKEN_INVALID_TO);
         }
-        super._beforeTokenTransfer(from, to, amount);
+        super._beforeTokenTransfer(from_, to_, amount_);
     }
 }

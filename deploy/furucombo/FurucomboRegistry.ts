@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const result = await deploy('Registry', {
+  const result = await deploy('FurucomboRegistry', {
     from: deployer,
     args: [],
     log: true,
@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     console.log('executing "Registry" newly deployed setup');
 
-    const registry = await ethers.getContractAt('Registry', result.address);
+    const registry = await ethers.getContractAt('FurucomboRegistry', result.address);
 
     // Register handler
     const hAaveProtocolV2 = await deployments.get('HAaveProtocolV2');
@@ -44,5 +44,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func;
 
-func.tags = ['Registry'];
+func.tags = ['FurucomboRegistry'];
 func.dependencies = ['HAaveProtocolV2', 'HFunds', 'HQuickSwap', 'HSushiSwap', 'HCurve'];

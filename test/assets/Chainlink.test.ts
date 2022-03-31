@@ -74,24 +74,24 @@ describe('Chainlink', function () {
     });
 
     it('should revert: invalid length', async function () {
-      await expect(chainlink.connect(owner).addAssets([], [aggregatorA])).to.be.revertedWith('revertCode(43)'); // CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT
+      await expect(chainlink.connect(owner).addAssets([], [aggregatorA])).to.be.revertedWith('RevertCode(43)'); // CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT
     });
 
     it('should revert: zero address asset', async function () {
       await expect(
         chainlink.connect(owner).addAssets([constants.AddressZero], [aggregatorA])
-      ).to.be.reverted.revertedWith('revertCode(44)'); // CHAINLINK_ZERO_ADDRESS
+      ).to.be.reverted.revertedWith('RevertCode(44)'); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: zero address aggregator', async function () {
       await expect(chainlink.connect(owner).addAssets([tokenA], [constants.AddressZero])).to.be.reverted.revertedWith(
-        'revertCode(44)'
+        'RevertCode(44)'
       ); // CHAINLINK_ZERO_ADDRESS
     });
 
     it('should revert: existing asset', async function () {
       await expect(chainlink.connect(owner).addAssets([tokenA, tokenA], [aggregatorA, aggregatorB])).to.be.revertedWith(
-        'revertCode(45)'
+        'RevertCode(45)'
       ); // CHAINLINK_EXISTING_ASSET
     });
 
@@ -99,7 +99,7 @@ describe('Chainlink', function () {
       const stalePeriod = await chainlink.stalePeriod();
       await network.provider.send('evm_increaseTime', [stalePeriod.toNumber()]);
       await network.provider.send('evm_mine', []);
-      await expect(chainlink.connect(owner).addAssets([tokenA], [aggregatorA])).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
+      await expect(chainlink.connect(owner).addAssets([tokenA], [aggregatorA])).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   });
 
@@ -121,7 +121,7 @@ describe('Chainlink', function () {
     });
 
     it('should revert: non-existent asset', async function () {
-      await expect(chainlink.removeAssets([unsupportedToken])).to.be.revertedWith('revertCode(46)'); // CHAINLINK_NON_EXISTENT_ASSET
+      await expect(chainlink.removeAssets([unsupportedToken])).to.be.revertedWith('RevertCode(46)'); // CHAINLINK_NON_EXISTENT_ASSET
     });
   });
 
@@ -179,7 +179,7 @@ describe('Chainlink', function () {
       const quote = tokenB;
 
       await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.reverted.revertedWith(
-        'revertCode(42)'
+        'RevertCode(42)'
       ); // CHAINLINK_ZERO_AMOUNT
     });
 
@@ -189,7 +189,7 @@ describe('Chainlink', function () {
       const quote = tokenB;
 
       await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.reverted.revertedWith(
-        'revertCode(44)'
+        'RevertCode(44)'
       ); // CHAINLINK_ZERO_ADDRESS
     });
 
@@ -201,7 +201,7 @@ describe('Chainlink', function () {
 
       await network.provider.send('evm_increaseTime', [stalePeriod.toNumber()]);
       await network.provider.send('evm_mine', []);
-      await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.revertedWith('revertCode(48)'); // CHAINLINK_STALE_PRICE
+      await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   });
 });

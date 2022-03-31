@@ -1,7 +1,7 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { FurucomboProxyMock, Registry, IERC20, ICurveHandler, HCurve } from '../../typechain';
+import { FurucomboProxyMock, FurucomboRegistry, IERC20, ICurveHandler, HCurve } from '../../typechain';
 
 import {
   DAI_TOKEN,
@@ -27,6 +27,7 @@ import {
   getCallData,
   tokenProviderCurveGauge,
   impersonateAndInjectEther,
+  expectEqWithinBps,
 } from '../utils/utils';
 
 describe('HCurve', function () {
@@ -36,7 +37,7 @@ describe('HCurve', function () {
   let renSwap: ICurveHandler;
   let hCurve: HCurve;
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   const slippage = BigNumber.from('3');
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
@@ -46,7 +47,7 @@ describe('HCurve', function () {
     renSwap = await ethers.getContractAt('ICurveHandler', CURVE_REN_SWAP);
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);
@@ -411,10 +412,8 @@ describe('HCurve', function () {
         // Check user balance
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
         expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
-        // poolToken amount should be greater than answer * 0.999 which is
-        // referenced from tests in curve contract.
-        expect(poolTokenUserEnd).to.be.gte(answer.mul(BigNumber.from('999')).div(BigNumber.from('1000')));
-        expect(poolTokenUserEnd).to.be.lte(answer);
+
+        expectEqWithinBps(poolTokenUserEnd, answer, 10);
       });
 
       it('remove from pool to USDT by removeLiquidityOneCoinUnderlying', async function () {

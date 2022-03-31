@@ -15,32 +15,32 @@ contract AssetRouter is IAssetRouter, Ownable {
     IAssetOracle public override oracle;
     IAssetRegistry public override registry;
 
-    constructor(address _oracle, address _registry) Ownable() {
-        oracle = IAssetOracle(_oracle);
-        registry = IAssetRegistry(_registry);
+    constructor(address oracle_, address registry_) Ownable() {
+        oracle = IAssetOracle(oracle_);
+        registry = IAssetRegistry(registry_);
     }
 
-    function setOracle(address _oracle) external override onlyOwner {
-        oracle = IAssetOracle(_oracle);
+    function setOracle(address oracle_) external override onlyOwner {
+        oracle = IAssetOracle(oracle_);
     }
 
-    function setRegistry(address _registry) external override onlyOwner {
-        registry = IAssetRegistry(_registry);
+    function setRegistry(address registry_) external override onlyOwner {
+        registry = IAssetRegistry(registry_);
     }
 
     function calcAssetsTotalValue(
-        address[] calldata assets,
-        uint256[] calldata amounts,
-        address quote
+        address[] calldata assets_,
+        uint256[] calldata amounts_,
+        address quote_
     ) external view override returns (uint256) {
         Errors._require(
-            assets.length == amounts.length,
+            assets_.length == amounts_.length,
             Errors.Code.ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT
         );
 
         int256 totalValue;
-        for (uint256 i = 0; i < assets.length; ++i) {
-            totalValue += calcAssetValue(assets[i], amounts[i], quote);
+        for (uint256 i = 0; i < assets_.length; ++i) {
+            totalValue += calcAssetValue(assets_[i], amounts_[i], quote_);
         }
 
         Errors._require(totalValue >= 0, Errors.Code.ASSET_ROUTER_NEGATIVE_VALUE);
@@ -48,23 +48,23 @@ contract AssetRouter is IAssetRouter, Ownable {
     }
 
     function calcAssetValue(
-        address asset,
-        uint256 amount,
-        address quote
+        address asset_,
+        uint256 amount_,
+        address quote_
     ) public view returns (int256) {
-        uint256 assetAmount = _getAssetAmount(asset, amount);
+        uint256 assetAmount = _getAssetAmount(asset_, amount_);
         if (assetAmount == 0) {
             return 0;
         }
 
-        IAssetResolver resolver = IAssetResolver(registry.resolvers(asset));
-        return resolver.calcAssetValue(asset, assetAmount, quote);
+        IAssetResolver resolver = IAssetResolver(registry.resolvers(asset_));
+        return resolver.calcAssetValue(asset_, assetAmount, quote_);
     }
 
-    function _getAssetAmount(address asset, uint256 amount) internal view returns (uint256) {
-        if (amount == type(uint256).max) {
-            amount = IERC20(asset).balanceOf(msg.sender);
+    function _getAssetAmount(address asset_, uint256 amount_) internal view returns (uint256) {
+        if (amount_ == type(uint256).max) {
+            amount_ = IERC20(asset_).balanceOf(msg.sender);
         }
-        return amount;
+        return amount_;
     }
 }

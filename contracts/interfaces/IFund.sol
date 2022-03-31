@@ -4,17 +4,17 @@ pragma solidity ^0.8.0;
 import {IShareToken} from "./IShareToken.sol";
 
 interface IFund {
-    function initializeOwnership(address newOwner) external;
+    function initializeOwnership(address newOwner_) external;
 
     function level() external returns (uint256);
 
     function vault() external view returns (address);
 
     function initialize(
-        uint256 level,
-        address comptroller,
-        address denomination,
-        address shareToken,
-        uint256 reserveExecutionRate
+        uint256 level_,
+        address comptroller_,
+        address denomination_,
+        address shareToken_,
+        uint256 reserveExecutionRate_
     ) external;
 }

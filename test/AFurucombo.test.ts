@@ -11,7 +11,7 @@ import {
   IERC20,
   AFurucombo,
   FurucomboProxy,
-  Registry,
+  FurucomboRegistry,
   HFunds,
   HMock,
   Faucet,
@@ -62,7 +62,7 @@ describe('AFurucombo', function () {
 
   let furucombo: FurucomboProxy;
   let aFurucombo: AFurucombo;
-  let furuRegistry: Registry;
+  let furuRegistry: FurucomboRegistry;
   let hFunds: HFunds;
   let hMock: HMock;
   let hQuickSwap: HQuickSwap;
@@ -126,7 +126,7 @@ describe('AFurucombo', function () {
     await comptroller.setExecAction(taskExecutor.address);
 
     // Setup furucombo and AFurucombo
-    furuRegistry = await (await ethers.getContractFactory('Registry')).deploy();
+    furuRegistry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await furuRegistry.deployed();
 
     furucombo = await (await ethers.getContractFactory('FurucomboProxy')).deploy(furuRegistry.address);
@@ -304,7 +304,7 @@ describe('AFurucombo', function () {
       const vault = await proxy.vault();
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
     it('should revert: remaining tokens >= token dust', async function () {
@@ -323,7 +323,7 @@ describe('AFurucombo', function () {
       const vault = await proxy.vault();
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(71)'); // AFURUCOMBO_REMAINING_TOKENS
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(71)'); // AFURUCOMBO_REMAINING_TOKENS
     });
 
     it('should revert: invalid handler', async function () {
@@ -343,7 +343,7 @@ describe('AFurucombo', function () {
 
       // send token to vault
       // const vault = await proxy.vault();
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
     });
 
     describe('fund Quota', function () {
@@ -580,7 +580,7 @@ describe('AFurucombo', function () {
         getCallData(aFurucombo, 'approveDelegation', [tokens, amounts]),
       ]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
 
@@ -630,7 +630,7 @@ describe('AFurucombo', function () {
         getCallData(aFurucombo, 'approveToken', [tokens, amounts]),
       ]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('revertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
 });

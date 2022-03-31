@@ -59,7 +59,7 @@ describe('Execution module', function () {
     });
 
     it('should success when redeem pending', async function () {
-      await executionModule.setState(FUND_STATE.REDEMPTION_PENDING);
+      await executionModule.setState(FUND_STATE.PENDING);
       const executionData = action.interface.encodeFunctionData('foo');
       await executionModule.execute(executionData);
       const result = await action.callStatic.bar();

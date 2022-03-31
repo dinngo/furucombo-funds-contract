@@ -12,8 +12,8 @@ contract ManagementFeeModuleMock is ManagementFeeModule {
         shareToken = shareToken_;
     }
 
-    function setManagementFeeRate(uint256 feeRate) external returns (int256) {
-        return _setManagementFeeRate(feeRate);
+    function setManagementFeeRate(uint256 feeRate_) external returns (int256) {
+        return _setManagementFeeRate(feeRate_);
     }
 
     function initializeManagementFee() public {
@@ -21,7 +21,7 @@ contract ManagementFeeModuleMock is ManagementFeeModule {
     }
 
     function getFeeBase() public pure returns (uint256) {
-        return 1e4;
+        return _FUND_PERCENTAGE_BASE;
     }
 
     function getRateBase() public pure returns (int128) {
@@ -32,8 +32,8 @@ contract ManagementFeeModuleMock is ManagementFeeModule {
         return 31557600;
     }
 
-    function mintShareToken(address user, uint256 share) public {
+    function mintShareToken(address user_, uint256 share_) public {
         _updateManagementFee();
-        shareToken.mint(user, share);
+        shareToken.mint(user_, share_);
     }
 }

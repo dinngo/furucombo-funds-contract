@@ -6,43 +6,43 @@ import {Foo4} from "./Foo4.sol";
 import {HandlerBase} from "../../furucombo/handlers/HandlerBase.sol";
 
 contract Foo4Handler is HandlerBase {
-    event FooBytes32(bytes32 a);
-    event FooUint256(uint256 b);
+    event FooBytes32(bytes32 a_);
+    event FooUint256(uint256 b_);
 
     function getContractName() public pure override returns (string memory) {
         return "Foo4Handler";
     }
 
-    function bar(address to) external payable returns (bytes32 ret) {
-        ret = Foo4(to).bar();
+    function bar(address to_) external payable returns (bytes32 ret) {
+        ret = Foo4(to_).bar();
     }
 
-    function barUint(address to) external payable returns (uint256 ret) {
-        ret = Foo4(to).barUint();
+    function barUint(address to_) external payable returns (uint256 ret) {
+        ret = Foo4(to_).barUint();
     }
 
-    function bar1(address to, bytes32 a) external payable returns (bytes32 ret) {
-        ret = Foo4(to).bar1(a);
+    function bar1(address to_, bytes32 a_) external payable returns (bytes32 ret) {
+        ret = Foo4(to_).bar1(a_);
     }
 
     function bar2(
-        address to,
-        bytes32 a,
-        bytes32 b
+        address to_,
+        bytes32 a_,
+        bytes32 b_
     ) external payable returns (bytes32 ret) {
-        ret = Foo4(to).bar2(a, b);
+        ret = Foo4(to_).bar2(a_, b_);
     }
 
-    function barUint1(address to, uint256 a) external payable returns (uint256 ret) {
-        ret = Foo4(to).barUint1(a);
+    function barUint1(address to_, uint256 a_) external payable returns (uint256 ret) {
+        ret = Foo4(to_).barUint1(a_);
     }
 
     function barUList(
-        address to,
-        uint256 a,
-        uint256 b,
-        uint256 c
+        address to_,
+        uint256 a_,
+        uint256 b_,
+        uint256 c_
     ) external payable returns (uint256[] memory ret) {
-        ret = Foo4(to).barUList(a, b, c);
+        ret = Foo4(to_).barUList(a_, b_, c_);
     }
 }

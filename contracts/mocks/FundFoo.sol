@@ -15,40 +15,40 @@ contract FundFoo {
         return nValue;
     }
 
-    function bar1(bytes32 a) external returns (bytes32) {
-        bValue = a;
+    function bar1(bytes32 a_) external returns (bytes32) {
+        bValue = a_;
         return bValue;
     }
 
-    function bar2(bytes32, bytes32 b) external returns (bytes32) {
-        bValue = b;
+    function bar2(bytes32, bytes32 b_) external returns (bytes32) {
+        bValue = b_;
         return bValue;
     }
 
-    function barUint1(uint256 a) external returns (uint256) {
-        nValue = a;
+    function barUint1(uint256 a_) external returns (uint256) {
+        nValue = a_;
         return nValue;
     }
 
-    function barUint2(uint256 a) external payable returns (uint256) {
-        nValue = a;
+    function barUint2(uint256 a_) external payable returns (uint256) {
+        nValue = a_;
         return nValue;
     }
 
     function barUList(
-        uint256 a,
-        uint256 b,
-        uint256 c
+        uint256 a_,
+        uint256 b_,
+        uint256 c_
     ) external pure returns (uint256[] memory) {
         uint256[] memory uList = new uint256[](3);
-        uList[0] = a;
-        uList[1] = b;
-        uList[2] = c;
+        uList[0] = a_;
+        uList[1] = b_;
+        uList[2] = c_;
         return uList;
     }
 
-    function barUList2(uint256[] memory uList) external returns (uint256[] memory) {
-        nList = uList;
+    function barUList2(uint256[] memory uList_) external returns (uint256[] memory) {
+        nList = uList_;
         return nList;
     }
 

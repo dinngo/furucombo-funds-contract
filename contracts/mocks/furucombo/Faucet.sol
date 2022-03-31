@@ -16,9 +16,9 @@ contract Faucet {
         result;
     }
 
-    function drainToken(address token, uint256 amount) external {
-        uint256 give = amount * 2;
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(token).safeTransfer(msg.sender, give);
+    function drainToken(address token_, uint256 amount_) external {
+        uint256 give = amount_ * 2;
+        IERC20(token_).safeTransferFrom(msg.sender, address(this), amount_);
+        IERC20(token_).safeTransfer(msg.sender, give);
     }
 }

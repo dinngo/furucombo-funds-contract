@@ -16,8 +16,8 @@ contract ExecutionModuleMock is ExecutionModule, BaseMock {
         return super._beforeExecute();
     }
 
-    function _afterExecute(bytes memory result, uint256 amount) internal override returns (uint256) {
+    function _afterExecute(bytes memory result_, uint256 amount_) internal override returns (uint256) {
         emit AfterExecuteCalled();
-        return super._afterExecute(result, amount);
+        return super._afterExecute(result_, amount_);
     }
 }

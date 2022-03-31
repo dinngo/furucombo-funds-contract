@@ -7,11 +7,11 @@ import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RAaveProtocolV2Asset is IAssetResolver, AssetResolverBase {
     function calcAssetValue(
-        address asset, // should be aToken
-        uint256 amount,
-        address quote
+        address asset_, // should be aToken
+        uint256 amount_,
+        address quote_
     ) external view override returns (int256) {
-        address underlying = IATokenV2(asset).UNDERLYING_ASSET_ADDRESS();
-        return _calcAssetValue(underlying, amount, quote);
+        address underlying = IATokenV2(asset_).UNDERLYING_ASSET_ADDRESS();
+        return _calcAssetValue(underlying, amount_, quote_);
     }
 }

@@ -23,20 +23,20 @@ contract SimpleToken is ERC20("SimpleToken", "SIM") {
         _mint(msg.sender, INITIAL_SUPPLY);
     }
 
-    function mint(address account, uint256 amount) external {
-        _mint(account, amount);
+    function mint(address account_, uint256 amount_) external {
+        _mint(account_, amount_);
     }
 
-    function burn(address account, uint256 amount) external {
-        _burn(account, amount);
+    function burn(address account_, uint256 amount_) external {
+        _burn(account_, amount_);
     }
 
     function move(
-        address sender,
-        address recipient,
-        uint256 amount
+        address sender_,
+        address recipient_,
+        uint256 amount_
     ) external {
-        _transfer(sender, recipient, amount);
+        _transfer(sender_, recipient_, amount_);
     }
 
     function grossTotalShare() external view returns (uint256) {

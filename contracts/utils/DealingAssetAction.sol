@@ -8,34 +8,34 @@ import {DealingAsset} from "../libraries/DealingAsset.sol";
  */
 abstract contract DealingAssetAction {
     modifier assetCleanUp() {
-        cleanAssets();
+        _cleanAssets();
         _;
-        cleanAssets();
+        _cleanAssets();
     }
 
-    function getDealingAsset(address asset) internal view returns (bool) {
-        return DealingAsset.get(asset);
+    function _getDealingAsset(address asset_) internal view returns (bool) {
+        return DealingAsset._get(asset_);
     }
 
-    function addDealingAsset(address asset) internal {
-        if (!getDealingAsset(asset)) {
-            DealingAsset.set(asset, true);
+    function _getDealingAssets() internal view returns (address[] memory) {
+        return DealingAsset._assets();
+    }
+
+    function _getDealingAssetLength() internal view returns (uint256) {
+        return DealingAsset._getLength();
+    }
+
+    function _addDealingAsset(address asset_) internal {
+        if (!_getDealingAsset(asset_)) {
+            DealingAsset._set(asset_, true);
         }
     }
 
-    function removeDealingAsset(address asset) internal {
-        DealingAsset.set(asset, false);
+    function _removeDealingAsset(address asset_) internal {
+        DealingAsset._set(asset_, false);
     }
 
-    function getDealingAssets() internal view returns (address[] memory) {
-        return DealingAsset.assets();
-    }
-
-    function getDealingAssetLength() internal view returns (uint256) {
-        return DealingAsset.getLength();
-    }
-
-    function cleanAssets() internal {
-        DealingAsset.clean();
+    function _cleanAssets() internal {
+        DealingAsset._clean();
     }
 }

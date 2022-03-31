@@ -1,7 +1,7 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { FurucomboProxyMock, Registry, IERC20, IUniswapV2Router02, HQuickSwap } from '../../typechain';
+import { FurucomboProxyMock, FurucomboRegistry, IERC20, IUniswapV2Router02, HQuickSwap } from '../../typechain';
 
 import { MATIC_TOKEN, WETH_TOKEN, QUICKSWAP_ROUTER, WMATIC_TOKEN, USDC_TOKEN } from './../utils/constants';
 
@@ -28,7 +28,7 @@ describe('QuickSwap Swap', function () {
   let token: IERC20;
 
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   let hQuickSwap: HQuickSwap;
   let router: IUniswapV2Router02;
 
@@ -40,7 +40,7 @@ describe('QuickSwap Swap', function () {
     [owner, user, someone] = await (ethers as any).getSigners();
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

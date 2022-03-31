@@ -1,7 +1,7 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { FurucomboProxyMock, Registry, IERC20, HFunds, IERC20Usdt } from '../../typechain';
+import { FurucomboProxyMock, FurucomboRegistry, IERC20, HFunds, IERC20Usdt } from '../../typechain';
 
 import { DAI_TOKEN, NATIVE_TOKEN, USDT_TOKEN, LINK_TOKEN, MATIC_TOKEN } from './../utils/constants';
 
@@ -34,7 +34,7 @@ describe('Funds', function () {
   let maticProviderAddress: Signer;
 
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
   let hFunds: HFunds;
 
   let userBalance: BigNumber;
@@ -51,7 +51,7 @@ describe('Funds', function () {
     maticProviderAddress = await maticProviderWmatic();
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
   FurucomboProxyMock,
-  Registry,
+  FurucomboRegistry,
   FooFactory,
   Foo2Factory,
   Foo,
@@ -17,15 +17,15 @@ import {
   Foo6Handler,
 } from '../../typechain';
 
-import { DAI_TOKEN, WETH_TOKEN, MKR_TOKEN, NATIVE_TOKEN, WMATIC_TOKEN } from './../utils/constants';
-import { ether, simpleEncode, asciiToHex32, balanceDelta } from './../utils/utils';
+import { DAI_TOKEN, WETH_TOKEN, MKR_TOKEN, NATIVE_TOKEN, WMATIC_TOKEN } from '../utils/constants';
+import { ether, simpleEncode, asciiToHex32, balanceDelta } from '../utils/utils';
 
-describe('Proxy', function () {
+describe('FurucmboProxy', function () {
   let owner: Wallet;
   let user: Wallet;
 
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
 
   let userBalance: BigNumber;
   let proxyBalance: BigNumber;
@@ -35,7 +35,7 @@ describe('Proxy', function () {
     [owner, user] = await (ethers as any).getSigners();
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

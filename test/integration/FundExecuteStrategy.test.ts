@@ -7,7 +7,7 @@ import {
   MortgageVault,
   Chainlink,
   IERC20,
-  Registry,
+  FurucomboRegistry,
   FurucomboProxy,
   HAaveProtocolV2,
   HFunds,
@@ -101,7 +101,7 @@ describe('FundExecuteStrategy', function () {
   let shareToken: ShareToken;
   let denominationProvider: Signer;
 
-  let fRegistry: Registry;
+  let fRegistry: FurucomboRegistry;
   let furucombo: FurucomboProxy;
   let hAaveV2: HAaveProtocolV2;
   let hCurve: HCurve;
@@ -239,17 +239,17 @@ describe('FundExecuteStrategy', function () {
 
   describe('execute strategy in operation', function () {
     const purchaseAmount = mwei('2000');
-    let ownedShares: BigNumber;
+    let ownedShare: BigNumber;
     let tokenAFundVaultBalance: BigNumber;
     let tokenBFundVaultBalance: BigNumber;
     let denominationProxyBalance: BigNumber;
     let denominationCollectorBalance: BigNumber;
 
     beforeEach(async function () {
-      // Deposit denomination to get shares
+      // Deposit denomination to get share
       await denomination.connect(investor).approve(fundProxy.address, purchaseAmount);
       await fundProxy.connect(investor).purchase(purchaseAmount);
-      ownedShares = await shareToken.balanceOf(investor.address);
+      ownedShare = await shareToken.balanceOf(investor.address);
 
       tokenAFundVaultBalance = await tokenA.balanceOf(fundVault);
       tokenBFundVaultBalance = await tokenB.balanceOf(fundVault);
@@ -305,8 +305,8 @@ describe('FundExecuteStrategy', function () {
       await fundProxy.connect(manager).execute(data);
 
       // Verify
-      // check shares are the same
-      expect(ownedShares).to.be.eq(await shareToken.balanceOf(investor.address));
+      // check share are the same
+      expect(ownedShare).to.be.eq(await shareToken.balanceOf(investor.address));
 
       // check denomination will decrease and token will increase
       expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAFundVaultBalance.add(amountOut));
@@ -378,8 +378,8 @@ describe('FundExecuteStrategy', function () {
       await fundProxy.connect(manager).execute(data);
 
       // Verify
-      // check shares are the same
-      expect(ownedShares).to.be.eq(await shareToken.balanceOf(investor.address));
+      // check share are the same
+      expect(ownedShare).to.be.eq(await shareToken.balanceOf(investor.address));
 
       // check denomination will decrease and token will increase
       expect(await tokenA.balanceOf(fundVault)).to.be.eq(tokenAFundVaultBalance.add(amountOut));

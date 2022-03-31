@@ -15,11 +15,11 @@ contract HandlerMock is HandlerBase {
         return "HandlerMock";
     }
 
-    function doUint(uint256 _u) external payable returns (uint256) {
-        return _u;
+    function doUint(uint256 u_) external payable returns (uint256) {
+        return u_;
     }
 
-    function doAddress(address _a) external payable returns (address) {
-        return _a;
+    function doAddress(address a_) external payable returns (address) {
+        return a_;
     }
 }

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface IProxy {
+interface IFurucomboProxy {
     function batchExec(
         address[] calldata tos,
         bytes32[] calldata configs,

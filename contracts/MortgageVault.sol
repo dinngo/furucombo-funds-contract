@@ -20,24 +20,24 @@ contract MortgageVault {
     }
 
     function mortgage(
-        address sender,
-        address fund,
-        uint256 amount
+        address sender_,
+        address fund_,
+        uint256 amount_
     ) external {
-        Errors._require(fundAmounts[fund] == 0, Errors.Code.MORTGAGE_VAULT_FUND_MORTGAGED);
-        fundAmounts[fund] += amount;
-        totalAmount += amount;
-        mortgageToken.safeTransferFrom(sender, address(this), amount);
-        emit Mortgaged(sender, fund, amount);
+        Errors._require(fundAmounts[fund_] == 0, Errors.Code.MORTGAGE_VAULT_FUND_MORTGAGED);
+        fundAmounts[fund_] += amount_;
+        totalAmount += amount_;
+        mortgageToken.safeTransferFrom(sender_, address(this), amount_);
+        emit Mortgaged(sender_, fund_, amount_);
     }
 
-    function claim(address receiver) external {
+    function claim(address receiver_) external {
         address fund = msg.sender;
         uint256 amount = fundAmounts[fund];
         fundAmounts[fund] = 0;
         totalAmount -= amount;
 
-        mortgageToken.safeTransfer(receiver, amount);
-        emit Claimed(receiver, fund, amount);
+        mortgageToken.safeTransfer(receiver_, amount);
+        emit Claimed(receiver_, fund, amount);
     }
 }

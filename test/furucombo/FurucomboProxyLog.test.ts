@@ -1,23 +1,23 @@
 import { constants, Wallet, BigNumber, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { FurucomboProxyMock, Registry, FooFactory, Foo, Foo4, FooHandler, Foo4Handler } from '../../typechain';
+import { FurucomboProxyMock, FurucomboRegistry, FooFactory, Foo, Foo4, FooHandler, Foo4Handler } from '../../typechain';
 
-import { ether, simpleEncode, asciiToHex32, getFuncSig } from './../utils/utils';
+import { ether, simpleEncode, asciiToHex32, getFuncSig } from '../utils/utils';
 
-describe('ProxyLog', function () {
+describe('FurucmboProxyLog', function () {
   let owner: Wallet;
   let user: Wallet;
 
   let proxy: FurucomboProxyMock;
-  let registry: Registry;
+  let registry: FurucomboRegistry;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
     [owner, user] = await (ethers as any).getSigners();
 
     // Setup proxy and Aproxy
-    registry = await (await ethers.getContractFactory('Registry')).deploy();
+    registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
 
     proxy = await (await ethers.getContractFactory('FurucomboProxyMock')).deploy(registry.address);

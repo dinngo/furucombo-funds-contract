@@ -12,70 +12,70 @@ contract FundFooAction is ActionBase {
         return "FooAction";
     }
 
-    function bar(address to) external payable returns (bytes32 ret) {
-        ret = FundFoo(to).bar();
+    function bar(address to_) external payable returns (bytes32 ret) {
+        ret = FundFoo(to_).bar();
     }
 
-    function barUint(address to) external payable returns (uint256 ret) {
-        ret = FundFoo(to).barUint();
+    function barUint(address to_) external payable returns (uint256 ret) {
+        ret = FundFoo(to_).barUint();
     }
 
-    function bar1(address to, bytes32 a) external payable returns (bytes32 ret) {
-        ret = FundFoo(to).bar1(a);
+    function bar1(address to_, bytes32 a_) external payable returns (bytes32 ret) {
+        ret = FundFoo(to_).bar1(a_);
     }
 
     function bar2(
-        address to,
-        bytes32 a,
-        bytes32 b
+        address to_,
+        bytes32 a_,
+        bytes32 b_
     ) external payable returns (bytes32 ret) {
-        ret = FundFoo(to).bar2(a, b);
+        ret = FundFoo(to_).bar2(a_, b_);
     }
 
-    function barUint1(address to, uint256 a) external payable returns (uint256 ret) {
-        ret = FundFoo(to).barUint1(a);
+    function barUint1(address to_, uint256 a_) external payable returns (uint256 ret) {
+        ret = FundFoo(to_).barUint1(a_);
     }
 
     function barUint2(
-        address to,
-        uint256 a,
-        uint256 value
+        address to_,
+        uint256 a_,
+        uint256 value_
     ) external payable returns (uint256 ret) {
-        ret = FundFoo(to).barUint2{value: value}(a);
+        ret = FundFoo(to_).barUint2{value: value_}(a_);
     }
 
     function barUList(
-        address to,
-        uint256 a,
-        uint256 b,
-        uint256 c
+        address to_,
+        uint256 a_,
+        uint256 b_,
+        uint256 c_
     ) external payable returns (uint256[] memory ret) {
-        ret = FundFoo(to).barUList(a, b, c);
+        ret = FundFoo(to_).barUList(a_, b_, c_);
     }
 
-    function barUList2(address to, uint256[] calldata uList) external payable returns (uint256[] memory ret) {
-        ret = FundFoo(to).barUList2(uList);
+    function barUList2(address to_, uint256[] calldata uList_) external payable returns (uint256[] memory ret) {
+        ret = FundFoo(to_).barUList2(uList_);
     }
 
     function revertCall() external payable {
         revert("revertCall");
     }
 
-    function addAssets(address[] calldata assets) external payable {
-        for (uint256 i = 0; i < assets.length; i++) {
-            addDealingAsset(assets[i]);
+    function addAssets(address[] calldata assets_) external payable {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            _addDealingAsset(assets_[i]);
         }
     }
 
-    function decreaseQuota(address[] calldata assets, uint256[] calldata amounts) external payable {
-        for (uint256 i = 0; i < assets.length; i++) {
-            decreaseFundQuota(assets[i], amounts[i]);
+    function decreaseQuota(address[] calldata assets_, uint256[] calldata amounts_) external payable {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            _decreaseFundQuota(assets_[i], amounts_[i]);
         }
     }
 
-    function increaseQuota(address[] calldata assets, uint256[] calldata amounts) external payable {
-        for (uint256 i = 0; i < assets.length; i++) {
-            increaseFundQuota(assets[i], amounts[i]);
+    function increaseQuota(address[] calldata assets_, uint256[] calldata amounts_) external payable {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            _increaseFundQuota(assets_[i], amounts_[i]);
         }
     }
 }
