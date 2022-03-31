@@ -3,32 +3,23 @@ import { deployments } from 'hardhat';
 import { expect } from 'chai';
 
 import {
-  Registry,
+  FurucomboRegistry,
   FurucomboProxy,
-  PoolImplementation,
+  FundImplementation,
   IERC20,
   HFunds,
   AFurucombo,
   TaskExecutor,
   ShareToken,
   MortgageVault,
-  PoolProxyFactory,
+  FundProxyFactory,
   HQuickSwap,
 } from '../../typechain';
 
-import {
-  mwei,
-  impersonateAndInjectEther,
-  increaseNextBlockTimeBy,
-} from '../utils/utils';
+import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
-import {
-  setObservingAssetFund,
-  setOperatingDenominationFund,
-  createReviewingFund,
-  createFundInfra,
-} from './fund';
-import { deployFurucomboProxyAndRegistry, createPoolProxy } from './deploy';
+import { setPendingAssetFund, setExecutingDenominationFund, createReviewingFund, createFundInfra } from './fund';
+import { deployFurucomboProxyAndRegistry, createFundProxy } from './deploy';
 import {
   BAT_TOKEN,
   USDC_TOKEN,
@@ -38,12 +29,12 @@ import {
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
   USDC_PROVIDER,
-  POOL_STATE,
+  FUND_STATE,
   ONE_DAY,
   BAT_PROVIDER,
 } from '../utils/constants';
 
-describe('InvestorPurchaseFund', function () {
+describe('LiquidateFund', function () {
   let owner: Wallet;
   let collector: Wallet;
   let manager: Wallet;
@@ -71,6 +62,7 @@ describe('InvestorPurchaseFund', function () {
   const pFeeRate = 0;
   const execFeePercentage = 200; // 20%
   const pendingExpiration = ONE_DAY;
+  const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
   const reserveExecutionRatio = 0; // 0%
 
@@ -81,52 +73,34 @@ describe('InvestorPurchaseFund', function () {
 
   const shareTokenName = 'TEST';
 
-  let fRegistry: Registry;
+  let fRegistry: FurucomboRegistry;
   let furucombo: FurucomboProxy;
   let hFunds: HFunds;
-  let poolProxyFactory: PoolProxyFactory;
+  let fundProxyFactory: FundProxyFactory;
   let aFurucombo: AFurucombo;
   let taskExecutor: TaskExecutor;
   let mortgageVault: MortgageVault;
 
-  let poolProxy: PoolImplementation;
+  let fundProxy: FundImplementation;
   let hQuickSwap: HQuickSwap;
 
   let denomination: IERC20;
   let mortgage: IERC20;
   let shareToken: ShareToken;
 
-  const setupTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, collector, manager, investor, liquidator] = await (
-        ethers as any
-      ).getSigners();
+  const setupFailTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
 
-      // Setup tokens and providers
-      denominationProvider = await impersonateAndInjectEther(
-        denominationProviderAddress
-      );
+    // Setup tokens and providers
+    denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
 
-      // Deploy furucombo
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
-      // Deploy furucombo funds contracts
-      [
-        poolProxy,
-        ,
-        denomination,
-        shareToken,
-        taskExecutor,
-        aFurucombo,
-        hFunds,
-        ,
-        ,
-        ,
-        ,
-        ,
-        hQuickSwap,
-      ] = await createReviewingFund(
+    // Deploy furucombo funds contracts
+    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , , , , hQuickSwap] =
+      await createReviewingFund(
         owner,
         collector,
         manager,
@@ -144,6 +118,7 @@ describe('InvestorPurchaseFund', function () {
         pFeeRate,
         execFeePercentage,
         pendingExpiration,
+        valueTolerance,
         crystallizationPeriod,
         reserveExecutionRatio,
         shareTokenName,
@@ -151,48 +126,25 @@ describe('InvestorPurchaseFund', function () {
         furucombo
       );
 
-      // Transfer token to investor
-      await denomination
-        .connect(denominationProvider)
-        .transfer(investor.address, initialFunds);
-    }
-  );
+    // Transfer token to investor
+    await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
+  });
 
-  const setupSuccessTest = deployments.createFixture(
-    async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, collector, manager, investor, liquidator] = await (
-        ethers as any
-      ).getSigners();
+  const setupSuccessTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
 
-      // Setup tokens and providers
-      denominationProvider = await impersonateAndInjectEther(
-        denominationProviderAddress
-      );
+    // Setup tokens and providers
+    denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
 
-      mortgageProvider = await impersonateAndInjectEther(
-        mortgageProviderAddress
-      );
+    mortgageProvider = await impersonateAndInjectEther(mortgageProviderAddress);
 
-      // Deploy furucombo
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
-      // Deploy furucombo funds contracts
-      [
-        poolProxyFactory,
-        taskExecutor,
-        aFurucombo,
-        hFunds,
-        denomination,
-        ,
-        ,
-        mortgage,
-        mortgageVault,
-        ,
-        ,
-        ,
-        hQuickSwap,
-      ] = await createFundInfra(
+    // Deploy furucombo funds contracts
+    [fundProxyFactory, taskExecutor, aFurucombo, hFunds, denomination, , , mortgage, mortgageVault, , , , hQuickSwap] =
+      await createFundInfra(
         owner,
         collector,
         manager,
@@ -208,61 +160,52 @@ describe('InvestorPurchaseFund', function () {
         stakeAmountS,
         execFeePercentage,
         pendingExpiration,
+        valueTolerance,
         fRegistry,
         furucombo
       );
 
-      // Transfer mortgage token to manager
-      await mortgage
-        .connect(mortgageProvider)
-        .transfer(manager.address, stakeAmountS);
-      await mortgage
-        .connect(manager)
-        .approve(mortgageVault.address, stakeAmountS);
+    // Transfer mortgage token to manager
+    await mortgage.connect(mortgageProvider).transfer(manager.address, stakeAmountS);
+    await mortgage.connect(manager).approve(mortgageVault.address, stakeAmountS);
 
-      // Transfer token to investor
-      await denomination
-        .connect(denominationProvider)
-        .transfer(investor.address, initialFunds);
+    // Transfer token to investor
+    await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
 
-      // Create and finalize furucombo fund
-      poolProxy = await createPoolProxy(
-        poolProxyFactory,
-        manager,
-        denominationAddress,
-        level,
-        mFeeRate,
-        pFeeRate,
-        crystallizationPeriod,
-        reserveExecutionRatio,
-        shareTokenName
-      );
-      shareToken = await ethers.getContractAt(
-        'ShareToken',
-        await poolProxy.shareToken()
-      );
-      expect(await poolProxy.state()).to.be.eq(POOL_STATE.REVIEWING);
-    }
-  );
+    // Create and finalize furucombo fund
+    fundProxy = await createFundProxy(
+      fundProxyFactory,
+      manager,
+      denominationAddress,
+      level,
+      mFeeRate,
+      pFeeRate,
+      crystallizationPeriod,
+      reserveExecutionRatio,
+      shareTokenName
+    );
+    shareToken = await ethers.getContractAt('ShareToken', await fundProxy.shareToken());
+    expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
+  });
 
-  describe('should revert', function () {
+  describe('fail', function () {
     beforeEach(async function () {
-      await setupTest();
+      await setupFailTest();
     });
-    it('in reviewing', async function () {
-      await expect(poolProxy.liquidate()).to.be.revertedWith('revertCode(8)');
+    it('should revert: in reviewing', async function () {
+      await expect(fundProxy.liquidate()).to.be.revertedWith('RevertCode(8)');
     });
-    it('in executing', async function () {
-      await poolProxy.connect(manager).finalize();
-      await expect(poolProxy.liquidate()).to.be.revertedWith('revertCode(8)');
+    it('should revert: in executing', async function () {
+      await fundProxy.connect(manager).finalize();
+      await expect(fundProxy.liquidate()).to.be.revertedWith('RevertCode(8)');
     });
-    it('in pending expiration', async function () {
-      await poolProxy.connect(manager).finalize();
+    it('should revert: in pending expiration', async function () {
+      await fundProxy.connect(manager).finalize();
 
-      await setObservingAssetFund(
+      await setPendingAssetFund(
         manager,
         investor,
-        poolProxy,
+        fundProxy,
         denomination,
         shareToken,
         purchaseAmount,
@@ -276,32 +219,26 @@ describe('InvestorPurchaseFund', function () {
         taskExecutor,
         hQuickSwap
       );
-      await expect(poolProxy.liquidate()).to.be.revertedWith('revertCode(9)');
+      await expect(fundProxy.liquidate()).to.be.revertedWith('RevertCode(9)');
     });
-    it('in closed', async function () {
-      await poolProxy.connect(manager).finalize();
-      await setOperatingDenominationFund(
-        investor,
-        poolProxy,
-        denomination,
-        shareToken,
-        purchaseAmount
-      );
-      await poolProxy.connect(manager).close();
-      await expect(poolProxy.liquidate()).to.be.revertedWith('revertCode(8)');
+    it('should revert: in closed', async function () {
+      await fundProxy.connect(manager).finalize();
+      await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+      await fundProxy.connect(manager).close();
+      await expect(fundProxy.liquidate()).to.be.revertedWith('RevertCode(8)');
     });
   });
-  describe('should succeed', function () {
+  describe('success', function () {
     beforeEach(async function () {
       await setupSuccessTest();
     });
     it('in pending exceeds pending expiration', async function () {
-      await poolProxy.connect(manager).finalize();
+      await fundProxy.connect(manager).finalize();
 
-      await setObservingAssetFund(
+      await setPendingAssetFund(
         manager,
         investor,
-        poolProxy,
+        fundProxy,
         denomination,
         shareToken,
         purchaseAmount,
@@ -317,12 +254,12 @@ describe('InvestorPurchaseFund', function () {
       );
       const beforeMortgage = await mortgage.balanceOf(owner.address);
       await increaseNextBlockTimeBy(pendingExpiration);
-      await poolProxy.liquidate();
+      await fundProxy.liquidate();
       const afterMortgage = await mortgage.balanceOf(owner.address);
 
-      expect(await poolProxy.state()).to.be.eq(POOL_STATE.LIQUIDATING);
+      expect(await fundProxy.state()).to.be.eq(FUND_STATE.LIQUIDATING);
       expect(afterMortgage.sub(beforeMortgage)).to.be.eq(stakeAmountS);
-      expect(await poolProxy.owner()).to.be.eq(liquidator.address);
+      expect(await fundProxy.owner()).to.be.eq(liquidator.address);
     });
   });
 });
