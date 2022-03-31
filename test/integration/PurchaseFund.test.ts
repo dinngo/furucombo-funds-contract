@@ -53,7 +53,7 @@ describe('InvestorPurchaseFund', function () {
   const tokenBAggregator = CHAINLINK_ETH_USD;
 
   const level = 1;
-  const mortgageAmount = 0;
+  const stakeAmount = 0;
   const mFeeRate = 0;
   const mFeeRate10Percent = 1000;
   const pFeeRate = 0;
@@ -639,6 +639,8 @@ describe('InvestorPurchaseFund', function () {
       const purchaseAmount = mwei('2000');
       const swapAmount = purchaseAmount.div(2);
 
+    describe('Executing state, funds with other asset', function () {
+      const swapAmount = purchaseAmount.div(2);
       beforeEach(async function () {
         await setExecutingAssetFund(
           manager,
@@ -903,6 +905,8 @@ describe('InvestorPurchaseFund', function () {
           shareToken,
           pendingPurchaseAmount
         );
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+        const expectedShare = await fundProxy.calculateShare(pendingPurchaseAmount);
 
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
         const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
@@ -949,5 +953,71 @@ describe('InvestorPurchaseFund', function () {
         expect(state).to.be.eq(FUND_STATE.PENDING);
       });
     });
-  });
+  }); // describe('Without state change') end
+
+  describe('With state change', function () {
+    describe('Pending state', function () {});
+  }); // describe('With state change') end
+
+  // describe('purchase fund in observation', function () {
+  //   const purchaseAmount = mwei('2000');
+  //   const swapAmount = purchaseAmount.div(2);
+  //   const reserveAmount = purchaseAmount.sub(swapAmount);
+  //   const redeemAmount = reserveAmount.add(mwei('100')); //1100
+  //   const pendingAmount = redeemAmount.sub(reserveAmount);
+
+  //   beforeEach(async function () {
+  //     await setObservingAssetFund(
+  //       manager,
+  //       investor0,
+  //       fundProxy,
+  //       denomination,
+  //       shareToken,
+  //       purchaseAmount,
+  //       swapAmount,
+  //       redeemAmount,
+  //       execFeePercentage,
+  //       denominationAddress,
+  //       tokenAAddress,
+  //       hFunds,
+  //       aFurucombo,
+  //       taskExecutor,
+  //       hQuickSwap
+  //     );
+  //   });
+
+  //   it('stay in observation when the same user purchase succeeds', async function () {
+  //     const _purchaseAmount = pendingAmount.div(2);
+  //     const expectedShare = await fundProxy.calculateShare(_purchaseAmount);
+
+  //     const [share, state] = await purchaseFund(
+  //       investor0,
+  //       fundProxy,
+  //       denomination,
+  //       shareToken,
+  //       _purchaseAmount
+  //     );
+
+  //     // check state & bonus
+  //     expect(state).to.be.eq(FUND_STATE.REDEMPTION_PENDING);
+  //     expect(BigNumber.from(share)).to.be.gt(expectedShare);
+  //   });
+
+  //   it('change from observation to operation when purchase succeeeds', async function () {
+  //     const _purchaseAmount = pendingAmount;
+  //     const expectedShare = await fundProxy.calculateShare(_purchaseAmount);
+
+  //     const [share, state] = await purchaseFund(
+  //       investor0,
+  //       fundProxy,
+  //       denomination,
+  //       shareToken,
+  //       _purchaseAmount
+  //     );
+
+  //     // check state & bonus
+  //     expect(state).to.be.eq(FUND_STATE.EXECUTING);
+  //     expect(BigNumber.from(share)).to.be.gt(expectedShare);
+  //   });
+  // });
 });
