@@ -30,7 +30,7 @@ describe('Management fee', function () {
 
   beforeEach(async function () {
     await setupTest();
-    feeBase = await mFeeModule.callStatic.getFeeBase();
+    feeBase = await mFeeModule.getFeeBase();
   });
 
   // Lack of precision
@@ -45,7 +45,7 @@ describe('Management fee', function () {
       const result = FEE_BASE64x64;
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
-      const effectiveFeeRate = await mFeeModule.callStatic.mFeeRate64x64();
+      const effectiveFeeRate = await mFeeModule.mFeeRate64x64();
       expect(effectiveFeeRate).to.eq(result);
     });
 
@@ -54,7 +54,7 @@ describe('Management fee', function () {
       const result = getEffectiveFeeRate(feeRate.toNumber() / FEE_BASE);
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
-      const effectiveFeeRate = await mFeeModule.callStatic.mFeeRate64x64();
+      const effectiveFeeRate = await mFeeModule.mFeeRate64x64();
       expectEqWithinBps(effectiveFeeRate, result, 1, 15);
     });
 
@@ -73,7 +73,7 @@ describe('Management fee', function () {
       await mFeeModule.setManagementFeeRate(feeRate);
       await mFeeModule.initializeManagementFee();
       await mFeeModule.claimManagementFee();
-      const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
+      const feeClaimed = await tokenS.balanceOf(manager.address);
       expect(feeClaimed).to.be.eq(BigNumber.from('0'));
     });
 
@@ -85,7 +85,7 @@ describe('Management fee', function () {
       await increaseNextBlockTimeBy(ONE_YEAR);
       await expect(mFeeModule.claimManagementFee()).to.emit(mFeeModule, 'ManagementFeeClaimed');
 
-      const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
+      const feeClaimed = await tokenS.balanceOf(manager.address);
       expectEqWithinBps(feeClaimed, expectAmount, 1);
     });
 
@@ -103,7 +103,7 @@ describe('Management fee', function () {
       await mFeeModule.claimManagementFee();
       await increaseNextBlockTimeBy(ONE_QUARTER);
       await mFeeModule.claimManagementFee();
-      const feeClaimed = await tokenS.callStatic.balanceOf(manager.address);
+      const feeClaimed = await tokenS.balanceOf(manager.address);
       expectEqWithinBps(feeClaimed, expectAmount, 1);
     });
   });

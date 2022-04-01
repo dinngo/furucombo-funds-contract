@@ -58,7 +58,7 @@ describe('RCanonical', function () {
       const assets = [tokenA.address];
       const amounts = [ether('1')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.calcAssetsTotalValue(assets, amounts, quote);
 
       expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amounts[0], quote));
     });
@@ -70,7 +70,7 @@ describe('RCanonical', function () {
       const quote = quoteAddress;
 
       await tokenA.connect(tokenAProvider).transfer(user.address, amount);
-      const assetValue = await router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.connect(user).calcAssetsTotalValue(assets, amounts, quote);
 
       expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amount, quote));
     });

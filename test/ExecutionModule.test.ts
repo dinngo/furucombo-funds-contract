@@ -42,7 +42,7 @@ describe('Execution module', function () {
     await executionModule.setComptroller(comptroller.address);
     await executionModule.setDenomination(tokenD.address);
     await executionModule.setVault();
-    vault = await executionModule.callStatic.vault();
+    vault = await executionModule.vault();
   });
 
   beforeEach(async function () {
@@ -54,7 +54,7 @@ describe('Execution module', function () {
       await executionModule.setState(FUND_STATE.EXECUTING);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.emit(executionModule, 'Executed');
-      const result = await action.callStatic.bar();
+      const result = await action.bar();
       expect(result).to.eq(BigNumber.from('1'));
     });
 
@@ -62,7 +62,7 @@ describe('Execution module', function () {
       await executionModule.setState(FUND_STATE.PENDING);
       const executionData = action.interface.encodeFunctionData('foo');
       await executionModule.execute(executionData);
-      const result = await action.callStatic.bar();
+      const result = await action.bar();
       expect(result).to.eq(BigNumber.from('1'));
     });
 

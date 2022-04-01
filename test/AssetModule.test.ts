@@ -38,7 +38,7 @@ describe('Asset module', function () {
     await assetModule.setDenomination(tokenD.address);
     await assetModule.setShare();
     await assetModule.setVault();
-    vault = await assetModule.callStatic.vault();
+    vault = await assetModule.vault();
   });
 
   beforeEach(async function () {
@@ -58,7 +58,7 @@ describe('Asset module', function () {
     it('should non-revert when asset is in the list', async function () {
       await assetModule.addAsset(token0.address);
       await assetModule.addAsset(token0.address);
-      expect(await assetModule.callStatic.getAssetList()).to.be.deep.eq([token0.address]);
+      expect(await assetModule.getAssetList()).to.be.deep.eq([token0.address]);
     });
   });
 
@@ -76,7 +76,7 @@ describe('Asset module', function () {
 
     it('should non-revert when asset is not in the list', async function () {
       await assetModule.removeAsset(token0.address);
-      expect(await assetModule.callStatic.getAssetList()).to.be.deep.eq([]);
+      expect(await assetModule.getAssetList()).to.be.deep.eq([]);
     });
   });
 
@@ -143,18 +143,18 @@ describe('Asset module', function () {
     it('should show the added assets', async function () {
       await assetModule.addAsset(token2.address);
       const assetList = [tokenD.address, token0.address, token1.address, token2.address];
-      expect(await assetModule.callStatic.getAssetList()).to.be.deep.eq(assetList);
+      expect(await assetModule.getAssetList()).to.be.deep.eq(assetList);
     });
 
     it('should not show the removed asset', async function () {
       await assetModule.removeAsset(token1.address);
       const assetList = [tokenD.address, token0.address];
-      expect(await assetModule.callStatic.getAssetList()).to.be.deep.eq(assetList);
+      expect(await assetModule.getAssetList()).to.be.deep.eq(assetList);
     });
   });
 
   it('get reserve', async function () {
     await tokenD.transfer(vault, assetAmount);
-    expect(await assetModule.callStatic.getReserve()).to.be.eq(assetAmount);
+    expect(await assetModule.getReserve()).to.be.eq(assetAmount);
   });
 });

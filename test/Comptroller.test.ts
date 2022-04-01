@@ -90,7 +90,7 @@ describe('Comptroller', function () {
 
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).attach(comptrollerProxy.address);
 
-    const beaconAddress = await comptroller.callStatic.beacon();
+    const beaconAddress = await comptroller.beacon();
 
     beacon = await (await ethers.getContractFactory('UpgradeableBeacon')).attach(beaconAddress);
 
@@ -473,15 +473,15 @@ describe('Comptroller', function () {
       });
 
       it('should mortgage for the given tier', async function () {
-        const tokenMUserBefore = await tokenM.callStatic.balanceOf(user.address);
-        const tokenMVaultBefore = await tokenM.callStatic.balanceOf(mortgageVault.address);
+        const tokenMUserBefore = await tokenM.balanceOf(user.address);
+        const tokenMVaultBefore = await tokenM.balanceOf(mortgageVault.address);
         await tokenM.connect(user).approve(mortgageVault.address, amount);
         await comptroller.permitCreators([user.address]);
         const receipt = await factory.connect(user).createFund(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
         const fund = await getEventArgs(receipt, 'FundCreated');
-        const tokenMUserAfter = await tokenM.callStatic.balanceOf(user.address);
-        const tokenMVaultAfter = await tokenM.callStatic.balanceOf(mortgageVault.address);
-        const mortgageFund = await mortgageVault.callStatic.fundAmounts(fund[0]);
+        const tokenMUserAfter = await tokenM.balanceOf(user.address);
+        const tokenMVaultAfter = await tokenM.balanceOf(mortgageVault.address);
+        const mortgageFund = await mortgageVault.fundAmounts(fund[0]);
         expect(tokenMUserBefore.sub(tokenMUserAfter)).to.be.eq(amount);
         expect(tokenMVaultAfter.sub(tokenMVaultBefore)).to.be.eq(amount);
         expect(mortgageFund).to.be.eq(amount);
@@ -675,13 +675,11 @@ describe('Comptroller', function () {
       });
 
       it('normal', async function () {
-        expect(await comptrollerProxyAdmin.callStatic.getProxyImplementation()).to.be.eq(
-          comptrollerImplementation.address
-        );
+        expect(await comptrollerProxyAdmin.getProxyImplementation()).to.be.eq(comptrollerImplementation.address);
         await expect(comptrollerProxyAdmin.upgrade(newImplementation.address))
           .to.emit(comptrollerProxy, 'Upgraded')
           .withArgs(newImplementation.address);
-        expect(await comptrollerProxyAdmin.callStatic.getProxyImplementation()).to.be.eq(newImplementation.address);
+        expect(await comptrollerProxyAdmin.getProxyImplementation()).to.be.eq(newImplementation.address);
       });
 
       it('should revert: send by non owner', async function () {

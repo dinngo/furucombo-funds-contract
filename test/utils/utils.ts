@@ -207,7 +207,7 @@ export async function tokenProviderCurveGauge(lpToken: string) {
 export async function _tokenProviderUniLike(token0: string, token1: string, factoryAddress: string) {
   const factory = await ethers.getContractAt('IUniswapV2Factory', factoryAddress);
 
-  const pair = await factory.callStatic.getPair(token0, token1);
+  const pair = await factory.getPair(token0, token1);
   _impersonateAndInjectEther(pair);
   return await (ethers as any).getSigner(pair);
 }
