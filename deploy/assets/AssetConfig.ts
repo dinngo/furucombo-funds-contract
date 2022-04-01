@@ -19,6 +19,8 @@ export const assets: Record<string, string> = {
   SOL: '0x7DfF46370e9eA5f0Bad3C4E29711aD50062EA7A4',
   SUSHI: '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
   UNI: '0xb33EaAd8d922B1083446DC23f610c2567fB5180f',
+  SAND: '0xBbba073C31bF03b8ACf7c28EF0738DeCF3695683',
+  EURT: '0x7BDF330f423Ea880FF95fC41A280fD5eCFD3D09f',
 };
 
 export const chainlinkAggregators: Record<string, string> = {
@@ -42,6 +44,8 @@ export const chainlinkAggregators: Record<string, string> = {
   [assets.SOL]: '0x10C8264C0935b3B9870013e057f330Ff3e9C56dC',
   [assets.SUSHI]: '0x49B0c695039243BBfEb8EcD054EB70061fd54aa0',
   [assets.UNI]: '0xdf0Fb4e4F928d2dCB76f438575fDD8682386e13C',
+  [assets.SAND]: '0x3D49406EDd4D52Fb7FFd25485f32E073b529C924',
+  [assets.EURT]: '0x73366Fe0AA0Ded304479862808e02506FE556a98',
 };
 
 export const aaveV2Asset: Record<string, string> = {
@@ -78,6 +82,12 @@ export const curveStable: Record<string, any> = {
     valuedAsset: assets.USDC,
     valuedAssetDecimals: 6,
   },
+  btcCRV: {
+    address: '0xf8a57c1d3b9629b77b6726a042ca48990A84Fb49',
+    pool: '0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67', // CURVE_REN_SWAP
+    valuedAsset: assets.WBTC,
+    valuedAssetDecimals: 8,
+  },
 };
 
 export const quickSwap: Record<string, string> = {
@@ -89,6 +99,7 @@ export const quickSwap: Record<string, string> = {
   'quickMATIC-USDC': '0x6e7a5FAFcec6BB1e78bAE2A1F0B612012BF14827',
   'quickMATIC-WETH': '0xadbF1854e5883eB8aa7BAf50705338739e558E5b',
   'quickNEXO-WETH': '0x10062ec62C0bE26cC9e2f50a1CF784a89ded075F',
+  'quickSAND-MATIC': '0x369582d2010B6eD950B571F4101e3bB9b554876F',
   'quickUSDC-DAI': '0xf04adBF75cDFc5eD26eeA4bbbb991DB002036Bdd',
   'quickUSDC-GHST': '0x096C5CCb33cFc5732Bcd1f3195C13dBeFC4c82f4',
   'quickUSDC-QUICK': '0x1F1E4c845183EF6d50E9609F16f6f9cAE43BC9Cb',

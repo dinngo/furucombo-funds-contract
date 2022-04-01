@@ -3,7 +3,20 @@ import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { FurucomboProxyMock, FurucomboRegistry, IERC20, ICurveHandler, HCurve } from '../../typechain';
 
-import { DAI_TOKEN, USDT_TOKEN, CURVE_AAVE_SWAP, CURVE_AAVECRV, MATIC_TOKEN, NATIVE_TOKEN } from '../utils/constants';
+import {
+  DAI_TOKEN,
+  USDT_TOKEN,
+  WBTC_TOKEN,
+  RENBTC_TOKEN,
+  RENBTC_PROVIDER,
+  CURVE_AAVE_SWAP,
+  CURVE_AAVECRV,
+  CURVE_REN_SWAP,
+  CURVE_RENCRV,
+  CURVE_RENCRV_PROVIDER,
+  MATIC_TOKEN,
+  NATIVE_TOKEN,
+} from '../utils/constants';
 
 import {
   ether,
@@ -13,6 +26,7 @@ import {
   tokenProviderQuick,
   getCallData,
   tokenProviderCurveGauge,
+  impersonateAndInjectEther,
   expectEqWithinBps,
 } from '../utils/utils';
 
@@ -20,6 +34,7 @@ describe('HCurve', function () {
   let owner: Wallet;
   let user: Wallet;
   let aaveSwap: ICurveHandler;
+  let renSwap: ICurveHandler;
   let hCurve: HCurve;
   let proxy: FurucomboProxyMock;
   let registry: FurucomboRegistry;
@@ -29,6 +44,7 @@ describe('HCurve', function () {
     [owner, user] = await (ethers as any).getSigners();
 
     aaveSwap = await ethers.getContractAt('ICurveHandler', CURVE_AAVE_SWAP);
+    renSwap = await ethers.getContractAt('ICurveHandler', CURVE_REN_SWAP);
 
     // Setup proxy and Aproxy
     registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
@@ -43,6 +59,7 @@ describe('HCurve', function () {
 
     // register HCurve callee
     await registry.registerHandlerCalleeWhitelist(hCurve.address, aaveSwap.address);
+    await registry.registerHandlerCalleeWhitelist(hCurve.address, renSwap.address);
   });
 
   beforeEach(async function () {
@@ -50,28 +67,27 @@ describe('HCurve', function () {
   });
 
   describe('Exchange underlying', function () {
-    const token0Address = USDT_TOKEN;
-    const token1Address = DAI_TOKEN;
-
     let token0User: BigNumber;
     let token1User: BigNumber;
     let providerAddress: any;
     let token0: IERC20, token1: IERC20;
-    const value = BigNumber.from('1000000');
     let answer: BigNumber;
 
-    beforeEach(async function () {
-      providerAddress = await tokenProviderQuick(token0Address);
-      token0 = await ethers.getContractAt('IERC20', token0Address);
-      token1 = await ethers.getContractAt('IERC20', token1Address);
-      answer = await aaveSwap['get_dy_underlying(int128,int128,uint256)'](2, 0, value);
-      token0User = await token0.balanceOf(user.address);
-      token1User = await token1.balanceOf(user.address);
-      await token0.connect(providerAddress).transfer(proxy.address, value);
-      await proxy.updateTokenMock(token0.address);
-    });
-
     describe('aave pool', function () {
+      const token0Address = USDT_TOKEN;
+      const token1Address = DAI_TOKEN;
+      const value = BigNumber.from('1000000');
+
+      beforeEach(async function () {
+        providerAddress = await tokenProviderQuick(token0Address);
+        token0 = await ethers.getContractAt('IERC20', token0Address);
+        token1 = await ethers.getContractAt('IERC20', token1Address);
+        answer = await aaveSwap['get_dy_underlying(int128,int128,uint256)'](2, 0, value);
+        token0User = await token0.balanceOf(user.address);
+        token1User = await token1.balanceOf(user.address);
+        await token0.connect(providerAddress).transfer(proxy.address, value);
+        await proxy.updateTokenMock(token0.address);
+      });
       it('Exact input swap USDT to DAI by exchangeUnderlying', async function () {
         const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
           aaveSwap.address,
@@ -95,14 +111,9 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
-        // get_dy_underlying flow is different from exchange_underlying,
-        // so give 1*10^12 tolerance for USDT/DAI case.
-        expect(await token1.balanceOf(user.address)).to.be.gte(
-          token1User.add(answer).sub(BigNumber.from('1000000000000'))
-        );
-        expect(await token1.balanceOf(user.address)).to.be.lte(
-          mulPercent(token1User.add(answer), BigNumber.from('101'))
-        );
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
       it('Exact input swap USDT to DAI by exchangeUnderlying with max amount', async function () {
@@ -128,14 +139,9 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
-        // get_dy_underlying flow is different from exchange_underlying,
-        // so give 1*10^12 tolerance for USDT/DAI case.
-        expect(await token1.balanceOf(user.address)).to.be.gte(
-          token1User.add(answer).sub(BigNumber.from('1000000000000'))
-        );
-        expect(await token1.balanceOf(user.address)).to.be.lte(
-          mulPercent(token1User.add(answer), BigNumber.from('101'))
-        );
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
       it('should revert: not support MRC20', async function () {
@@ -196,6 +202,77 @@ describe('HCurve', function () {
             value: 0,
           })
         ).to.be.revertedWith('_exec');
+      });
+    });
+
+    describe('ren pool', function () {
+      const token0Address = WBTC_TOKEN;
+      const token1Address = RENBTC_TOKEN;
+      const value = BigNumber.from('100000000');
+
+      beforeEach(async function () {
+        providerAddress = await tokenProviderQuick(token0Address);
+        token0 = await ethers.getContractAt('IERC20', token0Address);
+        token1 = await ethers.getContractAt('IERC20', token1Address);
+        answer = await renSwap['get_dy_underlying(int128,int128,uint256)'](0, 1, value);
+        token0User = await token0.balanceOf(user.address);
+        token1User = await token1.balanceOf(user.address);
+
+        await token0.connect(providerAddress).transfer(proxy.address, value);
+        await proxy.updateTokenMock(token0.address);
+      });
+
+      it('Exact input swap WBTC to renBTC by exchangeUnderlying', async function () {
+        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
+          renSwap.address,
+          token0.address,
+          token1.address,
+          0,
+          1,
+          value,
+          mulPercent(answer, BigNumber.from('100').sub(slippage)),
+        ]);
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'), // Ensure handler can correctly deal with ether
+        });
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1User));
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
+      });
+
+      it('Exact input swap WBTC to renBTC by exchangeUnderlying with max amount', async function () {
+        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
+          renSwap.address,
+          token0.address,
+          token1.address,
+          0,
+          1,
+          constants.MaxUint256,
+          mulPercent(answer, BigNumber.from('100').sub(slippage)),
+        ]);
+
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'), // Ensure handler can correctly deal with ether
+        });
+
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1User));
+
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
     });
   });
@@ -264,7 +341,8 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
         expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
 
-        expectEqWithinBps(poolTokenUserEnd, answer, 10);
+        // Check pool token balance
+        expectEqWithinBps(poolTokenUserEnd, poolTokenUser.add(answer), 10);
       });
 
       it('remove from pool to USDT by removeLiquidityOneCoinUnderlying', async function () {
@@ -357,6 +435,109 @@ describe('HCurve', function () {
             value: ether('1'),
           })
         ).revertedWith('HCurve_removeLiquidityOneCoinUnderlying: invalid callee');
+      });
+    });
+
+    describe('ren pool', function () {
+      const token0Address = WBTC_TOKEN;
+      const token1Address = RENBTC_TOKEN;
+      const token1ProviderAddress = RENBTC_PROVIDER;
+      const poolTokenAddress = CURVE_RENCRV;
+      const poolTokenProviderAddress = CURVE_RENCRV_PROVIDER;
+
+      let token0User: BigNumber, token1User: BigNumber, poolTokenUser: BigNumber;
+      let provider0Address: string, provider1Address: string;
+      let poolTokenProvider: Signer;
+      let token0: IERC20, token1: IERC20, poolToken: IERC20;
+
+      beforeEach(async function () {
+        provider0Address = await tokenProviderQuick(token0Address);
+        provider1Address = await impersonateAndInjectEther(token1ProviderAddress);
+        poolTokenProvider = await impersonateAndInjectEther(poolTokenProviderAddress);
+        token0 = await ethers.getContractAt('IERC20', token0Address);
+        token1 = await ethers.getContractAt('IERC20', token1Address);
+        poolToken = await ethers.getContractAt('IERC20', poolTokenAddress);
+        token0User = await token0.balanceOf(user.address);
+        token1User = await token1.balanceOf(user.address);
+        poolTokenUser = await poolToken.balanceOf(user.address);
+      });
+
+      it('add WBTC and RENBTC to pool by addLiquidityUnderlying', async function () {
+        const token0Amount = BigNumber.from('100000000');
+        const token1Amount = BigNumber.from('100000000');
+        const tokens = [token0.address, token1.address];
+        const amounts: [BigNumber, BigNumber] = [token0Amount, token1Amount];
+        // Get expected answer
+        const answer = await renSwap['calc_token_amount(uint256[2],bool)'](amounts, true);
+
+        // Execute handler
+        await token0.connect(provider0Address).transfer(proxy.address, token0Amount);
+        await token1.connect(provider1Address).transfer(proxy.address, token1Amount);
+
+        await proxy.updateTokenMock(token0.address);
+        await proxy.updateTokenMock(token1.address);
+        const minMintAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
+        const data = getCallData(hCurve, 'addLiquidityUnderlying(address,address,address[],uint256[],uint256)', [
+          renSwap.address,
+          poolToken.address,
+          tokens,
+          amounts,
+          minMintAmount,
+        ]);
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'),
+        });
+
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+
+        const poolTokenUserEnd = await poolToken.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(poolTokenUserEnd.sub(poolTokenUser));
+
+        // Check proxy balance
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await poolToken.balanceOf(proxy.address)).to.be.eq(0);
+
+        // Check user balance
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+        expect(await token1.balanceOf(user.address)).to.be.eq(token1User);
+
+        // Check pool token balance
+        expectEqWithinBps(poolTokenUserEnd, poolTokenUser.add(answer), 10);
+      });
+
+      it('remove from pool to RENBTC by removeLiquidityOneCoinUnderlying', async function () {
+        const poolTokenUser = ether('0.1');
+        const token1UserBefore = await token1.balanceOf(user.address);
+        const answer = await renSwap['calc_withdraw_one_coin(uint256,int128)'](poolTokenUser, 1);
+
+        await poolToken.connect(poolTokenProvider).transfer(proxy.address, poolTokenUser);
+
+        await proxy.updateTokenMock(poolToken.address);
+
+        const minAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
+        const data = getCallData(
+          hCurve,
+          'removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)',
+          [renSwap.address, poolToken.address, token1.address, poolTokenUser, 1, minAmount]
+        );
+
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'),
+        });
+
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1UserBefore));
+
+        // Check proxy balance
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await poolToken.balanceOf(proxy.address)).to.be.eq(0);
+
+        // Check user
+        expect(token1UserEnd).to.be.eq(token1UserBefore.add(answer));
       });
     });
   });
