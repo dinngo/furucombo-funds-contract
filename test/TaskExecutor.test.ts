@@ -26,7 +26,13 @@ import {
   NATIVE_TOKEN,
   FEE_BASE,
 } from './utils/constants';
-import { getCallData, getCallActionData, ether, impersonateAndInjectEther } from './utils/utils';
+import {
+  getCallData,
+  getCallActionData,
+  ether,
+  impersonateAndInjectEther,
+  getTaskExecutorFundQuotas,
+} from './utils/utils';
 
 describe('Task Executor', function () {
   let comptroller: ComptrollerImplementation;
@@ -817,28 +823,41 @@ describe('Task Executor', function () {
     });
 
     it('execution twice for checking fund quota will be reset', async function () {
+      // Replace TaskExecutor with TaskExecutorMock for checking fund quota
+      const taskExecutorMock = await (
+        await ethers.getContractFactory('TaskExecutorMock')
+      ).deploy(owner.address, comptroller.address);
+      await taskExecutorMock.deployed();
+
       await comptroller.setInitialAssetCheck(false);
       const actionData = getCallData(fooAction, 'decreaseQuota', [[tokenA.address], [BigNumber.from('1')]]);
 
       // Prepare task data and execute
-      const data = getCallData(taskExecutor, 'batchExec', [
-        [tokenA.address],
+      const tokensIn = [tokenA.address];
+      const data = getCallData(taskExecutorMock, 'batchExec', [
+        tokensIn,
         [quota],
         [fooAction.address],
         [constants.HashZero],
         [actionData],
       ]);
 
-      const target = taskExecutor.address;
+      const target = taskExecutorMock.address;
       // 1st execution
-      await proxy.connect(user).callStatic.executeMock(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
-      // 2nd execution
-      await proxy.connect(user).callStatic.executeMock(target, data, {
+      // if success when executing 2nd time, that means the fund quota reset to zero after 1st execution
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
+
+      // check fund quota reset to zero
+      const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutorMock, tokensIn);
+      for (let i = 0; i < fundQuotas.length; i++) {
+        expect(fundQuotas[0]).to.be.eq(0);
+      }
     });
 
     it('should revert: invalid asset', async function () {
