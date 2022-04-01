@@ -539,64 +539,6 @@ describe('HCurve', function () {
         // Check user
         expect(token1UserEnd).to.be.eq(token1UserBefore.add(answer));
       });
-
-      it('should revert: invalid callee when addLiquidityUnderlying', async function () {
-        // Unregister callee
-        await registry.unregisterHandlerCalleeWhitelist(hCurve.address, renSwap.address);
-
-        const token0Amount = BigNumber.from('100000000');
-        const token1Amount = BigNumber.from('100000000');
-        const tokens = [token0.address, token1.address];
-        const amounts: [BigNumber, BigNumber] = [token0Amount, token1Amount];
-        // Get expected answer
-        const answer = await renSwap['calc_token_amount(uint256[2],bool)'](amounts, true);
-
-        // Execute handler
-        await token0.connect(provider0Address).transfer(proxy.address, token0Amount);
-        await token1.connect(provider1Address).transfer(proxy.address, token1Amount);
-
-        await proxy.updateTokenMock(token0.address);
-        await proxy.updateTokenMock(token1.address);
-        const minMintAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
-        const data = getCallData(hCurve, 'addLiquidityUnderlying(address,address,address[],uint256[],uint256)', [
-          renSwap.address,
-          poolToken.address,
-          tokens,
-          amounts,
-          minMintAmount,
-        ]);
-
-        await expect(
-          proxy.connect(user).execMock(hCurve.address, data, {
-            value: ether('1'),
-          })
-        ).revertedWith('HCurve_addLiquidityUnderlying: invalid callee');
-      });
-
-      it('should revert: invalid callee when removeLiquidityOneCoinUnderlying', async function () {
-        // Unregister callee
-        await registry.unregisterHandlerCalleeWhitelist(hCurve.address, renSwap.address);
-
-        const poolTokenUser = ether('0.1');
-        const answer = await renSwap['calc_withdraw_one_coin(uint256,int128)'](poolTokenUser, 1);
-
-        await poolToken.connect(poolTokenProvider).transfer(proxy.address, poolTokenUser);
-
-        await proxy.updateTokenMock(poolToken.address);
-
-        const minAmount = mulPercent(answer, BigNumber.from('100').sub(slippage));
-        const data = getCallData(
-          hCurve,
-          'removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)',
-          [renSwap.address, poolToken.address, token1.address, poolTokenUser, 1, minAmount]
-        );
-
-        await expect(
-          proxy.connect(user).execMock(hCurve.address, data, {
-            value: ether('1'),
-          })
-        ).revertedWith('HCurve_removeLiquidityOneCoinUnderlying: invalid callee');
-      });
     });
   });
 });
