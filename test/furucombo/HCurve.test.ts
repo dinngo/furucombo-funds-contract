@@ -13,7 +13,7 @@ import {
   CURVE_AAVECRV,
   CURVE_REN_SWAP,
   CURVE_RENCRV,
-  CURVE_REN_GAUGE,
+  CURVE_RENCRV_PROVIDER,
   MATIC_TOKEN,
   NATIVE_TOKEN,
 } from '../utils/constants';
@@ -111,14 +111,9 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
-        // get_dy_underlying flow is different from exchange_underlying,
-        // so give 1*10^12 tolerance for USDT/DAI case.
-        expect(await token1.balanceOf(user.address)).to.be.gte(
-          token1User.add(answer).sub(BigNumber.from('1000000000000'))
-        );
-        expect(await token1.balanceOf(user.address)).to.be.lte(
-          mulPercent(token1User.add(answer), BigNumber.from('101'))
-        );
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
       it('Exact input swap USDT to DAI by exchangeUnderlying with max amount', async function () {
@@ -144,14 +139,9 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
-        // get_dy_underlying flow is different from exchange_underlying,
-        // so give 1*10^12 tolerance for USDT/DAI case.
-        expect(await token1.balanceOf(user.address)).to.be.gte(
-          token1User.add(answer).sub(BigNumber.from('1000000000000'))
-        );
-        expect(await token1.balanceOf(user.address)).to.be.lte(
-          mulPercent(token1User.add(answer), BigNumber.from('101'))
-        );
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
       it('should revert: not support MRC20', async function () {
@@ -252,10 +242,9 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
-        expect(await token1.balanceOf(user.address)).to.be.gte(token1User.add(answer).sub(BigNumber.from('1')));
-        expect(await token1.balanceOf(user.address)).to.be.lte(
-          mulPercent(token1User.add(answer), BigNumber.from('101'))
-        );
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
       it('Exact input swap WBTC to renBTC by exchangeUnderlying with max amount', async function () {
@@ -281,10 +270,9 @@ describe('HCurve', function () {
         expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
-        expect(await token1.balanceOf(user.address)).to.be.gte(token1User.add(answer).sub(BigNumber.from('1')));
-        expect(await token1.balanceOf(user.address)).to.be.lte(
-          mulPercent(token1User.add(answer), BigNumber.from('101'))
-        );
+
+        // Check token 1 balance
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
       it('should revert: not support MRC20', async function () {
@@ -515,7 +503,7 @@ describe('HCurve', function () {
       const token1Address = RENBTC_TOKEN;
       const token1ProviderAddress = RENBTC_PROVIDER;
       const poolTokenAddress = CURVE_RENCRV;
-      const poolTokenGauge = CURVE_REN_GAUGE;
+      const poolTokenGauge = CURVE_RENCRV_PROVIDER;
 
       let token0User: BigNumber, token1User: BigNumber, poolTokenUser: BigNumber;
       let provider0Address: string, provider1Address: string;
