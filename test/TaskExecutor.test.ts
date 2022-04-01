@@ -95,6 +95,7 @@ describe('Task Executor', function () {
     taskExecutor = await (await ethers.getContractFactory('TaskExecutor')).deploy(owner.address, comptroller.address);
     await taskExecutor.deployed();
     await comptroller.setExecAction(taskExecutor.address);
+    await comptroller.setExecFeePercentage(100); // set execution fee 1%
 
     foo = await (await ethers.getContractFactory('FundFoo')).deploy();
     await foo.deployed();
@@ -806,7 +807,7 @@ describe('Task Executor', function () {
 
       // Execution
       const target = taskExecutor.address;
-      await proxy.connect(user).callStatic.executeMock(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: quota,
       });
 
@@ -857,7 +858,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('RevertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
@@ -880,7 +881,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('RevertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
@@ -903,7 +904,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('FundQuotaAction: insufficient quota');
@@ -927,7 +928,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('RevertCode(39)'); // TASK_EXECUTOR_NON_ZERO_QUOTA
