@@ -274,66 +274,6 @@ describe('HCurve', function () {
         // Check token 1 balance
         expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
-
-      it('should revert: not support MRC20', async function () {
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          renSwap.address,
-          MATIC_TOKEN,
-          token1.address,
-          0,
-          1,
-          value,
-          0,
-        ]);
-
-        await expect(
-          proxy.connect(user).execMock(hCurve.address, data, {
-            value: value,
-          })
-        ).revertedWith('Not support matic token');
-      });
-
-      it('should revert: invalid callee when exchangeUnderlying', async function () {
-        // Unregister callee
-        await registry.unregisterHandlerCalleeWhitelist(hCurve.address, renSwap.address);
-
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          renSwap.address,
-          MATIC_TOKEN,
-          token1.address,
-          0,
-          1,
-          value,
-          0,
-        ]);
-
-        await expect(
-          proxy.connect(user).execMock(hCurve.address, data, {
-            value: value,
-          })
-        ).revertedWith('HCurve_exchangeUnderlying: invalid callee');
-      });
-
-      it('should revert: input token not support native token', async function () {
-        const inputAmount = ether('5');
-        const answer = await renSwap['get_dy_underlying(int128,int128,uint256)'](0, 1, inputAmount);
-
-        const data = getCallData(hCurve, 'exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)', [
-          renSwap.address,
-          NATIVE_TOKEN,
-          token1.address,
-          0,
-          1,
-          inputAmount,
-          mulPercent(answer, BigNumber.from('100').sub(slippage)),
-        ]);
-
-        await expect(
-          proxy.connect(user).execMock(hCurve.address, data, {
-            value: 0,
-          })
-        ).to.be.revertedWith('_exec');
-      });
     });
   });
 
