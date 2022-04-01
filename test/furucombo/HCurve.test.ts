@@ -443,7 +443,7 @@ describe('HCurve', function () {
       const token1Address = RENBTC_TOKEN;
       const token1ProviderAddress = RENBTC_PROVIDER;
       const poolTokenAddress = CURVE_RENCRV;
-      const poolTokenGauge = CURVE_RENCRV_PROVIDER;
+      const poolTokenProviderAddress = CURVE_RENCRV_PROVIDER;
 
       let token0User: BigNumber, token1User: BigNumber, poolTokenUser: BigNumber;
       let provider0Address: string, provider1Address: string;
@@ -453,7 +453,7 @@ describe('HCurve', function () {
       beforeEach(async function () {
         provider0Address = await tokenProviderQuick(token0Address);
         provider1Address = await impersonateAndInjectEther(token1ProviderAddress);
-        poolTokenProvider = await impersonateAndInjectEther(poolTokenGauge);
+        poolTokenProvider = await impersonateAndInjectEther(poolTokenProviderAddress);
         token0 = await ethers.getContractAt('IERC20', token0Address);
         token1 = await ethers.getContractAt('IERC20', token1Address);
         poolToken = await ethers.getContractAt('IERC20', poolTokenAddress);
