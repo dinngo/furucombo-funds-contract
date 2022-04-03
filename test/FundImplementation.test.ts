@@ -314,6 +314,17 @@ describe('FundImplementation', function () {
           'RevertCode(12)' // IMPLEMENTATION_INVALID_DENOMINATION
         );
       });
+
+      it('should revert: asset list is not empty', async function () {
+        await fundImplementation.setState(FUND_STATE.EXECUTING);
+        await comptroller.permitAssets(level, [tokenA.address]);
+        await tokenA.connect(tokenAProvider).transfer(vault.address, tokenAAmount);
+        await fundImplementation.addAsset(tokenA.address);
+        await fundImplementation.setState(FUND_STATE.REVIEWING);
+        await expect(fundImplementation.finalize()).to.be.revertedWith(
+          'RevertCode(7)' // IMPLEMENTATION_ASSET_LIST_NOT_EMPTY
+        );
+      });
     });
 
     it('resume', async function () {

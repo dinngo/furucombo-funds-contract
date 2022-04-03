@@ -59,6 +59,10 @@ contract FundImplementationMock is FundImplementation {
     function _beforeExecute() internal view override returns (uint256) {
         return lastGrossAssetValue;
     }
+
+    function setState(State state_) external {
+        _enterState(state_);
+    }
 }
 
 contract CallActionMock {
