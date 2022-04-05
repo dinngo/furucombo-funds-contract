@@ -37,15 +37,15 @@ describe('MortgageVault', function () {
     });
 
     it('should succeed when sender balance is sufficient', async function () {
-      const userBalanceBefore = await token.callStatic.balanceOf(user.address);
-      const vaultBalanceBefore = await token.callStatic.balanceOf(mortgageVault.address);
+      const userBalanceBefore = await token.balanceOf(user.address);
+      const vaultBalanceBefore = await token.balanceOf(mortgageVault.address);
       await expect(mortgageVault.mortgage(user.address, fund.address, stakingAmount))
         .to.emit(mortgageVault, 'Mortgaged')
         .withArgs(user.address, fund.address, stakingAmount);
-      const userBalanceAfter = await token.callStatic.balanceOf(user.address);
-      const vaultBalanceAfter = await token.callStatic.balanceOf(mortgageVault.address);
-      const fundMortgage = await mortgageVault.callStatic.fundAmounts(fund.address);
-      const totalMortgage = await mortgageVault.callStatic.totalAmount();
+      const userBalanceAfter = await token.balanceOf(user.address);
+      const vaultBalanceAfter = await token.balanceOf(mortgageVault.address);
+      const fundMortgage = await mortgageVault.fundAmounts(fund.address);
+      const totalMortgage = await mortgageVault.totalAmount();
       expect(userBalanceBefore.sub(userBalanceAfter)).to.be.eq(stakingAmount);
       expect(vaultBalanceAfter.sub(vaultBalanceBefore)).to.be.eq(stakingAmount);
       expect(fundMortgage).to.be.eq(stakingAmount);
@@ -67,16 +67,16 @@ describe('MortgageVault', function () {
     });
 
     it('should succeed to claim', async function () {
-      const userBalanceBefore = await token.callStatic.balanceOf(user.address);
-      const vaultBalanceBefore = await token.callStatic.balanceOf(mortgageVault.address);
+      const userBalanceBefore = await token.balanceOf(user.address);
+      const vaultBalanceBefore = await token.balanceOf(mortgageVault.address);
       await expect(mortgageVault.connect(fund).claim(user.address))
         .to.emit(mortgageVault, 'Claimed')
         .withArgs(user.address, fund.address, stakingAmount);
 
-      const userBalanceAfter = await token.callStatic.balanceOf(user.address);
-      const vaultBalanceAfter = await token.callStatic.balanceOf(mortgageVault.address);
-      const fundMortgage = await mortgageVault.callStatic.fundAmounts(fund.address);
-      const totalMortgage = await mortgageVault.callStatic.totalAmount();
+      const userBalanceAfter = await token.balanceOf(user.address);
+      const vaultBalanceAfter = await token.balanceOf(mortgageVault.address);
+      const fundMortgage = await mortgageVault.fundAmounts(fund.address);
+      const totalMortgage = await mortgageVault.totalAmount();
       expect(userBalanceAfter.sub(userBalanceBefore)).to.be.eq(stakingAmount);
       expect(vaultBalanceBefore.sub(vaultBalanceAfter)).to.be.eq(stakingAmount);
       expect(fundMortgage).to.be.eq(ethers.constants.Zero);

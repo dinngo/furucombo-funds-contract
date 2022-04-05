@@ -104,7 +104,7 @@ describe('RAaveProtocolV2Debt', function () {
       const quote = quoteAddress;
 
       // get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       const underlyingTokenAddress = await vDebtToken.UNDERLYING_ASSET_ADDRESS();
       const tokenValue = await oracle.calcConversionAmount(underlyingTokenAddress, amount, quote);
@@ -119,7 +119,7 @@ describe('RAaveProtocolV2Debt', function () {
       const quote = quoteAddress;
 
       // get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       const underlyingTokenAddress = await vDebtToken.UNDERLYING_ASSET_ADDRESS();
       const tokenValue = await oracle.calcConversionAmount(

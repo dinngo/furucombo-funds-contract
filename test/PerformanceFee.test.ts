@@ -43,21 +43,21 @@ describe('Performance fee', function () {
 
   beforeEach(async function () {
     await setupTest();
-    feeBase = await pFeeModule.callStatic.getFeeBase();
+    feeBase = await pFeeModule.getFeeBase();
   });
 
   describe('set performance fee rate', function () {
     it('zero', async function () {
       const feeRate = BigNumber.from('0');
       await pFeeModule.setPerformanceFeeRate(feeRate);
-      const result = await pFeeModule.callStatic.pFeeRate64x64();
+      const result = await pFeeModule.pFeeRate64x64();
       expect(result).to.be.eq(BigNumber.from('0'));
     });
 
     it('in normal range', async function () {
       const feeRate = BigNumber.from('1000');
       await pFeeModule.setPerformanceFeeRate(feeRate);
-      const result = await pFeeModule.callStatic.pFeeRate64x64();
+      const result = await pFeeModule.pFeeRate64x64();
       expect(result).to.be.eq(get64x64FromNumber(feeRate.toNumber() / FEE_BASE));
     });
 
@@ -70,7 +70,7 @@ describe('Performance fee', function () {
     it('in normal range', async function () {
       const period = BigNumber.from(30 * 24 * 60 * 60);
       await pFeeModule.setCrystallizationPeriod(period);
-      const result = await pFeeModule.callStatic.crystallizationPeriod();
+      const result = await pFeeModule.crystallizationPeriod();
       expect(result).to.be.eq(period);
     });
 
@@ -138,7 +138,7 @@ describe('Performance fee', function () {
         await pFeeModule.initializePerformanceFee();
         await pFeeModule.setGrossAssetValue(currentGrossAssetValue);
         await pFeeModule.updatePerformanceFee();
-        const outstandingShare = await tokenS.callStatic.balanceOf('0x0000000000000000000000000000000000000001');
+        const outstandingShare = await tokenS.balanceOf('0x0000000000000000000000000000000000000001');
         expect(outstandingShare).to.be.eq(BigNumber.from('0'));
       });
 
@@ -198,26 +198,26 @@ describe('Performance fee', function () {
           await increaseNextBlockTimeBy(period.toNumber() * 1.8);
           await pFeeModule.crystallize();
           await increaseNextBlockTimeBy(period.toNumber() * 0.4);
-          const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
+          const highWaterMarkBefore = await pFeeModule.hwm64x64();
           await pFeeModule.crystallize();
-          const highWaterMarkAfter = await pFeeModule.callStatic.hwm64x64();
-          const shareManager = await tokenS.callStatic.balanceOf(manager.address);
+          const highWaterMarkAfter = await pFeeModule.hwm64x64();
+          const shareManager = await tokenS.balanceOf(manager.address);
           const fee = growth.mul(feeRate).div(feeBase);
           const expectShare = fee.mul(totalShare).div(currentGrossAssetValue.sub(fee));
-          const lastPrice = await pFeeModule.callStatic.lastGrossSharePrice64x64();
+          const lastPrice = await pFeeModule.lastGrossSharePrice64x64();
           expectEqWithinBps(shareManager, expectShare, 10);
           expect(highWaterMarkAfter).to.be.eq(lastPrice);
         });
 
         it('should get fee when crystallization after period', async function () {
           await increaseNextBlockTimeBy(period.toNumber());
-          const highWaterMarkBefore = await pFeeModule.callStatic.hwm64x64();
+          const highWaterMarkBefore = await pFeeModule.hwm64x64();
           await pFeeModule.crystallize();
-          const highWaterMarkAfter = await pFeeModule.callStatic.hwm64x64();
-          const shareManager = await tokenS.callStatic.balanceOf(manager.address);
+          const highWaterMarkAfter = await pFeeModule.hwm64x64();
+          const shareManager = await tokenS.balanceOf(manager.address);
           const fee = growth.mul(feeRate).div(feeBase);
           const expectShare = fee.mul(totalShare).div(currentGrossAssetValue.sub(fee));
-          const lastPrice = await pFeeModule.callStatic.lastGrossSharePrice64x64();
+          const lastPrice = await pFeeModule.lastGrossSharePrice64x64();
           const expectPrice = highWaterMarkBefore.mul(feeBase.mul(2).sub(feeRate)).div(feeBase);
 
           expectEqWithinBps(shareManager, expectShare, 10);

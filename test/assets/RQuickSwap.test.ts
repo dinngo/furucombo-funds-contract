@@ -98,7 +98,7 @@ describe('RQuickSwap', function () {
       const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       // Verify
       expect(assetValue).to.be.eq(weightedGeometricMeanValue);
@@ -116,7 +116,7 @@ describe('RQuickSwap', function () {
       const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       expect(assetValue).to.be.eq(weightedGeometricMeanValue);
       expectEqWithinBps(assetValue, arithmeticMeanValue, 1);
@@ -133,7 +133,7 @@ describe('RQuickSwap', function () {
       const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       // Verify
       expect(assetValue).to.be.eq(weightedGeometricMeanValue);
@@ -151,7 +151,7 @@ describe('RQuickSwap', function () {
       const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       // Verify
       expect(assetValue).to.be.eq(weightedGeometricMeanValue);
@@ -169,7 +169,7 @@ describe('RQuickSwap', function () {
       const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       // Verify
       expect(assetValue).to.be.eq(weightedGeometricMeanValue);
@@ -187,7 +187,7 @@ describe('RQuickSwap', function () {
       const arithmeticMeanValue = await _getArithmeticMean(pair, amount, quote);
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       // Verify
       expect(assetValue).to.be.eq(weightedGeometricMeanValue);

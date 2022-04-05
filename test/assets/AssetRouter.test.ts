@@ -101,7 +101,7 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address];
       const amounts = [ether('1')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.calcAssetsTotalValue(assets, amounts, quote);
 
       expect(assetValue).to.be.eq(amounts[0].mul(2));
     });
@@ -114,7 +114,7 @@ describe('AssetRouter', function () {
 
       await tokenA.connect(tokenAProvider).transfer(user.address, amount);
       amount = await tokenA.balanceOf(user.address);
-      const assetValue = await router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.connect(user).calcAssetsTotalValue(assets, amounts, quote);
 
       const expectValue = amount.mul(2);
       expect(assetValue).to.be.eq(expectValue);
@@ -124,7 +124,7 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address, tokenB.address];
       const amounts = [ether('1'), ether('0.5')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.calcAssetsTotalValue(assets, amounts, quote);
 
       const expectValue = amounts[0].add(amounts[1]).mul(BigNumber.from('2'));
       expect(assetValue).to.be.eq(expectValue);
@@ -134,7 +134,7 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address, tokenC.address];
       const amounts = [ether('1'), ether('0.5')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.calcAssetsTotalValue(assets, amounts, quote);
 
       const expectValue = amounts[0].mul(BigNumber.from('2')).sub(amounts[1].mul(BigNumber.from('2')));
       expect(assetValue).to.be.eq(expectValue);
@@ -144,13 +144,13 @@ describe('AssetRouter', function () {
       const assets = [tokenA.address, tokenC.address];
       const amounts = [ether('1'), ether('1')];
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.calcAssetsTotalValue(assets, amounts, quote);
       expect(assetValue).to.be.eq(0);
     });
 
     it('zero value with empty assets', async function () {
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue([], [], quote);
+      const assetValue = await router.calcAssetsTotalValue([], [], quote);
       expect(assetValue).to.be.eq(0);
     });
 
@@ -159,7 +159,7 @@ describe('AssetRouter', function () {
       const amounts = [constants.MaxInt256.div(2)];
 
       const quote = quoteAddress;
-      const assetValue = await router.callStatic.calcAssetsTotalValue(assets, amounts, quote);
+      const assetValue = await router.calcAssetsTotalValue(assets, amounts, quote);
 
       expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amounts[0], quote));
     });
@@ -169,7 +169,7 @@ describe('AssetRouter', function () {
       const amounts = [ether('1')];
       const quote = quoteAddress;
 
-      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+      await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
         'RevertCode(50)'
       ); // ASSET_ROUTER_NEGATIVE_VALUE
     });
@@ -179,7 +179,7 @@ describe('AssetRouter', function () {
       const amounts = [ether('1')];
       const quote = quoteAddress;
 
-      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+      await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
         'RevertCode(49)'
       ); // ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
@@ -189,7 +189,7 @@ describe('AssetRouter', function () {
       const amounts = [ether('1')];
       const quote = quoteAddress;
 
-      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+      await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
         'RevertCode(57)'
       ); // ASSET_REGISTRY_UNREGISTERED
     });
@@ -199,7 +199,7 @@ describe('AssetRouter', function () {
       const amounts = [constants.MaxUint256.div(2)];
       const quote = quoteAddress;
 
-      await expect(router.connect(user).callStatic.calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
+      await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
         "SafeCast: value doesn't fit in an int256"
       );
     });

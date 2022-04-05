@@ -211,7 +211,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
@@ -232,7 +232,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, constants.MaxUint256, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, constants.MaxUint256, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
@@ -267,7 +267,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, amount, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
@@ -292,7 +292,7 @@ describe('RCurveStable', function () {
       );
 
       // Get asset value by asset resolver
-      const assetValue = await router.connect(user).callStatic.calcAssetValue(asset, constants.MaxUint256, quote);
+      const assetValue = await router.connect(user).calcAssetValue(asset, constants.MaxUint256, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);

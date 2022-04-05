@@ -289,12 +289,12 @@ describe('FundImplementation', function () {
         expect(await fundImplementation.getAssetList()).to.be.deep.eq([denomination.address]);
 
         // check management fee initilize
-        const lastMFeeClaimTime = await fundImplementation.callStatic.lastMFeeClaimTime();
+        const lastMFeeClaimTime = await fundImplementation.lastMFeeClaimTime();
         expect(lastMFeeClaimTime).to.be.eq(timestamp);
 
         // check performance fee initilize
-        const lastGrossSharePrice = await fundImplementation.callStatic.lastGrossSharePrice64x64();
-        const hwm64x64 = await fundImplementation.callStatic.hwm64x64();
+        const lastGrossSharePrice = await fundImplementation.lastGrossSharePrice64x64();
+        const hwm64x64 = await fundImplementation.hwm64x64();
         expect(lastGrossSharePrice).to.be.eq(BigNumber.from(price));
         expect(lastGrossSharePrice).to.be.eq(hwm64x64);
 

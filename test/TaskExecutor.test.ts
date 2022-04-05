@@ -26,7 +26,13 @@ import {
   NATIVE_TOKEN,
   FEE_BASE,
 } from './utils/constants';
-import { getCallData, getCallActionData, ether, impersonateAndInjectEther } from './utils/utils';
+import {
+  getCallData,
+  getCallActionData,
+  ether,
+  impersonateAndInjectEther,
+  getTaskExecutorFundQuotas,
+} from './utils/utils';
 
 describe('Task Executor', function () {
   let comptroller: ComptrollerImplementation;
@@ -95,6 +101,7 @@ describe('Task Executor', function () {
     taskExecutor = await (await ethers.getContractFactory('TaskExecutor')).deploy(owner.address, comptroller.address);
     await taskExecutor.deployed();
     await comptroller.setExecAction(taskExecutor.address);
+    await comptroller.setExecFeePercentage(100); // set execution fee 1%
 
     foo = await (await ethers.getContractFactory('FundFoo')).deploy();
     await foo.deployed();
@@ -806,7 +813,7 @@ describe('Task Executor', function () {
 
       // Execution
       const target = taskExecutor.address;
-      await proxy.connect(user).callStatic.executeMock(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: quota,
       });
 
@@ -816,28 +823,41 @@ describe('Task Executor', function () {
     });
 
     it('execution twice for checking fund quota will be reset', async function () {
+      // Replace TaskExecutor with TaskExecutorMock for checking fund quota
+      const taskExecutorMock = await (
+        await ethers.getContractFactory('TaskExecutorMock')
+      ).deploy(owner.address, comptroller.address);
+      await taskExecutorMock.deployed();
+
       await comptroller.setInitialAssetCheck(false);
       const actionData = getCallData(fooAction, 'decreaseQuota', [[tokenA.address], [BigNumber.from('1')]]);
 
       // Prepare task data and execute
-      const data = getCallData(taskExecutor, 'batchExec', [
-        [tokenA.address],
+      const tokensIn = [tokenA.address];
+      const data = getCallData(taskExecutorMock, 'batchExec', [
+        tokensIn,
         [quota],
         [fooAction.address],
         [constants.HashZero],
         [actionData],
       ]);
 
-      const target = taskExecutor.address;
+      const target = taskExecutorMock.address;
       // 1st execution
-      await proxy.connect(user).callStatic.executeMock(target, data, {
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
-      // 2nd execution
-      await proxy.connect(user).callStatic.executeMock(target, data, {
+      // if success when executing 2nd time, that means the fund quota reset to zero after 1st execution
+      await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
+
+      // check fund quota reset to zero
+      const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutorMock, tokensIn);
+      for (let i = 0; i < fundQuotas.length; i++) {
+        expect(fundQuotas[0]).to.be.eq(0);
+      }
     });
 
     it('should revert: invalid asset', async function () {
@@ -857,7 +877,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('RevertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
@@ -880,7 +900,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('RevertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
@@ -903,7 +923,7 @@ describe('Task Executor', function () {
       const target = taskExecutor.address;
 
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('FundQuotaAction: insufficient quota');
@@ -927,7 +947,7 @@ describe('Task Executor', function () {
 
       const target = taskExecutor.address;
       await expect(
-        proxy.connect(user).callStatic.executeMock(target, data, {
+        proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('RevertCode(39)'); // TASK_EXECUTOR_NON_ZERO_QUOTA
