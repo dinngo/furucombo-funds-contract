@@ -38,6 +38,7 @@ export const WL_CURVE_SIGS = [
   '0xdf5f2889', // removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)
 ];
 export const LEVEL = 1;
+export const LEVEL_AMOUNT = 0;
 export const EXEC_FEE_PERCENTAGE = 200; // 2%
 export const PENDING_EXPIRATION = 86400; // 1 day
 export const VALUE_TOLERANCE = 9000; // 90%
