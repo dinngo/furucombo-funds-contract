@@ -205,7 +205,6 @@ export async function createFundProxy(
     shareTokenName
   );
   const eventArgs = await getEventArgs(receipt, 'FundCreated');
-  console.log('args.newFund', eventArgs.newFund);
   const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
   return fundProxy;
 }
