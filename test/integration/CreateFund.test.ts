@@ -12,11 +12,12 @@ import {
   ComptrollerImplementation,
 } from '../../typechain';
 
-import { mwei, impersonateAndInjectEther, getEventArgs } from '../utils/utils';
+import { ether, impersonateAndInjectEther, getEventArgs } from '../utils/utils';
 
 import { createFundInfra } from './fund';
 import { deployFurucomboProxyAndRegistry, createFundProxy } from './deploy';
 import {
+  FEE_BASE64x64,
   BAT_TOKEN,
   USDC_TOKEN,
   WETH_TOKEN,
@@ -50,7 +51,7 @@ describe('CreateFund', function () {
   const tokenBAggregator = CHAINLINK_ETH_USD;
 
   const level = 1;
-  const mortgageAmount = mwei('10');
+  const mortgageAmount = ether('10');
   const mFeeRate = 0;
   const pFeeRate = 0;
   const execFeePercentage = 200; // 2%
@@ -58,7 +59,6 @@ describe('CreateFund', function () {
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
   const reserveExecutionRate = 5000; // 50%
-
   const shareTokenName = 'TEST';
 
   let fRegistry: FurucomboRegistry;
@@ -233,7 +233,23 @@ describe('CreateFund', function () {
             reserveExecutionRate,
             shareTokenName
           )
-      ).to.be.reverted;
+      ).to.be.revertedWith('RevertCode(79)'); // FUND_PROXY_FACTORY_INVALID_DENOMINATION
+    });
+    it('should revert: invalid creator', async function () {
+      const invalidCreator = owner;
+      await expect(
+        fundProxyFactory
+          .connect(invalidCreator)
+          .createFund(
+            denominationAddress,
+            level,
+            mFeeRate,
+            pFeeRate,
+            crystallizationPeriod,
+            reserveExecutionRate,
+            shareTokenName
+          )
+      ).to.be.revertedWith('RevertCode(13)'); // FUND_PROXY_FACTORY_INVALID_CREATOR
     });
     it('should revert: invalid level', async function () {
       const level = 5;
@@ -250,7 +266,7 @@ describe('CreateFund', function () {
             reserveExecutionRate,
             shareTokenName
           )
-      ).to.be.reverted;
+      ).to.be.revertedWith('RevertCode(75)'); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
     });
     it('should revert: invalid management fee rate', async function () {
       const mFeeRate = FEE_BASE;
@@ -330,7 +346,7 @@ describe('CreateFund', function () {
           reserveExecutionRate,
           shareTokenName
         )
-      ).to.be.revertedWith('RevertCode(75');
+      ).to.be.revertedWith('RevertCode(75)'); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
     });
   });
   describe('Finalize', function () {
@@ -362,7 +378,7 @@ describe('CreateFund', function () {
         expect(await fundProxy.shareToken()).to.be.eq(_shareToken);
       });
       it('get the right management fee rate', async function () {
-        const _mFeeRate = BigNumber.from('18446744073709551616');
+        const _mFeeRate = FEE_BASE64x64;
         expect(await fundProxy.mFeeRate64x64()).to.be.eq(_mFeeRate);
         await fundProxy.connect(manager).finalize();
         expect(await fundProxy.mFeeRate64x64()).to.be.eq(_mFeeRate);
