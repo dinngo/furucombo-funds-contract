@@ -1586,7 +1586,7 @@ describe('Task Executor', function () {
           proxy.connect(user).callStatic.executeMock(target, data, {
             value: ether('0.01'),
           })
-        ).to.be.revertedWith('111');
+        ).to.be.reverted;
       });
     });
 

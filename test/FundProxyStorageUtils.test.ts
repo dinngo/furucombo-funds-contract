@@ -8,7 +8,7 @@ import {
   MortgageVault,
   FundFooAction,
   FundFoo,
-  FundProxyStorageUtilsMock,
+  FundProxyMock,
   IERC20,
   AssetRegistry,
   Chainlink,
@@ -16,7 +16,7 @@ import {
   DSProxyRegistryMock,
   SetupAction,
 } from '../typechain';
-import { DS_PROXY_REGISTRY, DAI_TOKEN, DAI_PROVIDER, WL_ANY_SIG } from './utils/constants';
+import { DS_PROXY_REGISTRY, DAI_TOKEN, DAI_PROVIDER, WL_ANY_SIG, FUND_STATE } from './utils/constants';
 import { impersonateAndInjectEther } from './utils/utils';
 
 describe('FundProxyStorageUtils', function () {
@@ -24,7 +24,7 @@ describe('FundProxyStorageUtils', function () {
   let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
-  let proxy: FundProxyStorageUtilsMock;
+  let proxy: FundProxyMock;
   let setupAction: SetupAction;
 
   let owner: Wallet;
@@ -87,7 +87,7 @@ describe('FundProxyStorageUtils', function () {
     dsProxyRegistryMock = await (await ethers.getContractFactory('DSProxyRegistryMock')).deploy();
     await dsProxyRegistryMock.deployed();
 
-    proxy = await (await ethers.getContractFactory('FundProxyStorageUtilsMock')).connect(user).deploy();
+    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy(DS_PROXY_REGISTRY);
     await proxy.deployed();
 
     tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
@@ -208,6 +208,7 @@ describe('FundProxyStorageUtils', function () {
     });
 
     it('should revert: invalid reserve execution rate', async function () {
+      proxy.setState(FUND_STATE.REVIEWING);
       // FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
       await expect(proxy.setReserveExecutionRate(1e4)).to.be.revertedWith('RevertCode(76)');
     });

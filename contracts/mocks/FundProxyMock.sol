@@ -3,14 +3,24 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDSProxy, IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
-import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
+import {FundImplementation} from "../FundImplementation.sol";
 import {IComptroller} from "../interfaces/IComptroller.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 import {ISetupAction} from "../interfaces/ISetupAction.sol";
 
-contract FundProxyStorageUtilsMock is FundProxyStorageUtils {
+contract FundProxyMock is FundImplementation {
+    constructor(IDSProxyRegistry dsProxyRegistry_) FundImplementation(dsProxyRegistry_) {}
+
+    function executeMock(address target_, bytes calldata data_) external payable onlyOwner returns (bytes memory) {
+        return vault.execute{value: msg.value}(target_, data_);
+    }
+
     function setLevel(uint256 level_) external {
         _setLevel(level_);
+    }
+
+    function setState(State state_) external {
+        _enterState(state_);
     }
 
     function setVault(IDSProxyRegistry dsProxyRegistry_) external {
@@ -35,9 +45,5 @@ contract FundProxyStorageUtilsMock is FundProxyStorageUtils {
 
     function setVaultApproval(ISetupAction setupAction_) external {
         _setVaultApproval(setupAction_);
-    }
-
-    function setReserveExecutionRate(uint256 reserveExecutionRate_) external {
-        _setReserveExecutionRate(reserveExecutionRate_);
     }
 }
