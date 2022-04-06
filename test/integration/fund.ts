@@ -232,16 +232,6 @@ export async function createReviewingFund(
   fundVault = await fundProxy.vault();
 
   expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
-<<<<<<< HEAD
-=======
-
-  // print log
-  console.log('fRegistry', fRegistry.address);
-  console.log('furucombo', furucombo.address);
-  console.log('shareToken', shareToken.address);
-  console.log('fundProxyFactory', fundProxyFactory.address);
-  console.log('fundProxy', fundProxy.address);
->>>>>>> e19a20c (rebase develop)
 
   return [
     fundProxy,
@@ -355,17 +345,6 @@ export async function createFundInfra(
     hSushiSwap
   );
 
-<<<<<<< HEAD
-=======
-  console.log('oracle', oracle.address);
-  console.log('assetRegistry', assetRegistry.address);
-  console.log('assetRouter', assetRouter.address);
-  console.log('fundImplementation', fundImplementation.address);
-  console.log('comptrollerProxy', comptrollerProxy.address);
-  console.log('taskExecutor', taskExecutor.address);
-  console.log('aFurucombo', aFurucombo.address);
-
->>>>>>> e19a20c (rebase develop)
   return [
     fundProxyFactory,
     taskExecutor,

@@ -134,11 +134,7 @@ describe('CloseFund', function () {
   describe('fail', function () {
     it('should revert: in reviewing', async function () {
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith(
-<<<<<<< HEAD
         'InvalidState(1)' // REVIEWING
-=======
-        'InvalidState(1)' //REVIEWING
->>>>>>> e19a20c (rebase develop)
       );
     });
     it('should revert: in executing with assets', async function () {
@@ -163,11 +159,7 @@ describe('CloseFund', function () {
         hQuickSwap
       );
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith(
-<<<<<<< HEAD
         'RevertCode(64)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
-=======
-        'RevertCode(64)' //ASSET_MODULE_DIFFERENT_ASSET_REMAINING
->>>>>>> e19a20c (rebase develop)
       );
     });
     it('should revert: in pending', async function () {
@@ -194,11 +186,7 @@ describe('CloseFund', function () {
         hQuickSwap
       );
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith(
-<<<<<<< HEAD
         'InvalidState(3)' // PENDING
-=======
-        'InvalidState(3)' //PENDING
->>>>>>> e19a20c (rebase develop)
       );
     });
     it('should revert: by non-manager', async function () {
@@ -210,7 +198,6 @@ describe('CloseFund', function () {
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount;
       await fundProxy.connect(manager).finalize();
-<<<<<<< HEAD
       await setLiquidatingAssetFund(
         manager,
         investor,
@@ -238,8 +225,6 @@ describe('CloseFund', function () {
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount;
       await fundProxy.connect(manager).finalize();
-=======
->>>>>>> e19a20c (rebase develop)
       await setLiquidatingAssetFund(
         manager,
         investor,
@@ -260,13 +245,9 @@ describe('CloseFund', function () {
         pendingExpiration
       );
 
-<<<<<<< HEAD
       await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
         'RevertCode(48)' // CHAINLINK_STALE_PRICE
       );
-=======
-      await expect(fundProxy.connect(manager).close()).to.be.revertedWith('Ownable: caller is not the owner');
->>>>>>> e19a20c (rebase develop)
     });
     it('should revert: by liquidator in liquidating with assets within redeem share left', async function () {
       const purchaseAmount = initialFunds;
@@ -297,25 +278,15 @@ describe('CloseFund', function () {
       await oracle.setStalePeriod(stalePeriod);
       expect(await oracle.stalePeriod()).to.be.eq(stalePeriod);
 
-<<<<<<< HEAD
       // will trigger _settlePendingShare > _redeem > _pend()
       await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
         'InvalidState(4)' // LIQUIDATING
-=======
-      await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
-        'InvalidState(4)' //LIQUIDATING
->>>>>>> e19a20c (rebase develop)
       );
     });
     it('should revert: by liquidator in liquidating with assets without redeem share left', async function () {
       const purchaseAmount = initialFunds;
-<<<<<<< HEAD
       const swapAmount = purchaseAmount.div(3).mul(2);
       const redeemAmount = purchaseAmount.div(2);
-=======
-      const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
->>>>>>> e19a20c (rebase develop)
       await fundProxy.connect(manager).finalize();
       await setLiquidatingAssetFund(
         manager,
@@ -337,7 +308,6 @@ describe('CloseFund', function () {
         pendingExpiration
       );
 
-<<<<<<< HEAD
       const stalePeriod = pendingExpiration * 2;
       await oracle.setStalePeriod(stalePeriod);
       expect(await oracle.stalePeriod()).to.be.eq(stalePeriod);
@@ -364,10 +334,6 @@ describe('CloseFund', function () {
 
       await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
         'RevertCode(64)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
-=======
-      await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
-        'RevertCode(48)' //CHAINLINK_STALE_PRICE
->>>>>>> e19a20c (rebase develop)
       );
     });
   });
