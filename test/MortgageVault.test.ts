@@ -52,7 +52,7 @@ describe('MortgageVault', function () {
       expect(totalMortgage).to.be.eq(stakingAmount);
     });
 
-    it('should fail when fund is already mortgaged', async function () {
+    it('should revert: when fund is already mortgaged', async function () {
       await mortgageVault.mortgage(user.address, fund.address, stakingAmount);
       await expect(mortgageVault.mortgage(user.address, fund.address, stakingAmount)).to.be.revertedWith(
         'RevertCode(5)'

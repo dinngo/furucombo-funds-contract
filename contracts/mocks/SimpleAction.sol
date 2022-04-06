@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 contract SimpleAction {
     FooForAction private immutable _ac;
 
@@ -20,6 +22,14 @@ contract SimpleAction {
 
     function bar() public view returns (uint256) {
         return _ac.get();
+    }
+
+    function send(
+        IERC20 token,
+        address receiver,
+        uint256 amount
+    ) public {
+        token.transfer(receiver, amount);
     }
 }
 

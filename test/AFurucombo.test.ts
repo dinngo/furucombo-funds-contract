@@ -165,7 +165,7 @@ describe('AFurucombo', function () {
 
     await proxy.setComptroller(comptroller.address);
     await comptroller.permitDenominations([tokenD.address], [0]);
-    await proxy.setupDenomination(tokenD.address);
+    await proxy.setDenomination(tokenD.address);
     await proxy.setVault();
     await proxy.setLevel(1);
 

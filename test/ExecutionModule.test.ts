@@ -66,19 +66,19 @@ describe('Execution module', function () {
       expect(result).to.eq(BigNumber.from('1'));
     });
 
-    it('should fail when initializing', async function () {
+    it('should revert: when initializing', async function () {
       await executionModule.setState(FUND_STATE.INITIALIZING);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.be.revertedWith('InvalidState(0)');
     });
 
-    it('should fail when reviewing', async function () {
+    it('should revert: when reviewing', async function () {
       await executionModule.setState(FUND_STATE.REVIEWING);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.be.revertedWith('InvalidState(1)');
     });
 
-    it('should fail when closed', async function () {
+    it('should revert: when closed', async function () {
       await executionModule.setState(FUND_STATE.CLOSED);
       const executionData = action.interface.encodeFunctionData('foo');
       await expect(executionModule.execute(executionData)).to.be.revertedWith('InvalidState(5)');

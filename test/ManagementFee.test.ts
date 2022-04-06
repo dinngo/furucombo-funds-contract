@@ -58,7 +58,7 @@ describe('Management fee', function () {
       expectEqWithinBps(effectiveFeeRate, result, 1, 15);
     });
 
-    it('should fail when equal to 100%', async function () {
+    it('should revert: when equal to 100%', async function () {
       await expect(mFeeModule.setManagementFeeRate(feeBase)).to.be.reverted;
     });
   });

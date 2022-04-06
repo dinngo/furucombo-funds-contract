@@ -101,6 +101,17 @@ describe('Chainlink', function () {
       await network.provider.send('evm_mine', []);
       await expect(chainlink.connect(owner).addAssets([tokenA], [aggregatorA])).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
     });
+
+    it.only('should revert: invalid price', async function () {
+      const aggregatorV3Mock = await (await ethers.getContractFactory('ChainlinkAggregatorV3Mock'))
+        .connect(owner)
+        .deploy();
+      await aggregatorV3Mock.deployed();
+
+      await expect(
+        chainlink.connect(owner).addAssets([tokenA], [aggregatorV3Mock.address])
+      ).to.be.reverted.revertedWith('RevertCode(47)'); // CHAINLINK_INVALID_PRICE
+    });
   });
 
   describe('Remove assets', function () {

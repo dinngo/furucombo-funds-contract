@@ -64,6 +64,10 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
         return 31557600;
     }
 
+    function timeToPeriod(uint256 timestamp_) public view returns (uint256) {
+        return _timeToPeriod(timestamp_);
+    }
+
     function __getGrossAssetValue() internal view override returns (uint256) {
         return grossAssetValueMock;
     }

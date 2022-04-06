@@ -63,6 +63,10 @@ contract FundImplementationMock is FundImplementation {
     function setState(State state_) external {
         _enterState(state_);
     }
+
+    function resumeWithGrossAssetValue(uint256 grossAssetValue_) external {
+        _resumeWithGrossAssetValue(grossAssetValue_);
+    }
 }
 
 contract CallActionMock {

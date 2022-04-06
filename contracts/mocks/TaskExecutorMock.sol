@@ -39,4 +39,12 @@ contract TaskExecutorMock is TaskExecutor, GasProfiler {
     function getDealingAssetList() external view returns (address[] memory) {
         return _getDealingAssets();
     }
+
+    function parse(
+        bytes32[256] memory localStack_,
+        bytes memory ret_,
+        uint256 index_
+    ) external payable {
+        _parse(localStack_, ret_, index_);
+    }
 }

@@ -224,6 +224,12 @@ describe('Performance fee', function () {
           expect(highWaterMarkAfter).to.be.eq(lastPrice);
           expectEqWithinBps(highWaterMarkAfter, expectPrice, 10);
         });
+
+        it('should revert: time before start', async function () {
+          const crystallizationStart = await pFeeModule.crystallizationStart();
+          // PERFORMANCE_FEE_MODULE_TIME_BEFORE_START
+          await expect(pFeeModule.timeToPeriod(crystallizationStart.sub(10))).to.be.revertedWith('RevertCode(68)');
+        });
       });
 
       describe('price changing cases', function () {

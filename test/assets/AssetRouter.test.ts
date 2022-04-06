@@ -194,13 +194,19 @@ describe('AssetRouter', function () {
       ); // ASSET_REGISTRY_UNREGISTERED
     });
 
-    it('should revert: asset vale overflow', async function () {
+    it('should revert: asset negative value overflow', async function () {
       const assets = [tokenA.address];
       const amounts = [constants.MaxUint256.div(2)];
       const quote = quoteAddress;
 
       await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
         "SafeCast: value doesn't fit in an int256"
+      );
+    });
+
+    it('should revert: resolver negative asset vale overflow', async function () {
+      await expect(resolverA.calcNegativeAssetValue()).to.be.revertedWith(
+        'RevertCode(58)' // RESOLVER_BASE_NEGATIVE_AMOUNT
       );
     });
   });

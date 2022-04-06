@@ -276,6 +276,12 @@ describe('ComptrollerImplementation_Whitelist', function () {
           comptroller.connect(user).permitDelegateCalls(level, [actionMockA.address], [sigA])
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
+
+      it('should revert: tos and sigs length are inconsistent', async function () {
+        await expect(comptroller.permitDelegateCalls(level, [actionMockA.address], [sigA, sigB])).to.be.revertedWith(
+          'RevertCode(3)'
+        ); // COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
+      });
     });
 
     describe('forbid', function () {
@@ -315,6 +321,12 @@ describe('ComptrollerImplementation_Whitelist', function () {
         await expect(
           comptroller.connect(user).forbidDelegateCalls(level, [actionMockA.address], [sigA])
         ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: tos and sigs length are inconsistent', async function () {
+        await expect(comptroller.forbidDelegateCalls(level, [actionMockA.address], [sigA, sigB])).to.be.revertedWith(
+          'RevertCode(3)'
+        ); // COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
       });
     });
   });
@@ -399,6 +411,12 @@ describe('ComptrollerImplementation_Whitelist', function () {
           comptroller.connect(user).permitContractCalls(level, [actionMockA.address], [sigA])
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
+
+      it('should revert: tos and sigs length are inconsistent', async function () {
+        await expect(comptroller.permitContractCalls(level, [actionMockA.address], [sigA, sigB])).to.be.revertedWith(
+          'RevertCode(3)'
+        ); // COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
+      });
     });
 
     describe('forbid', function () {
@@ -438,6 +456,12 @@ describe('ComptrollerImplementation_Whitelist', function () {
         await expect(
           comptroller.connect(user).forbidContractCalls(level, [actionMockA.address], [sigA])
         ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: tos and sigs length are inconsistent', async function () {
+        await expect(comptroller.forbidContractCalls(level, [actionMockA.address], [sigA, sigB])).to.be.revertedWith(
+          'RevertCode(3)'
+        ); // COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
       });
     });
   });
@@ -523,6 +547,12 @@ describe('ComptrollerImplementation_Whitelist', function () {
           comptroller.connect(user).permitHandlers(level, [handlerMockA.address], [sigA])
         ).to.be.revertedWith('Ownable: caller is not the owner');
       });
+
+      it('should revert: tos and sigs length are inconsistent', async function () {
+        await expect(comptroller.permitHandlers(level, [handlerMockA.address], [sigA, sigB])).to.be.revertedWith(
+          'RevertCode(3)'
+        ); // COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
+      });
     });
 
     describe('forbid', function () {
@@ -562,6 +592,12 @@ describe('ComptrollerImplementation_Whitelist', function () {
         await expect(
           comptroller.connect(user).forbidHandlers(level, [handlerMockA.address], [sigA])
         ).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('should revert: tos and sigs length are inconsistent', async function () {
+        await expect(comptroller.forbidHandlers(level, [handlerMockA.address], [sigA, sigB])).to.be.revertedWith(
+          'RevertCode(3)'
+        ); // COMPTROLLER_TOS_AND_SIGS_LENGTH_INCONSISTENT
       });
     });
   });

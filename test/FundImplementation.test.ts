@@ -214,50 +214,60 @@ describe('FundImplementation', function () {
         expect(_level).to.be.gt(0);
         expect(_level).to.be.eq(level);
       });
+
       it('should set comptroller', async function () {
         const comptrollerAddr = await fundImplementation.comptroller();
         expect(comptrollerAddr).to.be.not.eq(constants.AddressZero);
         expect(comptrollerAddr).to.be.eq(comptroller.address);
       });
+
       it('should set denomination', async function () {
         const denominationAddr = await fundImplementation.denomination();
         expect(denominationAddr).to.be.not.eq(constants.AddressZero);
         expect(denominationAddr).to.be.eq(denomination.address);
       });
+
       it('should set share token', async function () {
         const shareTokenAddr = await fundImplementation.shareToken();
         expect(shareTokenAddr).to.be.not.eq(constants.AddressZero);
         expect(shareTokenAddr).to.be.eq(shareToken.address);
       });
+
       it('should set management fee rate', async function () {
         const rate = get64x64FromNumber(1);
         const feeRate = await fundImplementation.mFeeRate64x64();
         expect(feeRate).to.be.eq(rate);
       });
+
       it('should set performance fee rate', async function () {
         const rate = get64x64FromNumber(performanceFeeRate / FUND_PERCENTAGE_BASE);
         const feeRate = await fundImplementation.pFeeRate64x64();
         expect(feeRate).to.be.eq(rate);
       });
+
       it('should set crystallization period', async function () {
         const crystallizationPeriod = await fundImplementation.crystallizationPeriod();
         expect(crystallizationPeriod).to.be.gte(CRYSTALLIZATION_PERIOD_MIN);
         expect(crystallizationPeriod).to.be.eq(crystallizationPeriod);
       });
+
       it('should set vault', async function () {
         expect(await fundImplementation.vault()).to.be.not.eq(constants.AddressZero);
       });
+
       it('should set owner', async function () {
         const _owner = await fundImplementation.owner();
         expect(_owner).to.be.not.eq(constants.AddressZero);
         expect(_owner).to.be.eq(owner.address);
       });
+
       it('should set mortgage vault', async function () {
         const mortgageVault = await comptroller.mortgageVault();
         const _mortgageVault = await fundImplementation.mortgageVault();
         expect(_mortgageVault).to.be.not.eq(constants.AddressZero);
         expect(_mortgageVault).to.be.eq(mortgageVault);
       });
+
       it('should revert: twice initialization', async function () {
         await expect(
           fundImplementation
@@ -546,11 +556,30 @@ describe('FundImplementation', function () {
       await fundImplementation.execute(executionData);
     });
 
-    it('should revert when exceed tolerance', async function () {
+    it('should revert: when exceed tolerance', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance - 1).div(FUND_PERCENTAGE_BASE);
       await fundImplementation.setGrossAssetValueMock(valueCurrent);
       await expect(fundImplementation.execute(executionData)).to.be.revertedWith(
         'RevertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
+      );
+    });
+
+    it('should revert: insufficient reserve', async function () {
+      await fundImplementation.setState(FUND_STATE.REVIEWING);
+      await fundImplementation.setReserveExecutionRate(100);
+      await fundImplementation.setState(FUND_STATE.EXECUTING);
+      await fundImplementation.setGrossAssetValueMock(valueBefore.mul(valueTolerance).div(FUND_PERCENTAGE_BASE));
+      actionData = getCallData(action, 'fooAddress', []);
+      executionData = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [action.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      await expect(fundImplementation.execute(executionData)).to.be.revertedWith(
+        'RevertCode(10)' // IMPLEMENTATION_INSUFFICIENT_RESERVE
       );
     });
   });
@@ -716,11 +745,12 @@ describe('FundImplementation', function () {
   });
 
   describe('Settle pending share', function () {
+    let redeemAmount: BigNumber;
     beforeEach(async function () {
       await fundImplementation.finalize();
       const currentReserve = await fundImplementation.getReserve();
 
-      const redeemAmount = currentReserve.add(mwei('500'));
+      redeemAmount = currentReserve.add(mwei('500'));
       await denomination.connect(denominationProvider).transfer(owner.address, redeemAmount.mul(2)); // Transfer more to owner
 
       // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
@@ -786,6 +816,13 @@ describe('FundImplementation', function () {
         .withArgs(FUND_STATE.CLOSED)
         .to.emit(fundImplementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
+    });
+
+    it('should revert: pending share is not resolvable', async function () {
+      // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
+      await expect(fundImplementation.resumeWithGrossAssetValue(redeemAmount.mul(100))).to.be.revertedWith(
+        'RevertCode(72)'
+      );
     });
   });
 });
