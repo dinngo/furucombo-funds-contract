@@ -2,7 +2,7 @@ import { BigNumber, constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { ComptrollerImplementation, ShareModuleMock, SimpleToken, ShareToken } from '../typechain';
-import { FEE_BASE, DS_PROXY_REGISTRY, FUND_STATE } from './utils/constants';
+import { FUND_PERCENTAGE_BASE, DS_PROXY_REGISTRY, FUND_STATE } from './utils/constants';
 import { ether } from './utils/utils';
 
 describe('Share module', function () {
@@ -18,7 +18,7 @@ describe('Share module', function () {
   const totalShare = totalAsset;
   const acceptPending = false;
   const penalty = 100;
-  const penaltyBase = FEE_BASE;
+  const penaltyBase = FUND_PERCENTAGE_BASE;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture('');

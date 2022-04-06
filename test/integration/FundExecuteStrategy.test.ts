@@ -39,7 +39,7 @@ import {
   BAT_PROVIDER,
   WETH_PROVIDER,
   USDC_PROVIDER,
-  FEE_BASE,
+  FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 
 import {
@@ -260,7 +260,9 @@ describe('FundExecuteStrategy', function () {
     it('quickswap', async function () {
       // Prepare action data
       const amountIn = mwei('1000');
-      const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
+      const actionAmountIn = amountIn
+        .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
+        .div(FUND_PERCENTAGE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -314,7 +316,7 @@ describe('FundExecuteStrategy', function () {
 
       // check collector will get execute fee
       expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
-        amountIn.mul(execFeePercentage).div(FEE_BASE)
+        amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
       );
 
       // TODO: check it after refine quickswap handler
@@ -333,7 +335,9 @@ describe('FundExecuteStrategy', function () {
     it('sushiswap', async function () {
       // Prepare action data
       const amountIn = mwei('1000');
-      const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
+      const actionAmountIn = amountIn
+        .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
+        .div(FUND_PERCENTAGE_BASE);
       const tokensIn = [denomination.address];
       const amountsIn = [amountIn];
       const tokensOut = [tokenA.address];
@@ -387,7 +391,7 @@ describe('FundExecuteStrategy', function () {
 
       // check collector will get execute fee
       expect((await denomination.balanceOf(collector.address)).sub(denominationCollectorBalance)).to.be.eq(
-        amountIn.mul(execFeePercentage).div(FEE_BASE)
+        amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE)
       );
 
       // TODO: check it after refine sushiswap handler

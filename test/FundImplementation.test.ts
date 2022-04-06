@@ -24,9 +24,8 @@ import {
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
   CHAINLINK_WBTC_USD,
-  FEE_BASE,
   WL_ANY_SIG,
-  TOLERANCE_BASE,
+  FUND_PERCENTAGE_BASE,
   FUND_STATE,
 } from './utils/constants';
 
@@ -59,7 +58,7 @@ describe('FundImplementation', function () {
   const crystallizationPeriod = CRYSTALLIZATION_PERIOD_MIN;
   const level = 1;
   const reserveExecution = 0;
-  const reserveBase = FEE_BASE;
+  const reserveBase = FUND_PERCENTAGE_BASE;
 
   let comptroller: ComptrollerImplementation;
   let action: SimpleAction;
@@ -236,7 +235,7 @@ describe('FundImplementation', function () {
         expect(feeRate).to.be.eq(rate);
       });
       it('should set performance fee rate', async function () {
-        const rate = get64x64FromNumber(performanceFeeRate / FEE_BASE);
+        const rate = get64x64FromNumber(performanceFeeRate / FUND_PERCENTAGE_BASE);
         const feeRate = await fundImplementation.pFeeRate64x64();
         expect(feeRate).to.be.eq(rate);
       });
@@ -531,13 +530,13 @@ describe('FundImplementation', function () {
     });
 
     it('should success', async function () {
-      const valueCurrent = valueBefore.mul(valueTolerance).div(TOLERANCE_BASE);
+      const valueCurrent = valueBefore.mul(valueTolerance).div(FUND_PERCENTAGE_BASE);
       await fundImplementation.setGrossAssetValueMock(valueCurrent);
       await fundImplementation.execute(executionData);
     });
 
     it('should revert when exceed tolerance', async function () {
-      const valueCurrent = valueBefore.mul(valueTolerance - 1).div(TOLERANCE_BASE);
+      const valueCurrent = valueBefore.mul(valueTolerance - 1).div(FUND_PERCENTAGE_BASE);
       await fundImplementation.setGrossAssetValueMock(valueCurrent);
       await expect(fundImplementation.execute(executionData)).to.be.revertedWith(
         'RevertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
@@ -566,7 +565,7 @@ describe('FundImplementation', function () {
       });
 
       it('should revert: set by max value', async function () {
-        const maxRate = 1e4;
+        const maxRate = FUND_PERCENTAGE_BASE;
         await expect(fundImplementation.setManagementFeeRate(maxRate)).to.be.revertedWith('RevertCode(69)'); // MANAGEMENT_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_FUND_BASE
       });
     });
@@ -591,7 +590,7 @@ describe('FundImplementation', function () {
       });
 
       it('should revert: set by max value', async function () {
-        const maxRate = 1e4;
+        const maxRate = FUND_PERCENTAGE_BASE;
         await expect(fundImplementation.setPerformanceFeeRate(maxRate)).to.be.revertedWith('RevertCode(65)'); // PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE
       });
     });

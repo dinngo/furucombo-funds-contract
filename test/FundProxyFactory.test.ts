@@ -17,7 +17,7 @@ import {
   FundProxy,
 } from '../typechain';
 
-import { DS_PROXY_REGISTRY, FEE_BASE, FUND_STATE, USDC_TOKEN } from './utils/constants';
+import { DS_PROXY_REGISTRY, FUND_PERCENTAGE_BASE, FUND_STATE, USDC_TOKEN } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
 describe('FundProxyFactory', function () {
@@ -178,7 +178,7 @@ describe('FundProxyFactory', function () {
       ).to.be.revertedWith('RevertCode(75)'); //FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
     });
     it('should revert: invalid management fee rate', async function () {
-      const invalidMFeeRate = FEE_BASE;
+      const invalidMFeeRate = FUND_PERCENTAGE_BASE;
       await expect(
         fundProxyFactory
           .connect(manager)
@@ -194,7 +194,7 @@ describe('FundProxyFactory', function () {
       ).to.be.reverted;
     });
     it('should revert: invalid performance fee rate', async function () {
-      const invalidPFeeRate = FEE_BASE;
+      const invalidPFeeRate = FUND_PERCENTAGE_BASE;
       await expect(
         fundProxyFactory
           .connect(manager)
@@ -226,7 +226,7 @@ describe('FundProxyFactory', function () {
       ).to.be.reverted;
     });
     it('should revert: invalid reserve execution rate', async function () {
-      const invalidReserveExecutionRate = FEE_BASE;
+      const invalidReserveExecutionRate = FUND_PERCENTAGE_BASE;
       await expect(
         fundProxyFactory
           .connect(manager)
