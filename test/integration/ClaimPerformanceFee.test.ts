@@ -261,7 +261,7 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(afterGrowShare).to.be.gt(beforeGrowShare);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
-      it('should revert when still in crystallization period', async function () {
+      it.skip('should revert when still in crystallization period', async function () {
         await _crystallizationPeriodTest(purchaseAmount, acceptPending);
 
         // claim pFee
@@ -324,7 +324,7 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(afterGrowShare).to.be.gt(beforeGrowShare);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
-      it('should revert when still in crystallization period', async function () {
+      it.skip('should revert when still in crystallization period', async function () {
         await _crystallizationPeriodTest(purchaseAmount, acceptPending);
 
         // claim pFee
@@ -410,7 +410,7 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(afterGrowShare).to.be.gt(beforeGrowShare);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
-      it('should revert when still in crystallization period', async function () {
+      it.skip('should revert when still in crystallization period', async function () {
         await _crystallizationPeriodTest(mwei('500'), acceptPending);
 
         // claim pFee
