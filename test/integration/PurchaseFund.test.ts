@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-//test
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -21,9 +20,7 @@ import {
   createFund,
   purchaseFund,
   setPendingAssetFund,
-  setExecutingDenominationFund,
   setExecutingAssetFund,
-  execSwap,
 } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -46,10 +43,9 @@ describe('InvestorPurchaseFund', function () {
   let owner: Wallet;
   let collector: Wallet;
   let manager: Wallet;
-  let investor0: Wallet;
   let liquidator: Wallet;
   let denominationProvider: Signer;
-  let investor1: Wallet, investor2: Wallet, investor3: Wallet;
+  let user0: Wallet, user1: Wallet, user2: Wallet, user3: Wallet;
 
   const denominationProviderAddress = USDC_PROVIDER;
   const denominationAddress = USDC_TOKEN;
@@ -87,13 +83,11 @@ describe('InvestorPurchaseFund', function () {
   let hQuickSwap: HQuickSwap;
 
   let denomination: IERC20;
-  let tokenA: IERC20;
-  let tokenB: IERC20;
   let shareToken: ShareToken;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, collector, manager, investor0, investor1, investor2, investor3, liquidator] = await (
+    [owner, collector, manager, user0, user1, user2, user3, liquidator] = await (
       ethers as any
     ).getSigners();
 
@@ -112,8 +106,8 @@ describe('InvestorPurchaseFund', function () {
       taskExecutor,
       aFurucombo,
       hFunds,
-      tokenA,
-      tokenB,
+     ,
+     ,
       ,
       comptroller,
       ,
@@ -145,15 +139,15 @@ describe('InvestorPurchaseFund', function () {
       furucombo
     );
   
-    // Transfer token to investor0
-    await denomination.connect(denominationProvider).transfer(investor0.address, initialFunds);
-    await denomination.connect(denominationProvider).transfer(investor1.address, initialFunds);
-    await denomination.connect(denominationProvider).transfer(investor2.address, initialFunds);
-    await denomination.connect(denominationProvider).transfer(investor3.address, initialFunds);
+    // Transfer token to user0
+    await denomination.connect(denominationProvider).transfer(user0.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(user1.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(user2.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(user3.address, initialFunds);
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
   });
 
-  async function getExpectedShareWhenPending(amount:BigNumber) {
+  async function getExpectedShareWhenPending(amount: BigNumber) {
     const share = await fundProxy.calculateShare(amount);
     const bonus = await getPendingBonus(share);
     return share.add(bonus);
@@ -176,43 +170,53 @@ describe('InvestorPurchaseFund', function () {
     const purchaseAmount = mwei('2000');
 
     describe('Executing state', function () {
-      it('investor1 purchase', async function () {
+      it('user1 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const [share] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+        const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
 
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
-        expect(share).to.be.eq(purchaseAmount); // initial mint, share = purchaseAmount
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
+        expect(user1Share).to.be.eq(purchaseAmount); // initial mint, share = purchaseAmount
+        expect(user1Share).to.be.eq(user1ExpectedShare);
       });
 
-      it('investor1 and investor2 purchase', async function () {
+      it('user1 and user2 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
 
-        // investor2 purchase
-        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+        // user2 purchase
+        const user2ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+        const [user2Share] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
 
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('2'))));
-        expect(share1).to.be.eq(share2);
+        
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
       });
 
-      it('investor1, investor2 and investor3 purchase', async function () {
+      it('user1, user2 and user3 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
 
-        // investor2 purchase
-        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+        // user2 purchase
+        const user2ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+        const [user2Share] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
 
-        // investor3 purchase
-        const [share3] = await purchaseFund(
-          investor3,
+        // user3 purchase
+        const user3ExpectedShare = await fundProxy.calculateShare(purchaseAmount.mul(BigNumber.from('2')));
+        const [user3Share] = await purchaseFund(
+          user3,
           fundProxy,
           denomination,
           shareToken,
@@ -222,8 +226,13 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('4'))));
-        expect(share1).to.be.eq(share2);
-        expect(share3).to.be.eq(share1.add(share2));
+        
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user3Share).to.be.eq(user1Share.add(user2Share));
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
+        expect(user3Share).to.be.eq(user3ExpectedShare);
+
       });
     }); // describe('Executing state') ends
 
@@ -231,11 +240,11 @@ describe('InvestorPurchaseFund', function () {
       const swapAmount = purchaseAmount.div(2);
       const reserveAmount = purchaseAmount.sub(swapAmount);
       const redeemAmount = reserveAmount.add(mwei('500'));
-      const pendingPurchaseAmount = mwei('50');
+      const pendingPurchaseAmount = mwei('100');
       beforeEach(async function () {
         await setPendingAssetFund(
           manager,
-          investor0,
+          user0,
           fundProxy,
           denomination,
           shareToken,
@@ -252,10 +261,11 @@ describe('InvestorPurchaseFund', function () {
         );
       });
 
-      it('investor1 purchase', async function () {
+      it('user1 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const [share, state] = await purchaseFund(
-          investor1,
+        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user1Share, state] = await purchaseFund(
+          user1,
           fundProxy,
           denomination,
           shareToken,
@@ -265,17 +275,21 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount));
+        expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(state).to.be.eq(FUND_STATE.PENDING);
       });
-      it('investor1 and investor2 purchase', async function () {
+
+      it('user1 and user2 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
 
-        // investor2 purchase
-        const [share2, state] = await purchaseFund(
-          investor2,
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user2Share, state] = await purchaseFund(
+          user2,
           fundProxy,
           denomination,
           shareToken,
@@ -285,22 +299,29 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(2)));
-        expect(share1).to.be.eq(share2);
+        
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
+
         expect(state).to.be.eq(FUND_STATE.PENDING);
       });
 
-      it('investor1, investor2 and investor3 purchase', async function () {
+      it('user1, user2 and user3 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
 
-        // investor2 purchase
-        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user2Share] = await purchaseFund(user2, fundProxy, denomination, shareToken, pendingPurchaseAmount);
 
-        // investor3 purchase
-        const [share3, state] = await purchaseFund(
-          investor3,
+        // user3 purchase
+        const user3ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount.mul(2));
+        const [user3Share, state] = await purchaseFund(
+          user3,
           fundProxy,
           denomination,
           shareToken,
@@ -310,8 +331,13 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(4)));
-        expect(share1).to.be.eq(share2);
-        expect(share3).to.be.gte(share1.add(share2));
+        
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user3Share).to.be.gte(user1Share.add(user2Share));
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
+        expect(user3Share).to.be.eq(user3ExpectedShare);
+
         expect(state).to.be.eq(FUND_STATE.PENDING);
       });
     }); // describe('Pending state') end
@@ -321,7 +347,7 @@ describe('InvestorPurchaseFund', function () {
       beforeEach(async function () {
         await setExecutingAssetFund(
           manager,
-          investor0,
+          user0,
           fundProxy,
           denomination,
           shareToken,
@@ -337,46 +363,60 @@ describe('InvestorPurchaseFund', function () {
         );
       });
 
-      it('investor1 purchase', async function () {
+      it('user1 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const [share, state] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+        const user1ExpectedShare = await getExpectedShareWhenPending(purchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        //const expectedShare = await fundProxy.calculateShare(purchaseAmount);
-
-        // expect(share).to.be.eq(expectedShare);
+        
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
+        expect(user1Share).to.be.eq(user1ExpectedShare);
       });
 
-      it('investor1 and investor2 purchase', async function () {
+      it('user1 and user2 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(purchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
 
-        // investor2 purchase
-        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(purchaseAmount);
+        const [user2Share] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
-        expect(share1).to.be.eq(share2);
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(2)));
+        
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
       });
 
-      it('investor1, investor2 and investor3 purchase', async function () {
+      it('user1, user2 and user3 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, purchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(purchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
 
-        // investor2 purchase
-        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, purchaseAmount);
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(purchaseAmount);
+        const [user2Share] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
 
-        // investor3 purchase
-        const [share3] = await purchaseFund(investor3, fundProxy, denomination, shareToken, purchaseAmount.mul(2));
+        // user3 purchase
+        const user3ExpectedShare = await getExpectedShareWhenPending(purchaseAmount.mul(2));
+        const [user3Share] = await purchaseFund(user3, fundProxy, denomination, shareToken, purchaseAmount.mul(2));
+
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
-        expect(share1).to.be.eq(share2);
-        expect(share3).to.be.eq(share1.add(share2));
+        
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(4)));
+
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user3Share).to.be.eq(user1Share.add(user2Share));
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
+        expect(user3Share).to.be.eq(user3ExpectedShare);
       });
     });
 
@@ -384,11 +424,11 @@ describe('InvestorPurchaseFund', function () {
       const swapAmount = purchaseAmount.div(2);
       const reserveAmount = purchaseAmount.sub(swapAmount);
       const redeemAmount = reserveAmount.add(mwei('500'));
-      const pendingPurchaseAmount = mwei('50');
+      const pendingPurchaseAmount = mwei('100');
       beforeEach(async function () {
         await setPendingAssetFund(
           manager,
-          investor0,
+          user0,
           fundProxy,
           denomination,
           shareToken,
@@ -405,61 +445,65 @@ describe('InvestorPurchaseFund', function () {
         );
       });
 
-      it('investor1 purchase', async function () {
+      it('user1 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const [share, state] = await purchaseFund(
-          investor1,
+        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user1Share, state] = await purchaseFund(
+          user1,
           fundProxy,
           denomination,
           shareToken,
           pendingPurchaseAmount
         );
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        // const expectedShare = await fundProxy.calculateShare(pendingPurchaseAmount);
-
-        // expect(share).to.be.eq(expectedShare);
+      
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount));
+        expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(state).to.be.eq(FUND_STATE.PENDING);
       });
 
-      it('investor1 and investor2 purchase', async function () {
+      it('user1 and user2 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
 
-        // const expectedShare1 = await fundProxy.calculateShare(pendingPurchaseAmount);
-
-        // investor2 purchase
-        const [share2, state] = await purchaseFund(
-          investor2,
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user2Share, state] = await purchaseFund(
+          user2,
           fundProxy,
           denomination,
           shareToken,
           pendingPurchaseAmount
         );
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-
-        // expect(share1).to.be.eq(expectedShare1);
-        expect(share1).to.be.eq(share2);
+        
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(2)));
+        
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
+
         expect(state).to.be.eq(FUND_STATE.PENDING);
       });
 
-      it('investor1, investor2 and investor3 purchase', async function () {
+      it('user1, user2 and user3 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        // investor1 purchase
-        const [share1] = await purchaseFund(investor1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
 
-        // const expectedShare1 = await fundProxy.calculateShare(pendingPurchaseAmount);
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+        const [user2Share] = await purchaseFund(user2, fundProxy, denomination, shareToken, pendingPurchaseAmount);
 
-        // investor2 purchase
-        const [share2] = await purchaseFund(investor2, fundProxy, denomination, shareToken, pendingPurchaseAmount);
-
-        // investor3 purchase
-        const [share3, state] = await purchaseFund(
-          investor3,
+        // user3 purchase
+        const user3ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount.mul(2));
+        const [user3Share, state] = await purchaseFund(
+          user3,
           fundProxy,
           denomination,
           shareToken,
@@ -467,13 +511,14 @@ describe('InvestorPurchaseFund', function () {
         );
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
-        // const expectedShare3 = await fundProxy.calculateShare(pendingPurchaseAmount.mul(2));
-
-        // expect(share1).to.be.eq(expectedShare1);
-        expect(share1).to.be.eq(share2);
-        expect(share3).to.be.gte(share1.add(share2));
-        // expect(share3).to.be.eq(expectedShare3);
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(4)));
+        
+        expect(user1Share).to.be.eq(user2Share);
+        expect(user3Share).to.be.gte(user1Share.add(user2Share));
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
+        expect(user3Share).to.be.eq(user3ExpectedShare);
+
         expect(state).to.be.eq(FUND_STATE.PENDING);
       });
     });
@@ -490,7 +535,7 @@ describe('InvestorPurchaseFund', function () {
       beforeEach(async function () {
         await setPendingAssetFund(
           manager,
-          investor0,
+          user0,
           fundProxy,
           denomination,
           shareToken,
@@ -507,108 +552,97 @@ describe('InvestorPurchaseFund', function () {
         );
       });
 
-      it('investor1 purchase', async function () {
+      it('user1 purchase', async function () {
         const solvePendingPurchaseAmount = mwei('600');
-        const [share, state] = await purchaseFund(
-          investor1,
+        const user1ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
+        const [user1Share, user1State] = await purchaseFund(
+          user1,
           fundProxy,
           denomination,
           shareToken,
           solvePendingPurchaseAmount
         );
         
-        // const expectedShare = await fundProxy.calculateShare(pendingPurchaseAmount);
-
-        // expect(share).to.be.eq(expectedShare);
-        
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user1State).to.be.eq(FUND_STATE.EXECUTING);
       });
 
-      it('investor1 and investor2 purchase', async function () {
+      it('user1 and user2 purchase', async function () {
         const amount = mwei('100');
         const solvePendingPurchaseAmount = mwei('600');
         
-        // investor1 purchase
-        const [share1, state1] = await purchaseFund(
-          investor1,
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(amount);
+        const [user1Share, user1State] = await purchaseFund(
+          user1,
           fundProxy,
           denomination,
           shareToken,
           amount
         );
 
-        // investor2 purchase
-        const [share2, state2] = await purchaseFund(
-          investor2,
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
+        const [user2Share, user2State] = await purchaseFund(
+          user2,
           fundProxy,
           denomination,
           shareToken,
           solvePendingPurchaseAmount
         );
         
-        // const expectedShare = await fundProxy.calculateShare(pendingPurchaseAmount);
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
 
-        // expect(share).to.be.eq(expectedShare);
-        console.log("share1:" + share1.toString());
-        console.log("share2:" + share2.toString());
-        expect(state1).to.be.eq(FUND_STATE.PENDING);
-        expect(state2).to.be.eq(FUND_STATE.EXECUTING);
+        expect(user1State).to.be.eq(FUND_STATE.PENDING);
+        expect(user2State).to.be.eq(FUND_STATE.EXECUTING);
       });
 
-      it.only('investor1, investor2 and investor3 purchase', async function () {
+      it('user1, user2 and user3 purchase', async function () {
         const amount = mwei('100');
         const solvePendingPurchaseAmount = mwei('600');
         
-        
-        // investor1 purchase
-        const expectedShare1 = await getExpectedShareWhenPending(amount);
-        const [share1, state1] = await purchaseFund(
-          investor1,
+        // user1 purchase
+        const user1ExpectedShare = await getExpectedShareWhenPending(amount);
+        const [user1Share, user1State] = await purchaseFund(
+          user1,
           fundProxy,
           denomination,
           shareToken,
           amount
         );
-          console.log("expectedShare1:" + expectedShare1.toString());
-          console.log("share1:" + share1.toString());
-          console.log("");
 
-
-        // investor2 purchase
-        const expectedShare2 = await getExpectedShareWhenPending(amount);
-
-        const [share2, state2] = await purchaseFund(
-          investor2,
+        // user2 purchase
+        const user2ExpectedShare = await getExpectedShareWhenPending(amount);
+        const [user2Share, user2State] = await purchaseFund(
+          user2,
           fundProxy,
           denomination,
           shareToken,
           amount
         );
-        console.log("expectedShare2:" + expectedShare2.toString());
-        console.log("share2:" + share2.toString());
-        console.log("");
+       
 
 
        
 
-        // investor3 purchase
-        const expectedShare3 = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
-
-        const [share3, state3] = await purchaseFund(
-          investor3,
+        // user3 purchase
+        const user3ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
+        const [user3Share, user3State] = await purchaseFund(
+          user3,
           fundProxy,
           denomination,
           shareToken,
           solvePendingPurchaseAmount
         );
-        console.log("expectedShare3:" + expectedShare3.toString());
-        console.log("share3:" + share3.toString());
-        // const expectedShare = await fundProxy.calculateShare(pendingPurchaseAmount);
+      
+        expect(user1Share).to.be.eq(user1ExpectedShare);
+        expect(user2Share).to.be.eq(user2ExpectedShare);
+        expect(user3Share).to.be.eq(user3ExpectedShare);
 
-        // expect(share).to.be.eq(expectedShare);
-        expect(state1).to.be.eq(FUND_STATE.PENDING);
-        expect(state2).to.be.eq(FUND_STATE.PENDING);
-        expect(state3).to.be.eq(FUND_STATE.EXECUTING);
+        expect(user1State).to.be.eq(FUND_STATE.PENDING);
+        expect(user2State).to.be.eq(FUND_STATE.PENDING);
+        expect(user3State).to.be.eq(FUND_STATE.EXECUTING);
       });
 
     });
