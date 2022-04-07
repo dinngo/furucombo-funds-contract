@@ -233,7 +233,6 @@ export async function createReviewingFund(
 
   expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
 
-
   return [
     fundProxy,
     fundVault,
