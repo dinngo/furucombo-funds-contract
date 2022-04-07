@@ -34,8 +34,6 @@ import {
   FEE_BASE,
 } from '../utils/constants';
 
-
-
 describe('InvestorPurchaseFund', function () {
   let owner: Wallet;
   let collector: Wallet;
@@ -961,7 +959,7 @@ describe('InvestorPurchaseFund', function () {
       const swapAmount = purchaseAmount.div(2);
       const reserveAmount = purchaseAmount.sub(swapAmount);
       const redeemAmount = reserveAmount.add(mwei('500'));
-      
+
       beforeEach(async function () {
         await setPendingAssetFund(
           manager,
@@ -992,7 +990,7 @@ describe('InvestorPurchaseFund', function () {
           shareToken,
           solvePendingPurchaseAmount
         );
-        
+
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user1State).to.be.eq(FUND_STATE.EXECUTING);
       });
@@ -1000,16 +998,10 @@ describe('InvestorPurchaseFund', function () {
       it('user1 and user2 purchase', async function () {
         const amount = mwei('100');
         const solvePendingPurchaseAmount = mwei('600');
-        
+
         // user1 purchase
         const user1ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user1Share, user1State] = await purchaseFund(
-          user1,
-          fundProxy,
-          denomination,
-          shareToken,
-          amount
-        );
+        const [user1Share, user1State] = await purchaseFund(user1, fundProxy, denomination, shareToken, amount);
 
         // user2 purchase
         const user2ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
@@ -1020,7 +1012,7 @@ describe('InvestorPurchaseFund', function () {
           shareToken,
           solvePendingPurchaseAmount
         );
-        
+
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
 
@@ -1031,30 +1023,14 @@ describe('InvestorPurchaseFund', function () {
       it('user1, user2 and user3 purchase', async function () {
         const amount = mwei('100');
         const solvePendingPurchaseAmount = mwei('600');
-        
+
         // user1 purchase
         const user1ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user1Share, user1State] = await purchaseFund(
-          user1,
-          fundProxy,
-          denomination,
-          shareToken,
-          amount
-        );
+        const [user1Share, user1State] = await purchaseFund(user1, fundProxy, denomination, shareToken, amount);
 
         // user2 purchase
         const user2ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user2Share, user2State] = await purchaseFund(
-          user2,
-          fundProxy,
-          denomination,
-          shareToken,
-          amount
-        );
-       
-
-
-       
+        const [user2Share, user2State] = await purchaseFund(user2, fundProxy, denomination, shareToken, amount);
 
         // user3 purchase
         const user3ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
@@ -1065,7 +1041,7 @@ describe('InvestorPurchaseFund', function () {
           shareToken,
           solvePendingPurchaseAmount
         );
-      
+
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
         expect(user3Share).to.be.eq(user3ExpectedShare);
@@ -1074,7 +1050,6 @@ describe('InvestorPurchaseFund', function () {
         expect(user2State).to.be.eq(FUND_STATE.PENDING);
         expect(user3State).to.be.eq(FUND_STATE.EXECUTING);
       });
-
     });
   }); // describe('With state change') end
 
@@ -1100,13 +1075,13 @@ describe('InvestorPurchaseFund', function () {
         hQuickSwap
       );
 
-      await oracle.connect(owner).setStalePeriod(1);    
+      await oracle.connect(owner).setStalePeriod(1);
       await increaseNextBlockTimeBy(ONE_DAY);
     });
 
     it('should revert: CHAINLINK_STALE_PRICE', async function () {
       await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
-      await expect( fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
+      await expect(fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   }); // describe('Dead oracle') end
 });
