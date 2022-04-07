@@ -17,12 +17,7 @@ import {
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
-import {
-  createFund,
-  purchaseFund,
-  setPendingAssetFund,
-  setExecutingAssetFund,
-} from './fund';
+import { createFund, purchaseFund, setPendingAssetFund, setExecutingAssetFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,
@@ -38,8 +33,6 @@ import {
   ONE_YEAR,
   FEE_BASE,
 } from '../utils/constants';
-
-
 
 describe('InvestorPurchaseFund', function () {
   let owner: Wallet;
@@ -89,9 +82,7 @@ describe('InvestorPurchaseFund', function () {
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, collector, manager, user0, user1, user2, user3, liquidator] = await (
-      ethers as any
-    ).getSigners();
+    [owner, collector, manager, user0, user1, user2, user3, liquidator] = await (ethers as any).getSigners();
 
     // Setup tokens and providers
     denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
@@ -108,9 +99,9 @@ describe('InvestorPurchaseFund', function () {
       taskExecutor,
       aFurucombo,
       hFunds,
-     ,
-     ,
-     oracle,
+      ,
+      ,
+      oracle,
       comptroller,
       ,
       hQuickSwap,
@@ -140,7 +131,7 @@ describe('InvestorPurchaseFund', function () {
       fRegistry,
       furucombo
     );
-  
+
     // Transfer token to user0
     await denomination.connect(denominationProvider).transfer(user0.address, initialFunds);
     await denomination.connect(denominationProvider).transfer(user1.address, initialFunds);
@@ -158,9 +149,9 @@ describe('InvestorPurchaseFund', function () {
   async function getPendingBonus(share: BigNumber) {
     const currentTotalPendingBonus = await fundProxy.currentTotalPendingBonus();
     const penalty = await comptroller.pendingPenalty();
-   
+
     let bonus = share.mul(penalty).div(BigNumber.from(FEE_BASE).sub(penalty));
-    bonus = currentTotalPendingBonus > bonus ? bonus : currentTotalPendingBonus;      
+    bonus = currentTotalPendingBonus > bonus ? bonus : currentTotalPendingBonus;
     return bonus;
   }
 
@@ -172,7 +163,6 @@ describe('InvestorPurchaseFund', function () {
     const purchaseAmount = mwei('2000');
 
     describe('Executing state', function () {
-
       it('user1 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
         const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
@@ -199,7 +189,7 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('2'))));
-        
+
         expect(user1Share).to.be.eq(user2Share);
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
@@ -229,13 +219,12 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('4'))));
-        
+
         expect(user1Share).to.be.eq(user2Share);
         expect(user3Share).to.be.eq(user1Share.add(user2Share));
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
         expect(user3Share).to.be.eq(user3ExpectedShare);
-
       });
     }); // describe('Executing state') ends
 
@@ -302,7 +291,7 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(2)));
-        
+
         expect(user1Share).to.be.eq(user2Share);
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
@@ -334,7 +323,7 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(4)));
-        
+
         expect(user1Share).to.be.eq(user2Share);
         expect(user3Share).to.be.gte(user1Share.add(user2Share));
         expect(user1Share).to.be.eq(user1ExpectedShare);
@@ -371,7 +360,7 @@ describe('InvestorPurchaseFund', function () {
         const user1ExpectedShare = await getExpectedShareWhenPending(purchaseAmount);
         const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        
+
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
         expect(user1Share).to.be.eq(user1ExpectedShare);
       });
@@ -389,7 +378,7 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(2)));
-        
+
         expect(user1Share).to.be.eq(user2Share);
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
@@ -412,7 +401,6 @@ describe('InvestorPurchaseFund', function () {
 
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
-        
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(4)));
 
         expect(user1Share).to.be.eq(user2Share);
@@ -459,7 +447,7 @@ describe('InvestorPurchaseFund', function () {
           pendingPurchaseAmount
         );
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-      
+
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount));
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(state).to.be.eq(FUND_STATE.PENDING);
@@ -482,9 +470,9 @@ describe('InvestorPurchaseFund', function () {
           pendingPurchaseAmount
         );
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        
+
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(2)));
-        
+
         expect(user1Share).to.be.eq(user2Share);
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
@@ -515,7 +503,7 @@ describe('InvestorPurchaseFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(4)));
-        
+
         expect(user1Share).to.be.eq(user2Share);
         expect(user3Share).to.be.gte(user1Share.add(user2Share));
         expect(user1Share).to.be.eq(user1ExpectedShare);
@@ -534,7 +522,7 @@ describe('InvestorPurchaseFund', function () {
       const swapAmount = purchaseAmount.div(2);
       const reserveAmount = purchaseAmount.sub(swapAmount);
       const redeemAmount = reserveAmount.add(mwei('500'));
-      
+
       beforeEach(async function () {
         await setPendingAssetFund(
           manager,
@@ -565,7 +553,7 @@ describe('InvestorPurchaseFund', function () {
           shareToken,
           solvePendingPurchaseAmount
         );
-        
+
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user1State).to.be.eq(FUND_STATE.EXECUTING);
       });
@@ -573,16 +561,10 @@ describe('InvestorPurchaseFund', function () {
       it('user1 and user2 purchase', async function () {
         const amount = mwei('100');
         const solvePendingPurchaseAmount = mwei('600');
-        
+
         // user1 purchase
         const user1ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user1Share, user1State] = await purchaseFund(
-          user1,
-          fundProxy,
-          denomination,
-          shareToken,
-          amount
-        );
+        const [user1Share, user1State] = await purchaseFund(user1, fundProxy, denomination, shareToken, amount);
 
         // user2 purchase
         const user2ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
@@ -593,7 +575,7 @@ describe('InvestorPurchaseFund', function () {
           shareToken,
           solvePendingPurchaseAmount
         );
-        
+
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
 
@@ -604,30 +586,14 @@ describe('InvestorPurchaseFund', function () {
       it('user1, user2 and user3 purchase', async function () {
         const amount = mwei('100');
         const solvePendingPurchaseAmount = mwei('600');
-        
+
         // user1 purchase
         const user1ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user1Share, user1State] = await purchaseFund(
-          user1,
-          fundProxy,
-          denomination,
-          shareToken,
-          amount
-        );
+        const [user1Share, user1State] = await purchaseFund(user1, fundProxy, denomination, shareToken, amount);
 
         // user2 purchase
         const user2ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user2Share, user2State] = await purchaseFund(
-          user2,
-          fundProxy,
-          denomination,
-          shareToken,
-          amount
-        );
-       
-
-
-       
+        const [user2Share, user2State] = await purchaseFund(user2, fundProxy, denomination, shareToken, amount);
 
         // user3 purchase
         const user3ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
@@ -638,7 +604,7 @@ describe('InvestorPurchaseFund', function () {
           shareToken,
           solvePendingPurchaseAmount
         );
-      
+
         expect(user1Share).to.be.eq(user1ExpectedShare);
         expect(user2Share).to.be.eq(user2ExpectedShare);
         expect(user3Share).to.be.eq(user3ExpectedShare);
@@ -647,7 +613,6 @@ describe('InvestorPurchaseFund', function () {
         expect(user2State).to.be.eq(FUND_STATE.PENDING);
         expect(user3State).to.be.eq(FUND_STATE.EXECUTING);
       });
-
     });
   }); // describe('With state change') end
 
@@ -673,13 +638,13 @@ describe('InvestorPurchaseFund', function () {
         hQuickSwap
       );
 
-      await oracle.connect(owner).setStalePeriod(1);    
+      await oracle.connect(owner).setStalePeriod(1);
       await increaseNextBlockTimeBy(ONE_DAY);
     });
 
     it('should revert: CHAINLINK_STALE_PRICE', async function () {
       await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
-      await expect( fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
+      await expect(fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
     });
   }); // describe('Dead oracle') end
 });
