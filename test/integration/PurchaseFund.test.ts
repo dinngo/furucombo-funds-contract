@@ -12,9 +12,10 @@ import {
   ShareToken,
   HQuickSwap,
   IComptroller,
+  Chainlink,
 } from '../../typechain';
 
-import { mwei, impersonateAndInjectEther } from '../utils/utils';
+import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
 import {
   createFund,
@@ -34,6 +35,7 @@ import {
   USDC_PROVIDER,
   FUND_STATE,
   ONE_DAY,
+  ONE_YEAR,
   FEE_BASE,
 } from '../utils/constants';
 
@@ -77,7 +79,7 @@ describe('InvestorPurchaseFund', function () {
   let hFunds: HFunds;
   let aFurucombo: AFurucombo;
   let taskExecutor: TaskExecutor;
-
+  let oracle: Chainlink;
   let fundProxy: FundImplementation;
   let fundVault: string;
   let hQuickSwap: HQuickSwap;
@@ -108,7 +110,7 @@ describe('InvestorPurchaseFund', function () {
       hFunds,
      ,
      ,
-      ,
+     oracle,
       comptroller,
       ,
       hQuickSwap,
@@ -170,6 +172,7 @@ describe('InvestorPurchaseFund', function () {
     const purchaseAmount = mwei('2000');
 
     describe('Executing state', function () {
+
       it('user1 purchase', async function () {
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
         const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
@@ -647,4 +650,36 @@ describe('InvestorPurchaseFund', function () {
 
     });
   }); // describe('With state change') end
+
+  describe('Dead oracle', function () {
+    const purchaseAmount = mwei('2000');
+    const swapAmount = purchaseAmount.div(2);
+
+    beforeEach(async function () {
+      await setExecutingAssetFund(
+        manager,
+        user0,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenBAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap
+      );
+
+      await oracle.connect(owner).setStalePeriod(1);    
+      await increaseNextBlockTimeBy(ONE_DAY);
+    });
+
+    it('should revert: CHAINLINK_STALE_PRICE', async function () {
+      await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
+      await expect( fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
+    });
+  }); // describe('Dead oracle') end
 });
