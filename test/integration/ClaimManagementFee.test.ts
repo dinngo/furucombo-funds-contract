@@ -14,7 +14,7 @@ import {
   HQuickSwap,
 } from '../../typechain';
 
-import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
+import { expectEqWithinBps, mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
 import { createFund, redeemFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
@@ -237,13 +237,15 @@ describe('ManagerClaimManagementFee', function () {
     });
     describe('2% management fee', function () {
       const purchaseAmount = initialFunds;
+      const feeRate = FEE_BASE * 0.02;
       beforeEach(async function () {
         await setupEachTestM02();
       });
       it('claim management fee when user redeem after purchase', async function () {
         const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
         const [balance] = await redeemFund(investor, fundProxy, denomination, share, accpetPending);
-        await fundProxy.claimManagementFee();
+        // Management fee settlement is processed when redeeming
+        // await fundProxy.claimManagementFee();
         const mFee = await shareToken.balanceOf(manager.address);
         expect(balance).to.be.lt(initialFunds);
         expect(mFee).to.be.gt(0);
@@ -251,18 +253,24 @@ describe('ManagerClaimManagementFee', function () {
       it('claim management fee when manager redeem after purchase', async function () {
         const [share] = await purchaseFund(manager, fundProxy, denomination, shareToken, purchaseAmount);
         const [balance] = await redeemFund(manager, fundProxy, denomination, share, accpetPending);
-        await fundProxy.claimManagementFee();
+        // Management fee settlement is processed when redeeming
+        // await fundProxy.claimManagementFee();
         const mFee = await shareToken.balanceOf(manager.address);
         expect(balance).to.be.lt(initialFunds);
         expect(mFee).to.be.gt(0);
       });
       it('should claim management fee after 1 year', async function () {
         const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
-        await redeemFund(investor, fundProxy, denomination, share, accpetPending);
+        const expectAmount = share
+          .mul(FEE_BASE)
+          .div(FEE_BASE - feeRate)
+          .sub(share);
         await increaseNextBlockTimeBy(ONE_YEAR);
-        await fundProxy.claimManagementFee();
+        await redeemFund(investor, fundProxy, denomination, share, accpetPending);
+        // Management fee settlement is processed when redeeming
+        // await fundProxy.claimManagementFee();
         const mFee = await shareToken.balanceOf(manager.address);
-        expect(mFee).to.be.gt(0);
+        expectEqWithinBps(mFee, expectAmount, 1);
       });
     });
     describe('99% management fee', function () {
