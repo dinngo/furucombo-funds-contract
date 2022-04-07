@@ -1077,4 +1077,36 @@ describe('InvestorPurchaseFund', function () {
 
     });
   }); // describe('With state change') end
+
+  describe('Dead oracle', function () {
+    const purchaseAmount = mwei('2000');
+    const swapAmount = purchaseAmount.div(2);
+
+    beforeEach(async function () {
+      await setExecutingAssetFund(
+        manager,
+        user0,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenBAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap
+      );
+
+      await oracle.connect(owner).setStalePeriod(1);    
+      await increaseNextBlockTimeBy(ONE_DAY);
+    });
+
+    it('should revert: CHAINLINK_STALE_PRICE', async function () {
+      await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
+      await expect( fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
+    });
+  }); // describe('Dead oracle') end
 });
