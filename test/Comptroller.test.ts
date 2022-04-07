@@ -197,8 +197,8 @@ describe('Comptroller', function () {
   });
 
   // implementation
-  describe('implementation', function () {
-    it('set implementation', async function () {
+  describe('fund implementation', function () {
+    it('set fund implementation', async function () {
       // check env before execution
       expect(await comptroller.connect(user).implementation()).to.be.equal(fundImplementation.address);
 
@@ -206,10 +206,10 @@ describe('Comptroller', function () {
       const newImpl = await (await ethers.getContractFactory('FundImplementation')).deploy();
       await newImpl.deployed();
 
-      // set new implementation
+      // set new fund implementation
       await expect(beacon.upgradeTo(newImpl.address)).to.emit(beacon, 'Upgraded').withArgs(newImpl.address);
 
-      // check new implementation
+      // check new fund implementation
       expect(await comptroller.connect(user).implementation()).to.be.equal(newImpl.address);
     });
 
@@ -331,7 +331,7 @@ describe('Comptroller', function () {
 
         expect(await comptroller.connect(user).fInitialAssetCheck()).to.be.equal(check);
 
-        // set new implementation
+        // set initial asset
         check = true;
         await expect(comptroller.setInitialAssetCheck(check))
           .to.emit(comptroller, 'SetInitialAssetCheck')

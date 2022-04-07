@@ -156,22 +156,20 @@ describe('SetComptroller', function () {
     it('ban & unban fundProxy', async function () {
       // ban fund proxy
       await comptrollerProxy.banFundProxy(fundProxy.address);
-      await expect(comptrollerProxy.connect(fundProxy.address).implementation()).to.be.revertedWith('RevertCode(1)'); //COMPTROLLER_BANNED
+      await expect(fundProxy.comptroller()).to.be.revertedWith('RevertCode(1)'); // COMPTROLLER_BANNED
 
       // unban fund proxy
       await comptrollerProxy.unbanFundProxy(fundProxy.address);
-      expect(await comptrollerProxy.connect(fundProxy.address).implementation()).to.be.eq(
-        await comptrollerProxy.implementation()
-      );
+      expect(await fundProxy.comptroller()).to.be.eq(comptrollerProxy.address);
     });
     it('halt and unhalt', async function () {
       // halt
       await comptrollerProxy.halt();
-      await expect(comptrollerProxy.connect(fundProxy.address).implementation()).to.be.revertedWith('RevertCode(0)'); //COMPTROLLER_HALTED
+      await expect(comptrollerProxy.connect(investor).implementation()).to.be.revertedWith('RevertCode(0)'); // COMPTROLLER_HALTED
 
       // unhalt
       await comptrollerProxy.unHalt();
-      expect(await comptrollerProxy.connect(fundProxy.address).implementation()).to.be.eq(
+      expect(await comptrollerProxy.connect(investor).implementation()).to.be.eq(
         await comptrollerProxy.implementation()
       );
     });
@@ -179,12 +177,13 @@ describe('SetComptroller', function () {
       await fundProxy.connect(manager).finalize();
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
-      // forbid
+      // forbid asset
+      await comptrollerProxy.forbidAssets(level, [tokenA.address]);
+
+      // execute
       const amountIn = purchaseAmount;
       const path = [denomination.address, tokenA.address];
       const tos = [hFunds.address, hQuickSwap.address];
-
-      await comptrollerProxy.forbidAssets(level, [tokenA.address]);
       const data = await getSwapData(
         amountIn,
         execFeePercentage,
@@ -196,25 +195,57 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(33)' //TASK_EXECUTOR_INVALID_DEALING_ASSET
+        'RevertCode(33)' // TASK_EXECUTOR_INVALID_DEALING_ASSET
       );
 
-      // permit
+      // permit asset
       await comptrollerProxy.permitAssets(level, [tokenA.address]);
-      await fundProxy.connect(manager).execute(data);
 
+      await fundProxy.connect(manager).execute(data);
+      expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
+    });
+    it('set initial asset check', async function () {
+      await fundProxy.connect(manager).finalize();
+      await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+
+      // forbid asset
+      await comptrollerProxy.forbidAssets(level, [denomination.address]);
+
+      // execute
+      const amountIn = purchaseAmount;
+      const path = [denomination.address, tokenA.address];
+      const tos = [hFunds.address, hQuickSwap.address];
+      const data = await getSwapData(
+        amountIn,
+        execFeePercentage,
+        denomination.address,
+        tokenA.address,
+        path,
+        tos,
+        aFurucombo,
+        taskExecutor
+      );
+      await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
+        'RevertCode(38)' // TASK_EXECUTOR_INVALID_INITIAL_ASSET
+      );
+
+      // set initial asset check
+      await comptrollerProxy.setInitialAssetCheck(false);
+
+      await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
     });
     it('permit and forbid delegate calls', async function () {
       await fundProxy.connect(manager).finalize();
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
-      // forbid
+      // forbid delegatecall
+      await comptrollerProxy.forbidDelegateCalls(level, [aFurucombo.address], [WL_ANY_SIG]);
+
+      // execute
       const amountIn = purchaseAmount;
       const path = [denomination.address, tokenA.address];
       const tos = [hFunds.address, hQuickSwap.address];
-
-      await comptrollerProxy.forbidDelegateCalls(level, [aFurucombo.address], [WL_ANY_SIG]);
       const data = await getSwapData(
         amountIn,
         execFeePercentage,
@@ -226,27 +257,29 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(31)' //TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
+        'RevertCode(31)' // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
       );
 
-      // permit
+      // permit delegatecall
       await comptrollerProxy.permitDelegateCalls(level, [aFurucombo.address], [WL_ANY_SIG]);
 
       await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
     });
-    // TODO: check again to find out the scenario
-    it.skip('permit and forbid contract calls', async function () {});
+    it.skip('permit and forbid contract calls', async function () {
+      // Currently no permitted contract call
+    });
     it('permit and forbid handlers', async function () {
       await fundProxy.connect(manager).finalize();
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
-      // forbid
+      // forbid handler
+      await comptrollerProxy.forbidHandlers(level, [hFunds.address], [WL_ANY_SIG]);
+
+      // execute
       const amountIn = purchaseAmount;
       const path = [denomination.address, tokenA.address];
       const tos = [hFunds.address, hQuickSwap.address];
-
-      await comptrollerProxy.forbidHandlers(level, [hFunds.address], [WL_ANY_SIG]);
       const data = await getSwapData(
         amountIn,
         execFeePercentage,
@@ -258,10 +291,10 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(41)' //AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
+        'RevertCode(41)' // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
       );
 
-      // permit
+      // permit handler
       await comptrollerProxy.permitHandlers(level, [hFunds.address], [WL_ANY_SIG]);
 
       await fundProxy.connect(manager).execute(data);

@@ -144,11 +144,12 @@ describe('SetComptroller', function () {
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
       // remove asset
+      await oracle.removeAssets([tokenA.address]);
+
+      // execute
       const amountIn = purchaseAmount;
       const path = [denomination.address, tokenA.address];
       const tos = [hFunds.address, hQuickSwap.address];
-
-      await oracle.removeAssets([tokenA.address]);
       const data = await getSwapData(
         amountIn,
         execFeePercentage,
@@ -165,6 +166,37 @@ describe('SetComptroller', function () {
 
       // add asset
       await oracle.addAssets([tokenA.address], [tokenAAggregator]);
+
+      await fundProxy.connect(manager).execute(data);
+      expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
+    });
+
+    it('zero stale period', async function () {
+      await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+
+      // set stale period to zero
+      await oracle.setStalePeriod(0);
+
+      // execute
+      const amountIn = purchaseAmount;
+      const path = [denomination.address, tokenA.address];
+      const tos = [hFunds.address, hQuickSwap.address];
+      const data = await getSwapData(
+        amountIn,
+        execFeePercentage,
+        denomination.address,
+        tokenA.address,
+        path,
+        tos,
+        aFurucombo,
+        taskExecutor
+      );
+      await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
+        'RevertCode(48)' // CHAINLINK_STALE_PRICE
+      );
+
+      // stale period
+      await oracle.setStalePeriod(ONE_DAY);
 
       await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
