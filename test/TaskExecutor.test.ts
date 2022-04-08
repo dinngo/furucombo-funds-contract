@@ -1126,7 +1126,7 @@ describe('Task Executor', function () {
         const target = taskExecutor.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('Location count less than ref count');
@@ -1152,7 +1152,7 @@ describe('Task Executor', function () {
 
         const target = taskExecutor.address;
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('Location count exceeds ref count');
@@ -1177,7 +1177,7 @@ describe('Task Executor', function () {
         ]);
         const target = taskExecutor.address;
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
@@ -1203,7 +1203,7 @@ describe('Task Executor', function () {
         const target = taskExecutor.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('RevertCode(35)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
@@ -1228,7 +1228,7 @@ describe('Task Executor', function () {
         const target = taskExecutor.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.reverted;
@@ -1251,7 +1251,7 @@ describe('Task Executor', function () {
         const target = taskExecutorMock.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('RevertCode(36)'); // TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE
@@ -1274,7 +1274,7 @@ describe('Task Executor', function () {
         const target = taskExecutorMock.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('RevertCode(37)'); // TASK_EXECUTOR_STACK_OVERFLOW
@@ -1466,7 +1466,7 @@ describe('Task Executor', function () {
         const target = taskExecutor.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('Location count less than ref count');
@@ -1496,7 +1496,7 @@ describe('Task Executor', function () {
 
         const target = taskExecutor.address;
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('Location count exceeds ref count');
@@ -1525,7 +1525,7 @@ describe('Task Executor', function () {
         const target = taskExecutor.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
@@ -1554,7 +1554,7 @@ describe('Task Executor', function () {
         const target = taskExecutor.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.revertedWith('RevertCode(35)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
@@ -1583,7 +1583,7 @@ describe('Task Executor', function () {
         const target = taskExecutor.address;
 
         await expect(
-          proxy.connect(user).callStatic.executeMock(target, data, {
+          proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
         ).to.be.reverted;

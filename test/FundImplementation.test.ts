@@ -209,59 +209,59 @@ describe('FundImplementation', function () {
 
   describe('State changes', function () {
     describe('Initialize', function () {
-      it('should set level', async function () {
+      it('set level', async function () {
         const _level = await fundImplementation.level();
         expect(_level).to.be.gt(0);
         expect(_level).to.be.eq(level);
       });
 
-      it('should set comptroller', async function () {
+      it('set comptroller', async function () {
         const comptrollerAddr = await fundImplementation.comptroller();
         expect(comptrollerAddr).to.be.not.eq(constants.AddressZero);
         expect(comptrollerAddr).to.be.eq(comptroller.address);
       });
 
-      it('should set denomination', async function () {
+      it('set denomination', async function () {
         const denominationAddr = await fundImplementation.denomination();
         expect(denominationAddr).to.be.not.eq(constants.AddressZero);
         expect(denominationAddr).to.be.eq(denomination.address);
       });
 
-      it('should set share token', async function () {
+      it('set share token', async function () {
         const shareTokenAddr = await fundImplementation.shareToken();
         expect(shareTokenAddr).to.be.not.eq(constants.AddressZero);
         expect(shareTokenAddr).to.be.eq(shareToken.address);
       });
 
-      it('should set management fee rate', async function () {
+      it('set management fee rate', async function () {
         const rate = get64x64FromNumber(1);
         const feeRate = await fundImplementation.mFeeRate64x64();
         expect(feeRate).to.be.eq(rate);
       });
 
-      it('should set performance fee rate', async function () {
+      it('set performance fee rate', async function () {
         const rate = get64x64FromNumber(performanceFeeRate / FUND_PERCENTAGE_BASE);
         const feeRate = await fundImplementation.pFeeRate64x64();
         expect(feeRate).to.be.eq(rate);
       });
 
-      it('should set crystallization period', async function () {
+      it('set crystallization period', async function () {
         const crystallizationPeriod = await fundImplementation.crystallizationPeriod();
         expect(crystallizationPeriod).to.be.gte(CRYSTALLIZATION_PERIOD_MIN);
         expect(crystallizationPeriod).to.be.eq(crystallizationPeriod);
       });
 
-      it('should set vault', async function () {
+      it('set vault', async function () {
         expect(await fundImplementation.vault()).to.be.not.eq(constants.AddressZero);
       });
 
-      it('should set owner', async function () {
+      it('set owner', async function () {
         const _owner = await fundImplementation.owner();
         expect(_owner).to.be.not.eq(constants.AddressZero);
         expect(_owner).to.be.eq(owner.address);
       });
 
-      it('should set mortgage vault', async function () {
+      it('set mortgage vault', async function () {
         const mortgageVault = await comptroller.mortgageVault();
         const _mortgageVault = await fundImplementation.mortgageVault();
         expect(_mortgageVault).to.be.not.eq(constants.AddressZero);
@@ -288,7 +288,7 @@ describe('FundImplementation', function () {
     });
 
     describe('Finalize', function () {
-      it('should success', async function () {
+      it('success', async function () {
         const receipt = await fundImplementation.finalize();
         const block = await ethers.provider.getBlock(receipt.blockNumber!);
         const timestamp = BigNumber.from(block.timestamp);
@@ -407,7 +407,7 @@ describe('FundImplementation', function () {
     });
 
     describe('add asset', function () {
-      it('should succeed when amount > dust', async function () {
+      it('when amount > dust', async function () {
         // Permit asset
         await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
 
@@ -419,7 +419,7 @@ describe('FundImplementation', function () {
         expect(await fundImplementation.getAssetList()).to.be.deep.eq([denomination.address, tokenA.address]);
       });
 
-      it('should succeed when amount = dust ', async function () {
+      it('when amount = dust ', async function () {
         const dustAmount = await assetRouter.calcAssetValue(
           denomination.address,
           denominationDust.add(mwei('0.000001')),
@@ -550,7 +550,7 @@ describe('FundImplementation', function () {
       await comptroller.permitDelegateCalls(await fundImplementation.level(), [action.address], [WL_ANY_SIG]);
     });
 
-    it('should success', async function () {
+    it('normal', async function () {
       const valueCurrent = valueBefore.mul(valueTolerance).div(FUND_PERCENTAGE_BASE);
       await fundImplementation.setGrossAssetValueMock(valueCurrent);
       await fundImplementation.execute(executionData);
@@ -819,9 +819,8 @@ describe('FundImplementation', function () {
     });
 
     it('should revert: pending share is not resolvable', async function () {
-      // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
       await expect(fundImplementation.resumeWithGrossAssetValue(redeemAmount.mul(100))).to.be.revertedWith(
-        'RevertCode(72)'
+        'RevertCode(72)' // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
       );
     });
   });

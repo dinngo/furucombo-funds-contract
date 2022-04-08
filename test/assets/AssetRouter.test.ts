@@ -204,7 +204,7 @@ describe('AssetRouter', function () {
       );
     });
 
-    it('should revert: resolver negative asset vale overflow', async function () {
+    it('should revert: resolver base negative amount', async function () {
       await expect(resolverA.calcNegativeAssetValue()).to.be.revertedWith(
         'RevertCode(58)' // RESOLVER_BASE_NEGATIVE_AMOUNT
       );

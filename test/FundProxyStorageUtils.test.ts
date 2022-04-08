@@ -16,7 +16,7 @@ import {
   DSProxyRegistryMock,
   SetupAction,
 } from '../typechain';
-import { DS_PROXY_REGISTRY, DAI_TOKEN, DAI_PROVIDER, WL_ANY_SIG, FUND_STATE } from './utils/constants';
+import { DS_PROXY_REGISTRY, DAI_TOKEN, DAI_PROVIDER, WL_ANY_SIG, FUND_STATE, FUND_PERCENTAGE_BASE } from './utils/constants';
 import { impersonateAndInjectEther } from './utils/utils';
 
 describe('FundProxyStorageUtils', function () {
@@ -123,70 +123,67 @@ describe('FundProxyStorageUtils', function () {
     it('should revert: comptroller is initialized', async function () {
       await proxy.setComptroller(comptroller.address);
 
-      // FUND_PROXY_STORAGE_UTILS_COMPTROLLER_IS_INITIALIZED
-      await expect(proxy.setComptroller(comptroller.address)).to.be.revertedWith('RevertCode(16)');
+
+      await expect(proxy.setComptroller(comptroller.address)).to.be.revertedWith(
+        'RevertCode(16)'); // FUND_PROXY_STORAGE_UTILS_COMPTROLLER_IS_INITIALIZED
+
     });
 
     it('should revert: comptroller zero address', async function () {
-      // FUND_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
-      await expect(proxy.setComptroller(constants.AddressZero)).to.be.revertedWith('RevertCode(17)');
+      await expect(proxy.setComptroller(constants.AddressZero)).to.be.revertedWith(
+        'RevertCode(17)'); // FUND_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
     });
 
     it('should revert: share token is initialized', async function () {
       await proxy.setShareToken(tokenA.address);
-
-      // FUND_PROXY_STORAGE_UTILS_SHARE_TOKEN_IS_INITIALIZED
-      await expect(proxy.setShareToken(tokenA.address)).to.be.revertedWith('RevertCode(19)');
+      await expect(proxy.setShareToken(tokenA.address)).to.be.revertedWith(
+        'RevertCode(19)'); // FUND_PROXY_STORAGE_UTILS_SHARE_TOKEN_IS_INITIALIZED
     });
 
-    it('should revert: zero share token', async function () {
-      // FUND_PROXY_STORAGE_UTILS_ZERO_SHARE_TOKEN_ADDRESS
-      await expect(proxy.setShareToken(constants.AddressZero)).to.be.revertedWith('RevertCode(20)');
+    it('should revert: zero share token address', async function () {
+      await expect(proxy.setShareToken(constants.AddressZero)).to.be.revertedWith(
+        'RevertCode(20)'); // FUND_PROXY_STORAGE_UTILS_ZERO_SHARE_TOKEN_ADDRESS
     });
 
     it('should revert: mortgage vault is initialized', async function () {
       await proxy.setMortgageVault(comptroller.address);
-
-      // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
-      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith('RevertCode(21)');
+      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith(
+        'RevertCode(21)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
     });
 
     it('should revert: mortgage vault is not initialized', async function () {
       await comptroller.setMortgageVault(constants.AddressZero);
-
-      // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED
-      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith('RevertCode(22)');
+      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith(
+        'RevertCode(22)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED
     });
 
     it('should revert: vault is initialized', async function () {
       await proxy.setVault(DS_PROXY_REGISTRY);
-
-      // FUND_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED
-      await expect(proxy.setVault(DS_PROXY_REGISTRY)).to.be.revertedWith('RevertCode(23)');
+      await expect(proxy.setVault(DS_PROXY_REGISTRY)).to.be.revertedWith(
+        'RevertCode(23)'); // FUND_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED
     });
 
     it('should revert: zero registry', async function () {
-      // FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY
-      await expect(proxy.setVault(constants.AddressZero)).to.be.revertedWith('RevertCode(24)');
+      await expect(proxy.setVault(constants.AddressZero)).to.be.revertedWith(
+        'RevertCode(24)'); // FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY
     });
 
     it('should revert: vault is not initialized', async function () {
-      // FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED
-      await expect(proxy.setVault(dsProxyRegistryMock.address)).to.be.revertedWith('RevertCode(25)');
+      await expect(proxy.setVault(dsProxyRegistryMock.address)).to.be.revertedWith(
+        'RevertCode(25)'); // FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED
     });
 
     it('should revert: zero vault', async function () {
-      // FUND_PROXY_STORAGE_UTILS_ZERO_VAULT
-      await expect(proxy.setVaultApproval(setupAction.address)).to.be.revertedWith('RevertCode(26)');
+      await expect(proxy.setVaultApproval(setupAction.address)).to.be.revertedWith(
+        'RevertCode(26)'); // FUND_PROXY_STORAGE_UTILS_ZERO_VAULT
     });
 
-    it('should revert: zero vault', async function () {
+    it('should revert: zero setup action address', async function () {
       await proxy.setComptroller(comptroller.address);
       await proxy.setDenomination(tokenD.address);
       await proxy.setVault(DS_PROXY_REGISTRY);
-
-      // FUND_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
-      await expect(proxy.setVaultApproval(constants.AddressZero)).to.be.revertedWith('RevertCode(27)');
+      await expect(proxy.setVaultApproval(constants.AddressZero)).to.be.revertedWith(
+        'RevertCode(27)'); // FUND_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
     });
 
     it('should revert: wrong allowance', async function () {
@@ -195,22 +192,20 @@ describe('FundProxyStorageUtils', function () {
       await proxy.setVault(DS_PROXY_REGISTRY);
       const setupActionMock = await (await ethers.getContractFactory('SetupActionMock')).deploy();
       await setupActionMock.deployed();
-
-      // FUND_PROXY_STORAGE_UTILS_WRONG_ALLOWANCE
-      await expect(proxy.setVaultApproval(setupActionMock.address)).to.be.revertedWith('RevertCode(28)');
+      await expect(proxy.setVaultApproval(setupActionMock.address)).to.be.revertedWith(
+        'RevertCode(28)'); // FUND_PROXY_STORAGE_UTILS_WRONG_ALLOWANCE
     });
 
     it('should revert: invalid denomination', async function () {
       await proxy.setComptroller(comptroller.address);
-
-      // FUND_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
-      await expect(proxy.setDenomination(tokenA.address)).to.be.revertedWith('RevertCode(18)');
+      await expect(proxy.setDenomination(tokenA.address)).to.be.revertedWith(
+        'RevertCode(18)'); // FUND_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
     });
 
     it('should revert: invalid reserve execution rate', async function () {
       proxy.setState(FUND_STATE.REVIEWING);
-      // FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
-      await expect(proxy.setReserveExecutionRate(1e4)).to.be.revertedWith('RevertCode(76)');
+      await expect(proxy.setReserveExecutionRate(FUND_PERCENTAGE_BASE)).to.be.revertedWith(
+        'RevertCode(76)'); // FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
     });
   });
 });

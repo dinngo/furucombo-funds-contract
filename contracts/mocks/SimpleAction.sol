@@ -23,14 +23,6 @@ contract SimpleAction {
     function bar() public view returns (uint256) {
         return _ac.get();
     }
-
-    function send(
-        IERC20 token,
-        address receiver,
-        uint256 amount
-    ) public {
-        token.transfer(receiver, amount);
-    }
 }
 
 contract FooForAction {
