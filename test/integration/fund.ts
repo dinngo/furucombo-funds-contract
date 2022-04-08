@@ -768,9 +768,10 @@ export async function getSwapData(
   taskExecutor: TaskExecutor
 ): Promise<any> {
   // Prepare action data
-  const actionAmountIn = amountIn
-    .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
-    .div(FUND_PERCENTAGE_BASE);
+
+  const executionFee = amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE);
+  const actionAmountIn = amountIn.sub(executionFee);
+
   const tokensIn = [inTokenAddress];
   const amountsIn = [amountIn];
   const tokensOut = [outTokenAddress];
