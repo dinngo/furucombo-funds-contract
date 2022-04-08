@@ -1,3 +1,5 @@
+import { CURVE_AAVE_SWAP, CURVE_REN_SWAP } from '../Config';
+
 export const assets: Record<string, string> = {
   DAI: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
   USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
@@ -78,13 +80,13 @@ export const aaveV2Debt: Record<string, string> = {
 export const curveStable: Record<string, any> = {
   am3CRV: {
     address: '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171',
-    pool: '0x445FE580eF8d70FF569aB36e80c647af338db351', // CURVE_AAVE_SWAP
+    pool: CURVE_AAVE_SWAP,
     valuedAsset: assets.USDC,
     valuedAssetDecimals: 6,
   },
   btcCRV: {
     address: '0xf8a57c1d3b9629b77b6726a042ca48990A84Fb49',
-    pool: '0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67', // CURVE_REN_SWAP
+    pool: CURVE_REN_SWAP,
     valuedAsset: assets.WBTC,
     valuedAssetDecimals: 8,
   },
