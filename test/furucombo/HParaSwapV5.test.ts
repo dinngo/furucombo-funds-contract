@@ -129,7 +129,7 @@ describe('ParaSwapV5', function () {
       provider = await tokenProviderQuick(token1Address);
     });
 
-    it.only('normal', async function () {
+    it('normal', async function () {
       // Get price
       const amount = ether('500');
       const to = hParaSwap.address;

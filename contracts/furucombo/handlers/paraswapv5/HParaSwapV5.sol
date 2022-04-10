@@ -30,7 +30,7 @@ contract HParaSwapV5 is HandlerBase {
 
         // ERC20 token need to approve before paraswap
         _tokenApprove(srcToken, TOKEN_TRANSFER_PROXY, amount);
-        _paraswapCall(0, data);
+        _paraswapCall(data);
 
         uint256 destTokenBalanceAfter = _getBalance(destToken, type(uint256).max);
 
@@ -45,9 +45,9 @@ contract HParaSwapV5 is HandlerBase {
         return destTokenDelta;
     }
 
-    function _paraswapCall(uint256 value, bytes calldata data) internal {
+    function _paraswapCall(bytes calldata data) internal {
         // Interact with paraswap through contract call with data
-        (bool success, bytes memory returnData) = AUGUSTUS_SWAPPER.call{value: value}(data);
+        (bool success, bytes memory returnData) = AUGUSTUS_SWAPPER.call(data);
 
         if (!success) {
             if (returnData.length < 68) {
