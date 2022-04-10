@@ -623,10 +623,7 @@ describe('ManagerClaimPerformanceFee', function () {
     // since the starting price is 1
     const netShare = await shareToken.netTotalShare();
     const wealth = afterValue.sub(netShare);
-    const fee = wealth.mul(feeRate).div(FEE_BASE);
-    const gav = await fundProxy.getGrossAssetValue();
-    const totalShare = await shareToken.grossTotalShare();
-    const expectValue = totalShare.mul(fee).div(gav.sub(fee));
+    const expectValue = await _calculateFee(wealth, feeRate);
     const redemption = await redeemFund(investor, fundProxy, denomination, share * 0.5, acceptPending);
     // The redeemed value should be deducted manually
     const redeemValue = redemption[0];
@@ -650,10 +647,7 @@ describe('ManagerClaimPerformanceFee', function () {
     // since the starting price is 1
     const netShare = await shareToken.netTotalShare();
     const wealth = afterValue.sub(netShare);
-    const fee = wealth.mul(feeRate).div(FEE_BASE);
-    const gav = await fundProxy.getGrossAssetValue();
-    const totalShare = await shareToken.grossTotalShare();
-    const expectValue = totalShare.mul(fee).div(gav.sub(fee));
+    const expectValue = await _calculateFee(wealth, feeRate);
     const redemption = await redeemFund(investor, fundProxy, denomination, share * 0.5, acceptPending);
     // The redeemed value should be deducted manually
     const redeemValue = redemption[0];
@@ -667,6 +661,14 @@ describe('ManagerClaimPerformanceFee', function () {
 
     return [afterShare.sub(beforeShare), expectValue];
   }
+
+  async function _calculateFee(wealth: any, feeRate: number): Promise<any> {
+    const fee = wealth.mul(feeRate).div(FEE_BASE);
+    const gav = await fundProxy.getGrossAssetValue();
+    const totalShare = await shareToken.grossTotalShare();
+    return totalShare.mul(fee).div(gav.sub(fee));
+  }
+
   async function _assetValueHighWaterMarkTest(purchaseAmount: any) {
     await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
