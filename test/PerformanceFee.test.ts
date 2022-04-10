@@ -226,7 +226,7 @@ describe('Performance fee', function () {
         });
       });
 
-      describe.only('price changing cases', function () {
+      describe('price changing cases', function () {
         const feeRate = BigNumber.from(1000);
         const valueOffset = ether('10');
         beforeEach(async function () {
@@ -253,6 +253,7 @@ describe('Performance fee', function () {
               const hwmAfter = await pFeeModule.hwm64x64();
               const pFeeAfter = await tokenS.balanceOf(outstandingAccount);
               expect(hwmAfter).to.be.eq(hwmBefore);
+              expect(pFeeBefore).to.be.gt(ether('0'));
               expect(pFeeAfter).to.be.gt(pFeeBefore);
             });
 
@@ -284,7 +285,7 @@ describe('Performance fee', function () {
               const hwmBefore = await pFeeModule.hwm64x64();
               const pFeeBefore = await tokenS.balanceOf(outstandingAccount);
               // Set after price
-              await pFeeModule.setGrossAssetValue(grossAssetValue.add(valueOffset.mul(2)));
+              await pFeeModule.setGrossAssetValue(grossAssetValue.add(valueOffset));
               await pFeeModule.updatePerformanceFee();
               // Get after state
               const hwmAfter = await pFeeModule.hwm64x64();
@@ -376,6 +377,7 @@ describe('Performance fee', function () {
               const ownerShareAfter = await tokenS.balanceOf(manager.address);
               const pFeeAfter = ownerShareAfter.sub(ownerShareBefore);
               expect(hwmAfter).to.be.gt(hwmBefore);
+              expect(pFeeBefore).to.be.gt(ether('0'));
               expect(pFeeAfter).to.be.gt(pFeeBefore);
             });
 
@@ -417,6 +419,7 @@ describe('Performance fee', function () {
               const ownerShareAfter = await tokenS.balanceOf(manager.address);
               const pFeeAfter = ownerShareAfter.sub(ownerShareBefore);
               expect(hwmAfter).to.be.gt(hwmBefore);
+              expect(pFeeBefore).to.be.eq(ether('0'));
               expect(pFeeAfter).to.be.gt(pFeeBefore);
             });
           });
@@ -440,6 +443,7 @@ describe('Performance fee', function () {
               const pFeeAfter = ownerShareAfter.sub(ownerShareBefore);
               expect(hwmAfter).to.be.gt(hwmBefore);
               expect(pFeeAfter).to.be.lt(pFeeBefore);
+              expect(pFeeAfter).to.be.gt(ether('0'));
             });
 
             it('hwm higher than the higher price', async function () {
