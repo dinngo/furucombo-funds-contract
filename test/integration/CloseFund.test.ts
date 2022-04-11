@@ -134,7 +134,7 @@ describe('CloseFund', function () {
   describe('fail', function () {
     it('should revert: in reviewing', async function () {
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith(
-        'InvalidState(1)' //REVIEWING
+        'InvalidState(1)' // REVIEWING
       );
     });
     it('should revert: in executing with assets', async function () {
@@ -159,7 +159,7 @@ describe('CloseFund', function () {
         hQuickSwap
       );
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith(
-        'RevertCode(64)' //ASSET_MODULE_DIFFERENT_ASSET_REMAINING
+        'RevertCode(64)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
       );
     });
     it('should revert: in pending', async function () {
@@ -186,7 +186,7 @@ describe('CloseFund', function () {
         hQuickSwap
       );
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith(
-        'InvalidState(3)' //PENDING
+        'InvalidState(3)' // PENDING
       );
     });
     it('should revert: by non-manager', async function () {
@@ -220,7 +220,36 @@ describe('CloseFund', function () {
 
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith('Ownable: caller is not the owner');
     });
-    it('should revert: by liquidator in liquidating with assets within oracle stale period', async function () {
+    it('should revert: by liquidator in liquidating with assets but exceeds oracle stale period ', async function () {
+      const purchaseAmount = initialFunds;
+      const swapAmount = purchaseAmount.div(2);
+      const redeemAmount = purchaseAmount;
+      await fundProxy.connect(manager).finalize();
+      await setLiquidatingAssetFund(
+        manager,
+        investor,
+        liquidator,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap,
+        pendingExpiration
+      );
+
+      await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
+        'RevertCode(48)' // CHAINLINK_STALE_PRICE
+      );
+    });
+    it('should revert: by liquidator in liquidating with assets within redeem share left', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount;
@@ -249,14 +278,15 @@ describe('CloseFund', function () {
       await oracle.setStalePeriod(stalePeriod);
       expect(await oracle.stalePeriod()).to.be.eq(stalePeriod);
 
+      // will trigger _settlePendingShare > _redeem > _pend()
       await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
-        'InvalidState(4)' //LIQUIDATING
+        'InvalidState(4)' // LIQUIDATING
       );
     });
-    it('should revert: by liquidator in liquidating with assets but exceeds oracle stale period ', async function () {
+    it('should revert: by liquidator in liquidating with assets without redeem share left', async function () {
       const purchaseAmount = initialFunds;
-      const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
+      const swapAmount = purchaseAmount.div(3).mul(2);
+      const redeemAmount = purchaseAmount.div(2);
       await fundProxy.connect(manager).finalize();
       await setLiquidatingAssetFund(
         manager,
@@ -278,11 +308,36 @@ describe('CloseFund', function () {
         pendingExpiration
       );
 
+      const stalePeriod = pendingExpiration * 2;
+      await oracle.setStalePeriod(stalePeriod);
+      expect(await oracle.stalePeriod()).to.be.eq(stalePeriod);
+
+      const vault = await fundProxy.vault();
+      const tokenAAmount = await tokenA.balanceOf(vault);
+      const amountIn = tokenAAmount.div(3);
+      const path = [tokenA.address, denomination.address];
+      const tos = [hFunds.address, hQuickSwap.address];
+
+      // Swap some asset back to denomination by liquidator
+      await execSwap(
+        amountIn,
+        execFeePercentage,
+        tokenA.address,
+        denomination.address,
+        path,
+        tos,
+        aFurucombo,
+        taskExecutor,
+        fundProxy,
+        liquidator
+      );
+
       await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
-        'RevertCode(48)' //CHAINLINK_STALE_PRICE
+        'RevertCode(64)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
       );
     });
   });
+
   describe('success', function () {
     it('by manager in executing without any asset', async function () {
       const purchaseAmount = initialFunds;
