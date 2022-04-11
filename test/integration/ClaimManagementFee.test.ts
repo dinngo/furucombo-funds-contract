@@ -3,6 +3,7 @@ import { deployments } from 'hardhat';
 import { expect } from 'chai';
 
 import {
+  Chainlink,
   FurucomboRegistry,
   FurucomboProxy,
   FundImplementation,
@@ -71,6 +72,7 @@ describe('ManagerClaimManagementFee', function () {
   let hFunds: HFunds;
   let aFurucombo: AFurucombo;
   let taskExecutor: TaskExecutor;
+  let oracle: Chainlink;
 
   let fundProxy: FundImplementation;
   let hQuickSwap: HQuickSwap;
@@ -86,36 +88,50 @@ describe('ManagerClaimManagementFee', function () {
     const mFeeRate = 0;
 
     // Deploy furucombo funds contracts
-    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds] = [, , , , , , , , , , , , hQuickSwap] =
-      await createFund(
-        owner,
-        collector,
-        manager,
-        liquidator,
-        denominationAddress,
-        mortgageAddress,
-        tokenAAddress,
-        tokenBAddress,
-        denominationAggregator,
-        tokenAAggregator,
-        tokenBAggregator,
-        level,
-        mortgageAmount,
-        mFeeRate,
-        pFeeRate,
-        execFeePercentage,
-        pendingExpiration,
-        valueTolerance,
-        crystallizationPeriod,
-        reserveExecution,
-        shareTokenName,
-        fRegistry,
-        furucombo
-      );
+    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle] = [
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      hQuickSwap,
+    ] = await createFund(
+      owner,
+      collector,
+      manager,
+      liquidator,
+      denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
+      level,
+      mortgageAmount,
+      mFeeRate,
+      pFeeRate,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
+      crystallizationPeriod,
+      reserveExecution,
+      shareTokenName,
+      fRegistry,
+      furucombo
+    );
 
-    // Transfer token to investors
+    // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
+    await oracle.connect(owner).setStalePeriod(ONE_YEAR * 2);
   });
 
   const setupEachTestM02 = deployments.createFixture(async ({ deployments, ethers }, options) => {
@@ -126,37 +142,50 @@ describe('ManagerClaimManagementFee', function () {
     const mFeeRate = FEE_BASE * 0.02;
 
     // Deploy furucombo funds contracts
-    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds] = [, , , , , , , , , , , , hQuickSwap] =
-      await createFund(
-        owner,
-        collector,
-        manager,
-        liquidator,
-        denominationAddress,
-        mortgageAddress,
-        tokenAAddress,
-        tokenBAddress,
-        denominationAggregator,
-        tokenAAggregator,
-        tokenBAggregator,
-        level,
-        mortgageAmount,
-        mFeeRate,
-        pFeeRate,
-        execFeePercentage,
-        pendingExpiration,
-        valueTolerance,
-        crystallizationPeriod,
-        reserveExecution,
-        shareTokenName,
-        fRegistry,
-        furucombo
-      );
+    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle] = [
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      hQuickSwap,
+    ] = await createFund(
+      owner,
+      collector,
+      manager,
+      liquidator,
+      denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
+      level,
+      mortgageAmount,
+      mFeeRate,
+      pFeeRate,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
+      crystallizationPeriod,
+      reserveExecution,
+      shareTokenName,
+      fRegistry,
+      furucombo
+    );
 
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
-
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
+    await oracle.connect(owner).setStalePeriod(ONE_YEAR * 2);
   });
 
   const setupEachTestM99 = deployments.createFixture(async ({ deployments, ethers }, options) => {
@@ -167,37 +196,50 @@ describe('ManagerClaimManagementFee', function () {
     const mFeeRate = FEE_BASE * 0.99;
 
     // Deploy furucombo funds contracts
-    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds] = [, , , , , , , , , , , , hQuickSwap] =
-      await createFund(
-        owner,
-        collector,
-        manager,
-        liquidator,
-        denominationAddress,
-        mortgageAddress,
-        tokenAAddress,
-        tokenBAddress,
-        denominationAggregator,
-        tokenAAggregator,
-        tokenBAggregator,
-        level,
-        mortgageAmount,
-        mFeeRate,
-        pFeeRate,
-        execFeePercentage,
-        pendingExpiration,
-        valueTolerance,
-        crystallizationPeriod,
-        reserveExecution,
-        shareTokenName,
-        fRegistry,
-        furucombo
-      );
+    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle] = [
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      ,
+      hQuickSwap,
+    ] = await createFund(
+      owner,
+      collector,
+      manager,
+      liquidator,
+      denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
+      level,
+      mortgageAmount,
+      mFeeRate,
+      pFeeRate,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
+      crystallizationPeriod,
+      reserveExecution,
+      shareTokenName,
+      fRegistry,
+      furucombo
+    );
 
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
-
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
+    await oracle.connect(owner).setStalePeriod(ONE_YEAR * 2);
   });
 
   async function _preSetup(ethers: any) {

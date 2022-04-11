@@ -199,7 +199,7 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
       // TODO: check again: underflow issue when run with all the test cases
-      it('should revert when still in crystallization period', async function () {
+      it.only('should revert when still in crystallization period', async function () {
         await _crystallizationPeriodTest(purchaseAmount, acceptPending);
 
         // claim pFee
