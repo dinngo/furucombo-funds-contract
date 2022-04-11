@@ -955,141 +955,71 @@ describe('InvestorPurchaseFund', function () {
   describe('With state change', function () {
     const purchaseAmount = mwei('2000');
 
-    describe('Pending state', function () {
-      const swapAmount = purchaseAmount.div(2);
-      const reserveAmount = purchaseAmount.sub(swapAmount);
-      const redeemAmount = reserveAmount.add(mwei('500'));
+    const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+      await deployments.fixture(''); // ensure you start from a fresh deployments
+      [owner, collector, manager, user0, user1, user2, user3, liquidator] = await (ethers as any).getSigners();
 
-      beforeEach(async function () {
-        await setPendingAssetFund(
-          manager,
-          user0,
-          fundProxy,
-          denomination,
-          shareToken,
-          purchaseAmount,
-          swapAmount,
-          redeemAmount,
-          execFeePercentage,
-          denominationAddress,
-          tokenAAddress,
-          hFunds,
-          aFurucombo,
-          taskExecutor,
-          hQuickSwap
-        );
-      });
+      // Setup tokens and providers
+      denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
 
-      it('user1 purchase', async function () {
-        const solvePendingPurchaseAmount = mwei('600');
-        const user1ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
-        const [user1Share, user1State] = await purchaseFund(
-          user1,
-          fundProxy,
-          denomination,
-          shareToken,
-          solvePendingPurchaseAmount
-        );
+      // Deploy furucombo
+      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
-        expect(user1Share).to.be.eq(user1ExpectedShare);
-        expect(user1State).to.be.eq(FUND_STATE.EXECUTING);
-      });
-
-      it('user1 and user2 purchase', async function () {
-        const amount = mwei('100');
-        const solvePendingPurchaseAmount = mwei('600');
-
-        // user1 purchase
-        const user1ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user1Share, user1State] = await purchaseFund(user1, fundProxy, denomination, shareToken, amount);
-
-        // user2 purchase
-        const user2ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
-        const [user2Share, user2State] = await purchaseFund(
-          user2,
-          fundProxy,
-          denomination,
-          shareToken,
-          solvePendingPurchaseAmount
-        );
-
-        expect(user1Share).to.be.eq(user1ExpectedShare);
-        expect(user2Share).to.be.eq(user2ExpectedShare);
-
-        expect(user1State).to.be.eq(FUND_STATE.PENDING);
-        expect(user2State).to.be.eq(FUND_STATE.EXECUTING);
-      });
-
-      it('user1, user2 and user3 purchase', async function () {
-        const amount = mwei('100');
-        const solvePendingPurchaseAmount = mwei('600');
-
-        // user1 purchase
-        const user1ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user1Share, user1State] = await purchaseFund(user1, fundProxy, denomination, shareToken, amount);
-
-        // user2 purchase
-        const user2ExpectedShare = await getExpectedShareWhenPending(amount);
-        const [user2Share, user2State] = await purchaseFund(user2, fundProxy, denomination, shareToken, amount);
-
-        // user3 purchase
-        const user3ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
-        const [user3Share, user3State] = await purchaseFund(
-          user3,
-          fundProxy,
-          denomination,
-          shareToken,
-          solvePendingPurchaseAmount
-        );
-
-        expect(user1Share).to.be.eq(user1ExpectedShare);
-        expect(user2Share).to.be.eq(user2ExpectedShare);
-        expect(user3Share).to.be.eq(user3ExpectedShare);
-
-        expect(user1State).to.be.eq(FUND_STATE.PENDING);
-        expect(user2State).to.be.eq(FUND_STATE.PENDING);
-        expect(user3State).to.be.eq(FUND_STATE.EXECUTING);
-      });
-    });
-  }); // describe('With state change') end
-
-  describe('Dead oracle', function () {
-    const purchaseAmount = mwei('2000');
-    const swapAmount = purchaseAmount.div(2);
-
-    beforeEach(async function () {
-      await setExecutingAssetFund(
-        manager,
-        user0,
+      // Deploy furucombo funds contracts
+      [
         fundProxy,
+        fundVault,
         denomination,
         shareToken,
-        purchaseAmount,
-        swapAmount,
-        execFeePercentage,
-        denominationAddress,
-        tokenBAddress,
-        hFunds,
-        aFurucombo,
         taskExecutor,
-        hQuickSwap
+        aFurucombo,
+        hFunds,
+        ,
+        ,
+        oracle,
+        comptroller,
+        ,
+        hQuickSwap,
+        ,
+      ] = await createFund(
+        owner,
+        collector,
+        manager,
+        liquidator,
+        denominationAddress,
+        mortgageAddress,
+        tokenAAddress,
+        tokenBAddress,
+        denominationAggregator,
+        tokenAAggregator,
+        tokenBAggregator,
+        level,
+        mortgageAmount,
+        mFeeRate10Percent,
+        pFeeRate,
+        execFeePercentage,
+        pendingExpiration,
+        valueTolerance,
+        crystallizationPeriod,
+        reserveExecutionRatio,
+        shareTokenName,
+        fRegistry,
+        furucombo
       );
 
-      await oracle.connect(owner).setStalePeriod(1);
-      await increaseNextBlockTimeBy(ONE_DAY);
+      // Transfer token to users
+      await denomination.connect(denominationProvider).transfer(user0.address, initialFunds);
+      await denomination.connect(denominationProvider).transfer(user1.address, initialFunds);
+      await denomination.connect(denominationProvider).transfer(user2.address, initialFunds);
+      await denomination.connect(denominationProvider).transfer(user3.address, initialFunds);
+      await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
     });
 
-    it('should revert: CHAINLINK_STALE_PRICE', async function () {
-      await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
-      await expect(fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
+    beforeEach(async function () {
+      await setupTest();
     });
-  }); // describe('Dead oracle') end
 
-  describe('Funds with management fee', function () {
-    const purchaseAmount = mwei('2000');
-    const mFeeRate10Percent = 1000;
-
-    describe('Executing state, management fee = 10%', function () {
+    describe('Executing state', function () {
       beforeEach(async function () {
         [
           fundProxy,
@@ -1180,7 +1110,7 @@ describe('InvestorPurchaseFund', function () {
       });
     });
 
-    describe('Pending state, management fee = 10%', function () {
+    describe('Pending state', function () {
       const swapAmount = purchaseAmount.div(2);
       const reserveAmount = purchaseAmount.sub(swapAmount);
       const redeemAmount = reserveAmount.add(mwei('500'));
