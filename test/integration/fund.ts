@@ -537,8 +537,6 @@ async function _setupFundInfra(
       [denominationAggregator, tokenAAggregator, tokenBAggregator]
     );
 
-  await oracle.connect(owner).setStalePeriod(ONE_YEAR * 2);
-
   // Register resolvers
   const [canonicalResolver] = await deployContracts(['RCanonical'], [[]]);
   await registerResolvers(
