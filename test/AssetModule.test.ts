@@ -91,13 +91,13 @@ describe('Asset module', function () {
         await expect(assetModule.close()).to.emit(assetModule, 'StateTransited').withArgs(FUND_STATE.CLOSED);
       });
 
-      it('should fail when denomination asset is not the only asset', async function () {
+      it('should revert: when denomination asset is not the only asset', async function () {
         await assetModule.addAsset(tokenD.address);
         await assetModule.addAsset(token0.address);
         await expect(assetModule.close()).to.be.reverted;
       });
 
-      it('should fail when denomination asset is not in the asset list', async function () {
+      it('should revert: when denomination asset is not in the asset list', async function () {
         await assetModule.addAsset(token0.address);
         await expect(assetModule.close()).to.be.reverted;
       });
@@ -113,22 +113,38 @@ describe('Asset module', function () {
         await expect(assetModule.close()).to.emit(assetModule, 'StateTransited').withArgs(FUND_STATE.CLOSED);
       });
 
-      it('should fail when denomination asset is not the only asset', async function () {
+      it('should revert: when denomination asset is not the only asset', async function () {
         await assetModule.addAsset(tokenD.address);
         await assetModule.addAsset(token0.address);
         await expect(assetModule.close()).to.be.reverted;
       });
 
-      it('should fail when denomination asset is not in the asset list', async function () {
+      it('should revert: when denomination asset is not in the asset list', async function () {
         await assetModule.addAsset(token0.address);
         await expect(assetModule.close()).to.be.reverted;
       });
     });
 
-    it('should fail when not Executing or Liquidating', async function () {
+    it('should revert: when not Executing or Liquidating', async function () {
       await assetModule.setState(FUND_STATE.PENDING);
       await assetModule.addAsset(tokenD.address);
       await expect(assetModule.close()).to.be.revertedWith('InvalidState(3)');
+    });
+
+    it('should revert: different asset remaining (asset list length > 1)', async function () {
+      await assetModule.setState(FUND_STATE.LIQUIDATING);
+      await assetModule.addAsset(token0.address);
+      await assetModule.addAsset(token1.address);
+
+      // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
+      await expect(assetModule.close()).to.be.revertedWith('RevertCode(64)');
+    });
+    it('should revert: different asset remaining (last asset is not denomination)', async function () {
+      await assetModule.setState(FUND_STATE.LIQUIDATING);
+      await assetModule.addAsset(token0.address);
+
+      // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
+      await expect(assetModule.close()).to.be.revertedWith('RevertCode(64)');
     });
   });
 

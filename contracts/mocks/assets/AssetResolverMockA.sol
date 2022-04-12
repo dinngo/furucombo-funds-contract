@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IAssetResolver} from "../../assets/interfaces/IAssetResolver.sol";
+import {AssetResolverBase} from "../../assets/AssetResolverBase.sol";
 
-contract AssetResolverMockA is IAssetResolver {
+contract AssetResolverMockA is IAssetResolver, AssetResolverBase {
     using SafeCast for uint256;
 
     function calcAssetValue(
@@ -15,5 +16,9 @@ contract AssetResolverMockA is IAssetResolver {
         asset_;
         quote_;
         return (amount_ * 2).toInt256();
+    }
+
+    function calcNegativeAssetValue() external pure returns (int256) {
+        return _toNegativeValue(-1);
     }
 }

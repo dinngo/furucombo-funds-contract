@@ -99,12 +99,12 @@ describe('Share module', function () {
   });
 
   describe('Purchase', function () {
-    it('should fail when initializing', async function () {
+    it('should revert: when initializing', async function () {
       await shareModule.setState(FUND_STATE.INITIALIZING);
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('InvalidState(0)');
     });
 
-    it('should fail when reviewing', async function () {
+    it('should revert: when reviewing', async function () {
       await shareModule.setState(FUND_STATE.REVIEWING);
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('InvalidState(1)');
     });
@@ -139,12 +139,12 @@ describe('Share module', function () {
       expect((await shareToken.balanceOf(user1.address)).sub(userShareBalance)).to.be.eq(totalAsset);
     });
 
-    it('should fail when liquidating', async function () {
+    it('should revert: when liquidating', async function () {
       await shareModule.setState(FUND_STATE.LIQUIDATING);
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('InvalidState(4)');
     });
 
-    it('should fail when closed', async function () {
+    it('should revert: when closed', async function () {
       await shareModule.setState(FUND_STATE.CLOSED);
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('InvalidState(5)');
     });
@@ -198,12 +198,12 @@ describe('Share module', function () {
       userShareBefore = await shareToken.balanceOf(user1.address);
     });
 
-    it('should fail when initializing', async function () {
+    it('should revert: when initializing', async function () {
       await shareModule.setState(FUND_STATE.INITIALIZING);
       await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('InvalidState(0)');
     });
 
-    it('should fail when reviewing', async function () {
+    it('should revert: when reviewing', async function () {
       await shareModule.setState(FUND_STATE.REVIEWING);
       await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('InvalidState(1)');
     });
@@ -221,7 +221,7 @@ describe('Share module', function () {
       expect((await tokenD.balanceOf(user1.address)).sub(userTokenDBalance)).to.be.eq(totalAsset);
     });
 
-    it('should fail with insufficient share', async function () {
+    it('should revert: with insufficient share', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await expect(shareModule.redeem(totalShare.mul(2), acceptPending)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_INSUFFICIENT_SHARE
     });
@@ -271,7 +271,7 @@ describe('Share module', function () {
       await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('RevertCode(78)'); // SHARE_MODULE_PENDING_ROUND_INCONSISTENT
     });
 
-    it('should fail with insufficient reserve without user permission', async function () {
+    it('should revert: with insufficient reserve without user permission', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.setReserve(partialAsset);
       await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
@@ -368,12 +368,12 @@ describe('Share module', function () {
       expect(await shareModule.currentTotalPendingBonus()).to.be.eq(penaltyShare.add(penaltyShare));
     });
 
-    it('should fail when pending without user permission', async function () {
+    it('should revert: when pending without user permission', async function () {
       await shareModule.setState(FUND_STATE.PENDING);
       await expect(shareModule.redeem(totalAsset, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
     });
 
-    it('should fail when liquidating', async function () {
+    it('should revert: when liquidating', async function () {
       await shareModule.setState(FUND_STATE.LIQUIDATING);
       await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('InvalidState(4)');
     });
@@ -512,7 +512,7 @@ describe('Share module', function () {
       expect(await shareModule.currentTotalPendingBonus()).to.be.eq(0);
     });
 
-    it('should fail when insufficient reserve', async function () {
+    it('should revert: when insufficient reserve', async function () {
       await expect(shareModule.settlePendingShare()).to.be.revertedWith('InvalidState(3)');
     });
 

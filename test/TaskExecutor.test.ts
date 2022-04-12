@@ -1,4 +1,4 @@
-import { constants, Wallet, BigNumber, Signer } from 'ethers';
+import { constants, Wallet, BigNumber, Signer, BytesLike } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
@@ -119,9 +119,9 @@ describe('Task Executor', function () {
     // initialize
     await proxy.setComptroller(comptroller.address);
     await comptroller.permitDenominations([tokenD.address], [0]);
-    await proxy.setupDenomination(tokenD.address);
+    await proxy.setDenomination(tokenD.address);
     await proxy.setLevel(1);
-    await proxy.setVault();
+    await proxy.setVault(DS_PROXY_REGISTRY);
 
     // Permit delegate calls
     comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
@@ -951,6 +951,956 @@ describe('Task Executor', function () {
           value: ether('0.01'),
         })
       ).to.be.revertedWith('RevertCode(39)'); // TASK_EXECUTOR_NON_ZERO_QUOTA
+    });
+  });
+
+  describe('chained input', function () {
+    describe('dynamic parameter by delegate call', function () {
+      it('replace parameter', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+        const actionBData = getCallData(fooAction, 'bar1', [foo.address, constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x0100000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace parameter with dynamic array return', async function () {
+        // Prepare action data
+        const secAmt = ether('1');
+        const actionAData = getCallData(fooAction, 'barUList', [foo.address, ether('1'), secAmt, ether('1')]);
+
+        const ratio = ether('0.7');
+        const actionBData = getCallData(fooAction, 'barUint1', [foo.address, ratio]);
+
+        // Prepare task data
+        // local stack idx start from [+2] if using dynamic array
+        // because it will store 2 extra data(pointer and array length) to local stack in the first and second index
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            '0x0005000000000000000000000000000000000000000000000000000000000000', // be referenced
+            '0x0100000000000000000203ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] -> local stack[3]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.nValue()).to.be.eq(secAmt.mul(ratio).div(ether('1')));
+      });
+
+      it('replace third parameter', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+        const actionBData = getCallData(fooAction, 'bar2', [
+          foo.address,
+          '0x000000000000000000000000000000000000000000000000000000000000000a',
+          constants.HashZero,
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x0100000000000000000400ffffffffffffffffffffffffffffffffffffffffff', // replace params[2] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace parameter by 50% of ref value', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'barUint', [foo.address]);
+
+        const percent = ether('0.5');
+        const actionBData = getCallData(fooAction, 'barUint1', [foo.address, percent]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x0100000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.nValue()).to.be.eq((await foo.callStatic.barUint()).mul(percent).div(ether('1')));
+      });
+
+      it('replace dynamic array parameter with dynamic array return', async function () {
+        // Prepare action data
+        const expectNList = [BigNumber.from(300), BigNumber.from(100), BigNumber.from(75)];
+        const actionAData = getCallData(fooAction, 'barUList', [
+          foo.address,
+          expectNList[0],
+          expectNList[1],
+          expectNList[2],
+        ]);
+        const actionBData = getCallData(fooAction, 'barUList2', [
+          foo.address,
+          [BigNumber.from(0), BigNumber.from(0), BigNumber.from(0)],
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            '0x0005000000000000000000000000000000000000000000000000000000000000', // be referenced
+            // replace params[5] <- local stack[4]
+            // replace params[4] <- local stack[3]
+            // replace params[3] <- local stack[2]
+            '0x01000000000000000038040302ffffffffffffffffffffffffffffffffffffff',
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        for (let i = 0; i < expectNList.length; i++) {
+          expect(await foo.nList(i)).to.be.eq(expectNList[i]);
+        }
+      });
+
+      it('should revert: location count less than ref count', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+        const actionBData = getCallData(fooAction, 'bar1', [foo.address, constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            // 1 32-bytes return value to be referenced
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x010000000000000000020000ffffffffffffffffffffffffffffffffffffffff', // (locCount, refCount) = (1, 2)
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('Location count less than ref count');
+      });
+
+      it('should revert: location count greater than ref count', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+        const actionBData = getCallData(fooAction, 'bar1', [foo.address, constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            // 1 32-bytes return value to be referenced
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x0100000000000000000300ffffffffffffffffffffffffffffffffffffffffff', // (locCount, refCount) = (2, 1)
+          ],
+          [actionAData, actionBData],
+        ]);
+
+        const target = taskExecutor.address;
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('Location count exceeds ref count');
+      });
+
+      it('should revert: ref to out of localStack', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+        const actionBData = getCallData(fooAction, 'bar1', [foo.address, constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            // 1 32-bytes return value to be referenced
+            '0x0001000000000000000000000000000000000000000000000000000000000000', // set localStack[0]
+            '0x0100000000000000000201ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[1]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
+      });
+
+      it('should revert: expected return amount not match', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+        const actionBData = getCallData(fooAction, 'bar1', [foo.address, constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            // expect 2 32-bytes return but will only get 1
+            '0x0002000000000000000000000000000000000000000000000000000000000000', // set localStack[0]
+            '0x0100000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('RevertCode(35)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
+      });
+
+      it('should revert: overflow during trimming', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'barUint', [foo.address]);
+        const actionBData = getCallData(fooAction, 'barUint1', [foo.address, constants.MaxUint256]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, fooAction.address],
+          [
+            '0x0001000000000000000000000000000000000000000000000000000000000000', // set localStack[0]
+            '0x0100000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.reverted;
+      });
+
+      it('should revert: illegal length for parse', async function () {
+        const taskExecutorMock = await (
+          await ethers.getContractFactory('TaskExecutorMock')
+        ).deploy(owner.address, comptroller.address);
+        await taskExecutorMock.deployed();
+
+        // Prepare task data and execute
+        const localStack = new Array<BytesLike>(256);
+        localStack.fill(constants.HashZero);
+        const data = getCallData(taskExecutorMock, 'parse', [
+          localStack,
+          '0x00010000000000000000000000000000000000000000000000000000000000', // 30 bytes
+          1,
+        ]);
+        const target = taskExecutorMock.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('RevertCode(36)'); // TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE
+      });
+
+      it('should revert: stack overflow', async function () {
+        const taskExecutorMock = await (
+          await ethers.getContractFactory('TaskExecutorMock')
+        ).deploy(owner.address, comptroller.address);
+        await taskExecutorMock.deployed();
+
+        // Prepare task data and execute
+        const localStack = new Array<BytesLike>(256);
+        localStack.fill(constants.HashZero);
+        const data = getCallData(taskExecutorMock, 'parse', [
+          localStack,
+          '0x0001000000000000000000000000000000000000000000000000000000000000',
+          257,
+        ]);
+        const target = taskExecutorMock.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('RevertCode(37)'); // TASK_EXECUTOR_STACK_OVERFLOW
+      });
+    });
+
+    describe('dynamic parameter by call', function () {
+      it('replace parameter', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x0300000000000000000100ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace parameter with dynamic array return', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const secAmt = ether('2');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'barUList', [ether('1'), secAmt, ether('1')]);
+
+        const actionBEthValue = ether('0');
+        const ratio = ether('0.7');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'barUint1', [ratio]);
+
+        // Prepare task data and execute
+        // local stack idx start from [+2] if using dynamic array
+        // because it will store 2 extra data(pointer and array length) to local stack in the first and second index
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            '0x0205000000000000000000000000000000000000000000000000000000000000', // be referenced
+            '0x0300000000000000000103ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[3]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.nValue()).to.be.eq(secAmt.mul(ratio).div(ether('1')));
+      });
+
+      it('replace second parameter', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar2', [
+          '0x000000000000000000000000000000000000000000000000000000000000000a',
+          constants.HashZero,
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x0300000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace parameter by 50% of ref value', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'barUint', []);
+
+        const actionBEthValue = ether('0');
+        const percent = ether('0.5');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'barUint1', [percent]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x0300000000000000000100ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.nValue()).to.be.eq((await foo.callStatic.barUint()).mul(percent).div(ether('1')));
+      });
+
+      it('replace dynamic array parameter with dynamic array return', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const expectNList = [BigNumber.from(300), BigNumber.from(100), BigNumber.from(75)];
+        const actionAData = getCallActionData(actionAEthValue, foo, 'barUList', [
+          expectNList[0],
+          expectNList[1],
+          expectNList[2],
+        ]);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'barUList2', [
+          [BigNumber.from(0), BigNumber.from(0), BigNumber.from(0)],
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            '0x0205000000000000000000000000000000000000000000000000000000000000', // be referenced
+            // replace params[4] <- local stack[4]
+            // replace params[3] <- local stack[3]
+            // replace params[2] <- local stack[2]
+            '0x0300000000000000001C040302ffffffffffffffffffffffffffffffffffffff',
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        for (let i = 0; i < expectNList.length; i++) {
+          expect(await foo.nList(i)).to.be.eq(expectNList[i]);
+        }
+      });
+
+      it('should revert: location count less than ref count', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            // 1 32-bytes return value to be referenced
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x03000000000000000010000fffffffffffffffffffffffffffffffffffffffff', // (locCount, refCount) = (1, 2)
+          ],
+          [actionAData, actionBData],
+        ]);
+
+        const target = taskExecutor.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('Location count less than ref count');
+      });
+
+      it('should revert: location count greater than ref count', async function () {
+        // Prepare action data
+
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar2', [constants.HashZero, constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            // 1 32-bytes return value to be referenced
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x0300000000000000000300ffffffffffffffffffffffffffffffffffffffffff', // (locCount, refCount) = (2, 1)
+          ],
+          [actionAData, actionBData],
+        ]);
+
+        const target = taskExecutor.address;
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('Location count exceeds ref count');
+      });
+
+      it('should revert: ref to out of localStack', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            // 1 32-bytes return value to be referenced
+            '0x0201000000000000000000000000000000000000000000000000000000000000', // set localStack[0]
+            '0x0300000000000000000101ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[1]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
+      });
+
+      it('should revert: expected return amount not match', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            // expect 2 32-bytes return but will only get 1
+            '0x0202000000000000000000000000000000000000000000000000000000000000', // set localStack[0]
+            '0x0300000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.revertedWith('RevertCode(35)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
+      });
+
+      it('should revert: overflow during trimming', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'barUint', []);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'barUint1', [constants.MaxUint256]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, foo.address],
+          [
+            // expect 2 32-bytes return but will only get 1
+            '0x0201000000000000000000000000000000000000000000000000000000000000', // set localStack[0]
+            '0x0300000000000000000100ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+
+        await expect(
+          proxy.connect(user).executeMock(target, data, {
+            value: ether('0.01'),
+          })
+        ).to.be.reverted;
+      });
+    });
+
+    describe('dynamic parameter by mix call', function () {
+      it('replace parameter by delegate call + call', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar1', [constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, foo.address],
+          [
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x0300000000000000000100ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace parameter by call + delegate call', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        const actionBData = getCallData(fooAction, 'bar1', [foo.address, constants.HashZero]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, fooAction.address],
+          [
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x0100000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace parameter with dynamic array return by delegate call + call', async function () {
+        // Prepare action data
+        const secAmt = ether('2');
+        const actionAData = getCallData(fooAction, 'barUList', [foo.address, ether('1'), secAmt, ether('1')]);
+
+        const actionBEthValue = ether('0');
+        const ratio = ether('0.7');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'barUint1', [ratio]);
+
+        // Prepare task data and execute
+        // local stack idx start from [+2] if using dynamic array
+        // because it will store 2 extra data(pointer and array length) to local stack in the first and second index
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, foo.address],
+          [
+            '0x0005000000000000000000000000000000000000000000000000000000000000', // be referenced
+            '0x0300000000000000000103ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[3]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.nValue()).to.be.eq(secAmt.mul(ratio).div(ether('1')));
+      });
+
+      it('replace parameter with dynamic array return by call + delegate call', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const secAmt = ether('1');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'barUList', [ether('1'), secAmt, ether('1')]);
+        const ratio = ether('0.7');
+        const actionBData = getCallData(fooAction, 'barUint1', [foo.address, ratio]);
+
+        // Prepare task data and execute
+        // local stack idx start from [+2] if using dynamic array
+        // because it will store 2 extra data(pointer and array length) to local stack in the first and second index
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, fooAction.address],
+          [
+            '0x0205000000000000000000000000000000000000000000000000000000000000', // be referenced
+            '0x0100000000000000000203ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[3]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        expect(await foo.nValue()).to.be.eq(secAmt.mul(ratio).div(ether('1')));
+      });
+
+      it('replace second parameter by delegate call + call', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'bar', [foo.address]);
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'bar2', [
+          '0x000000000000000000000000000000000000000000000000000000000000000a',
+          constants.HashZero,
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, foo.address],
+          [
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x0300000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace third parameter by call + delegate call', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'bar', []);
+
+        // Prepare action data
+        const actionBData = getCallData(fooAction, 'bar2', [
+          foo.address,
+          '0x000000000000000000000000000000000000000000000000000000000000000a',
+          constants.HashZero,
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, fooAction.address],
+          [
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x0100000000000000000400ffffffffffffffffffffffffffffffffffffffffff', // replace params[2] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.bValue()).eq(await foo.bar());
+      });
+
+      it('replace parameter by 50% of ref value by delegate call + call', async function () {
+        // Prepare action data
+        const actionAData = getCallData(fooAction, 'barUint', [foo.address]);
+
+        const actionBEthValue = ether('0');
+        const percent = ether('0.5');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'barUint1', [percent]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, foo.address],
+          [
+            '0x0001000000000000000000000000000000000000000000000000000000000000',
+            '0x0300000000000000000100ffffffffffffffffffffffffffffffffffffffffff', // replace params[0] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.nValue()).to.be.eq((await foo.callStatic.barUint()).mul(percent).div(ether('1')));
+      });
+
+      it('replace parameter by 50% of ref value by call + delegate call', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const actionAData = getCallActionData(actionAEthValue, foo, 'barUint', []);
+
+        const percent = ether('0.5');
+        const actionBData = getCallData(fooAction, 'barUint1', [foo.address, percent]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, fooAction.address],
+          [
+            '0x0201000000000000000000000000000000000000000000000000000000000000',
+            '0x0100000000000000000200ffffffffffffffffffffffffffffffffffffffffff', // replace params[1] <- local stack[0]
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        expect(await foo.nValue()).to.be.eq((await foo.callStatic.barUint()).mul(percent).div(ether('1')));
+      });
+
+      it('replace dynamic array parameter with dynamic array return by delegate call + call', async function () {
+        // Prepare action data
+        const expectNList = [BigNumber.from(300), BigNumber.from(100), BigNumber.from(75)];
+        const actionAData = getCallData(fooAction, 'barUList', [
+          foo.address,
+          expectNList[0],
+          expectNList[1],
+          expectNList[2],
+        ]);
+
+        const actionBEthValue = ether('0');
+        const actionBData = getCallActionData(actionBEthValue, foo, 'barUList2', [
+          [BigNumber.from(0), BigNumber.from(0), BigNumber.from(0)],
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [fooAction.address, foo.address],
+          [
+            '0x0005000000000000000000000000000000000000000000000000000000000000', // be referenced
+            // replace params[4] <- local stack[4]
+            // replace params[3] <- local stack[3]
+            // replace params[2] <- local stack[2]
+            '0x0300000000000000001C040302ffffffffffffffffffffffffffffffffffffff',
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        for (let i = 0; i < expectNList.length; i++) {
+          expect(await foo.nList(i)).to.be.eq(expectNList[i]);
+        }
+      });
+
+      it('replace dynamic array parameter with dynamic array return by call + delegate call', async function () {
+        // Prepare action data
+        const actionAEthValue = ether('0');
+        const expectNList = [BigNumber.from(300), BigNumber.from(100), BigNumber.from(75)];
+        const actionAData = getCallActionData(actionAEthValue, foo, 'barUList', [
+          expectNList[0],
+          expectNList[1],
+          expectNList[2],
+        ]);
+
+        const actionBData = getCallData(fooAction, 'barUList2', [
+          foo.address,
+          [BigNumber.from(0), BigNumber.from(0), BigNumber.from(0)],
+        ]);
+
+        // Prepare task data and execute
+        const data = getCallData(taskExecutor, 'batchExec', [
+          [],
+          [],
+          [foo.address, fooAction.address],
+          [
+            '0x0205000000000000000000000000000000000000000000000000000000000000', // be referenced
+            // replace params[5] <- local stack[4]
+            // replace params[4] <- local stack[3]
+            // replace params[3] <- local stack[2]
+            '0x01000000000000000038040302ffffffffffffffffffffffffffffffffffffff',
+          ],
+          [actionAData, actionBData],
+        ]);
+        const target = taskExecutor.address;
+        await proxy.connect(user).executeMock(target, data, {
+          value: ether('0.01'),
+        });
+
+        // Verify
+        for (let i = 0; i < expectNList.length; i++) {
+          expect(await foo.nList(i)).to.be.eq(expectNList[i]);
+        }
+      });
     });
   });
 });
