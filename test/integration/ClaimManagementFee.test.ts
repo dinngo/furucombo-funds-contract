@@ -88,45 +88,32 @@ describe('ManagerClaimManagementFee', function () {
     const mFeeRate = 0;
 
     // Deploy furucombo funds contracts
-    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle] = [
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      hQuickSwap,
-    ] = await createFund(
-      owner,
-      collector,
-      manager,
-      liquidator,
-      denominationAddress,
-      mortgageAddress,
-      tokenAAddress,
-      tokenBAddress,
-      denominationAggregator,
-      tokenAAggregator,
-      tokenBAggregator,
-      level,
-      mortgageAmount,
-      mFeeRate,
-      pFeeRate,
-      execFeePercentage,
-      pendingExpiration,
-      valueTolerance,
-      crystallizationPeriod,
-      reserveExecution,
-      shareTokenName,
-      fRegistry,
-      furucombo
-    );
+    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
+      await createFund(
+        owner,
+        collector,
+        manager,
+        liquidator,
+        denominationAddress,
+        mortgageAddress,
+        tokenAAddress,
+        tokenBAddress,
+        denominationAggregator,
+        tokenAAggregator,
+        tokenBAggregator,
+        level,
+        mortgageAmount,
+        mFeeRate,
+        pFeeRate,
+        execFeePercentage,
+        pendingExpiration,
+        valueTolerance,
+        crystallizationPeriod,
+        reserveExecution,
+        shareTokenName,
+        fRegistry,
+        furucombo
+      );
 
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
@@ -142,45 +129,32 @@ describe('ManagerClaimManagementFee', function () {
     const mFeeRate = FEE_BASE * 0.02;
 
     // Deploy furucombo funds contracts
-    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle] = [
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      hQuickSwap,
-    ] = await createFund(
-      owner,
-      collector,
-      manager,
-      liquidator,
-      denominationAddress,
-      mortgageAddress,
-      tokenAAddress,
-      tokenBAddress,
-      denominationAggregator,
-      tokenAAggregator,
-      tokenBAggregator,
-      level,
-      mortgageAmount,
-      mFeeRate,
-      pFeeRate,
-      execFeePercentage,
-      pendingExpiration,
-      valueTolerance,
-      crystallizationPeriod,
-      reserveExecution,
-      shareTokenName,
-      fRegistry,
-      furucombo
-    );
+    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
+      await createFund(
+        owner,
+        collector,
+        manager,
+        liquidator,
+        denominationAddress,
+        mortgageAddress,
+        tokenAAddress,
+        tokenBAddress,
+        denominationAggregator,
+        tokenAAggregator,
+        tokenBAggregator,
+        level,
+        mortgageAmount,
+        mFeeRate,
+        pFeeRate,
+        execFeePercentage,
+        pendingExpiration,
+        valueTolerance,
+        crystallizationPeriod,
+        reserveExecution,
+        shareTokenName,
+        fRegistry,
+        furucombo
+      );
 
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
@@ -196,45 +170,32 @@ describe('ManagerClaimManagementFee', function () {
     const mFeeRate = FEE_BASE * 0.99;
 
     // Deploy furucombo funds contracts
-    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle] = [
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      ,
-      hQuickSwap,
-    ] = await createFund(
-      owner,
-      collector,
-      manager,
-      liquidator,
-      denominationAddress,
-      mortgageAddress,
-      tokenAAddress,
-      tokenBAddress,
-      denominationAggregator,
-      tokenAAggregator,
-      tokenBAggregator,
-      level,
-      mortgageAmount,
-      mFeeRate,
-      pFeeRate,
-      execFeePercentage,
-      pendingExpiration,
-      valueTolerance,
-      crystallizationPeriod,
-      reserveExecution,
-      shareTokenName,
-      fRegistry,
-      furucombo
-    );
+    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
+      await createFund(
+        owner,
+        collector,
+        manager,
+        liquidator,
+        denominationAddress,
+        mortgageAddress,
+        tokenAAddress,
+        tokenBAddress,
+        denominationAggregator,
+        tokenAAggregator,
+        tokenBAggregator,
+        level,
+        mortgageAmount,
+        mFeeRate,
+        pFeeRate,
+        execFeePercentage,
+        pendingExpiration,
+        valueTolerance,
+        crystallizationPeriod,
+        reserveExecution,
+        shareTokenName,
+        fRegistry,
+        furucombo
+      );
 
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
