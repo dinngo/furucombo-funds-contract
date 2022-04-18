@@ -73,7 +73,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     function _isPendingResolvable(bool applyPenalty_, uint256 grossAssetValue_) internal view returns (bool) {
         uint256 redeemShare = _getResolvePendingShare(applyPenalty_);
         uint256 redeemShareBalance = _calculateBalance(redeemShare, grossAssetValue_);
-        uint256 reserve = __getReserve();
+        uint256 reserve = getReserve();
 
         return reserve >= redeemShareBalance;
     }
@@ -94,7 +94,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         returns (uint256 shareLeft, uint256 balance)
     {
         balance = _calculateBalance(share_, grossAssetValue_);
-        uint256 reserve = __getReserve();
+        uint256 reserve = getReserve();
 
         // insufficient reserve
         if (balance > reserve) {
@@ -188,7 +188,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
         grossAssetValue -= balance;
         denomination.safeTransferFrom(address(vault), user_, balance);
-        _afterRedeem(grossAssetValue);
+        _afterRedeem();
         emit Redeemed(user_, balance, shareRedeemed);
 
         return balance;
@@ -276,7 +276,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return comptroller.pendingPenalty();
     }
 
-    function __getReserve() internal view virtual returns (uint256);
+    function getReserve() public view virtual returns (uint256);
 
     function __getGrossAssetValue() internal view virtual returns (uint256);
 
@@ -293,8 +293,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return 0;
     }
 
-    function _afterRedeem(uint256 grossAssetValue_) internal virtual {
-        grossAssetValue_;
+    function _afterRedeem() internal virtual {
         return;
     }
 

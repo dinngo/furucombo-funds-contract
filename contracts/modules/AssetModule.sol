@@ -20,10 +20,10 @@ abstract contract AssetModule is FundProxyStorageUtils {
     }
 
     /// @notice Get the balance of the denomination asset.
-    /// @return The balance of reserve.
-    function getReserve() public view returns (uint256) {
-        return denomination.balanceOf(address(vault));
-    }
+    // /// @return The balance of reserve.
+    // function getReserve() public view returns (uint256) {
+    //     return denomination.balanceOf(address(vault));
+    // }
 
     /// @notice Check the remaining asset should be only the denomination asset
     /// when closing the vault.
@@ -35,9 +35,12 @@ abstract contract AssetModule is FundProxyStorageUtils {
         _close();
     }
 
-     /// @notice Check asset capacity
-     function _checkAssetCapacity() internal view {
-        Errors._require(getAssetList().length <= comptroller.assetCapacity(), Errors.Code.ASSET_MODULE_FULL_ASSET_CAPACITY);
+    /// @notice Check asset capacity
+    function _checkAssetCapacity() internal view {
+        Errors._require(
+            getAssetList().length <= comptroller.assetCapacity(),
+            Errors.Code.ASSET_MODULE_FULL_ASSET_CAPACITY
+        );
     }
 
     /// @notice Add asset to the asset tracking list.

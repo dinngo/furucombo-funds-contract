@@ -174,9 +174,4 @@ describe('Asset module', function () {
       expect(await assetModule.getAssetList()).to.be.deep.eq(assetList);
     });
   });
-
-  it('get reserve', async function () {
-    await tokenD.transfer(vault, assetAmount);
-    expect(await assetModule.getReserve()).to.be.eq(assetAmount);
-  });
 });

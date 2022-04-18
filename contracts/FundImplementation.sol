@@ -8,6 +8,7 @@ import {ExecutionModule} from "./modules/ExecutionModule.sol";
 import {ManagementFeeModule} from "./modules/ManagementFeeModule.sol";
 import {PerformanceFeeModule} from "./modules/PerformanceFeeModule.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
+import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
@@ -117,7 +118,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             block.timestamp >= pendingStartTime + comptroller.pendingExpiration(),
             Errors.Code.IMPLEMENTATION_PENDING_NOT_EXPIRE
         );
-
+        _crystallize();
         _liquidate();
 
         _transferOwnership(comptroller.pendingLiquidator());
@@ -127,7 +128,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// without penalty.
     function close() public override onlyOwner nonReentrant whenStates(State.Executing, State.Liquidating) {
         _settlePendingShare(false);
-
+        if (state == State.Executing) {
+            _crystallize();
+        }
         super.close();
 
         mortgageVault.claim(msg.sender);
@@ -162,7 +165,20 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             amounts[i] = IERC20(assets[i]).balanceOf(address(vault));
         }
 
-        return comptroller.assetRouter().calcAssetsTotalValue(assets, amounts, address(denomination));
+        return _getAssetRouter().calcAssetsTotalValue(assets, amounts, address(denomination));
+    }
+
+    /// @notice Get the value of a give asset.
+    /// @param asset_ The asset to be queried.
+    function getAssetValue(address asset_) public view returns (int256) {
+        uint256 balance = IERC20(asset_).balanceOf(address(vault));
+        if (balance == 0) return 0;
+
+        return _getAssetRouter().calcAssetValue(asset_, balance, address(denomination));
+    }
+
+    function _getAssetRouter() internal view returns (IAssetRouter) {
+        return comptroller.assetRouter();
     }
 
     function __getGrossAssetValue() internal view override(ShareModule, PerformanceFeeModule) returns (uint256) {
@@ -171,8 +187,14 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Get the current reserve amount of the fund.
     /// @return The reserve amount.
-    function __getReserve() internal view override returns (uint256) {
-        return getReserve();
+    // function __getReserve() internal view override returns (uint256) {
+    //     return getReserve();
+    // }
+
+    /// @notice Get the balance of the denomination asset.
+    /// @return The balance of reserve.
+    function getReserve() public view override returns (uint256) {
+        return denomination.balanceOf(address(vault));
     }
 
     /////////////////////////////////////////////////////
@@ -190,11 +212,12 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     function _addAsset(address asset_) internal override {
         Errors._require(comptroller.isValidDealingAsset(level, asset_), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
 
-        if (asset_ == address(denomination)) {
+        address _denomination = address(denomination);
+        if (asset_ == _denomination) {
             super._addAsset(asset_);
         } else {
             int256 value = getAssetValue(asset_);
-            int256 dust = comptroller.getDenominationDust(address(denomination)).toInt256();
+            int256 dust = _getDenominationDust(_denomination);
 
             if (value >= dust || value < 0) {
                 super._addAsset(asset_);
@@ -215,7 +238,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         address _denomination = address(denomination);
         if (asset_ != _denomination) {
             int256 value = getAssetValue(asset_);
-            int256 dust = comptroller.getDenominationDust(_denomination).toInt256();
+            int256 dust = _getDenominationDust(_denomination);
 
             if (value < dust && value >= 0) {
                 super._removeAsset(asset_);
@@ -223,13 +246,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         }
     }
 
-    /// @notice Get the value of a give asset.
-    /// @param asset_ The asset to be queried.
-    function getAssetValue(address asset_) public view returns (int256) {
-        uint256 balance = IERC20(asset_).balanceOf(address(vault));
-        if (balance == 0) return 0;
-
-        return comptroller.assetRouter().calcAssetValue(asset_, balance, address(denomination));
+    function _getDenominationDust(address denomination_) internal view returns (int256) {
+        return comptroller.getDenominationDust(denomination_).toInt256();
     }
 
     /////////////////////////////////////////////////////
@@ -292,18 +310,36 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     function _updateManagementFee() internal override returns (uint256) {
         if (state == State.Executing) {
             return super._updateManagementFee();
-        } else {
+        } else if (state == State.Pending) {
             lastMFeeClaimTime = block.timestamp;
-            return 0;
         }
+        return 0;
     }
 
     /////////////////////////////////////////////////////
     // Performance fee module
     /////////////////////////////////////////////////////
     /// @notice Crystallize should only be triggered by owner
-    function crystallize() public override nonReentrant onlyOwner returns (uint256) {
+    function crystallize()
+        public
+        override
+        nonReentrant
+        onlyOwner
+        whenStates(State.Executing, State.Pending)
+        returns (uint256)
+    {
         return super.crystallize();
+    }
+
+    function _updatePerformanceFee(uint256 grossAssetValue_) internal override {
+        if (state == State.Executing || state == State.Pending) {
+            super._updatePerformanceFee(grossAssetValue_);
+        }
+    }
+
+    function _crystallize() internal override returns (uint256) {
+        _updateManagementFee();
+        return super._crystallize();
     }
 
     /////////////////////////////////////////////////////
@@ -320,7 +356,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Update the gross share price after the purchase.
     function _afterPurchase(uint256 grossAssetValue_) internal override {
-        _updateGrossSharePrice(grossAssetValue_);
         if (state == State.Pending && _isPendingResolvable(true, grossAssetValue_)) {
             _settlePendingShare(true);
             _resume();
@@ -335,12 +370,5 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _updateManagementFee();
         _updatePerformanceFee(grossAssetValue);
         return grossAssetValue;
-    }
-
-    /// @notice Payout the performance fee for the redempt portion and update
-    /// the gross share price.
-    function _afterRedeem(uint256 grossAssetValue_) internal override {
-        _updateGrossSharePrice(grossAssetValue_);
-        return;
     }
 }
