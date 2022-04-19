@@ -36,6 +36,7 @@ import {
   get64x64FromNumber,
   getCallData,
   increaseNextBlockTimeBy,
+  ether,
 } from './utils/utils';
 
 describe('FundImplementation', function () {
@@ -141,6 +142,7 @@ describe('FundImplementation', function () {
     // Initialization
     await comptroller.permitDenominations([denomination.address], [denominationDust]);
     await comptroller.permitAssets(level, [denomination.address]);
+    await comptroller.setMortgageTier(level, 0);
 
     shareToken = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
     await shareToken.deployed();
@@ -289,6 +291,13 @@ describe('FundImplementation', function () {
 
     describe('Finalize', function () {
       it('success', async function () {
+        // setup mortgage
+        const mortgageAmount = ether('1');
+        await comptroller.setMortgageTier(level, mortgageAmount);
+        await tokenA.connect(tokenAProvider).transfer(owner.address, mortgageAmount);
+        await tokenA.approve(fundImplementation.address, mortgageAmount);
+
+        // finalize
         const receipt = await fundImplementation.finalize();
         const block = await ethers.provider.getBlock(receipt.blockNumber!);
         const timestamp = BigNumber.from(block.timestamp);
@@ -310,6 +319,10 @@ describe('FundImplementation', function () {
         // check vault approval
         const allowance = await denomination.allowance(vault.address, fundImplementation.address);
         expect(allowance).to.be.eq(constants.MaxUint256);
+
+        // check mortgage amount
+        const mortgageFund = await mortgageVault.fundAmounts(fundImplementation.address);
+        expect(mortgageFund).to.be.eq(mortgageAmount);
       });
 
       it('should revert: finalize by non-owner', async function () {
@@ -322,6 +335,13 @@ describe('FundImplementation', function () {
         await comptroller.forbidDenominations([denomination.address]);
         await expect(fundImplementation.finalize()).to.be.revertedWith(
           'RevertCode(12)' // IMPLEMENTATION_INVALID_DENOMINATION
+        );
+      });
+
+      it('should revert: mortgage tier is not set', async function () {
+        await comptroller.unsetMortgageTier(level);
+        await expect(fundImplementation.finalize()).to.be.revertedWith(
+          'RevertCode(85)' // IMPLEMENTATION_INVALID_MORTGAGE_TIER
         );
       });
 

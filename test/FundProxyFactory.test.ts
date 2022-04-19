@@ -127,6 +127,7 @@ describe('FundProxyFactory', function () {
       const eventArgs = await getEventArgs(receipt, 'FundCreated');
       const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
+      expect(await fundProxyFactory.isFundCreated(fundProxy.address)).to.be.true;
     });
     it('should revert: invalid denomination address', async function () {
       const invalidDenominationAddress = constants.AddressZero;

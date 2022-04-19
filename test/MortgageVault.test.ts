@@ -7,15 +7,15 @@ describe('MortgageVault', function () {
   let mortgageVault: MortgageVault;
 
   let user: Wallet;
-  let fund: Wallet;
+  let receiver: Wallet;
 
   let token: SimpleToken;
 
-  const stakingAmount = ethers.utils.parseEther('1');
+  const amount = ethers.utils.parseEther('1');
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [user, fund] = await (ethers as any).getSigners();
+    [user, receiver] = await (ethers as any).getSigners();
 
     token = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
     await token.deployed();
@@ -33,54 +33,58 @@ describe('MortgageVault', function () {
 
   describe('mortgage', function () {
     beforeEach(async function () {
-      await token.approve(mortgageVault.address, stakingAmount);
+      await token.approve(mortgageVault.address, amount);
     });
 
-    it('should succeed when sender balance is sufficient', async function () {
+    it('sender balance is sufficient', async function () {
       const userBalanceBefore = await token.balanceOf(user.address);
       const vaultBalanceBefore = await token.balanceOf(mortgageVault.address);
-      await expect(mortgageVault.mortgage(user.address, fund.address, stakingAmount))
-        .to.emit(mortgageVault, 'Mortgaged')
-        .withArgs(user.address, fund.address, stakingAmount);
+      await expect(mortgageVault.mortgage(amount)).to.emit(mortgageVault, 'Mortgaged').withArgs(user.address, amount);
       const userBalanceAfter = await token.balanceOf(user.address);
       const vaultBalanceAfter = await token.balanceOf(mortgageVault.address);
-      const fundMortgage = await mortgageVault.fundAmounts(fund.address);
+      const fundMortgage = await mortgageVault.fundAmounts(user.address);
       const totalMortgage = await mortgageVault.totalAmount();
-      expect(userBalanceBefore.sub(userBalanceAfter)).to.be.eq(stakingAmount);
-      expect(vaultBalanceAfter.sub(vaultBalanceBefore)).to.be.eq(stakingAmount);
-      expect(fundMortgage).to.be.eq(stakingAmount);
-      expect(totalMortgage).to.be.eq(stakingAmount);
+      expect(userBalanceBefore.sub(userBalanceAfter)).to.be.eq(amount);
+      expect(vaultBalanceAfter.sub(vaultBalanceBefore)).to.be.eq(amount);
+      expect(fundMortgage).to.be.eq(amount);
+      expect(totalMortgage).to.be.eq(amount);
     });
 
-    it('should revert: when fund is already mortgaged', async function () {
-      await mortgageVault.mortgage(user.address, fund.address, stakingAmount);
-      await expect(mortgageVault.mortgage(user.address, fund.address, stakingAmount)).to.be.revertedWith(
-        'RevertCode(5)'
-      ); // MORTGAGE_VAULT_FUND_MORTGAGED
+    it('zero amount without event', async function () {
+      await expect(mortgageVault.mortgage(0)).to.not.emit(mortgageVault, 'Mortgaged');
+    });
+
+    it('should revert: when sender is already mortgaged', async function () {
+      await mortgageVault.mortgage(amount);
+      await expect(mortgageVault.mortgage(amount)).to.be.revertedWith('RevertCode(5)'); // MORTGAGE_VAULT_FUND_MORTGAGED
     });
   });
 
   describe('claim', function () {
     beforeEach(async function () {
-      await token.approve(mortgageVault.address, stakingAmount);
-      await mortgageVault.mortgage(user.address, fund.address, stakingAmount);
+      await token.approve(mortgageVault.address, amount);
     });
 
-    it('should succeed to claim', async function () {
-      const userBalanceBefore = await token.balanceOf(user.address);
+    it('all mortgage', async function () {
+      await mortgageVault.mortgage(amount);
+      const receiverBalanceBefore = await token.balanceOf(receiver.address);
       const vaultBalanceBefore = await token.balanceOf(mortgageVault.address);
-      await expect(mortgageVault.connect(fund).claim(user.address))
+      await expect(mortgageVault.claim(receiver.address))
         .to.emit(mortgageVault, 'Claimed')
-        .withArgs(user.address, fund.address, stakingAmount);
+        .withArgs(receiver.address, user.address, amount);
 
-      const userBalanceAfter = await token.balanceOf(user.address);
+      const receiverBalanceAfter = await token.balanceOf(receiver.address);
       const vaultBalanceAfter = await token.balanceOf(mortgageVault.address);
-      const fundMortgage = await mortgageVault.fundAmounts(fund.address);
+      const fundMortgage = await mortgageVault.fundAmounts(user.address);
       const totalMortgage = await mortgageVault.totalAmount();
-      expect(userBalanceAfter.sub(userBalanceBefore)).to.be.eq(stakingAmount);
-      expect(vaultBalanceBefore.sub(vaultBalanceAfter)).to.be.eq(stakingAmount);
+      expect(receiverBalanceAfter.sub(receiverBalanceBefore)).to.be.eq(amount);
+      expect(vaultBalanceBefore.sub(vaultBalanceAfter)).to.be.eq(amount);
       expect(fundMortgage).to.be.eq(ethers.constants.Zero);
       expect(totalMortgage).to.be.eq(ethers.constants.Zero);
+    });
+
+    it('zero amount without event', async function () {
+      await expect(mortgageVault.claim(receiver.address)).to.not.emit(mortgageVault, 'Claimed');
     });
   });
 });
