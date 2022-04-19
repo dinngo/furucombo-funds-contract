@@ -747,7 +747,9 @@ describe('FundImplementation', function () {
   describe('Settle pending share', function () {
     let redeemAmount: BigNumber;
     beforeEach(async function () {
+      await fundImplementation.setReserveExecutionRate(FUND_PERCENTAGE_BASE * 0.1);
       await fundImplementation.finalize();
+
       const currentReserve = await fundImplementation.getReserve();
 
       redeemAmount = currentReserve.add(mwei('500'));
@@ -788,6 +790,27 @@ describe('FundImplementation', function () {
         .to.emit(fundImplementation, 'Redeemed')
         .to.emit(denomination, 'Transfer');
       expect(await fundImplementation.state()).to.be.eq(FUND_STATE.EXECUTING);
+    });
+
+    it('should revert: reserve not enough due to resolve Pending state after execute', async function () {
+      await fundImplementation.setState(FUND_STATE.REVIEWING);
+      await fundImplementation.setReserveExecutionRate(FUND_PERCENTAGE_BASE * 0.15);
+      await fundImplementation.setState(FUND_STATE.PENDING);
+      // Prepare task data and execute
+      const expectNValue = BigNumber.from('101');
+      const actionData = getCallData(fooAction, 'barUint1', [foo.address, expectNValue]);
+
+      const data = getCallData(taskExecutor, 'batchExec', [
+        [],
+        [],
+        [fooAction.address],
+        [constants.HashZero],
+        [actionData],
+      ]);
+
+      // Permit delegate calls
+      await comptroller.permitDelegateCalls(await fundImplementation.level(), [fooAction.address], [WL_ANY_SIG]);
+      await expect(fundImplementation.execute(data)).to.be.revertedWith('RevertCode(10)'); // IMPLEMENTATION_INSUFFICIENT_RESERVE
     });
 
     it('resolve Pending state after purchase', async function () {

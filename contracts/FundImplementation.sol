@@ -97,13 +97,13 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _resumeWithGrossAssetValue(grossAssetValue);
     }
 
-    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal {
+    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal returns (uint256 totalRedemption) {
         _whenState(State.Pending);
         Errors._require(
             _isPendingResolvable(true, grossAssetValue_),
             Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
         );
-        _settlePendingShare(true);
+        totalRedemption = _settlePendingShare(true);
         _resume();
     }
 
@@ -284,17 +284,19 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         // Get new gross asset value
         uint256 grossAssetValue = getGrossAssetValue();
 
-        if (state == State.Pending) {
-            _resumeWithGrossAssetValue(grossAssetValue);
-        }
-
-        // Check value after execution
-        Errors._require(_isReserveEnough(grossAssetValue), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
-
         Errors._require(
             _isAfterValueEnough(prevGrossAssetValue_, grossAssetValue),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
         );
+
+        if (state == State.Pending) {
+            uint256 totalRedemption = _resumeWithGrossAssetValue(grossAssetValue);
+            // minus redeemed denomination amount
+            grossAssetValue -= totalRedemption;
+        }
+
+        // Check value after execution
+        Errors._require(_isReserveEnough(grossAssetValue), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
 
         return grossAssetValue;
     }
