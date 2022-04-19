@@ -27,7 +27,7 @@ contract FurucomboRegistry is IFurucomboRegistry, Ownable {
     event HandlerCalleeWhitelistUnregistered(address indexed handler, address indexed callee);
 
     modifier isNotHalted() {
-        require(fHalt == false, "Halted");
+        require(!fHalt, "Halted");
         _;
     }
 
