@@ -6,13 +6,13 @@ import {
   WL_QUICKSWAP_SIGS,
   WL_SUSHISWAP_SIGS,
   WL_CURVE_SIGS,
+  WL_PARASWAP_V5_SIGS,
   LEVEL,
   LEVEL_AMOUNT,
   EXEC_FEE_PERCENTAGE,
   PENDING_EXPIRATION,
   VALUE_TOLERANCE,
   denominations,
-  WL_PARASWAP_V5_SIGS,
 } from './Config';
 import { assets, aaveV2Asset, aaveV2Debt, curveStable, quickSwap, sushiSwap } from './assets/AssetConfig';
 
