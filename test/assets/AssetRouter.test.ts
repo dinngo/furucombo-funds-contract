@@ -106,6 +106,15 @@ describe('AssetRouter', function () {
       expect(assetValue).to.be.eq(amounts[0].mul(2));
     });
 
+    it('calculate single asset without using resolver', async function () {
+      const assets = [quoteAddress];
+      const amounts = [ether('1')];
+      const quote = quoteAddress;
+      const assetValue = await router.calcAssetsTotalValue(assets, amounts, quote);
+
+      expect(assetValue).to.be.eq(amounts[0]);
+    });
+
     it('calculate single assets with MAX amount', async function () {
       let amount = ether('1');
       const assets = [tokenA.address];
@@ -187,7 +196,7 @@ describe('AssetRouter', function () {
     it('should revert: asset resolver is not registered', async function () {
       const assets = [quoteAddress];
       const amounts = [ether('1')];
-      const quote = quoteAddress;
+      const quote = tokenA.address;
 
       await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
         'RevertCode(57)'

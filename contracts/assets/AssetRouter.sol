@@ -3,6 +3,7 @@ pragma solidity 0.8.10;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Errors} from "../utils/Errors.sol";
 import {IAssetRegistry} from "./interfaces/IAssetRegistry.sol";
 import {IAssetOracle} from "./interfaces/IAssetOracle.sol";
@@ -11,6 +12,7 @@ import {IAssetResolver} from "./interfaces/IAssetResolver.sol";
 
 contract AssetRouter is IAssetRouter, Ownable {
     using SafeERC20 for IERC20;
+    using SafeCast for uint256;
 
     IAssetOracle public override oracle;
     IAssetRegistry public override registry;
@@ -52,6 +54,11 @@ contract AssetRouter is IAssetRouter, Ownable {
         uint256 amount_,
         address quote_
     ) public view returns (int256) {
+        // avoid redundant calculation
+        if (asset_ == quote_) {
+            return amount_.toInt256();
+        }
+
         uint256 assetAmount = _getAssetAmount(asset_, amount_);
         if (assetAmount == 0) {
             return 0;
