@@ -88,7 +88,8 @@ library Errors {
         SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE, // 80: "The requesting share amount is greater than total share amount"
         SHARE_MODULE_PURCHASE_ZERO_BALANCE, // 81: "The purchased balance is zero"
         SHARE_MODULE_PURCHASE_ZERO_SHARE, // 82: "The share purchased need to greater than zero"
-        SHARE_MODULE_REDEEM_ZERO_SHARE // 83: "The redeem share is zero"
+        SHARE_MODULE_REDEEM_ZERO_SHARE, // 83: "The redeem share is zero"
+        SHARE_TOKEN_INVALID_FROM // 84: "Invalid from"
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {

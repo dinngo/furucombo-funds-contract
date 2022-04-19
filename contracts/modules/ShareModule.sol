@@ -12,6 +12,8 @@ abstract contract ShareModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using SafeERC20 for IERC20;
 
+    uint256 private constant MINIMUM_SHARE = 1e3;
+
     event Purchased(address indexed user, uint256 assetAmount, uint256 shareAmount, uint256 bonusAmount);
     event Redeemed(address indexed user, uint256 assetAmount, uint256 shareAmount);
     event Pended(address indexed user, uint256 shareAmount, uint256 penaltyAmount);
@@ -29,8 +31,10 @@ abstract contract ShareModule is FundProxyStorageUtils {
     function _calculateShare(uint256 balance_, uint256 grossAssetValue_) internal view virtual returns (uint256 share) {
         uint256 shareAmount = shareToken.grossTotalShare();
         if (shareAmount == 0) {
-            // Handler initial minting
-            share = balance_;
+            // Handle initial purchase when balance_ > MINIMUM_SHARE, otherwise return share = 0
+            if (balance_ > MINIMUM_SHARE) {
+                share = balance_ - MINIMUM_SHARE;
+            }
         } else {
             share = (shareAmount * balance_) / grossAssetValue_;
         }
@@ -293,6 +297,13 @@ abstract contract ShareModule is FundProxyStorageUtils {
         uint256 grossAssetValue_
     ) internal virtual returns (uint256 share) {
         share = _calculateShare(balance_, grossAssetValue_);
+
+        // Lock MINIMUM_SHARE to share token contract itself for the initial puchase
+        // Share token contract has blocked transfer from itself
+        if (shareToken.grossTotalShare() == 0) {
+            shareToken.mint(address(shareToken), MINIMUM_SHARE);
+        }
+
         shareToken.mint(user_, share);
     }
 
