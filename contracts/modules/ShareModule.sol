@@ -286,13 +286,13 @@ abstract contract ShareModule is FundProxyStorageUtils {
         shareToken.mint(user_, share);
     }
 
-    function _settlePendingShare(bool applyPenalty_) internal {
+    function _settlePendingShare(bool applyPenalty_) internal returns (uint256 totalRedemption) {
         // Get total share for the settle
         uint256 redeemShare = _getResolvePendingShare(applyPenalty_);
 
         if (redeemShare > 0) {
             // Calculate the total redemption depending on the redeemShare
-            uint256 totalRedemption = _redeem(address(this), redeemShare, false);
+            totalRedemption = _redeem(address(this), redeemShare, false);
 
             // Settle this round and store settle info to round list
             pendingRoundList.push(
