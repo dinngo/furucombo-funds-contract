@@ -30,7 +30,7 @@ contract FurucomboProxy is IFurucomboProxy, Storage, Config {
     }
 
     modifier isNotHalted() {
-        require(registry.fHalt() == false, "Halted");
+        require(!registry.fHalt(), "Halted");
         _;
     }
 
