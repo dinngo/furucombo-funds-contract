@@ -2,7 +2,7 @@ import { BigNumber, utils } from 'ethers';
 import { assets } from './assets/AssetConfig';
 
 export const MORTGAGE_TOKEN = '0x6DdB31002abC64e1479Fc439692F7eA061e78165'; // COMBO
-export const DS_PROXY_REGISTRY = '0xD6DF5BC8f4834C4e3b9c6a79E99C41622d377aFB';
+export const DS_PROXY_REGISTRY = '0x7B4C6A6EB4aF9435a62bfAB09Fd2074f7752A784';
 export const AAVE_LENDING_POOL = '0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf';
 export const CURVE_AAVE_SWAP = '0x445FE580eF8d70FF569aB36e80c647af338db351';
 export const CURVE_REN_SWAP = '0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67';
