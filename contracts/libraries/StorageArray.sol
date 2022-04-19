@@ -14,7 +14,7 @@ library StorageArray {
 
     function _get(bytes32 slot_, uint256 index_) internal view returns (bytes32 val) {
         require(index_ < uint256(_getSlot(slot_).value), "StorageArray: _get invalid index");
-        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slot_)))) + index_;
+        uint256 s = uint256(keccak256(abi.encodePacked(slot_))) + index_;
         val = _getSlot(bytes32(s)).value;
     }
 
@@ -24,10 +24,8 @@ library StorageArray {
         bytes32 val_
     ) internal {
         require(index_ < uint256(_getSlot(slot_).value), "StorageArray: _set invalid index");
-        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slot_)))) + index_;
-
-        bytes32 val = bytes32(bytes20(val_));
-        _getSlot(bytes32(s)).value = val;
+        uint256 s = uint256(keccak256(abi.encodePacked(slot_))) + index_;
+        _getSlot(bytes32(s)).value = val_;
     }
 
     function _push(bytes32 slot_, bytes32 val_) internal {
@@ -41,7 +39,7 @@ library StorageArray {
         require(length > 0, "StorageArray: empty array");
 
         length -= 1;
-        uint256 s = uint256(keccak256(abi.encodePacked(uint256(slot_)))) + length;
+        uint256 s = uint256(keccak256(abi.encodePacked(slot_))) + length;
         val = _getSlot(bytes32(s)).value;
         _getSlot(bytes32(s)).value = 0;
         _getSlot(slot_).value = bytes32(length);

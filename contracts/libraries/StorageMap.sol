@@ -13,7 +13,7 @@ library StorageMap {
     }
 
     function _get(bytes32 slot_, bytes32 key_) internal view returns (bytes32 ret) {
-        bytes32 b = keccak256(abi.encodePacked(key_, uint256(slot_)));
+        bytes32 b = keccak256(abi.encodePacked(key_, slot_));
         ret = _getSlot(b).value;
     }
 
@@ -22,7 +22,7 @@ library StorageMap {
         bytes32 key_,
         bytes32 val_
     ) internal {
-        bytes32 b = keccak256(abi.encodePacked(key_, uint256(slot_)));
+        bytes32 b = keccak256(abi.encodePacked(key_, slot_));
         _getSlot(b).value = val_;
     }
 }

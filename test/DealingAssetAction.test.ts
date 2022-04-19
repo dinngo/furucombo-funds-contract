@@ -34,7 +34,7 @@ describe('DealingAssetAction', function () {
 
       // Verify
       expect(await action.doGetLength()).to.be.eq(1);
-      expect(await action.doGetDealingAsset(tokenA)).to.be.eq(true);
+      expect(await action.doIsDealingAssetExist(tokenA)).to.be.eq(true);
     });
 
     it('add multiple assets', async function () {
@@ -44,8 +44,8 @@ describe('DealingAssetAction', function () {
 
       // Verify
       expect(await action.doGetLength()).to.be.eq(2);
-      expect(await action.doGetDealingAsset(tokenA)).to.be.eq(true);
-      expect(await action.doGetDealingAsset(tokenA)).to.be.eq(true);
+      expect(await action.doIsDealingAssetExist(tokenA)).to.be.eq(true);
+      expect(await action.doIsDealingAssetExist(tokenA)).to.be.eq(true);
     });
 
     it('add repeat assets', async function () {
@@ -56,8 +56,8 @@ describe('DealingAssetAction', function () {
 
       // Verify
       expect(await action.doGetLength()).to.be.eq(2);
-      expect(await action.doGetDealingAsset(tokenA)).to.be.eq(true);
-      expect(await action.doGetDealingAsset(tokenB)).to.be.eq(true);
+      expect(await action.doIsDealingAssetExist(tokenA)).to.be.eq(true);
+      expect(await action.doIsDealingAssetExist(tokenB)).to.be.eq(true);
     });
 
     it('get assets list', async function () {
@@ -72,22 +72,6 @@ describe('DealingAssetAction', function () {
       expect(assets[1]).to.be.eq(tokenB);
     });
 
-    it('remove asset', async function () {
-      // Prepare action data
-      await action.doAddDealingAsset(tokenA);
-      await action.doAddDealingAsset(tokenB);
-
-      // Execution
-      await action.doRemoveDealingAsset(tokenA);
-
-      // Verify
-      // remove asset would not remove the asset from the list for gas saving
-      expect(await action.doGetLength()).to.be.eq(2);
-
-      expect(await action.doGetDealingAsset(tokenA)).to.be.eq(false);
-      expect(await action.doGetDealingAsset(tokenB)).to.be.eq(true);
-    });
-
     it('clean assets', async function () {
       // Prepare action data
       await action.doAddDealingAsset(tokenA);
@@ -98,8 +82,8 @@ describe('DealingAssetAction', function () {
 
       // Verify
       expect(await action.doGetLength()).to.be.eq(0);
-      expect(await action.doGetDealingAsset(tokenA)).to.be.eq(false);
-      expect(await action.doGetDealingAsset(tokenB)).to.be.eq(false);
+      expect(await action.doIsDealingAssetExist(tokenA)).to.be.eq(false);
+      expect(await action.doIsDealingAssetExist(tokenB)).to.be.eq(false);
     });
 
     it('asset clean up', async function () {
@@ -110,8 +94,8 @@ describe('DealingAssetAction', function () {
 
       // Verify
       expect(await action.doGetLength()).to.be.eq(0);
-      expect(await action.doGetDealingAsset(tokenA)).to.be.eq(false);
-      expect(await action.doGetDealingAsset(tokenB)).to.be.eq(false);
+      expect(await action.doIsDealingAssetExist(tokenA)).to.be.eq(false);
+      expect(await action.doIsDealingAssetExist(tokenB)).to.be.eq(false);
     });
   });
 });
