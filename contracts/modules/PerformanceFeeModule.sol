@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {LibFee} from "../libraries/LibFee.sol";
@@ -9,6 +10,7 @@ import {IShareToken} from "../interfaces/IShareToken.sol";
 
 /// @title Performance fee module
 abstract contract PerformanceFeeModule is FundProxyStorageUtils {
+    using SafeCast for uint256;
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
@@ -105,7 +107,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         int256 wealth = LibFee
             ._max64x64(hwm64x64, grossSharePrice64x64)
             .sub(LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64))
-            .muli(int256(totalShare));
+            .muli(totalShare.toInt256());
         int256 fee = pFeeRate64x64.muli(wealth);
         pFeeSum = uint256(LibFee._max(0, int256(pFeeSum) + fee));
         uint256 netAssetValue = grossAssetValue_ - pFeeSum;
