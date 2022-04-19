@@ -51,7 +51,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         uint256 crystallizationPeriod_,
         uint256 reserveExecutionRate_,
         address newOwner_
-    ) external whenState(State.Initializing) {
+    ) external {
+        _whenState(State.Initializing);
         _setLevel(level_);
         _setComptroller(comptroller_);
         _setDenomination(denomination_);
@@ -96,7 +97,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _resumeWithGrossAssetValue(grossAssetValue);
     }
 
-    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal whenState(State.Pending) {
+    function _resumeWithGrossAssetValue(uint256 grossAssetValue_) internal {
+        _whenState(State.Pending);
         Errors._require(
             _isPendingResolvable(true, grossAssetValue_),
             Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
@@ -121,7 +123,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Close the fund. The pending share will be settled
     /// without penalty.
-    function close() public override onlyOwner nonReentrant whenStates(State.Executing, State.Liquidating) {
+    function close() public override onlyOwner nonReentrant {
+        _whenStates(State.Executing, State.Liquidating);
         if (_getResolvePendingShare(false) > 0) {
             _settlePendingShare(false);
         }
@@ -135,22 +138,26 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     // Setters
     /////////////////////////////////////////////////////
     /// @notice Set management fee rate only during reviewing.
-    function setManagementFeeRate(uint256 mFeeRate_) external onlyOwner whenState(State.Reviewing) {
+    function setManagementFeeRate(uint256 mFeeRate_) external onlyOwner {
+        _whenState(State.Reviewing);
         _setManagementFeeRate(mFeeRate_);
     }
 
     /// @notice Set performance fee rate only during reviewing.
-    function setPerformanceFeeRate(uint256 pFeeRate_) external onlyOwner whenState(State.Reviewing) {
+    function setPerformanceFeeRate(uint256 pFeeRate_) external onlyOwner {
+        _whenState(State.Reviewing);
         _setPerformanceFeeRate(pFeeRate_);
     }
 
     /// @notice Set crystallization period only during reviewing.
-    function setCrystallizationPeriod(uint256 crystallizationPeriod_) external onlyOwner whenState(State.Reviewing) {
+    function setCrystallizationPeriod(uint256 crystallizationPeriod_) external onlyOwner {
+        _whenState(State.Reviewing);
         _setCrystallizationPeriod(crystallizationPeriod_);
     }
 
     /// @notice Set reserve rate only during reviewing.
-    function setReserveExecutionRate(uint256 reserve_) external onlyOwner whenState(State.Reviewing) {
+    function setReserveExecutionRate(uint256 reserve_) external onlyOwner {
+        _whenState(State.Reviewing);
         _setReserveExecutionRate(reserve_);
     }
 
