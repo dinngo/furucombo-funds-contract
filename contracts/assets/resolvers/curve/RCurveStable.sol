@@ -2,6 +2,7 @@
 pragma solidity 0.8.10;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Errors} from "../../../utils/Errors.sol";
 import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
@@ -34,7 +35,10 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         Errors._require(asset_ != address(0), Errors.Code.RCURVE_STABLE_ZERO_ASSET_ADDRESS);
         Errors._require(pool_ != address(0), Errors.Code.RCURVE_STABLE_ZERO_POOL_ADDRESS);
         Errors._require(valuedAsset_ != address(0), Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS);
-        Errors._require(valuedAssetDecimals_ > 0, Errors.Code.RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL);
+        Errors._require(
+            valuedAssetDecimals_ == IERC20Metadata(valuedAsset_).decimals(),
+            Errors.Code.RCURVE_STABLE_VALUED_ASSET_DECIMAL_NOT_MATCH_VALUED_ASSET
+        );
 
         assetToPoolInfo[asset_] = PoolInfo({
             pool: pool_,
@@ -47,7 +51,7 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
 
     function removePoolInfo(address asset_) external onlyOwner {
         Errors._require(assetToPoolInfo[asset_].pool != address(0), Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET);
-        assetToPoolInfo[asset_] = PoolInfo(address(0), address(0), 0);
+        delete assetToPoolInfo[asset_];
         emit PoolInfoRemoved(asset_);
     }
 
