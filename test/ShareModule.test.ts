@@ -183,6 +183,18 @@ describe('Share module', function () {
         .to.emit(shareModule, 'BeforePurchaseCalled')
         .to.emit(shareModule, 'AfterPurchaseCalled');
     });
+
+    it('should revert: purchase zero balance', async function () {
+      await shareModule.setState(FUND_STATE.EXECUTING);
+      await expect(shareModule.purchase(0)).to.be.revertedWith('RevertCode(81)'); // SHARE_MODULE_PURCHASE_ZERO_BALANCE
+    });
+
+    it('should revert: purchase zero share', async function () {
+      await shareModule.setState(FUND_STATE.EXECUTING);
+      await shareModule.purchase(BigNumber.from('10'));
+      await shareModule.setGrossAssetValue(constants.MaxInt256);
+      await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('RevertCode(82)'); // SHARE_MODULE_PURCHASE_ZERO_SHARE
+    });
   });
 
   describe('Redeem', function () {
@@ -416,6 +428,11 @@ describe('Share module', function () {
       await expect(shareModule.redeem(totalShare, acceptPending))
         .to.emit(shareModule, 'BeforeRedeemCalled')
         .to.emit(shareModule, 'AfterRedeemCalled');
+    });
+
+    it('should revert: redeem share is zero', async function () {
+      await shareModule.setState(FUND_STATE.EXECUTING);
+      await expect(shareModule.redeem(0, acceptPending)).to.be.revertedWith('RevertCode(83)'); // SHARE_MODULE_REDEEM_ZERO_SHARE
     });
   });
 

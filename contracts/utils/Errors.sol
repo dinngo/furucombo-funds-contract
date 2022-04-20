@@ -85,7 +85,10 @@ library Errors {
         SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE, // 77: "Pending redemption is not claimable"
         SHARE_MODULE_PENDING_ROUND_INCONSISTENT, // 78: "user pending round and current pending round are inconsistent"
         FUND_PROXY_FACTORY_INVALID_DENOMINATION, // 79: "Invalid denomination"
-        SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE // 80: "The requesting share amount is greater than total share amount"
+        SHARE_MODULE_SHARE_AMOUNT_TOO_LARGE, // 80: "The requesting share amount is greater than total share amount"
+        SHARE_MODULE_PURCHASE_ZERO_BALANCE, // 81: "The purchased balance is zero"
+        SHARE_MODULE_PURCHASE_ZERO_SHARE, // 82: "The share purchased need to greater than zero"
+        SHARE_MODULE_REDEEM_ZERO_SHARE // 83: "The redeem share is zero"
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {

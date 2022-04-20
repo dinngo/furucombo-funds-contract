@@ -107,12 +107,18 @@ abstract contract ShareModule is FundProxyStorageUtils {
     /// @return share The share amount being purchased.
     function purchase(uint256 balance_) external virtual nonReentrant returns (uint256 share) {
         _whenStates(State.Executing, State.Pending);
+
+        // Purchase balance need to greater than zero
+        Errors._require(balance_ > 0, Errors.Code.SHARE_MODULE_PURCHASE_ZERO_BALANCE);
         share = _purchase(msg.sender, balance_);
     }
 
     function _purchase(address user_, uint256 balance_) internal virtual returns (uint256 share) {
         uint256 grossAssetValue = _beforePurchase();
         share = _addShare(user_, balance_, grossAssetValue);
+
+        // Purchase share need to greater than zero
+        Errors._require(share > 0, Errors.Code.SHARE_MODULE_PURCHASE_ZERO_SHARE);
 
         uint256 penalty = _getPendingPenalty();
         uint256 bonus;
@@ -124,7 +130,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
             share += bonus;
         }
         grossAssetValue += balance_;
-        denomination.safeTransferFrom(msg.sender, address(vault), balance_);
+        denomination.safeTransferFrom(user_, address(vault), balance_);
         _afterPurchase(grossAssetValue);
 
         emit Purchased(user_, balance_, share, bonus);
@@ -133,6 +139,10 @@ abstract contract ShareModule is FundProxyStorageUtils {
     /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
     function redeem(uint256 share_, bool acceptPending_) external virtual nonReentrant returns (uint256 balance) {
         _when3States(State.Executing, State.Pending, State.Closed);
+
+        // Redeem share need to greater than zero
+        Errors._require(share_ > 0, Errors.Code.SHARE_MODULE_REDEEM_ZERO_SHARE);
+
         // Check redeem share need to greater than user share they own
         uint256 userShare = shareToken.balanceOf(msg.sender);
         Errors._require(share_ <= userShare, Errors.Code.SHARE_MODULE_INSUFFICIENT_SHARE);
