@@ -149,10 +149,6 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
             address(setupAction_) != address(0),
             Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
         );
-        Errors._require(
-            comptroller.isValidDenomination(address(denomination)),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
-        );
 
         // set vault approval
         bytes memory data = abi.encodeWithSignature("maxApprove(address)", denomination);
