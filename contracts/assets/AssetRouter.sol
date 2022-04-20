@@ -59,19 +59,12 @@ contract AssetRouter is IAssetRouter, Ownable {
             return amount_.toInt256();
         }
 
-        uint256 assetAmount = _getAssetAmount(asset_, amount_);
-        if (assetAmount == 0) {
+        // return zero value directly
+        if (amount_ == 0) {
             return 0;
         }
 
         IAssetResolver resolver = IAssetResolver(registry.resolvers(asset_));
-        return resolver.calcAssetValue(asset_, assetAmount, quote_);
-    }
-
-    function _getAssetAmount(address asset_, uint256 amount_) internal view returns (uint256) {
-        if (amount_ == type(uint256).max) {
-            amount_ = IERC20(asset_).balanceOf(msg.sender);
-        }
-        return amount_;
+        return resolver.calcAssetValue(asset_, amount_, quote_);
     }
 }

@@ -112,25 +112,6 @@ describe('RAaveProtocolV2Debt', function () {
       // Verify;
       expect(assetValue).to.be.eq(tokenValue.mul(-1));
     });
-
-    it('max amount', async function () {
-      const asset = vDebtToken.address;
-      const amount = constants.MaxUint256;
-      const quote = quoteAddress;
-
-      // get asset value by asset resolver
-      const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
-
-      const underlyingTokenAddress = await vDebtToken.UNDERLYING_ASSET_ADDRESS();
-      const tokenValue = await oracle.calcConversionAmount(
-        underlyingTokenAddress,
-        await vDebtToken.balanceOf(user.address),
-        quote
-      );
-
-      // Verify;
-      expect(assetValue).to.be.eq(tokenValue.mul(-1));
-    });
   });
 
   // NOTE: Stable Rate borrow is not available yet

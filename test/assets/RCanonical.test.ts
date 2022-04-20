@@ -62,17 +62,5 @@ describe('RCanonical', function () {
 
       expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amounts[0], quote));
     });
-
-    it('max amount', async function () {
-      const amount = ether('1');
-      const assets = [tokenA.address];
-      const amounts = [constants.MaxUint256];
-      const quote = quoteAddress;
-
-      await tokenA.connect(tokenAProvider).transfer(user.address, amount);
-      const assetValue = await router.connect(user).calcAssetsTotalValue(assets, amounts, quote);
-
-      expect(assetValue).to.be.eq(await oracle.calcConversionAmount(assets[0], amount, quote));
-    });
   });
 });
