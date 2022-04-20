@@ -67,7 +67,7 @@ library Errors {
         RCURVE_STABLE_ZERO_ASSET_ADDRESS, // 59: "Zero asset address"
         RCURVE_STABLE_ZERO_POOL_ADDRESS, // 60: "Zero pool address"
         RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS, // 61: "Zero valued asset address"
-        RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL, // 62: "Zero valued asset decimal"
+        RCURVE_STABLE_VALUED_ASSET_DECIMAL_NOT_MATCH_VALUED_ASSET, // 62: "Valued asset decimal not match valued asset"
         RCURVE_STABLE_POOL_INFO_IS_NOT_SET, // 63: "Pool info is not set"
         ASSET_MODULE_DIFFERENT_ASSET_REMAINING, // 64: "Different asset remaining"
         PERFORMANCE_FEE_MODULE_FEE_RATE_SHOULD_BE_LESS_THAN_BASE, // 65: "Fee rate should be less than 100%"

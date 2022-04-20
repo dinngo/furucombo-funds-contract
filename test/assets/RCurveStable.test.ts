@@ -129,10 +129,10 @@ describe('RCurveStable', function () {
       ).to.be.revertedWith('RevertCode(61)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS
     });
 
-    it('should revert: zero asset decimal', async function () {
+    it('should revert: asset decimal not match', async function () {
       await expect(
         resolver.connect(owner).setPoolInfo(lpToken.address, liquidityPool.address, token.address, 0)
-      ).to.be.revertedWith('RevertCode(62)'); // RCURVE_STABLE_ZERO_VALUED_ASSET_DECIMAL
+      ).to.be.revertedWith('RevertCode(62)'); // RCURVE_STABLE_VALUED_ASSET_DECIMAL_NOT_MATCH_VALUED_ASSET
     });
 
     it('should revert: zero pool address', async function () {
