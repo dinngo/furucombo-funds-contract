@@ -2,14 +2,11 @@
 
 pragma solidity 0.8.10;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IUniswapV2Router02} from "../../../interfaces/IUniswapV2Router02.sol";
 import {SushiSwapLibrary} from "./libraries/SushiSwapLibrary.sol";
 import {HandlerBase} from "../HandlerBase.sol";
 
 contract HSushiSwap is HandlerBase {
-    using SafeERC20 for IERC20;
-
     // prettier-ignore
     address public constant SUSHISWAP_ROUTER = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506;
 

@@ -6,7 +6,6 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IERC20Usdt} from "../../interfaces/IERC20Usdt.sol";
 import {Config} from "../Config.sol";
 import {Storage, LibStack} from "../Storage.sol";
-import {IFurucomboRegistry} from "../interfaces/IFurucomboRegistry.sol";
 
 abstract contract HandlerBase is Storage, Config {
     using SafeERC20 for IERC20;

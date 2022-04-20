@@ -2,7 +2,6 @@
 pragma solidity 0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {AssetModule} from "./modules/AssetModule.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
@@ -10,9 +9,8 @@ import {ManagementFeeModule} from "./modules/ManagementFeeModule.sol";
 import {PerformanceFeeModule} from "./modules/PerformanceFeeModule.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
-import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
+import {IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
-import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 import {SetupAction} from "./actions/SetupAction.sol";
 import {Errors} from "./utils/Errors.sol";

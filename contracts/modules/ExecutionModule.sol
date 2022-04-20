@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
-import {Whitelist} from "../libraries/Whitelist.sol";
 
 /// @title Execution module
 abstract contract ExecutionModule is FundProxyStorageUtils {

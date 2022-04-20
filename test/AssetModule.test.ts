@@ -1,4 +1,4 @@
-import { constants, Wallet, BigNumber } from 'ethers';
+import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { ComptrollerImplementation, AssetModuleMock, SimpleToken } from '../typechain';

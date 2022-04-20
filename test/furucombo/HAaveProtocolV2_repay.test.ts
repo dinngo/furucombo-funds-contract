@@ -9,7 +9,6 @@ import {
   ILendingPoolV2,
   HAaveProtocolV2,
   FurucomboProxyMock,
-  IVariableDebtToken,
 } from '../../typechain';
 
 import {
@@ -53,7 +52,6 @@ describe('Aave V2 Repay', function () {
   let lendingPool: ILendingPoolV2;
 
   let userBalance: BigNumber;
-  let proxyBalance: BigNumber;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments

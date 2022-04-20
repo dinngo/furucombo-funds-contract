@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IUniswapV2Factory} from "../../../interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "../../../interfaces/IUniswapV2Pair.sol";
 import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
-    using SafeERC20 for IERC20;
     uint256 private constant _BONE = 10**18;
 
     /// @notice Calculate asset value given the amount.
