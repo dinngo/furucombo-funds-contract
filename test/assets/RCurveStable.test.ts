@@ -216,27 +216,6 @@ describe('RCurveStable', function () {
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
     });
-
-    it('max amount', async function () {
-      const asset = lpToken.address;
-      const amount = ether('1');
-      const quote = quoteAddress;
-
-      // calculate expect value
-      await lpToken.connect(lpTokenProvider).transfer(user.address, amount);
-      const virtualPrice = await liquidityPool.get_virtual_price();
-      const tokenValue = await oracle.calcConversionAmount(
-        token.address,
-        virtualPrice.mul(amount).div(virutalPriceUnit),
-        quote
-      );
-
-      // Get asset value by asset resolver
-      const assetValue = await router.connect(user).calcAssetValue(asset, constants.MaxUint256, quote);
-
-      // Verify;
-      expect(assetValue).to.be.eq(tokenValue);
-    });
   });
 
   describe('calculate value < 18 decimal valued asset', function () {
@@ -268,31 +247,6 @@ describe('RCurveStable', function () {
 
       // Get asset value by asset resolver
       const assetValue = await router.connect(user).calcAssetValue(asset, amount, quote);
-
-      // Verify;
-      expect(assetValue).to.be.eq(tokenValue);
-    });
-
-    it('max amount', async function () {
-      const asset = lpToken.address;
-      const amount = ether('1');
-      const quote = quoteAddress;
-
-      // Calculate expect value
-      await lpToken.connect(lpTokenProvider).transfer(user.address, amount);
-      const virtualPrice = await liquidityPool.get_virtual_price();
-      const tokenValue = await oracle.calcConversionAmount(
-        token.address,
-        virtualPrice
-          .mul(amount)
-          .mul(BigNumber.from(10 ** (await token.decimals())))
-          .div(virutalPriceUnit)
-          .div(virutalPriceUnit),
-        quote
-      );
-
-      // Get asset value by asset resolver
-      const assetValue = await router.connect(user).calcAssetValue(asset, constants.MaxUint256, quote);
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);

@@ -115,20 +115,6 @@ describe('AssetRouter', function () {
       expect(assetValue).to.be.eq(amounts[0]);
     });
 
-    it('calculate single assets with MAX amount', async function () {
-      let amount = ether('1');
-      const assets = [tokenA.address];
-      const amounts = [constants.MaxUint256];
-      const quote = quoteAddress;
-
-      await tokenA.connect(tokenAProvider).transfer(user.address, amount);
-      amount = await tokenA.balanceOf(user.address);
-      const assetValue = await router.connect(user).calcAssetsTotalValue(assets, amounts, quote);
-
-      const expectValue = amount.mul(2);
-      expect(assetValue).to.be.eq(expectValue);
-    });
-
     it('calculate multiple assets', async function () {
       const assets = [tokenA.address, tokenB.address];
       const amounts = [ether('1'), ether('0.5')];
