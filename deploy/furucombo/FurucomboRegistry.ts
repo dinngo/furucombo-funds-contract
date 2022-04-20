@@ -24,12 +24,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hQuickSwap = await deployments.get('HQuickSwap');
     const hSushiSwap = await deployments.get('HSushiSwap');
     const hCurve = await deployments.get('HCurve');
+    const hParaSwapV5 = await deployments.get('HParaSwapV5');
 
     await registry.register(hAaveProtocolV2.address, ethers.utils.formatBytes32String('HAaveProtocolV2'));
     await registry.register(hFunds.address, ethers.utils.formatBytes32String('HFunds'));
     await registry.register(hQuickSwap.address, ethers.utils.formatBytes32String('HQuickSwap'));
     await registry.register(hSushiSwap.address, ethers.utils.formatBytes32String('HSushiSwap'));
     await registry.register(hCurve.address, ethers.utils.formatBytes32String('HCurve'));
+    await registry.register(hParaSwapV5.address, ethers.utils.formatBytes32String('HParaSwapV5'));
 
     // Register caller
     await registry.registerCaller(
@@ -46,4 +48,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['FurucomboRegistry'];
-func.dependencies = ['HAaveProtocolV2', 'HFunds', 'HQuickSwap', 'HSushiSwap', 'HCurve'];
+func.dependencies = ['HAaveProtocolV2', 'HFunds', 'HQuickSwap', 'HSushiSwap', 'HCurve', 'HParaSwapV5'];

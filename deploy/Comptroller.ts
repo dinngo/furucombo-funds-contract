@@ -6,6 +6,7 @@ import {
   WL_QUICKSWAP_SIGS,
   WL_SUSHISWAP_SIGS,
   WL_CURVE_SIGS,
+  WL_PARASWAP_V5_SIGS,
   LEVEL,
   LEVEL_AMOUNT,
   EXEC_FEE_PERCENTAGE,
@@ -108,12 +109,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hQuickSwap = await deployments.get('HQuickSwap');
     const hSushiSwap = await deployments.get('HSushiSwap');
     const hCurve = await deployments.get('HCurve');
+    const hParaSwapV5 = await deployments.get('HParaSwapV5');
     const wlAddressList = [
       ...Array(WL_AAVE_V2_SIGS.length).fill(hAaveProtocolV2.address),
       ...Array(WL_FUNDS_SIGS.length).fill(hFunds.address),
       ...Array(WL_QUICKSWAP_SIGS.length).fill(hQuickSwap.address),
       ...Array(WL_SUSHISWAP_SIGS.length).fill(hSushiSwap.address),
       ...Array(WL_CURVE_SIGS.length).fill(hCurve.address),
+      ...Array(WL_PARASWAP_V5_SIGS.length).fill(hParaSwapV5.address),
     ];
     const wlSigList = [
       ...WL_AAVE_V2_SIGS,
@@ -121,6 +124,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ...WL_QUICKSWAP_SIGS,
       ...WL_SUSHISWAP_SIGS,
       ...WL_CURVE_SIGS,
+      ...WL_PARASWAP_V5_SIGS,
     ];
     await comptroller.permitHandlers(LEVEL, wlAddressList, wlSigList);
   }
@@ -138,4 +142,5 @@ func.dependencies = [
   'HQuickSwap',
   'HSushiSwap',
   'HCurve',
+  'HParaSwapV5',
 ];
