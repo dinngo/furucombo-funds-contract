@@ -3,6 +3,7 @@ pragma solidity 0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {AssetModule} from "./modules/AssetModule.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
 import {ManagementFeeModule} from "./modules/ManagementFeeModule.sol";
@@ -20,6 +21,8 @@ import {Errors} from "./utils/Errors.sol";
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
 contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
+    using SafeCast for uint256;
+
     IDSProxyRegistry public immutable dsProxyRegistry;
     ISetupAction public immutable setupAction;
 
@@ -203,7 +206,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
             super._addAsset(asset_);
         } else {
             int256 value = getAssetValue(asset_);
-            int256 dust = int256(comptroller.getDenominationDust(address(denomination)));
+            int256 dust = comptroller.getDenominationDust(address(denomination)).toInt256();
 
             if (value >= dust || value < 0) {
                 super._addAsset(asset_);
@@ -224,7 +227,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         address _denomination = address(denomination);
         if (asset_ != _denomination) {
             int256 value = getAssetValue(asset_);
-            int256 dust = int256(comptroller.getDenominationDust(_denomination));
+            int256 dust = comptroller.getDenominationDust(_denomination).toInt256();
 
             if (value < dust && value >= 0) {
                 super._removeAsset(asset_);

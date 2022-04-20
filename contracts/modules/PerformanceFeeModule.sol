@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {LibFee} from "../libraries/LibFee.sol";
@@ -12,6 +13,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
+    using SafeCast for uint256;
 
     int128 private constant _FEE_BASE64x64 = 1 << 64;
     uint256 private constant _FEE_PERIOD = 31557600; // 365.25*24*60*60
@@ -105,9 +107,9 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         int256 wealth = LibFee
             ._max64x64(hwm64x64, grossSharePrice64x64)
             .sub(LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64))
-            .muli(int256(totalShare));
+            .muli(totalShare.toInt256());
         int256 fee = pFeeRate64x64.muli(wealth);
-        pFeeSum = uint256(LibFee._max(0, int256(pFeeSum) + fee));
+        pFeeSum = uint256(LibFee._max(0, pFeeSum.toInt256() + fee));
         uint256 netAssetValue = grossAssetValue_ - pFeeSum;
         uint256 outstandingShare = (totalShare * pFeeSum) / netAssetValue;
         if (outstandingShare > lastOutstandingShare) {
