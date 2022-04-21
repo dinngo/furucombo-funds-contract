@@ -2,14 +2,11 @@
 
 pragma solidity 0.8.10;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IUniswapV2Router02} from "../../../interfaces/IUniswapV2Router02.sol";
 import {UniswapV2Library} from "./libraries/UniswapV2Library.sol";
 import {HandlerBase} from "../HandlerBase.sol";
 
 contract HQuickSwap is HandlerBase {
-    using SafeERC20 for IERC20;
-
     // prettier-ignore
     address public constant UNISWAPV2_ROUTER = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
 

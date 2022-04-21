@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IShareToken} from "./IShareToken.sol";
-
 interface IFund {
     function initializeOwnership(address newOwner_) external;
 

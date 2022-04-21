@@ -2,7 +2,7 @@ import { Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { PerformanceFeeModuleMock, ShareToken } from '../typechain';
-import { DS_PROXY_REGISTRY, FUND_PERCENTAGE_BASE } from './utils/constants';
+import { FUND_PERCENTAGE_BASE } from './utils/constants';
 import { get64x64FromNumber, ether, expectEqWithinBps } from './utils/utils';
 
 /// @notice increase the block time need mine block,

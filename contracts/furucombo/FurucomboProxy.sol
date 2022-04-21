@@ -15,7 +15,6 @@ import {LibParam} from "./lib/LibParam.sol";
  * @author Ben Huang
  */
 contract FurucomboProxy is IFurucomboProxy, Storage, Config {
-    using Address for address;
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
     using LibStack for bytes32[];

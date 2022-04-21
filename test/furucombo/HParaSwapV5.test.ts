@@ -1,4 +1,4 @@
-import { constants, Wallet, BigNumber, Signer } from 'ethers';
+import { Wallet } from 'ethers';
 import { expect, assert } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { FurucomboProxyMock, FurucomboRegistry, IERC20, HParaSwapV5 } from '../../typechain';

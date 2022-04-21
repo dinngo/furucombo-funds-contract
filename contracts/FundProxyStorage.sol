@@ -11,8 +11,6 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
 abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
-    using LibUniqueAddressList for LibUniqueAddressList.List;
-
     enum State {
         Initializing,
         Reviewing,

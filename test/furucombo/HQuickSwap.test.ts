@@ -1,4 +1,4 @@
-import { constants, Wallet, BigNumber, Signer } from 'ethers';
+import { constants, Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { FurucomboProxyMock, FurucomboRegistry, IERC20, IUniswapV2Router02, HQuickSwap } from '../../typechain';
@@ -10,7 +10,6 @@ import {
   profileGas,
   simpleEncode,
   asciiToHex32,
-  balanceDelta,
   getHandlerReturn,
   tokenProviderSushi,
   mulPercent,
@@ -25,15 +24,10 @@ describe('QuickSwap Swap', function () {
   let user: Wallet;
   let someone: Wallet;
 
-  let token: IERC20;
-
   let proxy: FurucomboProxyMock;
   let registry: FurucomboRegistry;
   let hQuickSwap: HQuickSwap;
   let router: IUniswapV2Router02;
-
-  let userBalance: BigNumber;
-  let proxyBalance: BigNumber;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments

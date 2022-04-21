@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
-import {IShareToken} from "../interfaces/IShareToken.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /// @title Management fee module

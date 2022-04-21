@@ -14,8 +14,6 @@ import {
   maticProviderWmatic,
   getHandlerReturn,
   profileGas,
-  sendEther,
-  balanceDelta,
 } from './../utils/utils';
 
 describe('Funds', function () {

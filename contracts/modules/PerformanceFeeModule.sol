@@ -6,18 +6,15 @@ import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {FundProxyStorageUtils} from "../FundProxyStorageUtils.sol";
 import {LibFee} from "../libraries/LibFee.sol";
 import {Errors} from "../utils/Errors.sol";
-import {IShareToken} from "../interfaces/IShareToken.sol";
 
 /// @title Performance fee module
 abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int128;
-    using ABDKMath64x64 for int256;
     using ABDKMath64x64 for uint256;
     using SafeCast for uint256;
 
     int128 private constant _FEE_BASE64x64 = 1 << 64;
     uint256 private constant _FEE_PERIOD = 31557600; // 365.25*24*60*60
-    uint256 private constant _FEE_DENOMINATOR = _FUND_PERCENTAGE_BASE * _FEE_PERIOD;
     address private constant _OUTSTANDING_ACCOUNT = address(1);
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);

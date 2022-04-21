@@ -14,7 +14,6 @@ import {
   SimpleToken,
   AssetRouter,
   MortgageVault,
-  FundProxy,
 } from '../typechain';
 
 import { DS_PROXY_REGISTRY, FUND_PERCENTAGE_BASE, FUND_STATE, USDC_TOKEN } from './utils/constants';
