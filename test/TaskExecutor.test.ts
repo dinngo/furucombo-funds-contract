@@ -926,7 +926,9 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('FundQuotaAction: insufficient quota');
+      ).to.be.revertedWith(
+        'reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)'
+      );
     });
 
     it('should revert: repeat assets', async function () {

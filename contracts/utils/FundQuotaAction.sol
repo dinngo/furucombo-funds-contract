@@ -32,7 +32,6 @@ abstract contract FundQuotaAction {
 
     function _decreaseFundQuota(address fund_, uint256 quota_) internal {
         uint256 oldQuota = FundQuota._get(fund_);
-        require(oldQuota >= quota_, "FundQuotaAction: insufficient quota");
         _setFundQuota(fund_, oldQuota - quota_);
     }
 
