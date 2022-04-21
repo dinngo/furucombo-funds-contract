@@ -121,10 +121,6 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
             address(mortgageVault) == address(0),
             Errors.Code.FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
         );
-        Errors._require(
-            address(comptroller_) != address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
-        );
 
         mortgageVault = comptroller_.mortgageVault();
         Errors._require(
