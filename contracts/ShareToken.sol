@@ -35,11 +35,29 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
     }
 
     function move(
-        address sender_,
-        address recipient_,
+        address from_,
+        address to_,
         uint256 amount_
     ) external onlyOwner {
-        _transfer(sender_, recipient_, amount_);
+        _transfer(from_, to_, amount_);
+    }
+
+    function approvedMove(
+        address spender_,
+        address from_,
+        address to_,
+        uint256 amount_
+    ) external onlyOwner {
+        _spendAllowance(from_, spender_, amount_);
+        _transfer(from_, to_, amount_);
+    }
+
+    function setApproval(
+        address owner_,
+        address spender_,
+        uint256 amount_
+    ) external onlyOwner {
+        _approve(owner_, spender_, amount_);
     }
 
     function decimals() public view override returns (uint8) {
