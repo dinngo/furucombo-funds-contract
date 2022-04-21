@@ -16,16 +16,12 @@ contract AMock is ActionBase {
         _addDealingAsset(a_);
     }
 
-    function doGetDealingAsset(address a_) external view returns (bool) {
-        return _getDealingAsset(a_);
+    function doIsDealingAssetExist(address a_) external view returns (bool) {
+        return _isDealingAssetExist(a_);
     }
 
     function doGetDealingAssets() external view returns (address[] memory) {
         return _getDealingAssets();
-    }
-
-    function doRemoveDealingAsset(address asset) external {
-        _removeDealingAsset(asset);
     }
 
     function doCleanAssets() external {
