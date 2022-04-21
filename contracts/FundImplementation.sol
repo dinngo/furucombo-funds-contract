@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {AssetModule} from "./modules/AssetModule.sol";
 import {ExecutionModule} from "./modules/ExecutionModule.sol";
@@ -19,6 +19,7 @@ import {Errors} from "./utils/Errors.sol";
 /// @notice The functions that requires ownership, interaction between
 /// different modules should be override and implemented here.
 contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
+    using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
     IDSProxyRegistry public immutable dsProxyRegistry;
@@ -90,6 +91,16 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
         // Initialize performance fee parameters
         _initializePerformanceFee();
+
+        // Transfer mortgage token to this fund then call mortgage vault
+        (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(level);
+        Errors._require(isMortgageTierSet, Errors.Code.IMPLEMENTATION_INVALID_MORTGAGE_TIER);
+        if (amount > 0) {
+            IERC20 mortgageToken = mortgageVault.mortgageToken();
+            mortgageToken.safeTransferFrom(msg.sender, address(this), amount);
+            mortgageToken.safeApprove(address(mortgageVault), amount);
+            mortgageVault.mortgage(amount);
+        }
     }
 
     /// @notice Resume the fund by anyone if can settle pending share.
@@ -118,7 +129,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
         _liquidate();
 
-        mortgageVault.claim(comptroller.owner());
         _transferOwnership(comptroller.pendingLiquidator());
     }
 

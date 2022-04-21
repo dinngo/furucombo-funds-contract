@@ -13,6 +13,7 @@ contract FundProxyFactory {
     event FundCreated(address indexed newFund, address comptroller, address shareToken, address vault);
 
     IComptroller public comptroller;
+    mapping(address => bool) public isFundCreated;
 
     constructor(IComptroller comptroller_) {
         comptroller = comptroller_;
@@ -32,8 +33,7 @@ contract FundProxyFactory {
             comptroller.isValidDenomination(address(denomination_)),
             Errors.Code.FUND_PROXY_FACTORY_INVALID_DENOMINATION
         );
-        IMortgageVault mortgageVault = comptroller.mortgageVault();
-        (bool isMortgageTierSet, uint256 amount) = comptroller.mortgageTier(level_);
+        (bool isMortgageTierSet, ) = comptroller.mortgageTier(level_);
         Errors._require(isMortgageTierSet, Errors.Code.FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER);
         // Can be customized
         ShareToken share = new ShareToken(shareTokenName_, "FFST", denomination_.decimals());
@@ -50,10 +50,12 @@ contract FundProxyFactory {
             msg.sender
         );
 
-        IFund fund = IFund(address(new FundProxy(address(comptroller), data)));
-        mortgageVault.mortgage(msg.sender, address(fund), amount);
-        share.transferOwnership(address(fund));
-        emit FundCreated(address(fund), address(comptroller), address(share), fund.vault());
-        return address(fund);
+        address fund = address(new FundProxy(address(comptroller), data));
+        share.transferOwnership(fund);
+        isFundCreated[fund] = true;
+
+        emit FundCreated(fund, address(comptroller), address(share), IFund(fund).vault());
+
+        return fund;
     }
 }

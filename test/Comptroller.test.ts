@@ -407,7 +407,7 @@ describe('Comptroller', function () {
     const level = 1;
     const otherLevel = 0;
     const amount = 5000;
-    it('set staking tier', async function () {
+    it('set mortgage tier', async function () {
       // check env before execution
       let mortgageTierConfig = await comptroller.connect(user).mortgageTier(level);
       expect(mortgageTierConfig[0]).to.be.false;
@@ -426,7 +426,7 @@ describe('Comptroller', function () {
       expect((await comptroller.connect(user).mortgageTier(otherLevel))[1]).to.be.equal(0);
     });
 
-    it('unset staking tier', async function () {
+    it('unset mortgage tier', async function () {
       // set mortgage tier amount
       await expect(comptroller.setMortgageTier(level, amount))
         .to.emit(comptroller, 'SetMortgageTier')
@@ -446,7 +446,7 @@ describe('Comptroller', function () {
       expect(mortgageTierConfig[1]).to.be.equal(0);
     });
 
-    it('should revert: set staking tier by non-owner', async function () {
+    it('should revert: set mortgage tier by non-owner', async function () {
       await expect(comptroller.connect(user).setMortgageTier(level, amount)).to.be.revertedWith(
         'Ownable: caller is not the owner'
       );
@@ -456,6 +456,7 @@ describe('Comptroller', function () {
       const dustD = ethers.utils.parseUnits('0.1', 18);
       beforeEach(async function () {
         await comptroller.permitDenominations([tokenD.address], [dustD]);
+        await comptroller.permitAssets(level, [tokenD.address]);
         await comptroller.setMortgageTier(level, amount);
       });
 
@@ -472,16 +473,18 @@ describe('Comptroller', function () {
         ); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
       });
 
-      it('should mortgage for the given tier', async function () {
+      it('mortgage for the given tier', async function () {
         const tokenMUserBefore = await tokenM.balanceOf(user.address);
         const tokenMVaultBefore = await tokenM.balanceOf(mortgageVault.address);
-        await tokenM.connect(user).approve(mortgageVault.address, amount);
         await comptroller.permitCreators([user.address]);
         const receipt = await factory.connect(user).createFund(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
-        const fund = await getEventArgs(receipt, 'FundCreated');
+        const fundAddress = (await getEventArgs(receipt, 'FundCreated'))[0];
+        const fund = (await ethers.getContractFactory('FundImplementation')).attach(fundAddress);
+        await tokenM.connect(user).approve(fund.address, amount);
+        await fund.connect(user).finalize();
         const tokenMUserAfter = await tokenM.balanceOf(user.address);
         const tokenMVaultAfter = await tokenM.balanceOf(mortgageVault.address);
-        const mortgageFund = await mortgageVault.fundAmounts(fund[0]);
+        const mortgageFund = await mortgageVault.fundAmounts(fundAddress);
         expect(tokenMUserBefore.sub(tokenMUserAfter)).to.be.eq(amount);
         expect(tokenMVaultAfter.sub(tokenMVaultBefore)).to.be.eq(amount);
         expect(mortgageFund).to.be.eq(amount);
