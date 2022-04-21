@@ -54,7 +54,7 @@ describe('FundProxyStorageUtils', function () {
     tokenAProvider = await impersonateAndInjectEther(DAI_PROVIDER);
     tokenA = await ethers.getContractAt('IERC20', DAI_TOKEN);
 
-    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
     await fundImplementation.deployed();
 
     registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
@@ -69,7 +69,10 @@ describe('FundProxyStorageUtils', function () {
     mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenA.address);
     await mortgageVault.deployed();
 
+    setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+    await setupAction.deployed();
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
+
     await comptroller.deployed();
     await comptroller.initialize(
       fundImplementation.address,
@@ -79,7 +82,9 @@ describe('FundProxyStorageUtils', function () {
       liquidator.address,
       constants.Zero,
       mortgageVault.address,
-      0
+      0,
+      DS_PROXY_REGISTRY,
+      setupAction.address
     );
 
     foo = await (await ethers.getContractFactory('FundFoo')).deploy();
@@ -90,7 +95,7 @@ describe('FundProxyStorageUtils', function () {
     dsProxyRegistryMock = await (await ethers.getContractFactory('DSProxyRegistryMock')).deploy();
     await dsProxyRegistryMock.deployed();
 
-    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy(DS_PROXY_REGISTRY);
+    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy();
     await proxy.deployed();
 
     tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
@@ -100,9 +105,6 @@ describe('FundProxyStorageUtils', function () {
     // Permit delegate calls
     comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
     comptroller.permitContractCalls(await proxy.level(), [foo.address], [WL_ANY_SIG]);
-
-    setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
-    await setupAction.deployed();
   });
 
   // `beforeEach` will run before each test, re-deploying the contract every

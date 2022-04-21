@@ -99,7 +99,7 @@ describe('FundImplementation', function () {
     tokenC = await ethers.getContractAt('ERC20', tokenCAddress);
     tokenCProvider = await tokenProviderQuick(tokenC.address);
 
-    fundImplementation = await (await ethers.getContractFactory('FundImplementationMock')).deploy(DS_PROXY_REGISTRY);
+    fundImplementation = await (await ethers.getContractFactory('FundImplementationMock')).deploy();
 
     const canonicalResolver = await (await ethers.getContractFactory('RCanonical')).deploy();
 
@@ -122,6 +122,9 @@ describe('FundImplementation', function () {
     mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenA.address);
     await mortgageVault.deployed();
 
+    const setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+    await setupAction.deployed();
+
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptroller.deployed();
     await comptroller.initialize(
@@ -132,7 +135,9 @@ describe('FundImplementation', function () {
       liquidator.address,
       pendingExpiration,
       mortgageVault.address,
-      valueTolerance
+      valueTolerance,
+      DS_PROXY_REGISTRY,
+      setupAction.address
     );
 
     action = await (await ethers.getContractFactory('SimpleAction')).deploy();
@@ -173,40 +178,16 @@ describe('FundImplementation', function () {
     await foo.deployed();
   });
 
-  async function transferAssetToVault() {
-    await fundImplementation.finalize();
-
-    // Transfer asset to vault
-    const expectedA = await oracle.calcConversionAmount(tokenA.address, tokenAAmount, denomination.address);
-    const expectedB = await oracle.calcConversionAmount(tokenB.address, tokenBAmount, denomination.address);
-
-    // Permit asset
-    await comptroller.permitAssets(level, [tokenA.address, tokenB.address]);
-
-    // Transfer assets to vault
-    await tokenA.connect(tokenAProvider).transfer(vault.address, tokenAAmount);
-    await tokenB.connect(tokenBProvider).transfer(vault.address, tokenBAmount);
-
-    // Add assets to tracking list
-    await fundImplementation.addAsset(tokenA.address);
-    await fundImplementation.addAsset(tokenB.address);
-
-    const value = await fundImplementation.getGrossAssetValue();
-    expect(value).to.be.eq(expectedA.add(expectedB));
-
-    // Transfer 10% of total asset value, this makes currentReserve percentage close to 1/11.
-    const denominationReserve = value.div(10);
-    await denomination.connect(denominationProvider).transfer(vault.address, denominationReserve);
-
-    const totalAssetValue = await fundImplementation.getGrossAssetValue();
-    const currentReserve = denominationReserve.mul(reserveBase).div(totalAssetValue);
-
-    return currentReserve;
-  }
-
   beforeEach(async function () {
     await setupTest();
     const nts = await shareToken.netTotalShare();
+  });
+
+  describe('Implementation', function () {
+    it('implementation owner should be address(0)', async function () {
+      const implementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
+      expect(await implementation.owner()).to.be.equal(constants.AddressZero);
+    });
   });
 
   describe('State changes', function () {

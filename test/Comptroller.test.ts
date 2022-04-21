@@ -14,6 +14,7 @@ import {
   AssetRegistry,
   SimpleToken,
   FundProxyFactory,
+  SetupAction,
 } from '../typechain';
 import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN, ASSET_CAPACITY } from './utils/constants';
 import { getEventArgs } from './utils/utils';
@@ -28,6 +29,7 @@ describe('Comptroller', function () {
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
   let taskExecutor: TaskExecutor;
+  let setupAction: SetupAction;
 
   let owner: Wallet;
   let user: Wallet;
@@ -50,7 +52,7 @@ describe('Comptroller', function () {
     tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
     await tokenD.deployed();
 
-    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
     await fundImplementation.deployed();
 
     registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
@@ -68,6 +70,9 @@ describe('Comptroller', function () {
     comptrollerImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptrollerImplementation.deployed();
 
+    setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+    await setupAction.deployed();
+
     const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
       fundImplementation.address,
       assetRouter.address,
@@ -77,6 +82,8 @@ describe('Comptroller', function () {
       0,
       mortgageVault.address,
       0,
+      DS_PROXY_REGISTRY,
+      setupAction.address,
     ]);
 
     comptrollerProxy = await (
@@ -196,7 +203,7 @@ describe('Comptroller', function () {
       expect(await comptroller.connect(user).implementation()).to.be.equal(fundImplementation.address);
 
       // deploy new implementation
-      const newImpl = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+      const newImpl = await (await ethers.getContractFactory('FundImplementation')).deploy();
       await newImpl.deployed();
 
       // set new implementation
@@ -204,6 +211,10 @@ describe('Comptroller', function () {
 
       // check new implementation
       expect(await comptroller.connect(user).implementation()).to.be.equal(newImpl.address);
+    });
+
+    it('implementation owner should be address(0)', async function () {
+      expect(await comptrollerImplementation.owner()).to.be.equal(constants.AddressZero);
     });
 
     it('should revert: set implementation by non-owner', async function () {
@@ -629,7 +640,6 @@ describe('Comptroller', function () {
   // Pending
   describe('Pending', function () {
     const expiration = 86400; // 1 day
-    const penalty = 100; // 1%
 
     it('set liquidator', async function () {
       expect(await comptroller.pendingLiquidator()).to.be.eq(liquidator.address);
@@ -733,7 +743,9 @@ describe('Comptroller', function () {
           liquidator.address,
           0,
           mortgageVault.address,
-          0
+          0,
+          DS_PROXY_REGISTRY,
+          setupAction.address
         )
       ).to.be.revertedWith('RevertCode(89)'); // COMPTROLLER_BEACON_IS_INITIALIZED
     });

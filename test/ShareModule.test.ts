@@ -30,6 +30,9 @@ describe('Share module', function () {
     await shareModule.deployed();
 
     const anyAddress = user3.address;
+    const setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+    await setupAction.deployed();
+
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptroller.deployed();
     await comptroller.initialize(
@@ -40,8 +43,11 @@ describe('Share module', function () {
       anyAddress,
       constants.Zero,
       anyAddress,
-      constants.Zero
+      constants.Zero,
+      DS_PROXY_REGISTRY,
+      setupAction.address
     );
+
     tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user1).deploy();
     await tokenD.deployed();
     // initialize

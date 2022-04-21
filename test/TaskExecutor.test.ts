@@ -71,7 +71,7 @@ describe('Task Executor', function () {
     tokenA = await ethers.getContractAt('IERC20', DAI_TOKEN);
     tokenB = await ethers.getContractAt('IERC20', WETH_TOKEN);
 
-    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
     await fundImplementation.deployed();
 
     registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
@@ -86,6 +86,9 @@ describe('Task Executor', function () {
     mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenA.address);
     await mortgageVault.deployed();
 
+    const setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+    await setupAction.deployed();
+
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptroller.deployed();
     await comptroller.initialize(
@@ -96,7 +99,9 @@ describe('Task Executor', function () {
       liquidator.address,
       constants.Zero,
       mortgageVault.address,
-      0
+      0,
+      DS_PROXY_REGISTRY,
+      setupAction.address
     );
 
     taskExecutor = await (await ethers.getContractFactory('TaskExecutor')).deploy(owner.address, comptroller.address);
@@ -112,8 +117,9 @@ describe('Task Executor', function () {
 
     dsProxyRegistry = await ethers.getContractAt('IDSProxyRegistry', DS_PROXY_REGISTRY);
 
-    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy(dsProxyRegistry.address);
+    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy();
     await proxy.deployed();
+    // await proxy.setVault(dsProxyRegistry.address);
 
     tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
     await tokenD.deployed();

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
-import {IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
 import {FundImplementation} from "../FundImplementation.sol";
 
 contract FundImplementationMock is FundImplementation {
@@ -12,7 +11,7 @@ contract FundImplementationMock is FundImplementation {
     uint256 public grossAssetValueMock;
     uint256 public lastGrossAssetValue;
 
-    constructor(IDSProxyRegistry dsProxyRegistry_) FundImplementation(dsProxyRegistry_) {}
+    constructor() FundImplementation() {}
 
     function reviewingMock() external {
         _enterState(State.Reviewing);

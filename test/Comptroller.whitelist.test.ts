@@ -43,7 +43,7 @@ describe('ComptrollerImplementation_Whitelist', function () {
     tokenM = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
     await tokenM.deployed();
 
-    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
     await fundImplementation.deployed();
 
     registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
@@ -63,6 +63,9 @@ describe('ComptrollerImplementation_Whitelist', function () {
     comptrollerImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptrollerImplementation.deployed();
 
+    const setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+    await setupAction.deployed();
+
     const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
       fundImplementation.address,
       assetRouter.address,
@@ -72,6 +75,8 @@ describe('ComptrollerImplementation_Whitelist', function () {
       0,
       mortgageVault.address,
       0,
+      DS_PROXY_REGISTRY,
+      setupAction.address,
     ]);
 
     comptrollerProxy = await (

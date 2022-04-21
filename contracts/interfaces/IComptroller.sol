@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IAssetRouter} from "../assets/interfaces/IAssetRouter.sol";
 import {IMortgageVault} from "./IMortgageVault.sol";
+import {IDSProxyRegistry} from "./IDSProxy.sol";
+import {ISetupAction} from "./ISetupAction.sol";
 
 interface IComptroller {
     function owner() external view returns (address);
@@ -58,4 +60,8 @@ interface IComptroller {
     function getDenominationDust(address denomination_) external view returns (uint256);
 
     function isValidCreator(address creator_) external view returns (bool);
+
+    function dsProxyRegistry() external view returns (IDSProxyRegistry);
+
+    function setupAction() external view returns (ISetupAction);
 }
