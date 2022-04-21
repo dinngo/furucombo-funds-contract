@@ -120,7 +120,7 @@ describe('FundQuotaAction', function () {
       // Execution
 
       await expect(action.doDecreaseFundQuota(tokenA, quota.add(BigNumber.from('1')))).to.be.revertedWith(
-        'insufficient quota'
+        'reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)'
       );
     });
 
