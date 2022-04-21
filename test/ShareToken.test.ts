@@ -24,6 +24,9 @@ describe('ShareToken', function () {
   });
 
   describe('beforeTokenTransfer', function () {
+    it('should revert: invalid from share token', async function () {
+      await expect(shareToken.move(shareToken.address, user1.address, ether('1'))).to.be.revertedWith('RevertCode(84)'); // SHARE_TOKEN_INVALID_FROM
+    });
     it('should revert: invalid to address(1)', async function () {
       await expect(shareToken.transfer('0x0000000000000000000000000000000000000001', ether('1'))).to.be.revertedWith(
         'RevertCode(6)'

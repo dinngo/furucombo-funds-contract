@@ -2,7 +2,7 @@ import { BigNumber, constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { ComptrollerImplementation, ShareModuleMock, SimpleToken, ShareToken } from '../typechain';
-import { FUND_PERCENTAGE_BASE, DS_PROXY_REGISTRY, FUND_STATE } from './utils/constants';
+import { MINIMUM_SHARE, FUND_PERCENTAGE_BASE, DS_PROXY_REGISTRY, FUND_STATE } from './utils/constants';
 import { ether } from './utils/utils';
 
 describe('Share module', function () {
@@ -14,8 +14,10 @@ describe('Share module', function () {
   let tokenD: SimpleToken;
   let vault: any;
 
-  const totalAsset = ether('100');
-  const totalShare = totalAsset;
+  const totalAsset = ether('100'); // user's asset to purchase
+  const totalShare = totalAsset; // total share token supply
+  const receivedShare = totalAsset.sub(MINIMUM_SHARE); // user's share from the first purchase
+  const receivedAsset = receivedShare; // user's asset from redeem
   const acceptPending = false;
   const penalty = 100;
   const penaltyBase = FUND_PERCENTAGE_BASE;
@@ -76,6 +78,11 @@ describe('Share module', function () {
         const shareAmount = await shareModule.calculateShare(0);
         expect(shareAmount).to.be.eq(0);
       });
+
+      it('less than minimum share', async function () {
+        const shareAmount = await shareModule.calculateShare(MINIMUM_SHARE - 1);
+        expect(shareAmount).to.be.eq(MINIMUM_SHARE - 1);
+      });
     });
 
     describe('calculate balance by share', function () {
@@ -98,6 +105,24 @@ describe('Share module', function () {
     });
   });
 
+  describe('Calculate share before the initial purchase', function () {
+    beforeEach(async function () {
+      await shareModule.setState(FUND_STATE.EXECUTING);
+    });
+
+    describe('calculate share by balance', function () {
+      it('receive less share', async function () {
+        const shareAmount = await shareModule.calculateShare(totalAsset);
+        expect(shareAmount).to.be.eq(receivedShare);
+      });
+
+      it('less than minimum share', async function () {
+        const shareAmount = await shareModule.calculateShare(MINIMUM_SHARE - 1);
+        expect(shareAmount).to.be.eq(0);
+      });
+    });
+  });
+
   describe('Purchase', function () {
     it('should revert: when initializing', async function () {
       await shareModule.setState(FUND_STATE.INITIALIZING);
@@ -109,7 +134,7 @@ describe('Share module', function () {
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('InvalidState(1)');
     });
 
-    it('should succeed when executing', async function () {
+    it('when executing', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       const userTokenDBalance = await tokenD.balanceOf(user1.address);
       const userShareBalance = await shareToken.balanceOf(user1.address);
@@ -117,14 +142,15 @@ describe('Share module', function () {
       // Execute
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'Purchased')
-        .withArgs(user1.address, totalAsset, totalShare, 0);
+        .withArgs(user1.address, totalAsset, receivedShare, 0);
 
       // Verify
       expect(userTokenDBalance.sub(await tokenD.balanceOf(user1.address))).to.be.eq(totalAsset);
-      expect((await shareToken.balanceOf(user1.address)).sub(userShareBalance)).to.be.eq(totalAsset);
+      expect((await shareToken.balanceOf(user1.address)).sub(userShareBalance)).to.be.eq(receivedShare);
+      expect(await shareToken.balanceOf(shareToken.address)).to.be.eq(MINIMUM_SHARE); // Lock minimum amount to share token contract
     });
 
-    it('should succeed when pending', async function () {
+    it('when pending', async function () {
       await shareModule.setState(FUND_STATE.PENDING);
       const userTokenDBalance = await tokenD.balanceOf(user1.address);
       const userShareBalance = await shareToken.balanceOf(user1.address);
@@ -132,11 +158,11 @@ describe('Share module', function () {
       // Execute
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'Purchased')
-        .withArgs(user1.address, totalAsset, totalShare, 0);
+        .withArgs(user1.address, totalAsset, receivedShare, 0);
 
       // Verify
       expect(userTokenDBalance.sub(await tokenD.balanceOf(user1.address))).to.be.eq(totalAsset);
-      expect((await shareToken.balanceOf(user1.address)).sub(userShareBalance)).to.be.eq(totalAsset);
+      expect((await shareToken.balanceOf(user1.address)).sub(userShareBalance)).to.be.eq(receivedShare);
     });
 
     it('should revert: when liquidating', async function () {
@@ -149,7 +175,7 @@ describe('Share module', function () {
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('InvalidState(5)');
     });
 
-    it('should transfer denomination token from user to vault', async function () {
+    it('transfer denomination token from user to vault', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       const userTokenDBalance = await tokenD.balanceOf(user1.address);
       const vaultTokenDBalance = await tokenD.balanceOf(vault);
@@ -164,20 +190,20 @@ describe('Share module', function () {
       expect((await tokenD.balanceOf(vault)).sub(vaultTokenDBalance)).to.be.eq(totalAsset);
     });
 
-    it('should mint share token to user', async function () {
+    it('mint share token to user', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       const userShareBalance = await shareToken.balanceOf(user1.address);
 
       // Execute
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareToken, 'Transfer')
-        .withArgs(constants.AddressZero, user1.address, totalShare);
+        .withArgs(constants.AddressZero, user1.address, receivedShare);
 
       // Verify
-      expect((await shareToken.balanceOf(user1.address)).sub(userShareBalance)).to.be.eq(totalAsset);
+      expect((await shareToken.balanceOf(user1.address)).sub(userShareBalance)).to.be.eq(receivedShare);
     });
 
-    it('should call before and after purchase', async function () {
+    it('call before and after purchase', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await expect(shareModule.purchase(totalAsset))
         .to.emit(shareModule, 'BeforePurchaseCalled')
@@ -191,7 +217,7 @@ describe('Share module', function () {
 
     it('should revert: purchase zero share', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
-      await shareModule.purchase(BigNumber.from('10'));
+      await shareModule.purchase(MINIMUM_SHARE + 1);
       await shareModule.setGrossAssetValue(constants.MaxInt256);
       await expect(shareModule.purchase(totalAsset)).to.be.revertedWith('RevertCode(82)'); // SHARE_MODULE_PURCHASE_ZERO_SHARE
     });
@@ -212,43 +238,43 @@ describe('Share module', function () {
 
     it('should revert: when initializing', async function () {
       await shareModule.setState(FUND_STATE.INITIALIZING);
-      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('InvalidState(0)');
+      await expect(shareModule.redeem(receivedShare, acceptPending)).to.be.revertedWith('InvalidState(0)');
     });
 
     it('should revert: when reviewing', async function () {
       await shareModule.setState(FUND_STATE.REVIEWING);
-      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('InvalidState(1)');
+      await expect(shareModule.redeem(receivedShare, acceptPending)).to.be.revertedWith('InvalidState(1)');
     });
 
-    it('should succeed with sufficient reserve', async function () {
+    it('sufficient reserve', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       const userTokenDBalance = await tokenD.balanceOf(user1.address);
 
       // Execute
-      await expect(shareModule.redeem(totalShare, acceptPending))
+      await expect(shareModule.redeem(receivedShare, acceptPending))
         .to.emit(shareModule, 'Redeemed')
-        .withArgs(user1.address, totalAsset, totalShare);
+        .withArgs(user1.address, receivedAsset, receivedShare);
 
       // Verify
-      expect((await tokenD.balanceOf(user1.address)).sub(userTokenDBalance)).to.be.eq(totalAsset);
+      expect((await tokenD.balanceOf(user1.address)).sub(userTokenDBalance)).to.be.eq(receivedAsset);
     });
 
     it('should revert: with insufficient share', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
-      await expect(shareModule.redeem(totalShare.mul(2), acceptPending)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_INSUFFICIENT_SHARE
+      await expect(shareModule.redeem(receivedShare.mul(2), acceptPending)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_INSUFFICIENT_SHARE
     });
 
-    it('should succeed with insufficient reserve with user permission', async function () {
+    it('insufficient reserve with user permission', async function () {
       const pendingRound = await shareModule.currentPendingRound();
       const acceptPending = true;
-      const pendingShare = totalShare.sub(partialShare);
+      const pendingShare = receivedShare.sub(partialShare);
       const actualShare = pendingShare.mul(penaltyBase - penalty).div(penaltyBase);
       const penaltyShare = pendingShare.sub(actualShare);
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.setReserve(partialAsset);
 
       // Test partial redeem and partial pending redeem
-      const receipt = await shareModule.redeem(totalShare, acceptPending);
+      const receipt = await shareModule.redeem(receivedShare, acceptPending);
       expect(receipt)
         .to.emit(shareModule, 'Redeemed')
         .withArgs(user1.address, partialAsset, partialShare)
@@ -260,7 +286,7 @@ describe('Share module', function () {
       // Verify
       const block = await ethers.provider.getBlock(receipt.blockNumber!);
       expect(await shareModule.pendingStartTime()).to.be.eq(block.timestamp);
-      expect(userShareBefore.sub(await shareToken.balanceOf(user1.address))).to.be.eq(totalShare);
+      expect(userShareBefore.sub(await shareToken.balanceOf(user1.address))).to.be.eq(receivedShare);
 
       const pendingUser = await shareModule.pendingUsers(user1.address);
       expect(pendingUser.pendingRound).to.be.eq(pendingRound);
@@ -272,7 +298,6 @@ describe('Share module', function () {
     it('should revert: user pending round and current pending round are inconsistent', async function () {
       const acceptPending = true;
       const currentPendingRound = await shareModule.currentPendingRound();
-      console.log('currentPendingRound', currentPendingRound.toString());
       await shareModule.setState(FUND_STATE.PENDING);
       await shareModule.setReserve(partialAsset);
       await shareModule.setPendingUserPendingInfo(
@@ -280,24 +305,24 @@ describe('Share module', function () {
         currentPendingRound.add(BigNumber.from(1)),
         ether('1')
       );
-      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('RevertCode(78)'); // SHARE_MODULE_PENDING_ROUND_INCONSISTENT
+      await expect(shareModule.redeem(receivedShare, acceptPending)).to.be.revertedWith('RevertCode(78)'); // SHARE_MODULE_PENDING_ROUND_INCONSISTENT
     });
 
     it('should revert: with insufficient reserve without user permission', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.setReserve(partialAsset);
-      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
+      await expect(shareModule.redeem(receivedShare, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
     });
 
-    it('should succeed when pending with user permission', async function () {
+    it('pending with user permission', async function () {
       const pendingRound = await shareModule.currentPendingRound();
       const acceptPending = true;
-      const actualShare = totalShare.mul(penaltyBase - penalty).div(penaltyBase);
-      const penaltyShare = totalShare.sub(actualShare);
+      const actualShare = receivedShare.mul(penaltyBase - penalty).div(penaltyBase);
+      const penaltyShare = receivedShare.sub(actualShare);
       await shareModule.setState(FUND_STATE.PENDING);
 
       // Test pending redeem at the begin
-      await expect(shareModule.redeem(totalShare, acceptPending))
+      await expect(shareModule.redeem(receivedShare, acceptPending))
         .to.emit(shareModule, 'Pended')
         .withArgs(user1.address, actualShare, penaltyShare);
 
@@ -306,15 +331,15 @@ describe('Share module', function () {
       expect(pendingUser.pendingRound).to.be.eq(pendingRound);
       expect(pendingUser.pendingShare).to.be.eq(actualShare);
 
-      expect(userShareBefore.sub(await shareToken.balanceOf(user1.address))).to.be.eq(totalShare);
+      expect(userShareBefore.sub(await shareToken.balanceOf(user1.address))).to.be.eq(receivedShare);
       expect(await shareModule.currentTotalPendingShare()).to.be.eq(actualShare);
       expect(await shareModule.currentTotalPendingBonus()).to.be.eq(penaltyShare);
     });
 
-    it('should succeed when pending by single user twice', async function () {
+    it('pending by single user twice', async function () {
       const pendingRound = await shareModule.currentPendingRound();
       const acceptPending = true;
-      const redemptionShare = totalShare.div(2);
+      const redemptionShare = receivedShare.div(2);
 
       const actualShare = redemptionShare.mul(penaltyBase - penalty).div(penaltyBase);
       const penaltyShare = redemptionShare.sub(actualShare);
@@ -344,10 +369,10 @@ describe('Share module', function () {
       expect(await shareModule.currentTotalPendingBonus()).to.be.eq(penaltyShare.add(penaltyShare));
     });
 
-    it('should succeed when pending by multiple users', async function () {
+    it('pending by multiple users', async function () {
       const pendingRound = await shareModule.currentPendingRound();
       const acceptPending = true;
-      const redemptionShare = totalShare.div(2);
+      const redemptionShare = receivedShare.div(2);
 
       const actualShare = redemptionShare.mul(penaltyBase - penalty).div(penaltyBase);
       const penaltyShare = redemptionShare.sub(actualShare);
@@ -382,50 +407,50 @@ describe('Share module', function () {
 
     it('should revert: when pending without user permission', async function () {
       await shareModule.setState(FUND_STATE.PENDING);
-      await expect(shareModule.redeem(totalAsset, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
+      await expect(shareModule.redeem(receivedShare, acceptPending)).to.be.revertedWith('RevertCode(70)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
     });
 
     it('should revert: when liquidating', async function () {
       await shareModule.setState(FUND_STATE.LIQUIDATING);
-      await expect(shareModule.redeem(totalShare, acceptPending)).to.be.revertedWith('InvalidState(4)');
+      await expect(shareModule.redeem(receivedShare, acceptPending)).to.be.revertedWith('InvalidState(4)');
     });
 
-    it('should succeed when closed', async function () {
+    it('when closed', async function () {
       await shareModule.setState(FUND_STATE.CLOSED);
-      await expect(shareModule.redeem(totalShare, acceptPending))
+      await expect(shareModule.redeem(receivedShare, acceptPending))
         .to.emit(shareModule, 'Redeemed')
-        .withArgs(user1.address, totalAsset, totalShare);
+        .withArgs(user1.address, receivedAsset, receivedShare);
     });
 
-    it('should transfer denomination token from vault to user', async function () {
+    it('transfer denomination token from vault to user', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       const user1TokenDBalance = await tokenD.balanceOf(user1.address);
 
       // Execute
-      await expect(shareModule.redeem(totalShare, acceptPending))
+      await expect(shareModule.redeem(receivedShare, acceptPending))
         .to.emit(tokenD, 'Transfer')
-        .withArgs(vault, user1.address, totalAsset);
+        .withArgs(vault, user1.address, receivedAsset);
 
       // Verify
-      expect((await tokenD.balanceOf(user1.address)).sub(user1TokenDBalance)).to.be.eq(totalAsset);
+      expect((await tokenD.balanceOf(user1.address)).sub(user1TokenDBalance)).to.be.eq(receivedAsset);
     });
 
-    it('should burn share token from user', async function () {
+    it('burn share token from user', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       const user1ShareBalance = await shareToken.balanceOf(user1.address);
 
       // Execute
-      await expect(shareModule.redeem(totalShare, acceptPending))
+      await expect(shareModule.redeem(receivedShare, acceptPending))
         .to.emit(shareToken, 'Transfer')
-        .withArgs(user1.address, constants.AddressZero, totalShare);
+        .withArgs(user1.address, constants.AddressZero, receivedShare);
 
       // Verify
-      expect(user1ShareBalance.sub(await shareToken.balanceOf(user1.address))).to.be.eq(totalShare);
+      expect(user1ShareBalance.sub(await shareToken.balanceOf(user1.address))).to.be.eq(receivedShare);
     });
 
-    it('should call before and after redeem', async function () {
+    it('call before and after redeem', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
-      await expect(shareModule.redeem(totalShare, acceptPending))
+      await expect(shareModule.redeem(receivedShare, acceptPending))
         .to.emit(shareModule, 'BeforeRedeemCalled')
         .to.emit(shareModule, 'AfterRedeemCalled');
     });
@@ -437,27 +462,27 @@ describe('Share module', function () {
   });
 
   describe('Pending', function () {
-    const pendingShare = ether('20');
-    const pendingAsset = pendingShare;
-    const actualShare = pendingShare.mul(penaltyBase - penalty).div(penaltyBase);
-    const actualAsset = actualShare;
+    const pendingShare = ether('10'); // user's pending share
+    const pendingAsset = pendingShare; // user's pending asset
+    const actualShare = pendingShare.mul(penaltyBase - penalty).div(penaltyBase); // user's received share from partial redeem
+    const actualAsset = actualShare; // user's received asset from partial redeem
     const bonus = pendingShare.mul(penalty).div(penaltyBase);
     const acceptPending = true;
 
     beforeEach(async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.purchase(totalAsset);
-      await shareModule.setReserve(totalAsset.sub(pendingAsset));
+      await shareModule.setReserve(receivedShare.sub(pendingAsset)); // vault's reserve before user's redeem
       await shareModule.setGrossAssetValue(totalAsset);
-      await shareModule.redeem(totalShare, acceptPending);
+      await shareModule.redeem(receivedShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setGrossAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset.add(MINIMUM_SHARE)); // vault's gav after user's redeem
       expect((await shareModule.pendingUsers(user1.address)).pendingShare).to.be.eq(actualShare);
     });
 
-    it('should succeed when sufficient reserve', async function () {
+    it('sufficient reserve', async function () {
       const pendingRound = await shareModule.currentPendingRound();
-      await shareModule.setReserve(pendingShare);
+      await shareModule.setReserve(pendingAsset);
       const proxyShareBalance = await shareToken.balanceOf(shareModule.address);
 
       // Execute
@@ -465,6 +490,7 @@ describe('Share module', function () {
         .to.emit(shareModule, 'Redeemed')
         .withArgs(shareModule.address, actualAsset, actualShare)
         .to.emit(shareModule, 'PendingShareSettled');
+      await shareModule.setGrossAssetValue(MINIMUM_SHARE); // left MINIMUM_SHARE after settle
 
       // Verify
       const pendRoundInfo = await shareModule.pendingRoundList(pendingRound);
@@ -480,11 +506,12 @@ describe('Share module', function () {
     it('pending twice: pending -> settle -> pending -> settle', async function () {
       // settle in round1
       const pendingRound1 = await shareModule.currentPendingRound();
-      await shareModule.setReserve(pendingShare);
+      await shareModule.setReserve(pendingAsset);
       await expect(shareModule.settlePendingShare())
         .to.emit(shareModule, 'Redeemed')
         .withArgs(shareModule.address, actualAsset, actualShare)
         .to.emit(shareModule, 'PendingShareSettled');
+      await shareModule.setGrossAssetValue(MINIMUM_SHARE); // left MINIMUM_SHARE after settle
 
       // Verify  of round1
       const pendRound1Info = await shareModule.pendingRoundList(pendingRound1);
@@ -498,23 +525,24 @@ describe('Share module', function () {
       expect(await shareModule.currentTotalPendingBonus()).to.be.eq(0);
 
       // Prepare round2
-      await tokenD.connect(user1).transfer(user2.address, totalShare);
+      await tokenD.connect(user1).transfer(user2.address, totalAsset);
       await tokenD.connect(user2).approve(shareModule.address, constants.MaxUint256);
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.connect(user2).purchase(totalAsset);
       await shareModule.setReserve(totalAsset.sub(pendingAsset));
-      await shareModule.setGrossAssetValue(totalAsset);
+      await shareModule.setGrossAssetValue(totalAsset.add(MINIMUM_SHARE));
       await shareModule.connect(user2).redeem(totalShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setGrossAssetValue(pendingAsset);
-      await shareModule.setReserve(pendingShare);
+      await shareModule.setGrossAssetValue(pendingAsset.add(MINIMUM_SHARE));
 
       // Settle in round2
       const pendingRound2 = await shareModule.currentPendingRound();
+      await shareModule.setReserve(pendingShare);
       await expect(shareModule.settlePendingShare())
         .to.emit(shareModule, 'Redeemed')
         .withArgs(shareModule.address, actualAsset, actualShare)
         .to.emit(shareModule, 'PendingShareSettled');
+      await shareModule.setGrossAssetValue(MINIMUM_SHARE); // left MINIMUM_SHARE after settle
 
       // Verify in round2
       const pendRound2Info = await shareModule.pendingRoundList(pendingRound2);
@@ -533,14 +561,14 @@ describe('Share module', function () {
       await expect(shareModule.settlePendingShare()).to.be.revertedWith('InvalidState(3)');
     });
 
-    it('should call before and after redeem', async function () {
+    it('call before and after redeem', async function () {
       await shareModule.setReserve(pendingAsset);
       await expect(shareModule.settlePendingShare())
         .to.emit(shareModule, 'BeforeRedeemCalled')
         .to.emit(shareModule, 'AfterRedeemCalled');
     });
 
-    it('should settle without penalty in specific usage', async function () {
+    it('settle without penalty in specific usage', async function () {
       await shareModule.setReserve(pendingAsset);
       await expect(shareModule.settlePendingShareWithoutPenalty())
         .to.emit(shareModule, 'Redeemed')
@@ -548,14 +576,14 @@ describe('Share module', function () {
     });
 
     describe('purchase', function () {
-      it('should receive bonus when purchasing', async function () {
+      it('receive bonus when purchasing', async function () {
         const purchaseAsset = actualAsset;
         await expect(shareModule.purchase(purchaseAsset))
           .to.emit(shareModule, 'Purchased')
           .withArgs(user1.address, purchaseAsset, pendingShare, bonus);
       });
 
-      it('should partially receive bonus when purchasing over amount', async function () {
+      it('partially receive bonus when purchasing over amount', async function () {
         const purchaseAsset = actualAsset.mul(2);
         await expect(shareModule.purchase(purchaseAsset))
           .to.emit(shareModule, 'Purchased')
@@ -563,11 +591,11 @@ describe('Share module', function () {
       });
     });
 
-    it('should settle the remain bonus when settle without penalty', async function () {
+    it('settle the remain bonus when settle without penalty', async function () {
       const purchaseAsset = actualAsset.div(2);
       await shareModule.purchase(purchaseAsset);
-      await shareModule.setGrossAssetValue(pendingAsset.add(purchaseAsset));
       await shareModule.setReserve(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset.add(MINIMUM_SHARE).add(purchaseAsset));
       const pendingRound = await shareModule.currentPendingRound();
 
       // Execute
@@ -587,26 +615,27 @@ describe('Share module', function () {
   });
 
   describe('Claim pending redemption', function () {
-    const pendingShare = ether('20');
+    const pendingShare = ether('10');
     const pendingAsset = pendingShare;
     const acceptPending = true;
 
     beforeEach(async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.purchase(totalAsset);
-      await shareModule.setReserve(totalAsset.sub(pendingAsset));
+      await shareModule.setReserve(receivedShare.sub(pendingAsset));
       await shareModule.setGrossAssetValue(totalAsset);
     });
 
-    it('should success when claiming the redemption', async function () {
+    it('claim the redemption', async function () {
       const redeemShare = pendingShare;
       const actualShare = redeemShare.mul(penaltyBase - penalty).div(penaltyBase);
       const actualAsset = actualShare;
-      await shareModule.redeem(totalShare, acceptPending);
+      await shareModule.redeem(receivedShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setGrossAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset.add(MINIMUM_SHARE));
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingShare();
+      await shareModule.setGrossAssetValue(MINIMUM_SHARE); // left MINIMUM_SHARE after settle
 
       // Execute
       const user1DenominationBefore = await tokenD.balanceOf(user1.address);
@@ -622,7 +651,7 @@ describe('Share module', function () {
       expect((await shareModule.pendingUsers(user1.address)).pendingShare).to.be.eq(0);
     });
 
-    it('should success when claiming with difference user', async function () {
+    it('claim with difference user', async function () {
       // Transfer part of the share to user 2
       const redeemShare = pendingShare.div(2);
       const actualShare = redeemShare.mul(penaltyBase - penalty).div(penaltyBase);
@@ -630,9 +659,9 @@ describe('Share module', function () {
       await shareToken.transfer(user2.address, redeemShare);
 
       // User 1 redeem
-      await shareModule.redeem(totalShare.sub(redeemShare), acceptPending);
+      await shareModule.redeem(receivedShare.sub(redeemShare), acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setGrossAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset.add(MINIMUM_SHARE));
 
       // User 2 redeem
       await shareModule.connect(user2).redeem(redeemShare, acceptPending);
@@ -640,6 +669,7 @@ describe('Share module', function () {
       // Top up fund
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingShare();
+      await shareModule.setGrossAssetValue(MINIMUM_SHARE); // left MINIMUM_SHARE after settle
 
       const user1DenominationBefore = await tokenD.balanceOf(user1.address);
       const user2DenominationBefore = await tokenD.balanceOf(user2.address);
@@ -673,10 +703,12 @@ describe('Share module', function () {
       const redeemShare1 = pendingShare;
       const actualShare1 = redeemShare1.mul(penaltyBase - penalty).div(penaltyBase);
       const actualAsset1 = actualShare1;
-      await shareModule.redeem(totalShare, acceptPending);
-      await shareModule.setGrossAssetValue(pendingAsset);
+
+      await shareModule.redeem(receivedShare, acceptPending);
+      await shareModule.setGrossAssetValue(pendingAsset.add(MINIMUM_SHARE));
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingShare();
+      await shareModule.setGrossAssetValue(MINIMUM_SHARE); // left MINIMUM_SHARE after settle
 
       // Verify in round1
       const pendingUser1 = await shareModule.pendingUsers(user1.address);
@@ -689,7 +721,7 @@ describe('Share module', function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.purchase(purchaseShare);
       await shareModule.setReserve(purchaseAsset);
-      await shareModule.setGrossAssetValue(purchaseAsset);
+      await shareModule.setGrossAssetValue(purchaseAsset.add(MINIMUM_SHARE));
 
       // Execute redeem in round2
       const redeemShare = purchaseShare.div('2');
@@ -713,11 +745,12 @@ describe('Share module', function () {
       const redeemShare1 = pendingShare;
       const actualShare1 = redeemShare1.mul(penaltyBase - penalty).div(penaltyBase);
       const actualAsset1 = actualShare1;
-      await shareModule.redeem(totalShare, acceptPending);
+      await shareModule.redeem(receivedShare, acceptPending);
       await shareModule.setReserve(0);
-      await shareModule.setGrossAssetValue(pendingAsset);
+      await shareModule.setGrossAssetValue(pendingAsset.add(MINIMUM_SHARE));
       await shareModule.setReserve(pendingAsset);
       await shareModule.settlePendingShare();
+      await shareModule.setGrossAssetValue(MINIMUM_SHARE); // left MINIMUM_SHARE after settle
 
       // Verify in round1
       let pendingUser1 = await shareModule.pendingUsers(user1.address);
@@ -736,7 +769,7 @@ describe('Share module', function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await shareModule.purchase(totalAsset2);
       await shareModule.setReserve(round2Reserve);
-      await shareModule.setGrossAssetValue(totalAsset2);
+      await shareModule.setGrossAssetValue(totalAsset2.add(MINIMUM_SHARE));
 
       // Execute redeem in round2
       const user1DenominationBefore = await tokenD.balanceOf(user1.address);
@@ -759,15 +792,15 @@ describe('Share module', function () {
     });
 
     it('should revert: pending round is not settle yet', async function () {
-      await shareModule.redeem(totalShare, acceptPending);
+      await shareModule.redeem(receivedShare, acceptPending);
       await shareModule.setReserve(0);
       await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);
       await expect(shareModule.claimPendingRedemption(user1.address)).to.be.revertedWith('RevertCode(77)'); // SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
 
-    it('should success when claiming the redemption', async function () {
-      await shareModule.redeem(totalShare, acceptPending);
+    it('should revert: claim the redemption', async function () {
+      await shareModule.redeem(receivedShare, acceptPending);
       await shareModule.setReserve(0);
       await shareModule.setGrossAssetValue(pendingAsset);
       await shareModule.setReserve(pendingAsset);

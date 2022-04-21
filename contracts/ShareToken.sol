@@ -51,6 +51,7 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         address to_,
         uint256 amount_
     ) internal virtual override {
+        Errors._require(from_ != address(this), Errors.Code.SHARE_TOKEN_INVALID_FROM);
         if (to_ == _OUTSTANDING_PERFORMANCE_FEE_ACCOUNT) {
             Errors._require(from_ == address(0), Errors.Code.SHARE_TOKEN_INVALID_TO);
         }
