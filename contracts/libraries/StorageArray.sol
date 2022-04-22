@@ -36,8 +36,6 @@ library StorageArray {
 
     function _pop(bytes32 slot_) internal returns (bytes32 val) {
         uint256 length = uint256(_getSlot(slot_).value);
-        require(length > 0, "StorageArray: empty array");
-
         length -= 1;
         uint256 s = uint256(keccak256(abi.encodePacked(slot_))) + length;
         val = _getSlot(bytes32(s)).value;
