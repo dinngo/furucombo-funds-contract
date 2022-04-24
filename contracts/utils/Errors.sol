@@ -90,7 +90,8 @@ library Errors {
         SHARE_MODULE_PURCHASE_ZERO_SHARE, // 82: "The share purchased need to greater than zero"
         SHARE_MODULE_REDEEM_ZERO_SHARE, // 83: "The redeem share is zero"
         SHARE_TOKEN_INVALID_FROM, // 84: "Invalid from"
-        IMPLEMENTATION_INVALID_MORTGAGE_TIER // 85: "Mortgage tier not set in comptroller";
+        IMPLEMENTATION_INVALID_MORTGAGE_TIER, // 85: "Mortgage tier not set in comptroller";
+        AFURUCOMBO_DUPLICATED_TOKENSOUT // 86: "Duplicated tokensOut"
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {

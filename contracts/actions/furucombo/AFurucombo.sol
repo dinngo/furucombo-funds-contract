@@ -30,7 +30,7 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
     /// @notice Inject tokens and execute combo.
     /// @param tokensIn_ The input tokens.
     /// @param amountsIn_ The input token amounts.
-    /// @param tokensOut_ The output tokens.
+    /// @param tokensOut_ The sorted output tokens
     /// @param tos_ The handlers of combo.
     /// @param configs_ The configurations of executing cubes.
     /// @param datas_ The combo datas.
@@ -52,6 +52,12 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         // Snapshot output token amounts after send token to Furucombo proxy
         uint256[] memory amountsOut = new uint256[](tokensOut_.length);
         for (uint256 i = 0; i < tokensOut_.length; i++) {
+            // Check duplicate tokens out
+            if (i > 0) {
+                Errors._require(tokensOut_[i] > tokensOut_[i - 1], Errors.Code.AFURUCOMBO_DUPLICATED_TOKENSOUT);
+            }
+
+            // Get balance before execution
             amountsOut[i] = _getBalance(tokensOut_[i]);
         }
 

@@ -346,6 +346,83 @@ describe('AFurucombo', function () {
       await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
     });
 
+    it('should revert: duplicated tokensOut', async function () {
+      const tokensIn = [token.address];
+      const amountsIn = [ether('1')];
+      const tokensOut = [tokenOut.address, tokenOut.address];
+      const tos = [hFunds.address, hQuickSwap.address];
+      const configs = [
+        '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 3 (uint256[1])
+        '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
+      ];
+      const datas = [
+        simpleEncode('updateTokens(address[])', [tokensIn]),
+        simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
+          0, // amountIn: 100% return data
+          1, // amountOutMin
+          [token.address, tokenOut.address], // path
+        ]),
+      ];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        tokensIn,
+        amountsIn,
+        aFurucombo.address,
+        getCallData(aFurucombo, 'injectAndBatchExec', [tokensIn, amountsIn, tokensOut, tos, configs, datas]),
+      ]);
+
+      // send token to vault
+      const vault = await proxy.vault();
+      await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
+
+      // send token to vault
+      // const vault = await proxy.vault();
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(86)'); // AFURUCOMBO_DUPLICATED_TOKENSOUT
+    });
+
+    it('should revert: not ascending tokensOut', async function () {
+      const tokensIn = [token.address];
+      const amountsIn = [ether('1')];
+
+      let tokensOut;
+      if (token.address > tokenOut.address) {
+        tokensOut = [token.address, tokenOut.address, token.address];
+      } else {
+        tokensOut = [tokenOut.address, token.address, tokenOut.address];
+      }
+
+      const tos = [hFunds.address, hQuickSwap.address];
+      const configs = [
+        '0x0003000000000000000000000000000000000000000000000000000000000000', // return size = 3 (uint256[1])
+        '0x0100000000000000000102ffffffffffffffffffffffffffffffffffffffffff', // ref location = stack[2]
+      ];
+      const datas = [
+        simpleEncode('updateTokens(address[])', [tokensIn]),
+        simpleEncode('swapExactTokensForTokens(uint256,uint256,address[])', [
+          0, // amountIn: 100% return data
+          1, // amountOutMin
+          [token.address, tokenOut.address], // path
+        ]),
+      ];
+
+      // TaskExecutorMock data
+      const data = getCallData(taskExecutor, 'execMock', [
+        tokensIn,
+        amountsIn,
+        aFurucombo.address,
+        getCallData(aFurucombo, 'injectAndBatchExec', [tokensIn, amountsIn, tokensOut, tos, configs, datas]),
+      ]);
+
+      // send token to vault
+      const vault = await proxy.vault();
+      await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
+
+      // send token to vault
+      // const vault = await proxy.vault();
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(86)'); // AFURUCOMBO_DUPLICATED_TOKENSOUT
+    });
+
     describe('fund Quota', function () {
       it('input token == output token: the same amount', async function () {
         const amountIn = ether('1');
