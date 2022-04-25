@@ -11,6 +11,7 @@ import {Errors} from "../utils/Errors.sol";
 abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
+    using SafeCast for int256;
     using SafeCast for uint256;
 
     int128 private constant _FEE_BASE64x64 = 1 << 64;
@@ -106,7 +107,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
             .sub(LibFee._max64x64(hwm64x64, lastGrossSharePrice64x64))
             .muli(totalShare.toInt256());
         int256 fee = pFeeRate64x64.muli(wealth);
-        pFeeSum = uint256(LibFee._max(0, pFeeSum.toInt256() + fee));
+        pFeeSum = LibFee._max(0, pFeeSum.toInt256() + fee).toUint256();
         uint256 netAssetValue = grossAssetValue_ - pFeeSum;
         uint256 outstandingShare = (totalShare * pFeeSum) / netAssetValue;
         if (outstandingShare > lastOutstandingShare) {

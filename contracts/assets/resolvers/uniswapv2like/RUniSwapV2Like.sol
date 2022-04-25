@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IUniswapV2Factory} from "../../../interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "../../../interfaces/IUniswapV2Pair.sol";
 import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
 contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
+    using SafeCast for int256;
+
     uint256 private constant _BONE = 10**18;
 
     /// @notice Calculate asset value given the amount.
@@ -27,9 +30,9 @@ contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
 
         IUniswapV2Pair pair = IUniswapV2Pair(asset_);
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
-        uint256 reserve0value = uint256(_calcAssetValue(pair.token0(), reserve0, quote_));
+        uint256 reserve0value = _calcAssetValue(pair.token0(), reserve0, quote_).toUint256();
 
-        uint256 reserve1value = uint256(_calcAssetValue(pair.token1(), reserve1, quote_));
+        uint256 reserve1value = _calcAssetValue(pair.token1(), reserve1, quote_).toUint256();
         uint256 square = __uniswapSqrt(reserve0value * reserve1value);
         uint256 totalSupply = _getTotalSupplyAtWithdrawal(pair, reserve0, reserve1);
 
