@@ -813,9 +813,17 @@ describe('Task Executor', function () {
 
       // Execution
       const target = taskExecutor.address;
-      await proxy.connect(user).executeMock(target, data, {
-        value: quota,
-      });
+      const vaultAddress = await proxy.vault();
+      const vault = await ethers.getContractAt('TaskExecutor', vaultAddress);
+      await expect(
+        proxy.connect(user).executeMock(target, data, {
+          value: quota,
+        })
+      )
+        .to.emit(vault, 'ExecFee')
+        .withArgs(proxy.address, tokenA.address, expectExecutionFee)
+        .to.emit(vault, 'ExecFee')
+        .withArgs(proxy.address, tokenB.address, expectExecutionFee);
 
       // Verify
       expect((await tokenA.balanceOf(collector)).sub(collectorTokenABalance)).to.be.eq(expectExecutionFee);

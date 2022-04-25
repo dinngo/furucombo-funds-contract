@@ -25,6 +25,8 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
     uint256 private constant _FEE_BASE = 1e4;
     IComptroller public immutable comptroller;
 
+    event ExecFee(address indexed fund, address indexed token, uint256 fee);
+
     constructor(address payable owner_, address comptroller_) DestructibleAction(owner_) DelegateCallAction() {
         comptroller = IComptroller(comptroller_);
     }
@@ -254,6 +256,8 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
             uint256 execFee = (amountsIn_[i] * feePercentage) / _FEE_BASE;
             IERC20(tokensIn_[i]).safeTransfer(collector, execFee);
             _setFundQuota(tokensIn_[i], amountsIn_[i] - execFee);
+
+            emit ExecFee(msg.sender, tokensIn_[i], execFee);
         }
     }
 }
