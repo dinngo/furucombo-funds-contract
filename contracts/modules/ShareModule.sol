@@ -106,11 +106,16 @@ abstract contract ShareModule is FundProxyStorageUtils {
 
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Pending state.
     /// @return share The share amount being purchased.
-    function purchase(uint256 balance_) external virtual nonReentrant returns (uint256 share) {
-        _whenStates(State.Executing, State.Pending);
-
+    function purchase(uint256 balance_)
+        external
+        virtual
+        whenStates(State.Executing, State.Pending)
+        nonReentrant
+        returns (uint256 share)
+    {
         // Purchase balance need to greater than zero
         Errors._require(balance_ > 0, Errors.Code.SHARE_MODULE_PURCHASE_ZERO_BALANCE);
+
         share = _purchase(msg.sender, balance_);
     }
 
@@ -138,9 +143,13 @@ abstract contract ShareModule is FundProxyStorageUtils {
     }
 
     /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
-    function redeem(uint256 share_, bool acceptPending_) external virtual nonReentrant returns (uint256 balance) {
-        _when3States(State.Executing, State.Pending, State.Closed);
-
+    function redeem(uint256 share_, bool acceptPending_)
+        external
+        virtual
+        when3States(State.Executing, State.Pending, State.Closed)
+        nonReentrant
+        returns (uint256 balance)
+    {
         // Redeem share need to greater than zero
         Errors._require(share_ > 0, Errors.Code.SHARE_MODULE_REDEEM_ZERO_SHARE);
 

@@ -16,59 +16,55 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
     error InvalidState(State current);
 
-    function _whenState(State expect_) internal view {
+    modifier whenState(State expect_) {
         if (state != expect_) revert InvalidState(state);
+        _;
     }
 
-    function _whenStates(State expect1_, State expect2_) internal view {
-        State s = state;
-        if (s != expect1_ && s != expect2_) revert InvalidState(s);
+    modifier whenStates(State expect1_, State expect2_) {
+        if (state != expect1_ && state != expect2_) revert InvalidState(state);
+        _;
     }
 
-    function _when3States(
+    modifier when3States(
         State expect1_,
         State expect2_,
         State expect3_
-    ) internal view {
-        State s = state;
-        if (s != expect1_ && s != expect2_ && s != expect3_) revert InvalidState(s);
+    ) {
+        if (state != expect1_ && state != expect2_ && state != expect3_) revert InvalidState(state);
+        _;
     }
 
-    function _whenNotState(State expectNot_) internal view {
+    modifier whenNotState(State expectNot_) {
         if (state == expectNot_) revert InvalidState(state);
+        _;
     }
 
     // State Changes
-    function _review() internal {
-        _whenState(State.Initializing);
+    function _review() internal whenState(State.Initializing) {
         _enterState(State.Reviewing);
     }
 
-    function _finalize() internal {
-        _whenState(State.Reviewing);
+    function _finalize() internal whenState(State.Reviewing) {
         _enterState(State.Executing);
     }
 
-    function _pend() internal {
-        _whenState(State.Executing);
+    function _pend() internal whenState(State.Executing) {
         _enterState(State.Pending);
         pendingStartTime = block.timestamp;
     }
 
-    function _resume() internal {
-        _whenState(State.Pending);
+    function _resume() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Executing);
     }
 
-    function _liquidate() internal {
-        _whenState(State.Pending);
+    function _liquidate() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Liquidating);
     }
 
-    function _close() internal {
-        _whenStates(State.Executing, State.Liquidating);
+    function _close() internal whenStates(State.Executing, State.Liquidating) {
         _enterState(State.Closed);
     }
 
