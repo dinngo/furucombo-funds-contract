@@ -59,7 +59,7 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         address asset_, // should be curve lp token
         uint256 amount_,
         address quote_
-    ) external view override returns (int256) {
+    ) external view returns (int256) {
         // Get pool info
         PoolInfo memory info = assetToPoolInfo[asset_];
         Errors._require(info.pool != address(0), Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET);

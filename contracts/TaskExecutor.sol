@@ -43,7 +43,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         address[] calldata tos_,
         bytes32[] calldata configs_,
         bytes[] memory datas_
-    ) external payable override delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory a) {
+    ) external payable delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory a) {
         _chargeExecutionFee(tokensIn_, amountsIn_);
         return _execs(tos_, configs_, datas_);
     }

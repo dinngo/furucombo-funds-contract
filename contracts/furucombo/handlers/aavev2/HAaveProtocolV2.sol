@@ -90,7 +90,7 @@ contract HAaveProtocolV2 is HandlerBase, IFlashLoanReceiver {
         uint256[] memory premiums,
         address initiator,
         bytes memory params
-    ) external override returns (bool) {
+    ) external returns (bool) {
         _notMaticToken(assets);
         _requireMsg(
             msg.sender == ILendingPoolAddressesProviderV2(PROVIDER).getLendingPool(),

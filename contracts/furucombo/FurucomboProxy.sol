@@ -77,7 +77,7 @@ contract FurucomboProxy is IFurucomboProxy, Storage, Config {
         address[] calldata tos,
         bytes32[] calldata configs,
         bytes[] memory datas
-    ) external payable override isNotHalted isNotBanned returns (address[] memory) {
+    ) external payable isNotHalted isNotBanned returns (address[] memory) {
         _preProcess();
         _execs(tos, configs, datas);
         return _postProcess();
@@ -92,7 +92,7 @@ contract FurucomboProxy is IFurucomboProxy, Storage, Config {
         address[] calldata tos,
         bytes32[] calldata configs,
         bytes[] memory datas
-    ) external payable override isNotHalted isNotBanned isInitialized {
+    ) external payable isNotHalted isNotBanned isInitialized {
         require(msg.sender == address(this), "Does not allow external calls");
         _execs(tos, configs, datas);
     }

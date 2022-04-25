@@ -13,19 +13,19 @@ import {IAssetResolver} from "./interfaces/IAssetResolver.sol";
 contract AssetRouter is IAssetRouter, Ownable {
     using SafeCast for uint256;
 
-    IAssetOracle public override oracle;
-    IAssetRegistry public override registry;
+    IAssetOracle public oracle;
+    IAssetRegistry public registry;
 
     constructor(address oracle_, address registry_) Ownable() {
         oracle = IAssetOracle(oracle_);
         registry = IAssetRegistry(registry_);
     }
 
-    function setOracle(address oracle_) external override onlyOwner {
+    function setOracle(address oracle_) external onlyOwner {
         oracle = IAssetOracle(oracle_);
     }
 
-    function setRegistry(address registry_) external override onlyOwner {
+    function setRegistry(address registry_) external onlyOwner {
         registry = IAssetRegistry(registry_);
     }
 
@@ -33,7 +33,7 @@ contract AssetRouter is IAssetRouter, Ownable {
         address[] calldata assets_,
         uint256[] calldata amounts_,
         address quote_
-    ) external view override returns (uint256) {
+    ) external view returns (uint256) {
         Errors._require(
             assets_.length == amounts_.length,
             Errors.Code.ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT

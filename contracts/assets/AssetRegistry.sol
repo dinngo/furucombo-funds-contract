@@ -20,7 +20,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @notice Return the resolver of asset.
      * @param asset_ The asset want to be calculate value.
      */
-    function resolvers(address asset_) external view override returns (address) {
+    function resolvers(address asset_) external view returns (address) {
         address resolver = _resolvers[asset_];
         Errors._require(resolver != address(0), Errors.Code.ASSET_REGISTRY_UNREGISTERED);
         Errors._require(!bannedResolvers[resolver], Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER);
@@ -32,7 +32,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @param asset_ asset address.
      * @param resolver_ resolver address.
      */
-    function register(address asset_, address resolver_) external override onlyOwner {
+    function register(address asset_, address resolver_) external onlyOwner {
         Errors._require(resolver_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS);
         Errors._require(asset_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS);
         Errors._require(!bannedResolvers[resolver_], Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER);
@@ -46,7 +46,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @notice Unregister a asset.
      * @param asset_ The asset to be unregistered.
      */
-    function unregister(address asset_) external override onlyOwner {
+    function unregister(address asset_) external onlyOwner {
         Errors._require(asset_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS);
         Errors._require(_resolvers[asset_] != address(0), Errors.Code.ASSET_REGISTRY_NON_REGISTERED_RESOLVER);
         _resolvers[asset_] = address(0);
@@ -57,7 +57,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @notice Ban specific resolver.
      * @param resolver_ The resolver to be banned.
      */
-    function banResolver(address resolver_) external override onlyOwner {
+    function banResolver(address resolver_) external onlyOwner {
         Errors._require(resolver_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS);
         Errors._require(!bannedResolvers[resolver_], Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER);
         bannedResolvers[resolver_] = true;
@@ -68,7 +68,7 @@ contract AssetRegistry is IAssetRegistry, Ownable {
      * @notice Ban specific resolver.
      * @param resolver_ The resolver to be banned.
      */
-    function unbanResolver(address resolver_) external override onlyOwner {
+    function unbanResolver(address resolver_) external onlyOwner {
         Errors._require(resolver_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS);
         Errors._require(bannedResolvers[resolver_], Errors.Code.ASSET_REGISTRY_NON_BANNED_RESOLVER);
         bannedResolvers[resolver_] = false;

@@ -7,11 +7,11 @@ import {IFurucomboRegistry} from "./interfaces/IFurucomboRegistry.sol";
 
 /// @notice The registry database for Furucombo
 contract FurucomboRegistry is IFurucomboRegistry, Ownable {
-    mapping(address => bytes32) public override handlers;
-    mapping(address => bytes32) public override callers;
-    mapping(address => uint256) public override bannedAgents;
-    mapping(address => mapping(address => bool)) public override handlerCalleeWhiteList;
-    bool public override fHalt;
+    mapping(address => bytes32) public handlers;
+    mapping(address => bytes32) public callers;
+    mapping(address => uint256) public bannedAgents;
+    mapping(address => mapping(address => bool)) public handlerCalleeWhiteList;
+    bool public fHalt;
 
     bytes32 public constant DEPRECATED = bytes10(0x64657072656361746564);
 
@@ -120,7 +120,7 @@ contract FurucomboRegistry is IFurucomboRegistry, Ownable {
      * @notice Check if the handler is valid.
      * @param handler The handler to be verified.
      */
-    function isValidHandler(address handler) external view override returns (bool) {
+    function isValidHandler(address handler) external view returns (bool) {
         return handlers[handler] != 0 && handlers[handler] != DEPRECATED;
     }
 
@@ -128,7 +128,7 @@ contract FurucomboRegistry is IFurucomboRegistry, Ownable {
      * @notice Check if the caller is valid.
      * @param caller The caller to be verified.
      */
-    function isValidCaller(address caller) external view override returns (bool) {
+    function isValidCaller(address caller) external view returns (bool) {
         return callers[caller] != 0 && callers[caller] != DEPRECATED;
     }
 
