@@ -13,13 +13,11 @@ library LibParam {
     uint256 private constant _RETURN_NUM_OFFSET = 240;
 
     function _isStatic(bytes32 conf_) internal pure returns (bool) {
-        if (conf_ & _STATIC_MASK == 0) return true;
-        else return false;
+        return (conf_ & _STATIC_MASK == 0);
     }
 
     function _isReferenced(bytes32 conf_) internal pure returns (bool) {
-        if (_getReturnNum(conf_) == 0) return false;
-        else return true;
+        return !(_getReturnNum(conf_) == 0);
     }
 
     function _isDelegateCall(bytes32 conf_) internal pure returns (bool) {
