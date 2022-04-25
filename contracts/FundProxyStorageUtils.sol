@@ -17,12 +17,12 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
     error InvalidState(State current);
 
     modifier whenState(State expect_) {
-        if (state != expect_) revert InvalidState(state);
+        _whenState(expect_);
         _;
     }
 
     modifier whenStates(State expect1_, State expect2_) {
-        if (state != expect1_ && state != expect2_) revert InvalidState(state);
+        _whenStates(expect1_, expect2_);
         _;
     }
 
@@ -31,13 +31,35 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         State expect2_,
         State expect3_
     ) {
-        if (state != expect1_ && state != expect2_ && state != expect3_) revert InvalidState(state);
+        _when3States(expect1_, expect2_, expect3_);
         _;
     }
 
     modifier whenNotState(State expectNot_) {
-        if (state == expectNot_) revert InvalidState(state);
+        _whenNotState(expectNot_);
         _;
+    }
+
+    function _whenState(State expect_) internal view {
+        if (state != expect_) revert InvalidState(state);
+    }
+
+    function _whenStates(State expect1_, State expect2_) internal view {
+        State s = state;
+        if (s != expect1_ && s != expect2_) revert InvalidState(s);
+    }
+
+    function _when3States(
+        State expect1_,
+        State expect2_,
+        State expect3_
+    ) internal view {
+        State s = state;
+        if (s != expect1_ && s != expect2_ && s != expect3_) revert InvalidState(s);
+    }
+
+    function _whenNotState(State expectNot_) internal view {
+        if (state == expectNot_) revert InvalidState(state);
     }
 
     // State Changes
