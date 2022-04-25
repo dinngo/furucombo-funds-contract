@@ -14,9 +14,17 @@ import {
   Chainlink,
   SimpleToken,
   DSProxyRegistryMock,
+  DSProxyMock,
   SetupAction,
 } from '../typechain';
-import { DS_PROXY_REGISTRY, DAI_TOKEN, DAI_PROVIDER, WL_ANY_SIG, FUND_STATE, FUND_PERCENTAGE_BASE } from './utils/constants';
+import {
+  DS_PROXY_REGISTRY,
+  DAI_TOKEN,
+  DAI_PROVIDER,
+  WL_ANY_SIG,
+  FUND_STATE,
+  FUND_PERCENTAGE_BASE,
+} from './utils/constants';
 import { impersonateAndInjectEther } from './utils/utils';
 
 describe('FundProxyStorageUtils', function () {
@@ -42,6 +50,7 @@ describe('FundProxyStorageUtils', function () {
 
   let tokenD: SimpleToken;
   let dsProxyRegistryMock: DSProxyRegistryMock;
+  let dsProxyMock: DSProxyMock;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
@@ -123,67 +132,81 @@ describe('FundProxyStorageUtils', function () {
     it('should revert: comptroller is initialized', async function () {
       await proxy.setComptroller(comptroller.address);
 
-
-      await expect(proxy.setComptroller(comptroller.address)).to.be.revertedWith(
-        'RevertCode(16)'); // FUND_PROXY_STORAGE_UTILS_COMPTROLLER_IS_INITIALIZED
-
+      await expect(proxy.setComptroller(comptroller.address)).to.be.revertedWith('RevertCode(16)'); // FUND_PROXY_STORAGE_UTILS_COMPTROLLER_IS_INITIALIZED
     });
 
     it('should revert: comptroller zero address', async function () {
-      await expect(proxy.setComptroller(constants.AddressZero)).to.be.revertedWith(
-        'RevertCode(17)'); // FUND_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
+      await expect(proxy.setComptroller(constants.AddressZero)).to.be.revertedWith('RevertCode(17)'); // FUND_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
     });
 
     it('should revert: share token is initialized', async function () {
       await proxy.setShareToken(tokenA.address);
-      await expect(proxy.setShareToken(tokenA.address)).to.be.revertedWith(
-        'RevertCode(19)'); // FUND_PROXY_STORAGE_UTILS_SHARE_TOKEN_IS_INITIALIZED
+      await expect(proxy.setShareToken(tokenA.address)).to.be.revertedWith('RevertCode(19)'); // FUND_PROXY_STORAGE_UTILS_SHARE_TOKEN_IS_INITIALIZED
     });
 
     it('should revert: zero share token address', async function () {
-      await expect(proxy.setShareToken(constants.AddressZero)).to.be.revertedWith(
-        'RevertCode(20)'); // FUND_PROXY_STORAGE_UTILS_ZERO_SHARE_TOKEN_ADDRESS
+      await expect(proxy.setShareToken(constants.AddressZero)).to.be.revertedWith('RevertCode(20)'); // FUND_PROXY_STORAGE_UTILS_ZERO_SHARE_TOKEN_ADDRESS
     });
 
     it('should revert: mortgage vault is initialized', async function () {
       await proxy.setMortgageVault(comptroller.address);
-      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith(
-        'RevertCode(21)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
+      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith('RevertCode(21)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
     });
 
     it('should revert: mortgage vault is not initialized', async function () {
       await comptroller.setMortgageVault(constants.AddressZero);
-      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith(
-        'RevertCode(22)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED
+      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith('RevertCode(22)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED
+    });
+
+    it('use existing vault', async function () {
+      // setup existing vault
+      dsProxyMock = await (await ethers.getContractFactory('DSProxyMock')).deploy();
+      await dsProxyMock.deployed();
+      dsProxyMock.setOwner(proxy.address);
+      await dsProxyRegistryMock.setProxy(proxy.address, dsProxyMock.address);
+
+      // set existing vault
+      await proxy.setVault(dsProxyRegistryMock.address);
+
+      // check vault
+      const vault = await proxy.vault();
+      dsProxyMock = await (await ethers.getContractFactory('DSProxyMock')).attach(vault);
+      expect(await dsProxyMock.owner()).to.be.eq(proxy.address);
+    });
+
+    it('should revert: use existing vault of other owner', async function () {
+      // setup existing vault with other owner
+      dsProxyMock = await (await ethers.getContractFactory('DSProxyMock')).deploy();
+      await dsProxyMock.deployed();
+      dsProxyMock.setOwner(user.address);
+      await dsProxyRegistryMock.setProxy(proxy.address, dsProxyMock.address);
+
+      // set existing vault
+      await expect(proxy.setVault(dsProxyRegistryMock.address)).to.be.revertedWith('RevertCode(87)'); // FUND_PROXY_STORAGE_UTILS_UNKNOWN_OWNER
     });
 
     it('should revert: vault is initialized', async function () {
       await proxy.setVault(DS_PROXY_REGISTRY);
-      await expect(proxy.setVault(DS_PROXY_REGISTRY)).to.be.revertedWith(
-        'RevertCode(23)'); // FUND_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED
+      await expect(proxy.setVault(DS_PROXY_REGISTRY)).to.be.revertedWith('RevertCode(23)'); // FUND_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED
     });
 
-    it('should revert: zero registry', async function () {
-      await expect(proxy.setVault(constants.AddressZero)).to.be.revertedWith(
-        'RevertCode(24)'); // FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY
+    it('should revert: zero registry address', async function () {
+      await expect(proxy.setVault(constants.AddressZero)).to.be.revertedWith('RevertCode(24)'); // FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY
     });
 
     it('should revert: vault is not initialized', async function () {
-      await expect(proxy.setVault(dsProxyRegistryMock.address)).to.be.revertedWith(
-        'RevertCode(25)'); // FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED
+      await expect(proxy.setVault(dsProxyRegistryMock.address)).to.be.revertedWith('RevertCode(25)'); // FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED
     });
 
     it('should revert: zero vault', async function () {
-      await expect(proxy.setVaultApproval(setupAction.address)).to.be.revertedWith(
-        'RevertCode(26)'); // FUND_PROXY_STORAGE_UTILS_ZERO_VAULT
+      await expect(proxy.setVaultApproval(setupAction.address)).to.be.revertedWith('RevertCode(26)'); // FUND_PROXY_STORAGE_UTILS_ZERO_VAULT
     });
 
     it('should revert: zero setup action address', async function () {
       await proxy.setComptroller(comptroller.address);
       await proxy.setDenomination(tokenD.address);
       await proxy.setVault(DS_PROXY_REGISTRY);
-      await expect(proxy.setVaultApproval(constants.AddressZero)).to.be.revertedWith(
-        'RevertCode(27)'); // FUND_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
+      await expect(proxy.setVaultApproval(constants.AddressZero)).to.be.revertedWith('RevertCode(27)'); // FUND_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
     });
 
     it('should revert: wrong allowance', async function () {
@@ -192,20 +215,17 @@ describe('FundProxyStorageUtils', function () {
       await proxy.setVault(DS_PROXY_REGISTRY);
       const setupActionMock = await (await ethers.getContractFactory('SetupActionMock')).deploy();
       await setupActionMock.deployed();
-      await expect(proxy.setVaultApproval(setupActionMock.address)).to.be.revertedWith(
-        'RevertCode(28)'); // FUND_PROXY_STORAGE_UTILS_WRONG_ALLOWANCE
+      await expect(proxy.setVaultApproval(setupActionMock.address)).to.be.revertedWith('RevertCode(28)'); // FUND_PROXY_STORAGE_UTILS_WRONG_ALLOWANCE
     });
 
     it('should revert: invalid denomination', async function () {
       await proxy.setComptroller(comptroller.address);
-      await expect(proxy.setDenomination(tokenA.address)).to.be.revertedWith(
-        'RevertCode(18)'); // FUND_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
+      await expect(proxy.setDenomination(tokenA.address)).to.be.revertedWith('RevertCode(18)'); // FUND_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
     });
 
     it('should revert: invalid reserve execution rate', async function () {
       proxy.setState(FUND_STATE.REVIEWING);
-      await expect(proxy.setReserveExecutionRate(FUND_PERCENTAGE_BASE)).to.be.revertedWith(
-        'RevertCode(76)'); // FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
+      await expect(proxy.setReserveExecutionRate(FUND_PERCENTAGE_BASE)).to.be.revertedWith('RevertCode(76)'); // FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
     });
   });
 });
