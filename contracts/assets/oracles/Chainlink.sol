@@ -30,7 +30,7 @@ contract Chainlink is IAssetOracle, Ownable {
         uint256 baseAmount_,
         address quote_
     ) external view returns (uint256) {
-        Errors._require(baseAmount_ > 0, Errors.Code.CHAINLINK_ZERO_AMOUNT);
+        if (baseAmount_ == 0) return 0;
 
         uint256 baseUnit = 10**uint256(IERC20Metadata(base_).decimals());
         uint256 quoteUnit = 10**uint256(IERC20Metadata(quote_).decimals());

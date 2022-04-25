@@ -47,7 +47,7 @@ library Errors {
         TASK_EXECUTOR_NON_ZERO_QUOTA, // 39: "Quota is not zero"
         AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT, // 40: "Token length != amounts length"
         AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL, // 41: "Invalid comptroller handler call"
-        CHAINLINK_ZERO_AMOUNT, // 42: "Zero amount"
+        BLANK_42, // 42: ""
         CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT, // 43: assets.length == aggregators.length
         CHAINLINK_ZERO_ADDRESS, // 44: "Zero address"
         CHAINLINK_EXISTING_ASSET, // 45: "Existing asset"
