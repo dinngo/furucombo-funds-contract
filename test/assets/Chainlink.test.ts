@@ -158,7 +158,7 @@ describe('Chainlink', function () {
       pairBalanceB = await ercB.balanceOf(pair);
     });
 
-    it('normal: base is tokenA', async function () {
+    it('base is tokenA', async function () {
       // Get chainlink price
       const base = tokenA;
       const baseAmount = utils.parseUnits('1', decimalsA);
@@ -171,7 +171,7 @@ describe('Chainlink', function () {
       expectEqWithinBps(chainlinkAmount, ammAmount, 100);
     });
 
-    it('normal: base is tokenB', async function () {
+    it('base is tokenB', async function () {
       // Get chainlink price
       const base = tokenB;
       const baseAmount = utils.parseUnits('1', decimalsB);
@@ -184,14 +184,12 @@ describe('Chainlink', function () {
       expectEqWithinBps(chainlinkAmount, ammAmount, 100);
     });
 
-    it('should revert: zero amount', async function () {
+    it('zero amount', async function () {
       const base = tokenA;
       const baseAmount = constants.Zero;
       const quote = tokenB;
 
-      await expect(chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.reverted.revertedWith(
-        'RevertCode(42)'
-      ); // CHAINLINK_ZERO_AMOUNT
+      expect(await chainlink.calcConversionAmount(base, baseAmount, quote)).to.be.eq(0);
     });
 
     it('should revert: unsupported asset', async function () {
