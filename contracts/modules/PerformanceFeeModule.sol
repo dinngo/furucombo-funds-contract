@@ -116,7 +116,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
             shareToken.burn(_OUTSTANDING_ACCOUNT, lastOutstandingShare - outstandingShare);
         }
         lastOutstandingShare = outstandingShare;
-        lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
+        lastGrossSharePrice64x64 = grossSharePrice64x64;
     }
 
     /// @notice Update the gross share price as the basis for estimating the
