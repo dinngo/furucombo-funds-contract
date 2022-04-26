@@ -85,8 +85,8 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
         for (uint256 i = 0; i < tokensOut_.length; i++) {
             amountsOut[i] = _getBalance(tokensOut_[i]) - amountsOut[i];
 
-            // Update quota to fund
-            _increaseFundQuota(tokensOut_[i], amountsOut[i]);
+            // Update asset quota
+            _increaseAssetQuota(tokensOut_[i], amountsOut[i]);
         }
 
         return amountsOut;
@@ -147,8 +147,8 @@ contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
             uint256 amount = amountsIn_[i];
 
             if (amount > 0) {
-                // decrease fund quota
-                _decreaseFundQuota(tokensIn_[i], amount);
+                // decrease asset quota
+                _decreaseAssetQuota(tokensIn_[i], amount);
                 IERC20(tokensIn_[i]).safeTransfer(proxy, amount);
             }
         }

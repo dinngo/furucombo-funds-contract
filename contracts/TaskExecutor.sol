@@ -10,11 +10,11 @@ import {IFund} from "./interfaces/IFund.sol";
 import {Errors} from "./utils/Errors.sol";
 import {DestructibleAction} from "./utils/DestructibleAction.sol";
 import {DelegateCallAction} from "./utils/DelegateCallAction.sol";
-import {FundQuotaAction} from "./utils/FundQuotaAction.sol";
+import {AssetQuotaAction} from "./utils/AssetQuotaAction.sol";
 import {DealingAssetAction} from "./utils/DealingAssetAction.sol";
 import {LibParam} from "./libraries/LibParam.sol";
 
-contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, FundQuotaAction, DealingAssetAction {
+contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, AssetQuotaAction, DealingAssetAction {
     using Address for address;
     using SafeERC20 for IERC20;
     using LibParam for bytes32;
@@ -250,12 +250,12 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
 
         for (uint256 i = 0; i < tokensIn_.length; i++) {
             // make sure all quota should be zero at the begin
-            Errors._require(_isFundQuotaZero(tokensIn_[i]), Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA);
+            Errors._require(_isAssetQuotaZero(tokensIn_[i]), Errors.Code.TASK_EXECUTOR_NON_ZERO_QUOTA);
 
             // send fee to collector
             uint256 execFee = (amountsIn_[i] * feePercentage) / _FEE_BASE;
             IERC20(tokensIn_[i]).safeTransfer(collector, execFee);
-            _setFundQuota(tokensIn_[i], amountsIn_[i] - execFee);
+            _setAssetQuota(tokensIn_[i], amountsIn_[i] - execFee);
 
             emit ExecFee(msg.sender, tokensIn_[i], execFee);
         }

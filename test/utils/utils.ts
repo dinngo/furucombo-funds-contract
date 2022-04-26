@@ -51,14 +51,14 @@ export function mwei(num: any) {
   return ethers.utils.parseUnits(num, 6);
 }
 
-export async function getTaskExecutorFundQuotas(proxy: any, taskExecutor: any, tokensIn: string[]) {
+export async function getTaskExecutorAssetQuotas(proxy: any, taskExecutor: any, tokensIn: string[]) {
   const returnData = await proxy.callStatic.executeMock(
     taskExecutor.address,
-    getCallData(taskExecutor, 'getFundQuotas', [tokensIn])
+    getCallData(taskExecutor, 'getAssetQuotas', [tokensIn])
   );
 
-  const fundQuotas = ethers.utils.defaultAbiCoder.decode(['uint256[]'], returnData)[0];
-  return fundQuotas;
+  const assetQuotas = ethers.utils.defaultAbiCoder.decode(['uint256[]'], returnData)[0];
+  return assetQuotas;
 }
 
 export async function getTaskExecutorDealingAssets(proxy: any, taskExecutor: any) {

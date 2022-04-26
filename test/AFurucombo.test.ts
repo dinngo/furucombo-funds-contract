@@ -39,7 +39,7 @@ import {
   impersonateAndInjectEther,
   simpleEncode,
   asciiToHex32,
-  getTaskExecutorFundQuotas,
+  getTaskExecutorAssetQuotas,
   getTaskExecutorDealingAssets,
   profileGas,
   getFuncSig,
@@ -228,9 +228,9 @@ describe('AFurucombo', function () {
       const tokenOutAfter = await tokenOut.balanceOf(vault);
       const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
 
-      // Get fundQuotas and dealing asset
-      const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutor, tokensIn);
-      const outputFundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutor, tokensOut);
+      // Get assetQuotas and dealing asset
+      const assetQuotas = await getTaskExecutorAssetQuotas(proxy, taskExecutor, tokensIn);
+      const outputAssetQuotas = await getTaskExecutorAssetQuotas(proxy, taskExecutor, tokensOut);
       const dealingAssets = await getTaskExecutorDealingAssets(proxy, taskExecutor);
 
       // Verify action return
@@ -244,13 +244,13 @@ describe('AFurucombo', function () {
       // Verify furucombo proxy
       expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
 
-      // Verify fund Quota
-      for (let i = 0; i < fundQuotas.length; i++) {
-        expect(fundQuotas[i]).to.be.lt(amountsIn[i]);
+      // Verify asset Quota
+      for (let i = 0; i < assetQuotas.length; i++) {
+        expect(assetQuotas[i]).to.be.lt(amountsIn[i]);
       }
       const tokenOutAfters = [tokenOutAfter];
-      for (let i = 0; i < outputFundQuotas.length; i++) {
-        expect(outputFundQuotas[i]).to.be.eq(tokenOutAfters[i]);
+      for (let i = 0; i < outputAssetQuotas.length; i++) {
+        expect(outputAssetQuotas[i]).to.be.eq(tokenOutAfters[i]);
       }
 
       // Verify dealing asset
@@ -423,7 +423,7 @@ describe('AFurucombo', function () {
       await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(86)'); // AFURUCOMBO_DUPLICATED_TOKENSOUT
     });
 
-    describe('fund Quota', function () {
+    describe('asset Quota', function () {
       it('input token == output token: the same amount', async function () {
         const amountIn = ether('1');
         const consumeAmount = amountIn.sub(
@@ -460,8 +460,8 @@ describe('AFurucombo', function () {
         // Record after balance
         const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
 
-        // Get fundQuotas and dealing asset
-        const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutor, tokensIn);
+        // Get assetQuotas and dealing asset
+        const assetQuotas = await getTaskExecutorAssetQuotas(proxy, taskExecutor, tokensIn);
 
         const dealingAssets = await getTaskExecutorDealingAssets(proxy, taskExecutor);
 
@@ -471,10 +471,10 @@ describe('AFurucombo', function () {
         // Verify furucombo proxy
         expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
 
-        // Verify fund Quota
+        // Verify asset Quota
         const feePercentage = await comptroller.execFeePercentage();
-        for (let i = 0; i < fundQuotas.length; i++) {
-          expect(fundQuotas[i]).to.be.eq(amountsIn[i].sub(amountsIn[i].mul(feePercentage).div(FUND_PERCENTAGE_BASE)));
+        for (let i = 0; i < assetQuotas.length; i++) {
+          expect(assetQuotas[i]).to.be.eq(amountsIn[i].sub(amountsIn[i].mul(feePercentage).div(FUND_PERCENTAGE_BASE)));
         }
 
         // Verify dealing asset
@@ -526,8 +526,8 @@ describe('AFurucombo', function () {
         // Record after balance
         const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
 
-        // Get fundQuotas and dealing asset
-        const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutor, tokensIn);
+        // Get assetQuotas and dealing asset
+        const assetQuotas = await getTaskExecutorAssetQuotas(proxy, taskExecutor, tokensIn);
 
         const dealingAssets = await getTaskExecutorDealingAssets(proxy, taskExecutor);
 
@@ -537,9 +537,9 @@ describe('AFurucombo', function () {
         // Verify furucombo proxy
         expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
 
-        // Verify fund Quota
-        for (let i = 0; i < fundQuotas.length; i++) {
-          expect(fundQuotas[i]).to.be.eq(amountIn.sub(consumeAmount).add(sendTokenAmount));
+        // Verify asset Quota
+        for (let i = 0; i < assetQuotas.length; i++) {
+          expect(assetQuotas[i]).to.be.eq(amountIn.sub(consumeAmount).add(sendTokenAmount));
         }
 
         // Verify dealing asset
@@ -592,8 +592,8 @@ describe('AFurucombo', function () {
         // Record after balance
         const tokenFurucomboAfter = await token.balanceOf(furucombo.address);
 
-        // Get fundQuotas and dealing asset
-        const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutor, tokensIn);
+        // Get assetQuotas and dealing asset
+        const assetQuotas = await getTaskExecutorAssetQuotas(proxy, taskExecutor, tokensIn);
 
         const dealingAssets = await getTaskExecutorDealingAssets(proxy, taskExecutor);
 
@@ -603,11 +603,11 @@ describe('AFurucombo', function () {
         // Verify furucombo proxy
         expect(tokenFurucomboAfter).to.be.lt(furucomboTokenDust);
 
-        // Verify fund Quota
-        for (let i = 0; i < fundQuotas.length; i++) {
-          expect(fundQuotas[i]).to.be.eq(
-            // Set consumeAmount to fund quota at the first
-            // then add generated token from faucet to fund quota
+        // Verify asset Quota
+        for (let i = 0; i < assetQuotas.length; i++) {
+          expect(assetQuotas[i]).to.be.eq(
+            // Set consumeAmount to asset quota at the first
+            // then add generated token from faucet to asset quota
             amountIn.sub(consumeAmount).add(consumeAmount.mul(2))
           );
         }

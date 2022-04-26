@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {StorageArray} from "./StorageArray.sol";
 import {StorageMap} from "./StorageMap.sol";
 
-library FundQuota {
+library AssetQuota {
     using StorageArray for bytes32;
     using StorageMap for bytes32;
 

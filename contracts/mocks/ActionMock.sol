@@ -36,33 +36,33 @@ contract AMock is ActionBase {
         _addDealingAsset(a_);
     }
 
-    // Fund Quota functions
+    // Asset Quota functions
 
-    function doGetFundQuota(address a_) external view returns (uint256) {
-        return _getFundQuota(a_);
+    function doGetAssetQuota(address a_) external view returns (uint256) {
+        return _getAssetQuota(a_);
     }
 
-    function doIsFundQuotaZero(address a_) external view returns (bool) {
-        return _isFundQuotaZero(a_);
+    function doIsAssetQuotaZero(address a_) external view returns (bool) {
+        return _isAssetQuotaZero(a_);
     }
 
-    function doSetFundQuota(address a_, uint256 v_) external {
-        _setFundQuota(a_, v_);
+    function doSetAssetQuota(address a_, uint256 v_) external {
+        _setAssetQuota(a_, v_);
     }
 
-    function doIncreaseFundQuota(address a_, uint256 v_) external {
-        _increaseFundQuota(a_, v_);
+    function doIncreaseAssetQuota(address a_, uint256 v_) external {
+        _increaseAssetQuota(a_, v_);
     }
 
-    function doDecreaseFundQuota(address a_, uint256 v_) external {
-        _decreaseFundQuota(a_, v_);
+    function doDecreaseAssetQuota(address a_, uint256 v_) external {
+        _decreaseAssetQuota(a_, v_);
     }
 
-    function doCleanFundQuota() external {
-        _cleanFundQuota();
+    function doCleanAssetQuota() external {
+        _cleanAssetQuota();
     }
 
     function doQuotaCleanUp(address a_, uint256 v_) external quotaCleanUp {
-        _increaseFundQuota(a_, v_);
+        _increaseAssetQuota(a_, v_);
     }
 }

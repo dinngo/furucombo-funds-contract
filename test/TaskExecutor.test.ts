@@ -31,7 +31,7 @@ import {
   getCallActionData,
   ether,
   impersonateAndInjectEther,
-  getTaskExecutorFundQuotas,
+  getTaskExecutorAssetQuotas,
 } from './utils/utils';
 
 describe('Task Executor', function () {
@@ -777,7 +777,7 @@ describe('Task Executor', function () {
     });
   });
 
-  describe('fund quota', function () {
+  describe('asset quota', function () {
     const quota = ether('10');
 
     beforeEach(async function () {
@@ -830,8 +830,8 @@ describe('Task Executor', function () {
       expect((await tokenB.balanceOf(collector)).sub(collectorTokenBBalance)).to.be.eq(expectExecutionFee);
     });
 
-    it('execution twice for checking fund quota will be reset', async function () {
-      // Replace TaskExecutor with TaskExecutorMock for checking fund quota
+    it('execution twice for checking asset quota will be reset', async function () {
+      // Replace TaskExecutor with TaskExecutorMock for checking asset quota
       const taskExecutorMock = await (
         await ethers.getContractFactory('TaskExecutorMock')
       ).deploy(owner.address, comptroller.address);
@@ -856,15 +856,15 @@ describe('Task Executor', function () {
         value: ether('0.01'),
       });
 
-      // if success when executing 2nd time, that means the fund quota reset to zero after 1st execution
+      // if success when executing 2nd time, that means the asset quota reset to zero after 1st execution
       await proxy.connect(user).executeMock(target, data, {
         value: ether('0.01'),
       });
 
-      // check fund quota reset to zero
-      const fundQuotas = await getTaskExecutorFundQuotas(proxy, taskExecutorMock, tokensIn);
-      for (let i = 0; i < fundQuotas.length; i++) {
-        expect(fundQuotas[0]).to.be.eq(0);
+      // check asset quota reset to zero
+      const assetQuotas = await getTaskExecutorAssetQuotas(proxy, taskExecutorMock, tokensIn);
+      for (let i = 0; i < assetQuotas.length; i++) {
+        expect(assetQuotas[0]).to.be.eq(0);
       }
     });
 
