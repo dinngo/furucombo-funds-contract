@@ -28,10 +28,10 @@ contract TaskExecutorMock is TaskExecutor, GasProfiler {
         result = to_.functionCallWithValue(data_, 0);
     }
 
-    function getFundQuotas(address[] calldata funds_) external view returns (uint256[] memory) {
+    function getAssetQuotas(address[] calldata funds_) external view returns (uint256[] memory) {
         uint256[] memory quotas = new uint256[](funds_.length);
         for (uint256 i = 0; i < funds_.length; i++) {
-            quotas[i] = _getFundQuota(funds_[i]);
+            quotas[i] = _getAssetQuota(funds_[i]);
         }
         return quotas;
     }
