@@ -58,7 +58,6 @@ import {
   deployComptrollerAndFundProxyFactory,
   deployContracts,
   createFundProxy,
-  deployAssetResolvers,
   deployMortgageVault,
   deployTaskExecutorAndAFurucombo,
   registerHandlers,
@@ -72,7 +71,6 @@ describe('FundExecuteStrategy', function () {
   const tokenAAddress = DAI_TOKEN;
   const tokenBAddress = WETH_TOKEN;
   const denominationProviderAddress = USDC_PROVIDER;
-  const mortgageProviderAddress = BAT_PROVIDER;
 
   const denominationAggregator = CHAINLINK_USDC_USD;
   const tokenAAggregator = CHAINLINK_DAI_USD;
@@ -85,7 +83,6 @@ describe('FundExecuteStrategy', function () {
   const valueTolerance = 9000; // 90%
   const pendingExpiration = 86400; // 1 day
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRate = 1000; // 10%
   const shareTokenName = 'TEST';
 
   let owner: Wallet;
@@ -205,7 +202,6 @@ describe('FundExecuteStrategy', function () {
       mFeeRate,
       pFeeRate,
       crystallizationPeriod,
-      reserveExecutionRate,
       shareTokenName
     );
     await fundProxy.connect(manager).finalize();

@@ -32,7 +32,6 @@ describe('FundProxyFactory', function () {
   const mFeeRate = 0;
   const pFeeRate = 0;
   const crystallizationPeriod = 1;
-  const reserveExecutionRate = 0;
   const shareTokenName = 'TEST';
   const dust = BigNumber.from('10');
 
@@ -114,16 +113,7 @@ describe('FundProxyFactory', function () {
     it('with valid params', async function () {
       const receipt = await fundProxyFactory
         .connect(manager)
-        .createFund(
-          denominationAddress,
-          level,
-          mFeeRate,
-          pFeeRate,
-          crystallizationPeriod,
-          reserveExecutionRate,
-          shareTokenName
-        );
-
+        .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName);
       const eventArgs = await getEventArgs(receipt, 'FundCreated');
       const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
@@ -134,15 +124,7 @@ describe('FundProxyFactory', function () {
       await expect(
         fundProxyFactory
           .connect(manager)
-          .createFund(
-            invalidDenominationAddress,
-            level,
-            mFeeRate,
-            pFeeRate,
-            crystallizationPeriod,
-            reserveExecutionRate,
-            shareTokenName
-          )
+          .createFund(invalidDenominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
       ).to.be.revertedWith('RevertCode(79)'); //FUND_PROXY_FACTORY_INVALID_DENOMINATION
     });
     it('should revert: invalid creator', async function () {
@@ -150,15 +132,7 @@ describe('FundProxyFactory', function () {
       await expect(
         fundProxyFactory
           .connect(invalidCreator)
-          .createFund(
-            denominationAddress,
-            level,
-            mFeeRate,
-            pFeeRate,
-            crystallizationPeriod,
-            reserveExecutionRate,
-            shareTokenName
-          )
+          .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
       ).to.be.revertedWith('RevertCode(13)'); //FUND_PROXY_FACTORY_INVALID_CREATOR
     });
     it('should revert: invalid level', async function () {
@@ -166,15 +140,7 @@ describe('FundProxyFactory', function () {
       await expect(
         fundProxyFactory
           .connect(manager)
-          .createFund(
-            denominationAddress,
-            invalidLevel,
-            mFeeRate,
-            pFeeRate,
-            crystallizationPeriod,
-            reserveExecutionRate,
-            shareTokenName
-          )
+          .createFund(denominationAddress, invalidLevel, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
       ).to.be.revertedWith('RevertCode(75)'); //FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
     });
     it('should revert: invalid management fee rate', async function () {
@@ -182,15 +148,7 @@ describe('FundProxyFactory', function () {
       await expect(
         fundProxyFactory
           .connect(manager)
-          .createFund(
-            denominationAddress,
-            level,
-            invalidMFeeRate,
-            pFeeRate,
-            crystallizationPeriod,
-            reserveExecutionRate,
-            shareTokenName
-          )
+          .createFund(denominationAddress, level, invalidMFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
       ).to.be.reverted;
     });
     it('should revert: invalid performance fee rate', async function () {
@@ -198,15 +156,7 @@ describe('FundProxyFactory', function () {
       await expect(
         fundProxyFactory
           .connect(manager)
-          .createFund(
-            denominationAddress,
-            level,
-            mFeeRate,
-            invalidPFeeRate,
-            crystallizationPeriod,
-            reserveExecutionRate,
-            shareTokenName
-          )
+          .createFund(denominationAddress, level, mFeeRate, invalidPFeeRate, crystallizationPeriod, shareTokenName)
       ).to.be.reverted;
     });
     it('should revert: invalid crystallization period', async function () {
@@ -214,31 +164,7 @@ describe('FundProxyFactory', function () {
       await expect(
         fundProxyFactory
           .connect(manager)
-          .createFund(
-            denominationAddress,
-            level,
-            mFeeRate,
-            pFeeRate,
-            invalidCrystallizationPeriod,
-            reserveExecutionRate,
-            shareTokenName
-          )
-      ).to.be.reverted;
-    });
-    it('should revert: invalid reserve execution rate', async function () {
-      const invalidReserveExecutionRate = FUND_PERCENTAGE_BASE;
-      await expect(
-        fundProxyFactory
-          .connect(manager)
-          .createFund(
-            denominationAddress,
-            level,
-            mFeeRate,
-            pFeeRate,
-            crystallizationPeriod,
-            invalidReserveExecutionRate,
-            shareTokenName
-          )
+          .createFund(denominationAddress, level, mFeeRate, pFeeRate, invalidCrystallizationPeriod, shareTokenName)
       ).to.be.reverted;
     });
   });

@@ -32,7 +32,6 @@ abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
 
     // Common
     uint256 public level;
-    uint256 public reserveExecutionRate;
     uint256 public pendingStartTime;
     State public state;
     IComptroller public comptroller;
