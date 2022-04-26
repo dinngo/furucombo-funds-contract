@@ -10,7 +10,7 @@ contract RAaveProtocolV2Debt is IAssetResolver, AssetResolverBase {
         address asset_, // should be debtToken
         uint256 amount_,
         address quote_
-    ) external view override returns (int256) {
+    ) external view returns (int256) {
         address underlying = IATokenV2(asset_).UNDERLYING_ASSET_ADDRESS();
         return _toNegativeValue(_calcAssetValue(underlying, amount_, quote_));
     }

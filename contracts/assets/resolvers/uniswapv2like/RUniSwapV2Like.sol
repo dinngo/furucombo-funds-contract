@@ -21,7 +21,7 @@ contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
         address asset_,
         uint256 amount_,
         address quote_
-    ) external view override returns (int256) {
+    ) external view returns (int256) {
         // use Weighted Geometric Mean
         // formula = 2*(K*P0*P1)^0.5/totalSupply
         // K: reserve0 * reserve1
