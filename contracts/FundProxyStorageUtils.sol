@@ -134,9 +134,19 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
         Errors._require(address(dsProxyRegistry_) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY);
 
-        // deploy vault
-        vault = IDSProxy(dsProxyRegistry_.build());
-        Errors._require(address(vault) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED);
+        // check if vault proxy exists
+        IDSProxy vaultProxy = IDSProxy(dsProxyRegistry_.proxies(address(this)));
+        if (address(vaultProxy) != address(0)) {
+            Errors._require(vaultProxy.owner() == address(this), Errors.Code.FUND_PROXY_STORAGE_UTILS_UNKNOWN_OWNER);
+            vault = vaultProxy;
+        } else {
+            // deploy vault
+            vault = IDSProxy(dsProxyRegistry_.build());
+            Errors._require(
+                address(vault) != address(0),
+                Errors.Code.FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED
+            );
+        }
     }
 
     function _setVaultApproval(ISetupAction setupAction_) internal {
