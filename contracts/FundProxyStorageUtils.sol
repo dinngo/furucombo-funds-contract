@@ -16,6 +16,30 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
     error InvalidState(State current);
 
+    modifier whenState(State expect_) {
+        _whenState(expect_);
+        _;
+    }
+
+    modifier whenStates(State expect1_, State expect2_) {
+        _whenStates(expect1_, expect2_);
+        _;
+    }
+
+    modifier when3States(
+        State expect1_,
+        State expect2_,
+        State expect3_
+    ) {
+        _when3States(expect1_, expect2_, expect3_);
+        _;
+    }
+
+    modifier whenNotState(State expectNot_) {
+        _whenNotState(expectNot_);
+        _;
+    }
+
     function _whenState(State expect_) internal view {
         if (state != expect_) revert InvalidState(state);
     }
@@ -39,36 +63,30 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
     }
 
     // State Changes
-    function _review() internal {
-        _whenState(State.Initializing);
+    function _review() internal whenState(State.Initializing) {
         _enterState(State.Reviewing);
     }
 
-    function _finalize() internal {
-        _whenState(State.Reviewing);
+    function _finalize() internal whenState(State.Reviewing) {
         _enterState(State.Executing);
     }
 
-    function _pend() internal {
-        _whenState(State.Executing);
+    function _pend() internal whenState(State.Executing) {
         _enterState(State.Pending);
         pendingStartTime = block.timestamp;
     }
 
-    function _resume() internal {
-        _whenState(State.Pending);
+    function _resume() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Executing);
     }
 
-    function _liquidate() internal {
-        _whenState(State.Pending);
+    function _liquidate() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Liquidating);
     }
 
-    function _close() internal {
-        _whenStates(State.Executing, State.Liquidating);
+    function _close() internal whenStates(State.Executing, State.Liquidating) {
         _enterState(State.Closed);
     }
 

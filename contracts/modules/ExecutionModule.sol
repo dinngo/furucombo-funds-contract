@@ -10,9 +10,11 @@ abstract contract ExecutionModule is FundProxyStorageUtils {
     /// @notice Execute on the fund's behalf. Execution is valid during
     /// Executing and Pending state.
     /// @param data_ The data to be applied to the execution.
-    function execute(bytes calldata data_) public virtual {
-        _when3States(State.Executing, State.Pending, State.Liquidating);
-
+    function execute(bytes calldata data_)
+        public
+        virtual
+        when3States(State.Executing, State.Pending, State.Liquidating)
+    {
         uint256 lastAmount = _beforeExecute();
 
         address action = comptroller.execAction();
