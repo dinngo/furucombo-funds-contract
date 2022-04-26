@@ -7,7 +7,7 @@ import {
   FundImplementation,
   AssetRouter,
   MortgageVault,
-  AMock,
+  ActionMock,
   HandlerMock,
   Chainlink,
   AssetRegistry,
@@ -22,8 +22,8 @@ describe('ComptrollerImplementation_Whitelist', function () {
   let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
-  let actionMockA: AMock;
-  let actionMockB: AMock;
+  let actionMockA: ActionMock;
+  let actionMockB: ActionMock;
   let handlerMockA: HandlerMock;
   let handlerMockB: HandlerMock;
 
@@ -81,10 +81,10 @@ describe('ComptrollerImplementation_Whitelist', function () {
 
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).attach(comptrollerProxy.address);
 
-    actionMockA = await (await ethers.getContractFactory('AMock')).deploy();
+    actionMockA = await (await ethers.getContractFactory('ActionMock')).deploy();
     await actionMockA.deployed();
 
-    actionMockB = await (await ethers.getContractFactory('AMock')).deploy();
+    actionMockB = await (await ethers.getContractFactory('ActionMock')).deploy();
     await actionMockB.deployed();
 
     handlerMockA = await (await ethers.getContractFactory('HandlerMock')).deploy();

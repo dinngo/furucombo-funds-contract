@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ActionBase} from "../actions/ActionBase.sol";
 
-contract AMock is ActionBase {
+contract ActionMock is ActionBase {
     function doUint(uint256 u_) external payable returns (uint256) {
         return u_;
     }
