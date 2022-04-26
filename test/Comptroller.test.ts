@@ -461,14 +461,14 @@ describe('Comptroller', function () {
       });
 
       it('should revert: invalid creator', async function () {
-        await expect(factory.connect(user).createFund(tokenD.address, 1, 0, 0, 300, 0, 'TEST')).to.be.revertedWith(
+        await expect(factory.connect(user).createFund(tokenD.address, 1, 0, 0, 300, 'TEST')).to.be.revertedWith(
           'RevertCode(13)'
         ); // FUND_PROXY_FACTORY_INVALID_CREATOR
       });
 
       it('should revert: invalid mortgage tier', async function () {
         await comptroller.permitCreators([user.address]);
-        await expect(factory.connect(user).createFund(tokenD.address, 2, 0, 0, 300, 0, 'TEST')).to.be.revertedWith(
+        await expect(factory.connect(user).createFund(tokenD.address, 2, 0, 0, 300, 'TEST')).to.be.revertedWith(
           'RevertCode(75)'
         ); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
       });
@@ -477,7 +477,7 @@ describe('Comptroller', function () {
         const tokenMUserBefore = await tokenM.balanceOf(user.address);
         const tokenMVaultBefore = await tokenM.balanceOf(mortgageVault.address);
         await comptroller.permitCreators([user.address]);
-        const receipt = await factory.connect(user).createFund(tokenD.address, 1, 0, 0, 86400, 0, 'TEST');
+        const receipt = await factory.connect(user).createFund(tokenD.address, 1, 0, 0, 86400, 'TEST');
         const fundAddress = (await getEventArgs(receipt, 'FundCreated'))[0];
         const fund = (await ethers.getContractFactory('FundImplementation')).attach(fundAddress);
         await tokenM.connect(user).approve(fund.address, amount);

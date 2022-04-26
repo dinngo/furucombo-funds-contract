@@ -48,8 +48,4 @@ contract BaseMock is FundProxyStorageUtils {
     function setVaultApproval() external {
         _setVaultApproval(setupAction);
     }
-
-    function setReserveExecutionRate(uint256 reserve_) external {
-        _setReserveExecutionRate(reserve_);
-    }
 }

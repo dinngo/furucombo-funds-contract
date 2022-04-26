@@ -122,12 +122,11 @@ export async function createFundProxy(
   mFeeRate: any,
   pFeeRate: any,
   crystallizationPeriod: any,
-  reserveExecution: any,
   shareTokenName: any
 ): Promise<any> {
   const receipt = await fundProxyFactory
     .connect(manager)
-    .createFund(quoteAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, reserveExecution, shareTokenName);
+    .createFund(quoteAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName);
   const eventArgs = await getEventArgs(receipt, 'FundCreated');
   console.log('args.newFund', eventArgs.newFund);
   const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);

@@ -41,7 +41,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// @param mFeeRate_ The management fee rate.
     /// @param pFeeRate_ The performance fee rate.
     /// @param crystallizationPeriod_ The crystallization period.
-    /// @param reserveExecutionRate_ The reserve rate during execution.
     /// @param newOwner_ The owner to be assigned to the fund.
     function initialize(
         uint256 level_,
@@ -51,7 +50,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         uint256 mFeeRate_,
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
-        uint256 reserveExecutionRate_,
         address newOwner_
     ) external whenState(State.Initializing) {
         _setLevel(level_);
@@ -61,7 +59,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
-        _setReserveExecutionRate(reserveExecutionRate_);
         _setVault(dsProxyRegistry);
         _transferOwnership(newOwner_);
         _setMortgageVault(comptroller_);
@@ -103,21 +100,13 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Resume the fund by anyone if can settle pending share.
-    function resume() external nonReentrant {
+    function resume() external nonReentrant whenState(State.Pending) {
         uint256 grossAssetValue = getGrossAssetValue();
-        _resumeWithGrossAssetValue(grossAssetValue);
-    }
-
-    function _resumeWithGrossAssetValue(uint256 grossAssetValue_)
-        internal
-        whenState(State.Pending)
-        returns (uint256 totalRedemption)
-    {
         Errors._require(
-            _isPendingResolvable(true, grossAssetValue_),
+            _isPendingResolvable(true, grossAssetValue),
             Errors.Code.IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
         );
-        totalRedemption = _settlePendingShare(true);
+        _settlePendingShare(true);
         _resume();
     }
 
@@ -162,11 +151,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// @notice Set crystallization period only during reviewing.
     function setCrystallizationPeriod(uint256 crystallizationPeriod_) external onlyOwner whenState(State.Reviewing) {
         _setCrystallizationPeriod(crystallizationPeriod_);
-    }
-
-    /// @notice Set reserve rate only during reviewing.
-    function setReserveExecutionRate(uint256 reserve_) external onlyOwner whenState(State.Reviewing) {
-        _setReserveExecutionRate(reserve_);
     }
 
     /////////////////////////////////////////////////////
@@ -256,12 +240,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         super.execute(data_);
     }
 
-    function _isReserveEnough(uint256 grossAssetValue_) internal view returns (bool) {
-        uint256 reserveRate = (getReserve() * _FUND_PERCENTAGE_BASE) / grossAssetValue_;
-
-        return reserveRate >= reserveExecutionRate;
-    }
-
     function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
         uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) /
             _FUND_PERCENTAGE_BASE;
@@ -276,35 +254,32 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Check the reserve after the execution.
     function _afterExecute(bytes memory response_, uint256 prevGrossAssetValue_) internal override returns (uint256) {
-        // remove asset from assetList
+        // Remove asset from assetList
         address[] memory assetList = getAssetList();
         for (uint256 i = 0; i < assetList.length; ++i) {
             _removeAsset(assetList[i]);
         }
 
-        // add new asset to assetList
+        // Add new asset to assetList
         address[] memory dealingAssets = abi.decode(response_, (address[]));
-
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
             _addAsset(dealingAssets[i]);
         }
 
         // Get new gross asset value
         uint256 grossAssetValue = getGrossAssetValue();
-
         Errors._require(
             _isAfterValueEnough(prevGrossAssetValue_, grossAssetValue),
             Errors.Code.IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
         );
 
-        if (state == State.Pending) {
-            uint256 totalRedemption = _resumeWithGrossAssetValue(grossAssetValue);
+        // Resume fund if the balance is sufficient to resolve pending state
+        if (state == State.Pending && _isPendingResolvable(true, grossAssetValue)) {
+            uint256 totalRedemption = _settlePendingShare(true);
+            _resume();
             // minus redeemed denomination amount
             grossAssetValue -= totalRedemption;
         }
-
-        // Check value after execution
-        Errors._require(_isReserveEnough(grossAssetValue), Errors.Code.IMPLEMENTATION_INSUFFICIENT_RESERVE);
 
         return grossAssetValue;
     }

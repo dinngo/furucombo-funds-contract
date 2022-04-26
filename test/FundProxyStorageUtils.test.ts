@@ -17,14 +17,7 @@ import {
   DSProxyMock,
   SetupAction,
 } from '../typechain';
-import {
-  DS_PROXY_REGISTRY,
-  DAI_TOKEN,
-  DAI_PROVIDER,
-  WL_ANY_SIG,
-  FUND_STATE,
-  FUND_PERCENTAGE_BASE,
-} from './utils/constants';
+import { DS_PROXY_REGISTRY, DAI_TOKEN, DAI_PROVIDER, WL_ANY_SIG } from './utils/constants';
 import { impersonateAndInjectEther } from './utils/utils';
 
 describe('FundProxyStorageUtils', function () {
@@ -131,7 +124,6 @@ describe('FundProxyStorageUtils', function () {
 
     it('should revert: comptroller is initialized', async function () {
       await proxy.setComptroller(comptroller.address);
-
       await expect(proxy.setComptroller(comptroller.address)).to.be.revertedWith('RevertCode(16)'); // FUND_PROXY_STORAGE_UTILS_COMPTROLLER_IS_INITIALIZED
     });
 
@@ -221,11 +213,6 @@ describe('FundProxyStorageUtils', function () {
     it('should revert: invalid denomination', async function () {
       await proxy.setComptroller(comptroller.address);
       await expect(proxy.setDenomination(tokenA.address)).to.be.revertedWith('RevertCode(18)'); // FUND_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
-    });
-
-    it('should revert: invalid reserve execution rate', async function () {
-      proxy.setState(FUND_STATE.REVIEWING);
-      await expect(proxy.setReserveExecutionRate(FUND_PERCENTAGE_BASE)).to.be.revertedWith('RevertCode(76)'); // FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
     });
   });
 });

@@ -183,12 +183,4 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
             Errors.Code.FUND_PROXY_STORAGE_UTILS_WRONG_ALLOWANCE
         );
     }
-
-    function _setReserveExecutionRate(uint256 reserveExecutionRate_) internal {
-        Errors._require(
-            reserveExecutionRate_ < _FUND_PERCENTAGE_BASE,
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_INVALID_RESERVE_EXECUTION_RATE
-        );
-        reserveExecutionRate = reserveExecutionRate_;
-    }
 }

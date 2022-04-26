@@ -25,7 +25,6 @@ contract FundProxyFactory {
         uint256 mFeeRate_,
         uint256 pFeeRate_,
         uint256 crystallizationPeriod_,
-        uint256 reserveExecutionRate_,
         string memory shareTokenName_
     ) external returns (address) {
         Errors._require(comptroller.isValidCreator(msg.sender), Errors.Code.FUND_PROXY_FACTORY_INVALID_CREATOR);
@@ -38,7 +37,7 @@ contract FundProxyFactory {
         // Can be customized
         ShareToken share = new ShareToken(shareTokenName_, "FFST", denomination_.decimals());
         bytes memory data = abi.encodeWithSignature(
-            "initialize(uint256,address,address,address,uint256,uint256,uint256,uint256,address)",
+            "initialize(uint256,address,address,address,uint256,uint256,uint256,address)",
             level_,
             address(comptroller),
             address(denomination_),
@@ -46,7 +45,6 @@ contract FundProxyFactory {
             mFeeRate_,
             pFeeRate_,
             crystallizationPeriod_,
-            reserveExecutionRate_,
             msg.sender
         );
 

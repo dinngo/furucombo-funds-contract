@@ -45,11 +45,6 @@ contract FundImplementationMock is FundImplementation {
         return vault.execute(address(action), data);
     }
 
-    function isReserveEnough() external view returns (bool) {
-        uint256 value = getGrossAssetValue();
-        return _isReserveEnough(value);
-    }
-
     function setLastGrossAssetValue(uint256 value_) external {
         lastGrossAssetValue = value_;
     }
@@ -60,10 +55,6 @@ contract FundImplementationMock is FundImplementation {
 
     function setState(State state_) external {
         _enterState(state_);
-    }
-
-    function resumeWithGrossAssetValue(uint256 grossAssetValue_) external {
-        _resumeWithGrossAssetValue(grossAssetValue_);
     }
 }
 

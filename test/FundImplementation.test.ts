@@ -58,7 +58,6 @@ describe('FundImplementation', function () {
   const CRYSTALLIZATION_PERIOD_MIN = 1; // 1 sec
   const crystallizationPeriod = CRYSTALLIZATION_PERIOD_MIN;
   const level = 1;
-  const reserveExecution = 0;
   const reserveBase = FUND_PERCENTAGE_BASE;
 
   let comptroller: ComptrollerImplementation;
@@ -157,7 +156,6 @@ describe('FundImplementation', function () {
         managementFeeRate,
         performanceFeeRate,
         crystallizationPeriod,
-        reserveExecution,
         owner.address
       );
 
@@ -279,7 +277,6 @@ describe('FundImplementation', function () {
               constants.AddressZero,
               constants.AddressZero,
               constants.AddressZero,
-              0,
               0,
               0,
               0,
@@ -583,25 +580,6 @@ describe('FundImplementation', function () {
         'RevertCode(73)' // IMPLEMENTATION_INSUFFICIENT_TOTAL_VALUE_FOR_EXECUTION
       );
     });
-
-    it('should revert: insufficient reserve', async function () {
-      await fundImplementation.setState(FUND_STATE.REVIEWING);
-      await fundImplementation.setReserveExecutionRate(100);
-      await fundImplementation.setState(FUND_STATE.EXECUTING);
-      await fundImplementation.setGrossAssetValueMock(valueBefore.mul(valueTolerance).div(FUND_PERCENTAGE_BASE));
-      actionData = getCallData(action, 'fooAddress', []);
-      executionData = getCallData(taskExecutor, 'batchExec', [
-        [],
-        [],
-        [action.address],
-        [constants.HashZero],
-        [actionData],
-      ]);
-
-      await expect(fundImplementation.execute(executionData)).to.be.revertedWith(
-        'RevertCode(10)' // IMPLEMENTATION_INSUFFICIENT_RESERVE
-      );
-    });
   });
 
   describe('Setters', function () {
@@ -679,30 +657,6 @@ describe('FundImplementation', function () {
         await expect(fundImplementation.setCrystallizationPeriod(shortPeriod)).to.be.revertedWith('RevertCode(66)'); // PERFORMANCE_FEE_MODULE_CRYSTALLIZATION_PERIOD_TOO_SHORT
       });
     });
-
-    describe('Reserve Execution', function () {
-      it('set reserve execution', async function () {
-        await fundImplementation.setReserveExecutionRate(100);
-        expect(await fundImplementation.reserveExecutionRate()).to.be.eq(100);
-      });
-
-      it('should revert: set reserve execution at wrong stage', async function () {
-        await fundImplementation.finalize();
-        await expect(fundImplementation.setReserveExecutionRate(denominationDust)).to.be.revertedWith(
-          'InvalidState(2)'
-        );
-      });
-
-      it('should revert: set by non-owner', async function () {
-        await expect(fundImplementation.connect(user).setReserveExecutionRate(denominationDust)).to.be.revertedWith(
-          'Ownable: caller is not the owner'
-        );
-      });
-
-      it('should revert: invalid reserve execution', async function () {
-        await expect(fundImplementation.setReserveExecutionRate(reserveBase)).to.be.revertedWith('RevertCode(76)');
-      });
-    });
   });
 
   describe('Getters', function () {
@@ -735,39 +689,9 @@ describe('FundImplementation', function () {
     });
   });
 
-  describe('Reserve', function () {
-    let currentReserveRate = constants.Zero;
-
-    beforeEach(async function () {
-      currentReserveRate = await transferAssetToVault();
-      fundImplementation.reviewingMock();
-    });
-
-    it('reserve is totally enough', async function () {
-      await fundImplementation.setReserveExecutionRate(100); // 1%
-      expect(await fundImplementation.isReserveEnough()).to.be.eq(true);
-    });
-
-    it('reserve is a little bit more than setting', async function () {
-      await fundImplementation.setReserveExecutionRate(currentReserveRate.sub(5)); // reserveExecution is 0.05% below currentReserve
-      expect(await fundImplementation.isReserveEnough()).to.be.eq(true);
-    });
-
-    it('reserve is totally not enough', async function () {
-      await fundImplementation.setReserveExecutionRate(1500); // 15%
-      expect(await fundImplementation.isReserveEnough()).to.be.eq(false);
-    });
-
-    it('reserve is a little bit less than setting', async function () {
-      await fundImplementation.setReserveExecutionRate(currentReserveRate.add(5)); // reserveExecution is 0.05% above currentReserve
-      expect(await fundImplementation.isReserveEnough()).to.be.eq(false);
-    });
-  });
-
   describe('Settle pending share', function () {
     let redeemAmount: BigNumber;
     beforeEach(async function () {
-      await fundImplementation.setReserveExecutionRate(FUND_PERCENTAGE_BASE * 0.1);
       await fundImplementation.finalize();
 
       const currentReserve = await fundImplementation.getReserve();
@@ -812,27 +736,6 @@ describe('FundImplementation', function () {
       expect(await fundImplementation.state()).to.be.eq(FUND_STATE.EXECUTING);
     });
 
-    it('should revert: reserve not enough due to resolve Pending state after execute', async function () {
-      await fundImplementation.setState(FUND_STATE.REVIEWING);
-      await fundImplementation.setReserveExecutionRate(FUND_PERCENTAGE_BASE * 0.15);
-      await fundImplementation.setState(FUND_STATE.PENDING);
-      // Prepare task data and execute
-      const expectNValue = BigNumber.from('101');
-      const actionData = getCallData(fooAction, 'barUint1', [foo.address, expectNValue]);
-
-      const data = getCallData(taskExecutor, 'batchExec', [
-        [],
-        [],
-        [fooAction.address],
-        [constants.HashZero],
-        [actionData],
-      ]);
-
-      // Permit delegate calls
-      await comptroller.permitDelegateCalls(await fundImplementation.level(), [fooAction.address], [WL_ANY_SIG]);
-      await expect(fundImplementation.execute(data)).to.be.revertedWith('RevertCode(10)'); // IMPLEMENTATION_INSUFFICIENT_RESERVE
-    });
-
     it('resolve Pending state after purchase', async function () {
       // Prepare task data and execute
       const purchaseAmount = mwei('1');
@@ -862,7 +765,8 @@ describe('FundImplementation', function () {
     });
 
     it('should revert: pending share is not resolvable', async function () {
-      await expect(fundImplementation.resumeWithGrossAssetValue(redeemAmount.mul(100))).to.be.revertedWith(
+      await fundImplementation.setGrossAssetValueMock(redeemAmount.mul(100));
+      await expect(fundImplementation.resume()).to.be.revertedWith(
         'RevertCode(72)' // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
       );
     });
