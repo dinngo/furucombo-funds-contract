@@ -33,9 +33,10 @@ library AssetQuota {
     }
 
     function _clean() internal {
-        while (_QUOTA_ARR_SLOT._getLength() > 0) {
-            bytes32 key = _QUOTA_ARR_SLOT._pop();
+        for (uint256 i = 0; i < _QUOTA_ARR_SLOT._getLength(); i++) {
+            bytes32 key = _QUOTA_ARR_SLOT._get(i);
             _QUOTA_MAP_SLOT._set(key, 0);
         }
+        _QUOTA_ARR_SLOT._delete();
     }
 }
