@@ -316,29 +316,28 @@ abstract contract ShareModule is FundProxyStorageUtils {
     function _settlePendingShare(bool applyPenalty_) internal returns (uint256 totalRedemption) {
         // Get total share for the settle
         uint256 redeemShare = _getResolvePendingShare(applyPenalty_);
+        if (redeemShare == 0) return 0;
 
-        if (redeemShare > 0) {
-            // Calculate the total redemption depending on the redeemShare
-            totalRedemption = _redeem(address(this), redeemShare, false);
+        // Calculate the total redemption depending on the redeemShare
+        totalRedemption = _redeem(address(this), redeemShare, false);
 
-            // Settle this round and store settle info to round list
-            pendingRoundList.push(
-                PendingRoundInfo({totalPendingShare: currentTotalPendingShare, totalRedemption: totalRedemption})
-            );
+        // Settle this round and store settle info to round list
+        pendingRoundList.push(
+            PendingRoundInfo({totalPendingShare: currentTotalPendingShare, totalRedemption: totalRedemption})
+        );
 
-            currentTotalPendingShare = 0; // reset currentTotalPendingShare
-            if (applyPenalty_) {
-                // if applyPenalty is true that means there are some share as bonus share
-                // need to burn these bonus share if they are remaining
-                if (currentTotalPendingBonus != 0) {
-                    shareToken.burn(address(this), currentTotalPendingBonus); // burn unused bonus
-                    currentTotalPendingBonus = 0;
-                }
-            } else {
+        currentTotalPendingShare = 0; // reset currentTotalPendingShare
+        if (applyPenalty_) {
+            // if applyPenalty is true that means there are some share as bonus share
+            // need to burn these bonus share if they are remaining
+            if (currentTotalPendingBonus != 0) {
+                shareToken.burn(address(this), currentTotalPendingBonus); // burn unused bonus
                 currentTotalPendingBonus = 0;
             }
-
-            emit PendingShareSettled();
+        } else {
+            currentTotalPendingBonus = 0;
         }
+
+        emit PendingShareSettled();
     }
 }

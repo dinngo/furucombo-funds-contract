@@ -126,9 +126,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// @notice Close the fund. The pending share will be settled
     /// without penalty.
     function close() public override onlyOwner nonReentrant whenStates(State.Executing, State.Liquidating) {
-        if (_getResolvePendingShare(false) > 0) {
-            _settlePendingShare(false);
-        }
+        _settlePendingShare(false);
 
         super.close();
 
