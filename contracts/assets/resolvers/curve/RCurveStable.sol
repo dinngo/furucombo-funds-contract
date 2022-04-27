@@ -76,6 +76,8 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         }
 
         // Calculate underlying value
-        return _calcAssetValue(info.valuedAsset, underlyingAmount, quote_);
+        int256 value = _calcAssetValue(info.valuedAsset, underlyingAmount, quote_);
+        Errors._require(value >= 0, Errors.Code.RESOLVER_ASSET_VALUE_NEGATIVE);
+        return value;
     }
 }

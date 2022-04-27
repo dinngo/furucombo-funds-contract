@@ -7,6 +7,7 @@ import {
   Chainlink,
   ERC20,
   RCurveStable,
+  RCurveStableMock,
   ICurveLiquidityPool,
   RCanonical,
 } from '../../typechain';
@@ -47,6 +48,7 @@ describe('RCurveStable', function () {
   // asset router
   let registry: AssetRegistry;
   let resolver: RCurveStable;
+  let resolverMock: RCurveStableMock;
   let canonicalResolver: RCanonical;
   let router: AssetRouter;
   let oracle: Chainlink;
@@ -64,6 +66,8 @@ describe('RCurveStable', function () {
 
     resolver = await (await ethers.getContractFactory('RCurveStable')).deploy();
     await resolver.deployed();
+    resolverMock = await (await ethers.getContractFactory('RCurveStableMock')).deploy();
+    await resolverMock.deployed();
 
     canonicalResolver = await (await ethers.getContractFactory('RCanonical')).deploy();
     await canonicalResolver.deployed();
@@ -215,6 +219,24 @@ describe('RCurveStable', function () {
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
+    });
+
+    it('should revert: resolver asset value negative', async function () {
+      const asset = lpToken.address;
+      const amount = ether('1');
+      const quote = quoteAddress;
+
+      // Change to mock resolver
+      await registry.unregister(asset);
+      await registry.register(asset, resolverMock.address);
+
+      // Register pool info
+      await resolverMock
+        .connect(owner)
+        .setPoolInfo(lpToken.address, liquidityPool.address, token.address, await token.decimals());
+
+      // Get asset value by asset resolver
+      await expect(router.connect(user).calcAssetValue(asset, amount, quote)).to.be.revertedWith('RevertCode(90)'); // RESOLVER_ASSET_VALUE_NEGATIVE
     });
   });
 
