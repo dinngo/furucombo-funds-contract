@@ -1,6 +1,6 @@
 import { BigNumber, constants, Wallet } from 'ethers';
 import { expect } from 'chai';
-import { ethers, deployments } from 'hardhat';
+import { network, ethers, deployments } from 'hardhat';
 import { ComptrollerImplementation, ShareModuleMock, SimpleToken, ShareToken } from '../typechain';
 import { MINIMUM_SHARE, FUND_PERCENTAGE_BASE, DS_PROXY_REGISTRY, FUND_STATE } from './utils/constants';
 import { ether } from './utils/utils';
@@ -458,6 +458,64 @@ describe('Share module', function () {
     it('should revert: redeem share is zero', async function () {
       await shareModule.setState(FUND_STATE.EXECUTING);
       await expect(shareModule.redeem(0, acceptPending)).to.be.revertedWith('RevertCode(83)'); // SHARE_MODULE_REDEEM_ZERO_SHARE
+    });
+
+    describe('user2 tried to frontrun user1 for bonus', function () {
+      beforeEach(async function () {
+        await tokenD.transfer(user2.address, totalAsset.mul(2)); // user2 will purchase twice
+        await tokenD.connect(user2).approve(shareModule.address, constants.MaxUint256);
+
+        // User2 purchases for the following frontrun
+        await shareModule.connect(user2).purchase(totalAsset);
+        await shareModule.setReserve(totalAsset); // user1 thought it is enough to redeem
+        await shareModule.setGrossAssetValue(totalAsset.mul(2));
+
+        // Stop automine
+        await network.provider.send('evm_setAutomine', [false]);
+
+        // User2 redeems first to consume all reserve
+        await shareModule.connect(user2).redeem(totalShare, acceptPending);
+        await shareModule.setReserve(0);
+        await shareModule.setGrossAssetValue(totalAsset);
+
+        // User1 redeems second and all received share suffer penalty
+        const acceptPendingUser1 = true;
+        await shareModule.redeem(receivedShare, acceptPendingUser1);
+        await shareModule.setReserve(0);
+        await shareModule.setGrossAssetValue(totalAsset.add(MINIMUM_SHARE));
+      });
+
+      it('user2 has no bonus when user2 frontruns user1 in the same block', async function () {
+        // User2 purchases for the bonus in the same block
+        await shareModule.connect(user2).purchase(totalAsset);
+
+        // Mine the above txs in one block
+        await network.provider.send('evm_mine', []);
+        await network.provider.send('evm_setAutomine', [true]);
+
+        // Same as calculateShare() since we can't do it before the above txs mined
+        // 100e18 * (100e18) / (100e18+1000)
+        const noBonusShare = totalShare.mul(totalAsset).div(totalAsset.add(MINIMUM_SHARE));
+
+        // User2 has no bonus actually
+        expect(await shareToken.balanceOf(user2.address)).to.be.eq(noBonusShare);
+      });
+
+      it('user2 has bonus when user2 purchases after one block', async function () {
+        // Mine the above txs in one block
+        await network.provider.send('evm_mine', []);
+        await network.provider.send('evm_setAutomine', [true]);
+
+        // Calculate expected share with bonus
+        const bonus = await shareModule.currentTotalPendingBonus();
+        const hasBonusShare = (await shareModule.calculateShare(totalAsset)).add(bonus);
+
+        // User2 purchases for the bonus after one block
+        await shareModule.connect(user2).purchase(totalAsset);
+
+        // User2 has bonus
+        expect(await shareToken.balanceOf(user2.address)).to.be.eq(hasBonusShare);
+      });
     });
   });
 
