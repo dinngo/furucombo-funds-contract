@@ -11,6 +11,7 @@ describe('Share module', function () {
   let shareToken: ShareToken;
   let user1: Wallet;
   let user2: Wallet;
+  let user3: Wallet;
   let tokenD: SimpleToken;
   let vault: any;
 
@@ -24,20 +25,21 @@ describe('Share module', function () {
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture('');
-    [user1, user2] = await (ethers as any).getSigners();
+    [user1, user2, user3] = await (ethers as any).getSigners();
     shareModule = await (await ethers.getContractFactory('ShareModuleMock')).connect(user1).deploy(DS_PROXY_REGISTRY);
     await shareModule.deployed();
 
+    const anyAddress = user3.address;
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptroller.deployed();
     await comptroller.initialize(
       shareModule.address,
-      constants.AddressZero,
-      constants.AddressZero,
+      anyAddress,
+      anyAddress,
       constants.Zero,
-      constants.AddressZero,
+      anyAddress,
       constants.Zero,
-      constants.AddressZero,
+      anyAddress,
       constants.Zero
     );
     tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user1).deploy();

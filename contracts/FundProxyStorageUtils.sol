@@ -141,10 +141,6 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         );
 
         mortgageVault = comptroller_.mortgageVault();
-        Errors._require(
-            address(mortgageVault) != address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED
-        );
     }
 
     function _setVault(IDSProxyRegistry dsProxyRegistry_) internal {

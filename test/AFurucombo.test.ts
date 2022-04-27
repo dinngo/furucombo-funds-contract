@@ -59,6 +59,7 @@ describe('AFurucombo', function () {
   let owner: Wallet;
   let user: Wallet;
   let collector: Wallet;
+  let liquidator: Wallet;
 
   let furucombo: FurucomboProxy;
   let aFurucombo: AFurucombo;
@@ -80,7 +81,7 @@ describe('AFurucombo', function () {
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, user, collector] = await (ethers as any).getSigners();
+    [owner, user, collector, liquidator] = await (ethers as any).getSigners();
 
     // Setup token and unlock provider
     tokenProvider = await impersonateAndInjectEther(DAI_PROVIDER);
@@ -112,7 +113,7 @@ describe('AFurucombo', function () {
       assetRouter.address,
       collector.address,
       0,
-      constants.AddressZero,
+      liquidator.address,
       0,
       mortgageVault.address,
       0

@@ -426,6 +426,36 @@ describe('Comptroller', function () {
     });
   });
 
+  // MortgageVault management
+  describe('mortgage vault management', function () {
+    it('set mortgage vault', async function () {
+      // check env before execution
+      expect(await comptroller.mortgageVault()).to.be.eq(mortgageVault.address);
+
+      // deploy new mortgageVault
+      const newMortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenD.address);
+      await newMortgageVault.deployed();
+
+      // set new mortgageVault
+      await expect(comptroller.setMortgageVault(newMortgageVault.address))
+        .to.emit(comptroller, 'SetMortgageVault')
+        .withArgs(newMortgageVault.address);
+
+      // check new mortgageVault
+      expect(await comptroller.mortgageVault()).to.be.eq(newMortgageVault.address);
+    });
+
+    it('should revert: set zero address mortgage vault', async function () {
+      await expect(comptroller.setMortgageVault(constants.AddressZero)).to.be.revertedWith('RevertCode(2)'); // COMPTROLLER_ZERO_ADDRESS
+    });
+
+    it('should revert: set mortage vault by non-owner', async function () {
+      await expect(comptroller.connect(user).setMortgageVault(mortgageVault.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+    });
+  });
+
   // MortgageTier management
   describe('mortgage tier management', function () {
     const level = 1;
@@ -693,6 +723,20 @@ describe('Comptroller', function () {
   });
 
   describe('Comptroller Proxy', function () {
+    it('should revert: initialize twice', async function () {
+      await expect(
+        comptroller.initialize(
+          fundImplementation.address,
+          assetRouter.address,
+          collector.address,
+          0,
+          liquidator.address,
+          0,
+          mortgageVault.address,
+          0
+        )
+      ).to.be.revertedWith('RevertCode(89)'); // COMPTROLLER_BEACON_IS_INITIALIZED
+    });
     describe('Upgrade implementation', function () {
       let newImplementation: ComptrollerImplementation;
 

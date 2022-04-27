@@ -27,7 +27,7 @@ library Errors {
         FUND_PROXY_STORAGE_UTILS_SHARE_TOKEN_IS_INITIALIZED, // 19: "Share token is initialized"
         FUND_PROXY_STORAGE_UTILS_ZERO_SHARE_TOKEN_ADDRESS, // 20: "Share token should not be zero address"
         FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED, // 21: "MortgageVault is initialized"
-        FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED, // 22: "MortgageVault is not initialized"
+        BLANK_22, // 22: ""
         FUND_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED, // 23: "Vault is initialized"
         FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY, // 24: "Registry should not be zero address"
         FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED, // 25: "Vault is not initialized"
@@ -48,7 +48,7 @@ library Errors {
         AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT, // 40: "Token length != amounts length"
         AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL, // 41: "Invalid comptroller handler call"
         BLANK_42, // 42: ""
-        CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT, // 43: assets.length == aggregators.length
+        CHAINLINK_ASSETS_AND_AGGREGATORS_INCONSISTENT, // 43: "assets.length == aggregators.length"
         CHAINLINK_ZERO_ADDRESS, // 44: "Zero address"
         CHAINLINK_EXISTING_ASSET, // 45: "Existing asset"
         CHAINLINK_NON_EXISTENT_ASSET, // 46: "Non-existent asset"
@@ -90,10 +90,11 @@ library Errors {
         SHARE_MODULE_PURCHASE_ZERO_SHARE, // 82: "The share purchased need to greater than zero"
         SHARE_MODULE_REDEEM_ZERO_SHARE, // 83: "The redeem share is zero"
         SHARE_TOKEN_INVALID_FROM, // 84: "Invalid from"
-        IMPLEMENTATION_INVALID_MORTGAGE_TIER, // 85: "Mortgage tier not set in comptroller";
+        IMPLEMENTATION_INVALID_MORTGAGE_TIER, // 85: "Mortgage tier not set in comptroller"
         AFURUCOMBO_DUPLICATED_TOKENSOUT, // 86: "Duplicated tokensOut"
-        FUND_PROXY_STORAGE_UTILS_UNKNOWN_OWNER, // 87: "Unkown owner"
-        ASSET_MODULE_FULL_ASSET_CAPACITY // 88: "Full Asset Capacity"
+        FUND_PROXY_STORAGE_UTILS_UNKNOWN_OWNER, // 87: "Unknown owner"
+        ASSET_MODULE_FULL_ASSET_CAPACITY, // 88: "Full Asset Capacity"
+        COMPTROLLER_BEACON_IS_INITIALIZED // 89: "Beacon is initialized"
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {

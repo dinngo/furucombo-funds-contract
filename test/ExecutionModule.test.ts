@@ -8,31 +8,33 @@ describe('Execution module', function () {
   let executionModule: ExecutionModuleMock;
   let comptroller: ComptrollerImplementation;
   let action: SimpleAction;
-  let user: Wallet;
+  let user1: Wallet;
+  let user2: Wallet;
   let tokenD: SimpleToken;
   let vault: any;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture('');
-    [user] = await (ethers as any).getSigners();
+    [user1, user2] = await (ethers as any).getSigners();
     executionModule = await (await ethers.getContractFactory('ExecutionModuleMock'))
-      .connect(user)
+      .connect(user1)
       .deploy(DS_PROXY_REGISTRY);
     await executionModule.deployed();
 
+    const anyAddress = user2.address;
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptroller.deployed();
     await comptroller.initialize(
       executionModule.address,
-      constants.AddressZero,
-      constants.AddressZero,
+      anyAddress,
+      anyAddress,
       constants.Zero,
-      constants.AddressZero,
+      anyAddress,
       constants.Zero,
-      constants.AddressZero,
+      anyAddress,
       constants.Zero
     );
-    tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
+    tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user1).deploy();
     await tokenD.deployed();
     action = await (await ethers.getContractFactory('SimpleAction')).deploy();
     await action.deployed();

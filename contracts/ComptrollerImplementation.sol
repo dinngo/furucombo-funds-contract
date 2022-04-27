@@ -55,6 +55,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     // Event
     event Halted();
     event UnHalted();
+    event SetMortgageVault(address indexed mortgageVault);
     event SetExecFeeCollector(address indexed collector);
     event SetExecFeePercentage(uint256 indexed percentage);
     event SetPendingLiquidator(address indexed liquidator);
@@ -113,18 +114,19 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         IMortgageVault mortgageVault_,
         uint256 execAssetValueToleranceRate_
     ) external {
-        require(address(beacon) == address(0));
-        assetRouter = assetRouter_;
-        mortgageVault = mortgageVault_;
-        execFeeCollector = execFeeCollector_;
-        execFeePercentage = execFeePercentage_;
-        pendingLiquidator = pendingLiquidator_;
-        pendingExpiration = pendingExpiration_;
-        execAssetValueToleranceRate = execAssetValueToleranceRate_;
-        fInitialAssetCheck = true;
-        pendingPenalty = 100;
-        assetCapacity = 80;
+        Errors._require(address(beacon) == address(0), Errors.Code.COMPTROLLER_BEACON_IS_INITIALIZED);
+        // transfer owner for set functions
         _transferOwnership(msg.sender);
+        setAssetRouter(assetRouter_);
+        setMortgageVault(mortgageVault_);
+        setFeeCollector(execFeeCollector_);
+        setExecFeePercentage(execFeePercentage_);
+        setPendingLiquidator(pendingLiquidator_);
+        setPendingExpiration(pendingExpiration_);
+        setPendingPenalty(100);
+        setAssetCapacity(80);
+        setExecAssetValueToleranceRate(execAssetValueToleranceRate_);
+        setInitialAssetCheck(true);
         beacon = new UpgradeableBeacon(implementation_);
         beacon.transferOwnership(msg.sender);
     }
@@ -148,42 +150,60 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         emit UnHalted();
     }
 
+    // Asset router
+    function setAssetRouter(IAssetRouter assetRouter_) public nonZeroAddress(address(assetRouter_)) onlyOwner {
+        assetRouter = assetRouter_;
+        emit SetAssetRouter(address(assetRouter_));
+    }
+
+    // Mortgage Vault
+    function setMortgageVault(IMortgageVault mortgageVault_) public nonZeroAddress(address(mortgageVault_)) onlyOwner {
+        mortgageVault = mortgageVault_;
+        emit SetMortgageVault(address(mortgageVault_));
+    }
+
     // Fee
-    function setFeeCollector(address collector_) external nonZeroAddress(collector_) onlyOwner {
+    function setFeeCollector(address collector_) public nonZeroAddress(collector_) onlyOwner {
         execFeeCollector = collector_;
         emit SetExecFeeCollector(collector_);
     }
 
-    function setExecFeePercentage(uint256 percentage_) external onlyOwner {
+    function setExecFeePercentage(uint256 percentage_) public onlyOwner {
         execFeePercentage = percentage_;
         emit SetExecFeePercentage(percentage_);
     }
 
     // Pending
-    function setPendingLiquidator(address liquidator_) external nonZeroAddress(liquidator_) onlyOwner {
+    function setPendingLiquidator(address liquidator_) public nonZeroAddress(liquidator_) onlyOwner {
         pendingLiquidator = liquidator_;
         emit SetPendingLiquidator(liquidator_);
     }
 
-    function setPendingExpiration(uint256 expiration_) external onlyOwner {
+    function setPendingExpiration(uint256 expiration_) public onlyOwner {
         pendingExpiration = expiration_;
         emit SetPendingExpiration(expiration_);
     }
 
     // Share
-    function setPendingPenalty(uint256 penalty_) external onlyOwner {
+    function setPendingPenalty(uint256 penalty_) public onlyOwner {
         pendingPenalty = penalty_;
         emit SetPendingPenalty(penalty_);
     }
 
+    // Maximum kinds of asset
+    function setAssetCapacity(uint256 assetCapacity_) public onlyOwner {
+        assetCapacity = assetCapacity_;
+        emit SetAssetCapacity(assetCapacity_);
+    }
+
     // Execution asset value tolerance
-    function setExecAssetValueToleranceRate(uint256 tolerance_) external onlyOwner {
+    function setExecAssetValueToleranceRate(uint256 tolerance_) public onlyOwner {
         execAssetValueToleranceRate = tolerance_;
         emit SetExecAssetValueToleranceRate(tolerance_);
     }
 
     // Initial asset check
-    function setInitialAssetCheck(bool check_) external onlyOwner {
+    function setInitialAssetCheck(bool check_) public onlyOwner {
         fInitialAssetCheck = check_;
         emit SetInitialAssetCheck(check_);
     }
@@ -238,18 +258,6 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     function unsetMortgageTier(uint256 level_) external onlyOwner {
         delete mortgageTier[level_];
         emit UnsetMortgageTier(level_);
-    }
-
-    // Maximum kinds of asset
-    function setAssetCapacity(uint256 assetCapacity_) external onlyOwner {
-        assetCapacity = assetCapacity_;
-        emit SetAssetCapacity(assetCapacity_);
-    }
-
-    // Asset router
-    function setAssetRouter(IAssetRouter _assetRouter_) external nonZeroAddress(address(_assetRouter_)) onlyOwner {
-        assetRouter = _assetRouter_;
-        emit SetAssetRouter(address(_assetRouter_));
     }
 
     // Action
