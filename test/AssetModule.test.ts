@@ -2,7 +2,7 @@ import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import { ComptrollerImplementation, AssetModuleMock, SimpleToken } from '../typechain';
-import { DS_PROXY_REGISTRY, FUND_STATE } from './utils/constants';
+import { DS_PROXY_REGISTRY, FUND_STATE, ASSET_CAPACITY } from './utils/constants';
 
 describe('Asset module', function () {
   let comptroller: ComptrollerImplementation;
@@ -35,6 +35,7 @@ describe('Asset module', function () {
     // initialize
     await assetModule.setComptroller(comptroller.address);
     await comptroller.permitDenominations([tokenD.address], [0]);
+    await comptroller.setAssetCapacity(ASSET_CAPACITY);
     await assetModule.setDenomination(tokenD.address);
     await assetModule.setShare();
     await assetModule.setVault();
@@ -51,14 +52,19 @@ describe('Asset module', function () {
       await assetModule.setState(FUND_STATE.EXECUTING);
     });
 
-    it('should success when asset is not in the list', async function () {
+    it('when asset is not in the list', async function () {
       await expect(assetModule.addAsset(token0.address)).to.emit(assetModule, 'AssetAdded').withArgs(token0.address);
     });
 
-    it('should non-revert when asset is in the list', async function () {
+    it('non-revert when asset is in the list', async function () {
       await assetModule.addAsset(token0.address);
       await assetModule.addAsset(token0.address);
       expect(await assetModule.getAssetList()).to.be.deep.eq([token0.address]);
+    });
+
+    it('should revert: reach maximum asset capacity', async function () {
+      await comptroller.setAssetCapacity(0);
+      await expect(assetModule.addAsset(token0.address)).to.be.revertedWith('RevertCode(88)'); // ASSET_MODULE_FULL_ASSET_CAPACITY
     });
   });
 
@@ -67,14 +73,14 @@ describe('Asset module', function () {
       await assetModule.setState(FUND_STATE.EXECUTING);
     });
 
-    it('should success when asset is in the list', async function () {
+    it('when asset is in the list', async function () {
       await assetModule.addAsset(token0.address);
       await expect(assetModule.removeAsset(token0.address))
         .to.emit(assetModule, 'AssetRemoved')
         .withArgs(token0.address);
     });
 
-    it('should non-revert when asset is not in the list', async function () {
+    it('non-revert when asset is not in the list', async function () {
       await assetModule.removeAsset(token0.address);
       expect(await assetModule.getAssetList()).to.be.deep.eq([]);
     });
@@ -86,7 +92,7 @@ describe('Asset module', function () {
         await assetModule.setState(FUND_STATE.EXECUTING);
       });
 
-      it('should success when denomination asset is the only asset', async function () {
+      it('when denomination asset is the only asset', async function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close()).to.emit(assetModule, 'StateTransited').withArgs(FUND_STATE.CLOSED);
       });
@@ -108,7 +114,7 @@ describe('Asset module', function () {
         await assetModule.setState(FUND_STATE.LIQUIDATING);
       });
 
-      it('should success when denomination asset is the only asset', async function () {
+      it('when denomination asset is the only asset', async function () {
         await assetModule.addAsset(tokenD.address);
         await expect(assetModule.close()).to.emit(assetModule, 'StateTransited').withArgs(FUND_STATE.CLOSED);
       });
@@ -156,13 +162,13 @@ describe('Asset module', function () {
       await assetModule.addAsset(token1.address);
     });
 
-    it('should show the added assets', async function () {
+    it('show the added assets', async function () {
       await assetModule.addAsset(token2.address);
       const assetList = [tokenD.address, token0.address, token1.address, token2.address];
       expect(await assetModule.getAssetList()).to.be.deep.eq(assetList);
     });
 
-    it('should not show the removed asset', async function () {
+    it('not show the removed asset', async function () {
       await assetModule.removeAsset(token1.address);
       const assetList = [tokenD.address, token0.address];
       expect(await assetModule.getAssetList()).to.be.deep.eq(assetList);

@@ -182,6 +182,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /// @param asset_ The asset to be added.
     function addAsset(address asset_) external nonReentrant onlyOwner {
         _addAsset(asset_);
+        _checkAssetCapacity();
     }
 
     /// @notice Add the asset to the tracking list.
@@ -263,6 +264,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         for (uint256 i = 0; i < dealingAssets.length; ++i) {
             _addAsset(dealingAssets[i]);
         }
+
+        _checkAssetCapacity();
 
         // Get new gross asset value
         uint256 grossAssetValue = getGrossAssetValue();

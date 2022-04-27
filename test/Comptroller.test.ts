@@ -15,7 +15,7 @@ import {
   SimpleToken,
   FundProxyFactory,
 } from '../typechain';
-import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN } from './utils/constants';
+import { DS_PROXY_REGISTRY, DAI_TOKEN, WBTC_TOKEN, ASSET_CAPACITY } from './utils/constants';
 import { getEventArgs } from './utils/utils';
 
 describe('Comptroller', function () {
@@ -219,6 +219,30 @@ describe('Comptroller', function () {
     const tokenB = DAI_TOKEN;
     const otherLevel = 0;
     const level = 1;
+
+    describe('capacity', function () {
+      const newAssetCapacity = 100;
+
+      it('set asset capacity', async function () {
+        // Check env before execution
+        expect(await comptroller.assetCapacity()).to.be.eq(ASSET_CAPACITY);
+
+        // set new asset capacity
+        await expect(comptroller.setAssetCapacity(newAssetCapacity))
+          .to.emit(comptroller, 'SetAssetCapacity')
+          .withArgs(newAssetCapacity);
+
+        // check new asset capacity
+        expect(await comptroller.assetCapacity()).to.be.eq(newAssetCapacity);
+      });
+
+      it('should revert: set by non-owner', async function () {
+        // set new asset capacity
+        await expect(comptroller.connect(user).setAssetCapacity(newAssetCapacity)).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        );
+      });
+    });
 
     describe('permit/forbid assets', function () {
       it('permit assets', async function () {

@@ -35,6 +35,11 @@ abstract contract AssetModule is FundProxyStorageUtils {
         _close();
     }
 
+     /// @notice Check asset capacity
+     function _checkAssetCapacity() internal view {
+        Errors._require(getAssetList().length <= comptroller.assetCapacity(), Errors.Code.ASSET_MODULE_FULL_ASSET_CAPACITY);
+    }
+
     /// @notice Add asset to the asset tracking list.
     /// @param asset_ The asset to be tracked.
     function _addAsset(address asset_) internal virtual when3States(State.Executing, State.Pending, State.Liquidating) {
