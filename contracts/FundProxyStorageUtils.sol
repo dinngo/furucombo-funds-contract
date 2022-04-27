@@ -97,24 +97,19 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
     // Setters
     function _setLevel(uint256 level_) internal {
-        Errors._require(level == 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_LEVEL_IS_SET);
-        Errors._require(level_ > 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_LEVEL);
+        _checkZero(level);
+        _checkNotZero(level_);
         level = level_;
     }
 
     function _setComptroller(IComptroller comptroller_) internal {
-        Errors._require(
-            address(comptroller) == address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_COMPTROLLER_IS_INITIALIZED
-        );
-        Errors._require(
-            address(comptroller_) != address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_COMPTROLLER_ADDRESS
-        );
+        _checkZero(address(comptroller));
+        _checkNotZero(address(comptroller_));
         comptroller = comptroller_;
     }
 
     function _setDenomination(IERC20 denomination_) internal {
+        _checkZero(address(denomination));
         Errors._require(
             comptroller.isValidDenomination(address(denomination_)),
             Errors.Code.FUND_PROXY_STORAGE_UTILS_INVALID_DENOMINATION
@@ -123,30 +118,19 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
     }
 
     function _setShareToken(IShareToken shareToken_) internal {
-        Errors._require(
-            address(shareToken) == address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_SHARE_TOKEN_IS_INITIALIZED
-        );
-        Errors._require(
-            address(shareToken_) != address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_SHARE_TOKEN_ADDRESS
-        );
+        _checkZero(address(shareToken));
+        _checkNotZero(address(shareToken_));
         shareToken = shareToken_;
     }
 
     function _setMortgageVault(IComptroller comptroller_) internal {
-        Errors._require(
-            address(mortgageVault) == address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
-        );
-
+        _checkZero(address(mortgageVault));
         mortgageVault = comptroller_.mortgageVault();
     }
 
     function _setVault(IDSProxyRegistry dsProxyRegistry_) internal {
-        Errors._require(address(vault) == address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_VAULT_IS_INITIALIZED);
-
-        Errors._require(address(dsProxyRegistry_) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_REGISTRY);
+        _checkZero(address(vault));
+        _checkNotZero(address(dsProxyRegistry_));
 
         // check if vault proxy exists
         IDSProxy vaultProxy = IDSProxy(dsProxyRegistry_.proxies(address(this)));
@@ -156,19 +140,13 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         } else {
             // deploy vault
             vault = IDSProxy(dsProxyRegistry_.build());
-            Errors._require(
-                address(vault) != address(0),
-                Errors.Code.FUND_PROXY_STORAGE_UTILS_VAULT_IS_NOT_INITIALIZED
-            );
+            _checkNotZero(address(vault));
         }
     }
 
     function _setVaultApproval(ISetupAction setupAction_) internal {
-        Errors._require(address(vault) != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_VAULT);
-        Errors._require(
-            address(setupAction_) != address(0),
-            Errors.Code.FUND_PROXY_STORAGE_UTILS_ZERO_SETUP_ACTION_ADDRESS
-        );
+        _checkNotZero(address(vault));
+        _checkNotZero(address(setupAction_));
 
         // set vault approval
         bytes memory data = abi.encodeWithSignature("maxApprove(address)", denomination);
@@ -178,5 +156,21 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
             denomination.allowance(address(vault), address(this)) == type(uint256).max,
             Errors.Code.FUND_PROXY_STORAGE_UTILS_WRONG_ALLOWANCE
         );
+    }
+
+    function _checkZero(uint256 param_) private pure {
+        Errors._require(param_ == 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_NOT_ZERO);
+    }
+
+    function _checkZero(address param_) private pure {
+        Errors._require(param_ == address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_NOT_ZERO);
+    }
+
+    function _checkNotZero(uint256 param_) private pure {
+        Errors._require(param_ > 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_ZERO);
+    }
+
+    function _checkNotZero(address param_) private pure {
+        Errors._require(param_ != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_ZERO);
     }
 }
