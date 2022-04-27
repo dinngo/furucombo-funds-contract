@@ -6,6 +6,7 @@ import {
   AssetRouter,
   Chainlink,
   RAaveProtocolV2Debt,
+  RAaveProtocolV2DebtMock,
   IATokenV2,
   ILendingPoolV2,
   IERC20,
@@ -42,6 +43,7 @@ describe('RAaveProtocolV2Debt', function () {
 
   let registry: AssetRegistry;
   let resolver: RAaveProtocolV2Debt;
+  let resolverMock: RAaveProtocolV2DebtMock;
   let router: AssetRouter;
   let oracle: Chainlink;
 
@@ -61,6 +63,9 @@ describe('RAaveProtocolV2Debt', function () {
 
     resolver = await (await ethers.getContractFactory('RAaveProtocolV2Debt')).deploy();
     await resolver.deployed();
+
+    resolverMock = await (await ethers.getContractFactory('RAaveProtocolV2DebtMock')).deploy();
+    await resolverMock.deployed();
 
     const canonicalResolver = await (await ethers.getContractFactory('RCanonical')).deploy();
     await canonicalResolver.deployed();
@@ -111,6 +116,18 @@ describe('RAaveProtocolV2Debt', function () {
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue.mul(-1));
+    });
+
+    it('should revert: resolver asset value positive', async function () {
+      const asset = vDebtToken.address;
+      const amount = ether('1.12');
+      const quote = quoteAddress;
+
+      // Change to mock resolver
+      await registry.unregister(asset);
+      await registry.register(asset, resolverMock.address);
+
+      await expect(router.connect(user).calcAssetValue(asset, amount, quote)).to.be.revertedWith('RevertCode(91)'); // RESOLVER_ASSET_VALUE_POSITIVE
     });
   });
 

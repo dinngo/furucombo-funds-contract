@@ -17,8 +17,4 @@ contract AssetResolverMockA is IAssetResolver, AssetResolverBase {
         quote_;
         return (amount_ * 2).toInt256();
     }
-
-    function calcNegativeAssetValue() external pure returns (int256) {
-        return _toNegativeValue(-1);
-    }
 }

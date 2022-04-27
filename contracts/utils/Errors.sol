@@ -63,7 +63,7 @@ library Errors {
         ASSET_REGISTRY_NON_REGISTERED_RESOLVER, // 55: "Asset not registered"
         ASSET_REGISTRY_NON_BANNED_RESOLVER, // 56: "Resolver is not banned"
         ASSET_REGISTRY_UNREGISTERED, // 57: "Unregistered"
-        RESOLVER_BASE_NEGATIVE_AMOUNT, // 58: "amount < 0"
+        BLANK_58, // 58: ""
         RCURVE_STABLE_ZERO_ASSET_ADDRESS, // 59: "Zero asset address"
         RCURVE_STABLE_ZERO_POOL_ADDRESS, // 60: "Zero pool address"
         RCURVE_STABLE_ZERO_VALUED_ASSET_ADDRESS, // 61: "Zero valued asset address"
@@ -94,7 +94,9 @@ library Errors {
         AFURUCOMBO_DUPLICATED_TOKENSOUT, // 86: "Duplicated tokensOut"
         FUND_PROXY_STORAGE_UTILS_UNKNOWN_OWNER, // 87: "Unknown owner"
         ASSET_MODULE_FULL_ASSET_CAPACITY, // 88: "Full Asset Capacity"
-        COMPTROLLER_BEACON_IS_INITIALIZED // 89: "Beacon is initialized"
+        COMPTROLLER_BEACON_IS_INITIALIZED, // 89: "Beacon is initialized"
+        RESOLVER_ASSET_VALUE_NEGATIVE, // 90: "Resolver's asset value < 0"
+        RESOLVER_ASSET_VALUE_POSITIVE // 91: "Resolver's asset value > 0"
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {

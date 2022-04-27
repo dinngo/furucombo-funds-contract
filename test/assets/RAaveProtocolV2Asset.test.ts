@@ -1,7 +1,14 @@
 import { constants, Wallet, Signer } from 'ethers';
 import { expect } from 'chai';
 import { deployments } from 'hardhat';
-import { AssetRegistry, AssetRouter, Chainlink, RAaveProtocolV2Asset, IATokenV2 } from '../../typechain';
+import {
+  AssetRegistry,
+  AssetRouter,
+  Chainlink,
+  RAaveProtocolV2Asset,
+  RAaveProtocolV2AssetMock,
+  IATokenV2,
+} from '../../typechain';
 
 import { USDC_TOKEN, ADAI_V2_TOKEN, ADAI_V2_PROVIDER, CHAINLINK_DAI_USD, CHAINLINK_USDC_USD } from '../utils/constants';
 
@@ -22,6 +29,7 @@ describe('RAaveProtocolV2Asset', function () {
 
   let registry: AssetRegistry;
   let resolver: RAaveProtocolV2Asset;
+  let resolverMock: RAaveProtocolV2AssetMock;
   let router: AssetRouter;
   let oracle: Chainlink;
 
@@ -35,6 +43,8 @@ describe('RAaveProtocolV2Asset', function () {
 
     resolver = await (await ethers.getContractFactory('RAaveProtocolV2Asset')).deploy();
     await resolver.deployed();
+    resolverMock = await (await ethers.getContractFactory('RAaveProtocolV2AssetMock')).deploy();
+    await resolverMock.deployed();
     const rCanonical = await (await ethers.getContractFactory('RCanonical')).deploy();
     await rCanonical.deployed();
 
@@ -71,6 +81,18 @@ describe('RAaveProtocolV2Asset', function () {
 
       // Verify;
       expect(assetValue).to.be.eq(tokenValue);
+    });
+
+    it('should revert: resolver asset value negative', async function () {
+      const asset = aToken.address;
+      const amount = ether('1');
+      const quote = quoteAddress;
+
+      // Change to mock resolver
+      await registry.unregister(asset);
+      await registry.register(asset, resolverMock.address);
+
+      await expect(router.connect(user).calcAssetValue(asset, amount, quote)).to.be.revertedWith('RevertCode(90)'); // RESOLVER_ASSET_VALUE_NEGATIVE
     });
   });
 });

@@ -198,11 +198,5 @@ describe('AssetRouter', function () {
         "SafeCast: value doesn't fit in an int256"
       );
     });
-
-    it('should revert: resolver base negative amount', async function () {
-      await expect(resolverA.calcNegativeAssetValue()).to.be.revertedWith(
-        'RevertCode(58)' // RESOLVER_BASE_NEGATIVE_AMOUNT
-      );
-    });
   });
 });
