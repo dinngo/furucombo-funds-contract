@@ -39,11 +39,14 @@ library StorageArray {
         length -= 1;
         uint256 s = uint256(keccak256(abi.encodePacked(slot_))) + length;
         val = _getSlot(bytes32(s)).value;
-        _getSlot(bytes32(s)).value = 0;
         _getSlot(slot_).value = bytes32(length);
     }
 
     function _getLength(bytes32 slot_) internal view returns (uint256) {
         return uint256(_getSlot(slot_).value);
+    }
+
+    function _delete(bytes32 slot_) internal {
+        delete _getSlot(slot_).value;
     }
 }

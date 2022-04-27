@@ -1,20 +1,20 @@
 import { Wallet, BigNumber } from 'ethers';
 import { expect } from 'chai';
 import { deployments } from 'hardhat';
-import { AMock } from '../typechain';
+import { ActionMock } from '../typechain';
 import { DAI_TOKEN, NATIVE_TOKEN, WBTC_TOKEN } from './utils/constants';
 import { ether } from './utils/utils';
 
 describe('AssetQuotaAction', function () {
   let owner: Wallet;
   let user: Wallet;
-  let action: AMock;
+  let action: ActionMock;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
     [owner, user] = await (ethers as any).getSigners();
 
-    action = await (await ethers.getContractFactory('AMock')).deploy();
+    action = await (await ethers.getContractFactory('ActionMock')).deploy();
     await action.deployed();
   });
 

@@ -18,9 +18,7 @@ library DealingAsset {
     }
 
     function _clean() internal {
-        while (_ASSET_ARR_SLOT._getLength() > 0) {
-            _ASSET_ARR_SLOT._pop();
-        }
+        _ASSET_ARR_SLOT._delete();
     }
 
     function _assets() internal view returns (address[] memory) {
