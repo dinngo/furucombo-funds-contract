@@ -2,7 +2,7 @@ import { constants, Wallet, Signer } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
 import {
-  ComptrollerImplementationMock,
+  ComptrollerImplementation,
   FundImplementation,
   AssetRouter,
   MortgageVault,
@@ -21,7 +21,7 @@ import { DS_PROXY_REGISTRY, DAI_TOKEN, DAI_PROVIDER, WL_ANY_SIG } from './utils/
 import { impersonateAndInjectEther } from './utils/utils';
 
 describe('FundProxyStorageUtils', function () {
-  let comptroller: ComptrollerImplementationMock;
+  let comptroller: ComptrollerImplementation;
   let fundImplementation: FundImplementation;
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
@@ -31,6 +31,7 @@ describe('FundProxyStorageUtils', function () {
   let owner: Wallet;
   let user: Wallet;
   let collector: Wallet;
+  let liquidator: Wallet;
 
   let foo: FundFoo;
   let fooAction: FundFooAction;
@@ -47,7 +48,7 @@ describe('FundProxyStorageUtils', function () {
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, user, collector] = await (ethers as any).getSigners();
+    [owner, user, collector, liquidator] = await (ethers as any).getSigners();
 
     // setup token and unlock provider
     tokenAProvider = await impersonateAndInjectEther(DAI_PROVIDER);
@@ -68,14 +69,14 @@ describe('FundProxyStorageUtils', function () {
     mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenA.address);
     await mortgageVault.deployed();
 
-    comptroller = await (await ethers.getContractFactory('ComptrollerImplementationMock')).deploy();
+    comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptroller.deployed();
     await comptroller.initialize(
       fundImplementation.address,
       assetRouter.address,
       collector.address,
       0,
-      constants.AddressZero,
+      liquidator.address,
       constants.Zero,
       mortgageVault.address,
       0
@@ -143,11 +144,6 @@ describe('FundProxyStorageUtils', function () {
     it('should revert: mortgage vault is initialized', async function () {
       await proxy.setMortgageVault(comptroller.address);
       await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith('RevertCode(21)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_INITIALIZED
-    });
-
-    it('should revert: mortgage vault is not initialized', async function () {
-      await comptroller.setMortgageVault(constants.AddressZero);
-      await expect(proxy.setMortgageVault(comptroller.address)).to.be.revertedWith('RevertCode(22)'); // FUND_PROXY_STORAGE_UTILS_MORTGAGE_VAULT_IS_NOT_INITIALIZED
     });
 
     it('use existing vault', async function () {
