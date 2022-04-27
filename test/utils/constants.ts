@@ -1,3 +1,4 @@
+export const ASSET_CAPACITY = 80;
 export const MINIMUM_SHARE = 1000;
 export const FUND_PERCENTAGE_BASE = 10000;
 export const FEE_BASE64x64 = '18446744073709551616';

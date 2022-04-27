@@ -469,6 +469,20 @@ describe('FundImplementation', function () {
         await expect(fundImplementation.addAsset(tokenA.address)).to.be.revertedWith('RevertCode(11)'); // IMPLEMENTATION_INVALID_ASSET
       });
 
+      it('should revert: reach maximum asset capacity', async function () {
+        // Permit asset
+        await comptroller.permitAssets(level, [tokenA.address]);
+
+        // Set asset capacity
+        await comptroller.setAssetCapacity(0);
+
+        // Transfer asset to vault
+        await tokenA.connect(tokenAProvider).transfer(vault.address, tokenAAmount);
+
+        // Add asset
+        await expect(fundImplementation.addAsset(tokenA.address)).to.be.revertedWith('RevertCode(88)'); // ASSET_MODULE_FULL_ASSET_CAPACITY
+      });
+
       it('can not be added: zero balance of asset', async function () {
         await comptroller.permitAssets(level, [tokenA.address]);
         await fundImplementation.addAsset(tokenA.address);

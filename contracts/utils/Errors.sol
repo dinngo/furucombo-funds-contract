@@ -92,7 +92,8 @@ library Errors {
         SHARE_TOKEN_INVALID_FROM, // 84: "Invalid from"
         IMPLEMENTATION_INVALID_MORTGAGE_TIER, // 85: "Mortgage tier not set in comptroller";
         AFURUCOMBO_DUPLICATED_TOKENSOUT, // 86: "Duplicated tokensOut"
-        FUND_PROXY_STORAGE_UTILS_UNKNOWN_OWNER // 87: "Unkown owner"
+        FUND_PROXY_STORAGE_UTILS_UNKNOWN_OWNER, // 87: "Unkown owner"
+        ASSET_MODULE_FULL_ASSET_CAPACITY // 88: "Full Asset Capacity"
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {

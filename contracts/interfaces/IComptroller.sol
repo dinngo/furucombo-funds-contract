@@ -41,6 +41,8 @@ interface IComptroller {
 
     function isValidInitialAssets(uint256 level_, address[] calldata assets_) external view returns (bool);
 
+    function assetCapacity() external view returns (uint256);
+
     function assetRouter() external view returns (IAssetRouter);
 
     function mortgageVault() external view returns (IMortgageVault);

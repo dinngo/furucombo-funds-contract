@@ -10,6 +10,7 @@ contract AssetModuleMock is AssetModule, BaseMock {
 
     function addAsset(address asset_) external {
         _addAsset(asset_);
+        _checkAssetCapacity();
     }
 
     function removeAsset(address asset_) external {

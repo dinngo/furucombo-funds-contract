@@ -35,6 +35,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     address public pendingLiquidator;
     uint256 public pendingExpiration;
     uint256 public pendingPenalty;
+    uint256 public assetCapacity;
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
     UpgradeableBeacon public beacon;
@@ -67,6 +68,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event ForbidDenomination(address indexed denomination);
     event SetMortgageTier(uint256 indexed level, uint256 amount);
     event UnsetMortgageTier(uint256 indexed level);
+    event SetAssetCapacity(uint256 indexed assetCapacity);
     event SetAssetRouter(address indexed assetRouter);
     event SetExecAction(address indexed action);
     event PermitCreator(address indexed to);
@@ -121,6 +123,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         execAssetValueToleranceRate = execAssetValueToleranceRate_;
         fInitialAssetCheck = true;
         pendingPenalty = 100;
+        assetCapacity = 80;
         _transferOwnership(msg.sender);
         beacon = new UpgradeableBeacon(implementation_);
         beacon.transferOwnership(msg.sender);
@@ -235,6 +238,12 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     function unsetMortgageTier(uint256 level_) external onlyOwner {
         delete mortgageTier[level_];
         emit UnsetMortgageTier(level_);
+    }
+
+    // Maximum kinds of asset
+    function setAssetCapacity(uint256 assetCapacity_) external onlyOwner {
+        assetCapacity = assetCapacity_;
+        emit SetAssetCapacity(assetCapacity_);
     }
 
     // Asset router
