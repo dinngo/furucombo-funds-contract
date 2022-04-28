@@ -126,9 +126,10 @@ abstract contract ShareModule is FundProxyStorageUtils {
         // Purchase share need to greater than zero
         Errors._require(share > 0, Errors.Code.SHARE_MODULE_PURCHASE_ZERO_SHARE);
 
-        uint256 penalty = _getPendingPenalty();
+        // No bonus to prevent frontrun if the purchase is simultaneous with pending state transition
         uint256 bonus;
-        if (state == State.Pending) {
+        if (state == State.Pending && pendingStartTime != block.timestamp) {
+            uint256 penalty = _getPendingPenalty();
             bonus = (share * (penalty)) / (_FUND_PERCENTAGE_BASE - penalty);
             bonus = currentTotalPendingBonus > bonus ? bonus : currentTotalPendingBonus;
             currentTotalPendingBonus -= bonus;
