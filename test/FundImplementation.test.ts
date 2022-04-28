@@ -12,7 +12,7 @@ import {
   FundFooAction,
   FundFoo,
   TaskExecutor,
-  SimpleToken,
+  ShareToken,
   SimpleAction,
 } from '../typechain';
 import {
@@ -79,7 +79,7 @@ describe('FundImplementation', function () {
   let tokenBProvider: Signer;
   let tokenC: ERC20;
   let tokenCProvider: Signer;
-  let shareToken: SimpleToken;
+  let shareToken: ShareToken;
 
   let assetRouter: AssetRouter;
   let mortgageVault: MortgageVault;
@@ -143,8 +143,9 @@ describe('FundImplementation', function () {
     await comptroller.permitAssets(level, [denomination.address]);
     await comptroller.setMortgageTier(level, 0);
 
-    shareToken = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
+    shareToken = await (await ethers.getContractFactory('ShareToken')).connect(user).deploy('Test', 'TST', 18);
     await shareToken.deployed();
+    await shareToken.transferOwnership(fundImplementation.address);
 
     await fundImplementation
       .connect(owner)
@@ -205,6 +206,7 @@ describe('FundImplementation', function () {
 
   beforeEach(async function () {
     await setupTest();
+    const nts = await shareToken.netTotalShare();
   });
 
   describe('State changes', function () {
@@ -366,6 +368,7 @@ describe('FundImplementation', function () {
 
     describe('Liquidate', function () {
       it('liquidate', async function () {
+        const nts = await shareToken.netTotalShare();
         await fundImplementation.finalize();
         await fundImplementation.pendMock();
         await network.provider.send('evm_increaseTime', [pendingExpiration]);
@@ -715,12 +718,12 @@ describe('FundImplementation', function () {
 
       // Make a purchase, let fund update some data. (ex: lastMFeeClaimTime)
       await fundImplementation.setGrossAssetValueMock(mwei('5000'));
-      await denomination.connect(owner).approve(fundImplementation.address, 500);
-      await fundImplementation.purchase(500);
+      await denomination.connect(owner).approve(fundImplementation.address, 1500);
+      await fundImplementation.purchase(1500);
 
       // Make fund go to Pending state
       const redeemShare = await fundImplementation.calculateShare(redeemAmount);
-      await shareToken.transfer(owner.address, redeemShare);
+      await fundImplementation.mint(owner.address, redeemShare);
       await fundImplementation.redeem(redeemShare, true);
 
       expect(await fundImplementation.state()).to.be.eq(FUND_STATE.PENDING);
@@ -752,7 +755,7 @@ describe('FundImplementation', function () {
 
     it('resolve Pending state after purchase', async function () {
       // Prepare task data and execute
-      const purchaseAmount = mwei('1');
+      const purchaseAmount = mwei('1000');
       await denomination.connect(owner).approve(fundImplementation.address, purchaseAmount);
 
       await expect(fundImplementation.purchase(purchaseAmount))

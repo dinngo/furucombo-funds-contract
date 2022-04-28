@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {ABDKMath64x64} from "abdk-libraries-solidity/ABDKMath64x64.sol";
 import {IDSProxyRegistry} from "../interfaces/IDSProxy.sol";
 import {FundImplementation} from "../FundImplementation.sol";
 
 contract FundImplementationMock is FundImplementation {
+    using ABDKMath64x64 for uint256;
+
     bool public grossAssetValueMocked;
     uint256 public grossAssetValueMock;
     uint256 public lastGrossAssetValue;
@@ -55,6 +58,12 @@ contract FundImplementationMock is FundImplementation {
 
     function setState(State state_) external {
         _enterState(state_);
+    }
+
+    function mint(address account_, uint256 amount_) external {
+        shareToken.mint(account_, amount_);
+        uint256 totalShare = shareToken.netTotalShare();
+        lastGrossSharePrice64x64 = grossAssetValueMock.divu(totalShare);
     }
 }
 

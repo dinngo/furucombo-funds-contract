@@ -38,11 +38,18 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     /// @return Return the performance fee amount to be claimed.
     function crystallize() public virtual returns (uint256) {
         Errors._require(isCrystallizable(), Errors.Code.PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET);
+        return _crystallize();
+    }
+
+    function _crystallize() internal virtual returns (uint256) {
+        uint256 totalShare = shareToken.netTotalShare();
+        if (totalShare == 0) return 0;
         uint256 grossAssetValue = __getGrossAssetValue();
         _updatePerformanceFee(grossAssetValue);
         address manager = owner();
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, lastOutstandingShare);
-        _updateGrossSharePrice(grossAssetValue);
+        totalShare = shareToken.netTotalShare();
+        lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
         uint256 result = lastOutstandingShare;
         lastOutstandingShare = 0;
         pFeeSum = 0;
@@ -70,7 +77,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     /// and high water mark.
     function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = _FEE_BASE64x64;
-        hwm64x64 = lastGrossSharePrice64x64;
+        hwm64x64 = _FEE_BASE64x64;
         crystallizationStart = block.timestamp;
         lastCrystallization = block.timestamp;
     }
@@ -99,6 +106,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         // Get accumulated wealth
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) {
+            // net asset value should be 0 also
             return;
         }
         int128 grossSharePrice64x64 = grossAssetValue_.divu(totalShare);
@@ -117,16 +125,5 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         }
         lastOutstandingShare = outstandingShare;
         lastGrossSharePrice64x64 = grossSharePrice64x64;
-    }
-
-    /// @notice Update the gross share price as the basis for estimating the
-    /// future performance.
-    function _updateGrossSharePrice(uint256 grossAssetValue_) internal virtual {
-        uint256 totalShare = shareToken.netTotalShare();
-        if (totalShare == 0) {
-            lastGrossSharePrice64x64 = _FEE_BASE64x64;
-        } else {
-            lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
-        }
     }
 }

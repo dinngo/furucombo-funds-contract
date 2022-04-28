@@ -62,7 +62,7 @@ contract ShareModuleMock is ShareModule, BaseMock {
         return grossAssetValueMock;
     }
 
-    function _afterRedeem(uint256) internal override {
+    function _afterRedeem() internal override {
         emit AfterRedeemCalled();
     }
 
@@ -70,7 +70,7 @@ contract ShareModuleMock is ShareModule, BaseMock {
         return pendingPenaltyMock;
     }
 
-    function __getReserve() internal view override returns (uint256) {
+    function getReserve() public view override returns (uint256) {
         return reserveMock;
     }
 
