@@ -432,7 +432,7 @@ describe('Comptroller', function () {
 
     it('should revert: denomination and dust length are inconsistent', async function () {
       await expect(comptroller.connect(owner).permitDenominations([tokenA, tokenB], [dustA])).to.be.revertedWith(
-        'RevertCode(4)'
+        'RevertCode(5)'
       ); // COMPTROLLER_DENOMINATIONS_AND_DUSTS_LENGTH_INCONSISTENT
     });
   });
@@ -527,14 +527,14 @@ describe('Comptroller', function () {
 
       it('should revert: invalid creator', async function () {
         await expect(factory.connect(user).createFund(tokenD.address, 1, 0, 0, 300, 'TEST')).to.be.revertedWith(
-          'RevertCode(13)'
+          'RevertCode(14)'
         ); // FUND_PROXY_FACTORY_INVALID_CREATOR
       });
 
       it('should revert: invalid mortgage tier', async function () {
         await comptroller.permitCreators([user.address]);
         await expect(factory.connect(user).createFund(tokenD.address, 2, 0, 0, 300, 'TEST')).to.be.revertedWith(
-          'RevertCode(75)'
+          'RevertCode(16)'
         ); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
       });
 
@@ -747,7 +747,7 @@ describe('Comptroller', function () {
           DS_PROXY_REGISTRY,
           setupAction.address
         )
-      ).to.be.revertedWith('RevertCode(89)'); // COMPTROLLER_BEACON_IS_INITIALIZED
+      ).to.be.revertedWith('RevertCode(4)'); // COMPTROLLER_BEACON_IS_INITIALIZED
     });
     describe('Upgrade implementation', function () {
       let newImplementation: ComptrollerImplementation;

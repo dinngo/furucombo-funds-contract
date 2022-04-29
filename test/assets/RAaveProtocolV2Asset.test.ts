@@ -92,7 +92,7 @@ describe('RAaveProtocolV2Asset', function () {
       await registry.unregister(asset);
       await registry.register(asset, resolverMock.address);
 
-      await expect(router.connect(user).calcAssetValue(asset, amount, quote)).to.be.revertedWith('RevertCode(90)'); // RESOLVER_ASSET_VALUE_NEGATIVE
+      await expect(router.connect(user).calcAssetValue(asset, amount, quote)).to.be.revertedWith('RevertCode(55)'); // RESOLVER_ASSET_VALUE_NEGATIVE
     });
   });
 });

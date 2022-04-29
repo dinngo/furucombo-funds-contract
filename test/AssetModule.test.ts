@@ -64,7 +64,7 @@ describe('Asset module', function () {
 
     it('should revert: reach maximum asset capacity', async function () {
       await comptroller.setAssetCapacity(0);
-      await expect(assetModule.addAsset(token0.address)).to.be.revertedWith('RevertCode(88)'); // ASSET_MODULE_FULL_ASSET_CAPACITY
+      await expect(assetModule.addAsset(token0.address)).to.be.revertedWith('RevertCode(63)'); // ASSET_MODULE_FULL_ASSET_CAPACITY
     });
   });
 
@@ -142,15 +142,13 @@ describe('Asset module', function () {
       await assetModule.addAsset(token0.address);
       await assetModule.addAsset(token1.address);
 
-      // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
-      await expect(assetModule.close()).to.be.revertedWith('RevertCode(64)');
+      await expect(assetModule.close()).to.be.revertedWith('RevertCode(62)'); // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
     });
     it('should revert: different asset remaining (last asset is not denomination)', async function () {
       await assetModule.setState(FUND_STATE.LIQUIDATING);
       await assetModule.addAsset(token0.address);
 
-      // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
-      await expect(assetModule.close()).to.be.revertedWith('RevertCode(64)');
+      await expect(assetModule.close()).to.be.revertedWith('RevertCode(62)'); // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
     });
   });
 

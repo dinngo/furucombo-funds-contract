@@ -56,7 +56,7 @@ describe('MortgageVault', function () {
 
     it('should revert: when sender is already mortgaged', async function () {
       await mortgageVault.mortgage(amount);
-      await expect(mortgageVault.mortgage(amount)).to.be.revertedWith('RevertCode(5)'); // MORTGAGE_VAULT_FUND_MORTGAGED
+      await expect(mortgageVault.mortgage(amount)).to.be.revertedWith('RevertCode(22)'); // MORTGAGE_VAULT_FUND_MORTGAGED
     });
   });
 

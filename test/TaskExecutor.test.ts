@@ -313,7 +313,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(29'); // TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT
+      ).to.be.revertedWith('RevertCode(25'); // TASK_EXECUTOR_TOS_AND_DATAS_LENGTH_INCONSISTENT
     });
 
     it('should revert: tos and configs length are inconsistent', async function () {
@@ -335,7 +335,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(30)'); // TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT
+      ).to.be.revertedWith('RevertCode(26)'); // TASK_EXECUTOR_TOS_AND_CONFIGS_LENGTH_INCONSISTENT
     });
 
     it('should revert: invalid comptroller delegate call', async function () {
@@ -360,7 +360,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(31)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
+      ).to.be.revertedWith('RevertCode(27)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
     });
 
     it('should revert: invalid proxy delegate call', async function () {
@@ -373,7 +373,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(31'); // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
+      ).to.be.revertedWith('RevertCode(27'); // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
     });
   });
 
@@ -549,7 +549,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
-      ).to.be.revertedWith('RevertCode(32)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
+      ).to.be.revertedWith('RevertCode(28)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
     });
 
     it('should revert: invalid proxy contract call', async function () {
@@ -571,7 +571,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: actionEthValue,
         })
-      ).to.be.revertedWith('RevertCode(32)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
+      ).to.be.revertedWith('RevertCode(28)'); // TASK_EXECUTOR_INVALID_COMPTROLLER_CONTRACT_CALL
     });
   });
 
@@ -780,7 +780,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(33)'); // TASK_EXECUTOR_INVALID_DEALING_ASSET
+      ).to.be.revertedWith('RevertCode(29)'); // TASK_EXECUTOR_INVALID_DEALING_ASSET
     });
   });
 
@@ -895,7 +895,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
+      ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
     });
 
     it('should revert: native token', async function () {
@@ -918,7 +918,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(38)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
+      ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_INVALID_INITIAL_ASSET
     });
 
     it('should revert: insufficient quota', async function () {
@@ -967,7 +967,7 @@ describe('Task Executor', function () {
         proxy.connect(user).executeMock(target, data, {
           value: ether('0.01'),
         })
-      ).to.be.revertedWith('RevertCode(39)'); // TASK_EXECUTOR_NON_ZERO_QUOTA
+      ).to.be.revertedWith('RevertCode(35)'); // TASK_EXECUTOR_NON_ZERO_QUOTA
     });
   });
 
@@ -1197,7 +1197,7 @@ describe('Task Executor', function () {
           proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
-        ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
+        ).to.be.revertedWith('RevertCode(30)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
       });
 
       it('should revert: expected return amount not match', async function () {
@@ -1223,7 +1223,7 @@ describe('Task Executor', function () {
           proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
-        ).to.be.revertedWith('RevertCode(35)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
+        ).to.be.revertedWith('RevertCode(31)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
       });
 
       it('should revert: overflow during trimming', async function () {
@@ -1271,7 +1271,7 @@ describe('Task Executor', function () {
           proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
-        ).to.be.revertedWith('RevertCode(36)'); // TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE
+        ).to.be.revertedWith('RevertCode(32)'); // TASK_EXECUTOR_ILLEGAL_LENGTH_FOR_PARSE
       });
 
       it('should revert: stack overflow', async function () {
@@ -1294,7 +1294,7 @@ describe('Task Executor', function () {
           proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
-        ).to.be.revertedWith('RevertCode(37)'); // TASK_EXECUTOR_STACK_OVERFLOW
+        ).to.be.revertedWith('RevertCode(33)'); // TASK_EXECUTOR_STACK_OVERFLOW
       });
     });
 
@@ -1545,7 +1545,7 @@ describe('Task Executor', function () {
           proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
-        ).to.be.revertedWith('RevertCode(34)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
+        ).to.be.revertedWith('RevertCode(30)'); // TASK_EXECUTOR_REFERENCE_TO_OUT_OF_LOCALSTACK
       });
 
       it('should revert: expected return amount not match', async function () {
@@ -1574,7 +1574,7 @@ describe('Task Executor', function () {
           proxy.connect(user).executeMock(target, data, {
             value: ether('0.01'),
           })
-        ).to.be.revertedWith('RevertCode(35)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
+        ).to.be.revertedWith('RevertCode(31)'); // TASK_EXECUTOR_RETURN_NUM_AND_PARSED_RETURN_NUM_NOT_MATCHED
       });
 
       it('should revert: overflow during trimming', async function () {

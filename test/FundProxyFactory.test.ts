@@ -130,7 +130,7 @@ describe('FundProxyFactory', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(invalidDenominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.revertedWith('RevertCode(79)'); // FUND_PROXY_FACTORY_INVALID_DENOMINATION
+      ).to.be.revertedWith('RevertCode(15)'); // FUND_PROXY_FACTORY_INVALID_DENOMINATION
     });
     it('should revert: invalid creator', async function () {
       const invalidCreator = collector;
@@ -138,7 +138,7 @@ describe('FundProxyFactory', function () {
         fundProxyFactory
           .connect(invalidCreator)
           .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.revertedWith('RevertCode(13)'); // FUND_PROXY_FACTORY_INVALID_CREATOR
+      ).to.be.revertedWith('RevertCode(14)'); // FUND_PROXY_FACTORY_INVALID_CREATOR
     });
     it('should revert: invalid level', async function () {
       const invalidLevel = 0;
@@ -146,7 +146,7 @@ describe('FundProxyFactory', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(denominationAddress, invalidLevel, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.revertedWith('RevertCode(75)'); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
+      ).to.be.revertedWith('RevertCode(16)'); // FUND_PROXY_FACTORY_INVALID_MORTGAGE_TIER
     });
     it('should revert: invalid management fee rate', async function () {
       const invalidMFeeRate = FUND_PERCENTAGE_BASE;
