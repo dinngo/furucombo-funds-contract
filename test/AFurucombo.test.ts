@@ -310,7 +310,7 @@ describe('AFurucombo', function () {
       const vault = await proxy.vault();
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(38)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
     it('should revert: remaining tokens >= token dust', async function () {
@@ -329,7 +329,7 @@ describe('AFurucombo', function () {
       const vault = await proxy.vault();
       await token.connect(tokenProvider).transfer(vault, amountsIn[0]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(71)'); // AFURUCOMBO_REMAINING_TOKENS
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(37)'); // AFURUCOMBO_REMAINING_TOKENS
     });
 
     it('should revert: invalid handler', async function () {
@@ -349,7 +349,7 @@ describe('AFurucombo', function () {
 
       // send token to vault
       // const vault = await proxy.vault();
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(41)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(39)'); // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
     });
 
     it('should revert: duplicated tokensOut', async function () {
@@ -384,7 +384,7 @@ describe('AFurucombo', function () {
 
       // send token to vault
       // const vault = await proxy.vault();
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(86)'); // AFURUCOMBO_DUPLICATED_TOKENSOUT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(36)'); // AFURUCOMBO_DUPLICATED_TOKENSOUT
     });
 
     it('should revert: not ascending tokensOut', async function () {
@@ -426,7 +426,7 @@ describe('AFurucombo', function () {
 
       // send token to vault
       // const vault = await proxy.vault();
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(86)'); // AFURUCOMBO_DUPLICATED_TOKENSOUT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(36)'); // AFURUCOMBO_DUPLICATED_TOKENSOUT
     });
 
     describe('asset Quota', function () {
@@ -669,7 +669,7 @@ describe('AFurucombo', function () {
         getCallData(aFurucombo, 'approveDelegation', [tokens, amounts]),
       ]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(38)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
 
@@ -719,7 +719,7 @@ describe('AFurucombo', function () {
         getCallData(aFurucombo, 'approveToken', [tokens, amounts]),
       ]);
 
-      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(40)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
+      await expect(proxy.connect(user).executeMock(taskExecutor.address, data)).to.be.revertedWith('RevertCode(38)'); // AFURUCOMBO_TOKENS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
   });
 });

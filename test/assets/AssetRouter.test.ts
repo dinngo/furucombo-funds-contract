@@ -165,7 +165,7 @@ describe('AssetRouter', function () {
       const quote = quoteAddress;
 
       await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
-        'RevertCode(50)'
+        'RevertCode(54)'
       ); // ASSET_ROUTER_NEGATIVE_VALUE
     });
 
@@ -175,7 +175,7 @@ describe('AssetRouter', function () {
       const quote = quoteAddress;
 
       await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
-        'RevertCode(49)'
+        'RevertCode(53)'
       ); // ASSET_ROUTER_ASSETS_AND_AMOUNTS_LENGTH_INCONSISTENT
     });
 
@@ -185,7 +185,7 @@ describe('AssetRouter', function () {
       const quote = tokenA.address;
 
       await expect(router.connect(user).calcAssetsTotalValue(assets, amounts, quote)).to.be.revertedWith(
-        'RevertCode(57)'
+        'RevertCode(46)'
       ); // ASSET_REGISTRY_UNREGISTERED
     });
 

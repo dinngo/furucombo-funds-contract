@@ -127,7 +127,7 @@ describe('RAaveProtocolV2Debt', function () {
       await registry.unregister(asset);
       await registry.register(asset, resolverMock.address);
 
-      await expect(router.connect(user).calcAssetValue(asset, amount, quote)).to.be.revertedWith('RevertCode(91)'); // RESOLVER_ASSET_VALUE_POSITIVE
+      await expect(router.connect(user).calcAssetValue(asset, amount, quote)).to.be.revertedWith('RevertCode(56)'); // RESOLVER_ASSET_VALUE_POSITIVE
     });
   });
 

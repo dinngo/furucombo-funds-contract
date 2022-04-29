@@ -42,7 +42,7 @@ export const WL_CURVE_SIGS = [
   '0xdf5f2889', // removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)
 ];
 export const WL_PARASWAP_V5_SIGS = [
-  '0x7f0f41d7', //swap(address,uint256,address,bytes)
+  '0x7f0f41d7', // swap(address,uint256,address,bytes)
 ];
 export const LEVEL = 1;
 export const LEVEL_AMOUNT = 0;
