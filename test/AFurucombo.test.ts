@@ -91,7 +91,7 @@ describe('AFurucombo', function () {
     debtToken = await ethers.getContractAt('IVariableDebtToken', debtTokenAddress);
 
     // Setup contracts
-    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(DS_PROXY_REGISTRY);
+    fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
     await fundImplementation.deployed();
 
     registry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
@@ -106,6 +106,9 @@ describe('AFurucombo', function () {
     mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(token.address);
     await mortgageVault.deployed();
 
+    const setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+    await setupAction.deployed();
+
     comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
     await comptroller.deployed();
     await comptroller.initialize(
@@ -116,7 +119,9 @@ describe('AFurucombo', function () {
       liquidator.address,
       0,
       mortgageVault.address,
-      0
+      0,
+      DS_PROXY_REGISTRY,
+      setupAction.address
     );
     await comptroller.setInitialAssetCheck(false);
 
@@ -158,7 +163,7 @@ describe('AFurucombo', function () {
     // Setup FundProxy
     dsProxyRegistry = await ethers.getContractAt('IDSProxyRegistry', DS_PROXY_REGISTRY);
 
-    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy(dsProxyRegistry.address);
+    proxy = await (await ethers.getContractFactory('FundProxyMock')).connect(user).deploy();
     await proxy.deployed();
 
     faucet = await (await ethers.getContractFactory('Faucet')).deploy();

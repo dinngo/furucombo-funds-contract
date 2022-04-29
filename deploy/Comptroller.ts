@@ -13,7 +13,9 @@ import {
   PENDING_EXPIRATION,
   VALUE_TOLERANCE,
   denominations,
+  DS_PROXY_REGISTRY,
 } from './Config';
+
 import { assets, aaveV2Asset, aaveV2Debt, curveStable, quickSwap, sushiSwap } from './assets/AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -29,6 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const pendingExpiration = PENDING_EXPIRATION;
   const mortgageVault = await deployments.get('MortgageVault');
   const valueTolerance = VALUE_TOLERANCE;
+  const setupAction = await deployments.get('SetupAction');
 
   const resultImplementation = await deploy('ComptrollerImplementation', {
     from: deployer,
@@ -49,6 +52,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     pendingExpiration,
     mortgageVault.address,
     valueTolerance,
+    DS_PROXY_REGISTRY,
+    setupAction.address,
   ]);
 
   const result = await deploy('ComptrollerProxy', {
@@ -137,6 +142,7 @@ func.dependencies = [
   'FundImplementation',
   'AssetRouter',
   'MortgageVault',
+  'SetupAction',
   'HAaveProtocolV2',
   'HFunds',
   'HQuickSwap',

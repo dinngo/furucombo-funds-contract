@@ -1,11 +1,11 @@
 import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
 import { ethers, deployments } from 'hardhat';
-import { ComptrollerImplementation, AssetModuleMock, SimpleToken } from '../typechain';
+import { ComptrollerImplementationMock, AssetModuleMock, SimpleToken } from '../typechain';
 import { DS_PROXY_REGISTRY, FUND_STATE, ASSET_CAPACITY } from './utils/constants';
 
 describe('Asset module', function () {
-  let comptroller: ComptrollerImplementation;
+  let comptroller: ComptrollerImplementationMock;
   let assetModule: AssetModuleMock;
   let user: Wallet;
   let tokenD: SimpleToken;
@@ -22,7 +22,7 @@ describe('Asset module', function () {
     assetModule = await (await ethers.getContractFactory('AssetModuleMock')).connect(user).deploy(DS_PROXY_REGISTRY);
     await assetModule.deployed();
 
-    comptroller = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
+    comptroller = await (await ethers.getContractFactory('ComptrollerImplementationMock')).deploy();
     await comptroller.deployed();
     tokenD = await (await ethers.getContractFactory('SimpleToken')).connect(user).deploy();
     await tokenD.deployed();

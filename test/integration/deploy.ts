@@ -1,5 +1,6 @@
 import { ethers } from 'hardhat';
 import { getEventArgs, asciiToHex32 } from '../utils/utils';
+import { DS_PROXY_REGISTRY } from '../utils/constants';
 
 const hre = require('hardhat');
 
@@ -80,12 +81,15 @@ export async function deployComptrollerAndFundProxyFactory(
   mortgageVaultAddress: string,
   totalAssetValueTolerance: number
 ): Promise<any> {
-  const fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy(dsProxyRegistry);
+  const fundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
   await fundImplementation.deployed();
 
   // comptroller
   const comptrollerImplementation = await (await ethers.getContractFactory('ComptrollerImplementation')).deploy();
   await comptrollerImplementation.deployed();
+
+  const setupAction = await (await ethers.getContractFactory('SetupAction')).deploy();
+  await setupAction.deployed();
 
   const compData = comptrollerImplementation.interface.encodeFunctionData('initialize', [
     fundImplementation.address,
@@ -96,6 +100,8 @@ export async function deployComptrollerAndFundProxyFactory(
     pendingExpiration,
     mortgageVaultAddress,
     totalAssetValueTolerance,
+    DS_PROXY_REGISTRY,
+    setupAction.address,
   ]);
 
   const comptrollerProxy = await (

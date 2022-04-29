@@ -19,12 +19,6 @@ abstract contract AssetModule is FundProxyStorageUtils {
         return _assetList._get();
     }
 
-    /// @notice Get the balance of the denomination asset.
-    // /// @return The balance of reserve.
-    // function getReserve() public view returns (uint256) {
-    //     return denomination.balanceOf(address(vault));
-    // }
-
     /// @notice Check the remaining asset should be only the denomination asset
     /// when closing the vault.
     function close() public virtual {

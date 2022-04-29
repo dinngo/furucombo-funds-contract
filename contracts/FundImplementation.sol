@@ -10,10 +10,7 @@ import {PerformanceFeeModule} from "./modules/PerformanceFeeModule.sol";
 import {ShareModule} from "./modules/ShareModule.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
-import {IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
-import {ISetupAction} from "./interfaces/ISetupAction.sol";
-import {SetupAction} from "./actions/SetupAction.sol";
 import {Errors} from "./utils/Errors.sol";
 
 /// @title The implementation contract for fund.
@@ -23,12 +20,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
-    IDSProxyRegistry public immutable dsProxyRegistry;
-    ISetupAction public immutable setupAction;
-
-    constructor(IDSProxyRegistry dsProxyRegistry_) {
-        dsProxyRegistry = dsProxyRegistry_;
-        setupAction = new SetupAction();
+    constructor() {
+        // set owner to address(0) in implementation contract
+        renounceOwnership();
     }
 
     /////////////////////////////////////////////////////
@@ -60,10 +54,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _setManagementFeeRate(mFeeRate_);
         _setPerformanceFeeRate(pFeeRate_);
         _setCrystallizationPeriod(crystallizationPeriod_);
-        _setVault(dsProxyRegistry);
-        _transferOwnership(newOwner_);
+        _setVault(comptroller_.dsProxyRegistry());
         _setMortgageVault(comptroller_);
-
+        _transferOwnership(newOwner_);
         _review();
     }
 
@@ -81,7 +74,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _addAsset(address(denomination));
 
         // Set approval for investor to redeem
-        _setVaultApproval(setupAction);
+        _setVaultApproval(comptroller.setupAction());
 
         // Initialize management fee parameters
         _initializeManagementFee();
@@ -184,12 +177,6 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     function __getGrossAssetValue() internal view override(ShareModule, PerformanceFeeModule) returns (uint256) {
         return getGrossAssetValue();
     }
-
-    /// @notice Get the current reserve amount of the fund.
-    /// @return The reserve amount.
-    // function __getReserve() internal view override returns (uint256) {
-    //     return getReserve();
-    // }
 
     /// @notice Get the balance of the denomination asset.
     /// @return The balance of reserve.

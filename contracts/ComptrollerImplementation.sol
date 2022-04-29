@@ -7,6 +7,8 @@ import {Whitelist} from "./libraries/Whitelist.sol";
 import {IAssetRouter} from "./assets/interfaces/IAssetRouter.sol";
 import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
+import {IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
+import {ISetupAction} from "./interfaces/ISetupAction.sol";
 import {Errors} from "./utils/Errors.sol";
 
 contract ComptrollerImplementation is Ownable, IComptroller {
@@ -39,6 +41,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     IAssetRouter public assetRouter;
     IMortgageVault public mortgageVault;
     UpgradeableBeacon public beacon;
+    IDSProxyRegistry public dsProxyRegistry;
+    ISetupAction public setupAction;
 
     // Map
     mapping(address => DenominationConfig) public denomination;
@@ -63,6 +67,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     event SetPendingPenalty(uint256 penalty);
     event SetExecAssetValueToleranceRate(uint256 tolerance);
     event SetInitialAssetCheck(bool indexed check);
+    event SetDSProxyRegistry(address indexed registry);
+    event SetSetupAction(address indexed action);
     event FundProxyBanned(address indexed fundProxy);
     event FundProxyUnbanned(address indexed fundProxy);
     event PermitDenomination(address indexed denomination, uint256 dust);
@@ -104,6 +110,11 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         _;
     }
 
+    constructor() {
+        // set owner to address(0) in implementation contract
+        renounceOwnership();
+    }
+
     function initialize(
         address implementation_,
         IAssetRouter assetRouter_,
@@ -112,7 +123,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         address pendingLiquidator_,
         uint256 pendingExpiration_,
         IMortgageVault mortgageVault_,
-        uint256 execAssetValueToleranceRate_
+        uint256 execAssetValueToleranceRate_,
+        IDSProxyRegistry dsProxyRegistry_,
+        ISetupAction setupAction_
     ) external {
         Errors._require(address(beacon) == address(0), Errors.Code.COMPTROLLER_BEACON_IS_INITIALIZED);
         // transfer owner for set functions
@@ -127,6 +140,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         setAssetCapacity(80);
         setExecAssetValueToleranceRate(execAssetValueToleranceRate_);
         setInitialAssetCheck(true);
+        setDSProxyRegistry(dsProxyRegistry_);
+        setSetupAction(setupAction_);
+
         beacon = new UpgradeableBeacon(implementation_);
         beacon.transferOwnership(msg.sender);
     }
@@ -206,6 +222,22 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     function setInitialAssetCheck(bool check_) public onlyOwner {
         fInitialAssetCheck = check_;
         emit SetInitialAssetCheck(check_);
+    }
+
+    // set dsproxy registry
+    function setDSProxyRegistry(IDSProxyRegistry dsProxyRegistry_)
+        public
+        nonZeroAddress(address(dsProxyRegistry_))
+        onlyOwner
+    {
+        dsProxyRegistry = dsProxyRegistry_;
+        emit SetDSProxyRegistry(address(dsProxyRegistry_));
+    }
+
+    // set setup action
+    function setSetupAction(ISetupAction setupAction_) public nonZeroAddress(address(setupAction_)) onlyOwner {
+        setupAction = setupAction_;
+        emit SetSetupAction(address(setupAction_));
     }
 
     // Denomination whitelist

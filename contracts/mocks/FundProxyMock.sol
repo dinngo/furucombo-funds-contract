@@ -9,7 +9,9 @@ import {IShareToken} from "../interfaces/IShareToken.sol";
 import {ISetupAction} from "../interfaces/ISetupAction.sol";
 
 contract FundProxyMock is FundImplementation {
-    constructor(IDSProxyRegistry dsProxyRegistry_) FundImplementation(dsProxyRegistry_) {}
+    constructor() FundImplementation() {
+        _transferOwnership(msg.sender);
+    }
 
     function executeMock(address target_, bytes calldata data_) external payable onlyOwner returns (bytes memory) {
         return vault.execute{value: msg.value}(target_, data_);
