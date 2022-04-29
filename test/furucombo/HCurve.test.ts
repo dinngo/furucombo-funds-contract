@@ -7,13 +7,17 @@ import {
   DAI_TOKEN,
   USDT_TOKEN,
   WBTC_TOKEN,
+  WETH_TOKEN,
   RENBTC_TOKEN,
   RENBTC_PROVIDER,
+  EURT_TOKEN,
   CURVE_AAVE_SWAP,
   CURVE_AAVECRV,
   CURVE_REN_SWAP,
   CURVE_RENCRV,
   CURVE_RENCRV_PROVIDER,
+  CURVE_ATRICRYPTO3_DEPOSIT,
+  CURVE_EURTUSD_DEPOSIT,
   MATIC_TOKEN,
   NATIVE_TOKEN,
 } from '../utils/constants';
@@ -35,6 +39,8 @@ describe('HCurve', function () {
   let user: Wallet;
   let aaveSwap: ICurveHandler;
   let renSwap: ICurveHandler;
+  let atricrypto3Swap: ICurveHandler;
+  let eurtusdSwap: ICurveHandler;
   let hCurve: HCurve;
   let proxy: FurucomboProxyMock;
   let registry: FurucomboRegistry;
@@ -45,6 +51,8 @@ describe('HCurve', function () {
 
     aaveSwap = await ethers.getContractAt('ICurveHandler', CURVE_AAVE_SWAP);
     renSwap = await ethers.getContractAt('ICurveHandler', CURVE_REN_SWAP);
+    atricrypto3Swap = await ethers.getContractAt('ICurveHandler', CURVE_ATRICRYPTO3_DEPOSIT);
+    eurtusdSwap = await ethers.getContractAt('ICurveHandler', CURVE_EURTUSD_DEPOSIT);
 
     // Setup proxy and Aproxy
     registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
@@ -60,6 +68,8 @@ describe('HCurve', function () {
     // register HCurve callee
     await registry.registerHandlerCalleeWhitelist(hCurve.address, aaveSwap.address);
     await registry.registerHandlerCalleeWhitelist(hCurve.address, renSwap.address);
+    await registry.registerHandlerCalleeWhitelist(hCurve.address, atricrypto3Swap.address);
+    await registry.registerHandlerCalleeWhitelist(hCurve.address, eurtusdSwap.address);
   });
 
   beforeEach(async function () {
@@ -112,7 +122,7 @@ describe('HCurve', function () {
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
 
-        // Check token 1 balance
+        // Check user's token balance to within 1%
         expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
@@ -140,7 +150,7 @@ describe('HCurve', function () {
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
 
-        // Check token 1 balance
+        // Check user's token balance to within 1%
         expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
@@ -243,7 +253,7 @@ describe('HCurve', function () {
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
 
-        // Check token 1 balance
+        // Check user's token balance to within 1%
         expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
 
@@ -271,7 +281,165 @@ describe('HCurve', function () {
         expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
 
-        // Check token 1 balance
+        // Check user's token balance to within 1%
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
+      });
+    });
+
+    describe('atricrypto3 pool', function () {
+      const token0Address = WETH_TOKEN;
+      const token1Address = DAI_TOKEN;
+      const value = BigNumber.from('10000000000000000000');
+
+      beforeEach(async function () {
+        providerAddress = await tokenProviderQuick(token0Address);
+        token0 = await ethers.getContractAt('IERC20', token0Address);
+        token1 = await ethers.getContractAt('IERC20', token1Address);
+        answer = await atricrypto3Swap['get_dy_underlying(uint256,uint256,uint256)'](4, 0, value);
+        token0User = await token0.balanceOf(user.address);
+        token1User = await token1.balanceOf(user.address);
+
+        await token0.connect(providerAddress).transfer(proxy.address, value);
+        await proxy.updateTokenMock(token0.address);
+      });
+
+      it('Exact input swap WETH to DAI by exchangeUnderlyingUint256', async function () {
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlyingUint256(address,address,address,uint256,uint256,uint256,uint256)',
+          [
+            atricrypto3Swap.address,
+            token0.address,
+            token1.address,
+            4,
+            0,
+            value,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'), // Ensure handler can correctly deal with ether
+        });
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1User));
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+
+        // Check user's token balance to within 1%
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
+      });
+
+      it('Exact input swap WETH to DAI by exchangeUnderlying with max amount', async function () {
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlyingUint256(address,address,address,uint256,uint256,uint256,uint256)',
+          [
+            atricrypto3Swap.address,
+            token0.address,
+            token1.address,
+            4,
+            0,
+            constants.MaxUint256,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
+
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'), // Ensure handler can correctly deal with ether
+        });
+
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1User));
+
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+
+        // Check user's token balance to within 1%
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
+      });
+    });
+
+    describe('eurtusd pool', function () {
+      const token0Address = DAI_TOKEN;
+      const token1Address = EURT_TOKEN;
+      const value = BigNumber.from('1000000000000000000');
+
+      beforeEach(async function () {
+        providerAddress = await tokenProviderQuick(token0Address);
+        token0 = await ethers.getContractAt('IERC20', token0Address);
+        token1 = await ethers.getContractAt('IERC20', token1Address);
+        answer = await eurtusdSwap['get_dy_underlying(uint256,uint256,uint256)'](1, 0, value);
+        token0User = await token0.balanceOf(user.address);
+        token1User = await token1.balanceOf(user.address);
+
+        await token0.connect(providerAddress).transfer(proxy.address, value);
+        await proxy.updateTokenMock(token0.address);
+      });
+
+      it('Exact input swap DAI to EURT by exchangeUnderlyingUint256', async function () {
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlyingUint256(address,address,address,uint256,uint256,uint256,uint256)',
+          [
+            eurtusdSwap.address,
+            token0.address,
+            token1.address,
+            1,
+            0,
+            value,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'), // Ensure handler can correctly deal with ether
+        });
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1User));
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+
+        // Check user's token balance to within 1%
+        expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
+      });
+
+      it('Exact input swap DAI to EURT by exchangeUnderlying with max amount', async function () {
+        const data = getCallData(
+          hCurve,
+          'exchangeUnderlyingUint256(address,address,address,uint256,uint256,uint256,uint256)',
+          [
+            eurtusdSwap.address,
+            token0.address,
+            token1.address,
+            1,
+            0,
+            constants.MaxUint256,
+            mulPercent(answer, BigNumber.from('100').sub(slippage)),
+          ]
+        );
+
+        const receipt = await proxy.connect(user).execMock(hCurve.address, data, {
+          value: ether('1'), // Ensure handler can correctly deal with ether
+        });
+
+        // Get handler return result
+        const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
+        const token1UserEnd = await token1.balanceOf(user.address);
+        expect(handlerReturn).to.be.eq(token1UserEnd.sub(token1User));
+
+        expect(await token0.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token1.balanceOf(proxy.address)).to.be.eq(0);
+        expect(await token0.balanceOf(user.address)).to.be.eq(token0User);
+
+        // Check user's token balance to within 1%
         expectEqWithinBps(token1UserEnd, token1User.add(answer), 10);
       });
     });
