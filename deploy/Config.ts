@@ -6,6 +6,8 @@ export const DS_PROXY_REGISTRY = '0x7B4C6A6EB4aF9435a62bfAB09Fd2074f7752A784';
 export const AAVE_LENDING_POOL = '0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf';
 export const CURVE_AAVE_SWAP = '0x445FE580eF8d70FF569aB36e80c647af338db351';
 export const CURVE_REN_SWAP = '0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67';
+export const CURVE_ATRICRYPTO3_DEPOSIT = '0x1d8b86e3D88cDb2d34688e87E72F388Cb541B7C8';
+export const CURVE_EURTUSD_DEPOSIT = '0x225FB4176f0E20CDb66b4a3DF70CA3063281E855';
 export const WL_ANY_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 export const WL_ANY_SIG = '0xffffffff';
 export const WL_AAVE_V2_SIGS = [
@@ -35,6 +37,7 @@ export const WL_SUSHISWAP_SIGS = [
 ];
 export const WL_CURVE_SIGS = [
   '0xfef6074e', // exchangeUnderlying(address,address,address,int128,int128,uint256,uint256)
+  '0x51c6312e', // exchangeUnderlyingUint256(address,address,address,uint256,uint256,uint256,uint256)
   '0x7ad0fd49', // addLiquidityUnderlying(address,address,address[],uint256[],uint256)
   '0xdf5f2889', // removeLiquidityOneCoinUnderlying(address,address,address,uint256,int128,uint256)
 ];

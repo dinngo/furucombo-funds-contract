@@ -1,6 +1,12 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { AAVE_LENDING_POOL, CURVE_AAVE_SWAP, CURVE_REN_SWAP } from '../Config';
+import {
+  AAVE_LENDING_POOL,
+  CURVE_AAVE_SWAP,
+  CURVE_REN_SWAP,
+  CURVE_ATRICRYPTO3_DEPOSIT,
+  CURVE_EURTUSD_DEPOSIT,
+} from '../Config';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -42,6 +48,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Set HCurve callee
     await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_AAVE_SWAP);
     await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_REN_SWAP);
+    await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_ATRICRYPTO3_DEPOSIT);
+    await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_EURTUSD_DEPOSIT);
   }
 };
 
