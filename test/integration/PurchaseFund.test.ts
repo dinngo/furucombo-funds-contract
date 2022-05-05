@@ -1,5 +1,5 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
-import { deployments } from 'hardhat';
+import { deployments, network } from 'hardhat';
 import { expect } from 'chai';
 import {
   FurucomboRegistry,
@@ -17,7 +17,7 @@ import {
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, expectEqWithinBps } from '../utils/utils';
 
-import { createFund, purchaseFund, setPendingAssetFund, setExecutingAssetFund } from './fund';
+import { createFund, purchaseFund, redeemFund, setPendingAssetFund, setExecutingAssetFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,
@@ -230,8 +230,20 @@ describe('InvestorPurchaseFund', function () {
 
           expect(state).to.be.eq(FUND_STATE.EXECUTING);
         });
-        // TODO
-        it.skip('should revert: get 0 share', async function () {});
+
+        it('should revert: get 0 share', async function () {
+          // manager purchase
+          const [managerShare] = await purchaseFund(manager, fundProxy, denomination, shareToken, mwei('0.00101'));
+
+          // transfer a lot amount to vault
+          const badAmount = mwei('1000000');
+          await denomination.connect(denominationProvider).transfer(fundVault, badAmount);
+
+          // user1 buy
+          const user1PurchaseAmount = mwei('0.1');
+          await denomination.connect(user1).approve(fundProxy.address, user1PurchaseAmount);
+          await expect(fundProxy.connect(user1).purchase(user1PurchaseAmount)).to.be.revertedWith('RevertCode(71)'); // SHARE_MODULE_PURCHASE_ZERO_SHARE
+        });
       }); // describe('Executing state') ends
 
       describe('Pending state', function () {
@@ -339,8 +351,30 @@ describe('InvestorPurchaseFund', function () {
           expect(state).to.be.eq(FUND_STATE.PENDING);
         });
 
-        // TODO:
-        it.skip('get no bonus when in the same block with redeem', async function () {});
+        it('get no bonus when in the same block with redeem', async function () {
+          // purchase to make fund back to executing
+          const user1PurchaseAmount = redeemAmount.sub(reserveAmount).add(mwei('100'));
+          const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, user1PurchaseAmount);
+
+          const expectedNoBonusShare = await fundProxy.calculateShare(purchaseAmount);
+
+          // stop mining
+          await network.provider.send('evm_setAutomine', [false]);
+
+          // user0 sandwich user1
+          const user0Share = await shareToken.balanceOf(user0.address);
+          await redeemFund(user0, fundProxy, denomination, user0Share, true);
+
+          await redeemFund(user1, fundProxy, denomination, user1Share, true);
+
+          await purchaseFund(user0, fundProxy, denomination, shareToken, purchaseAmount);
+
+          await network.provider.send('evm_mine', []);
+          await network.provider.send('evm_setAutomine', [true]);
+
+          const user0ShareAfter = await shareToken.balanceOf(user0.address);
+          expectEqWithinBps(user0ShareAfter, expectedNoBonusShare, 10);
+        });
       }); // describe('Pending state') end
 
       describe('Executing state, funds with other asset', function () {
@@ -533,9 +567,6 @@ describe('InvestorPurchaseFund', function () {
 
           expect(state).to.be.eq(FUND_STATE.PENDING);
         });
-
-        // TODO:
-        it.skip('get no bonus when in the same block with redeem', async function () {});
       });
     }); // describe('Without state change') end
 
@@ -637,8 +668,6 @@ describe('InvestorPurchaseFund', function () {
           expect(user2State).to.be.eq(FUND_STATE.PENDING);
           expect(user3State).to.be.eq(FUND_STATE.EXECUTING);
         });
-        // TODO:
-        it.skip('get no bonus when in the same block with redeem', async function () {});
       });
     }); // describe('With state change') end
 
@@ -742,215 +771,217 @@ describe('InvestorPurchaseFund', function () {
       await setupTest();
     });
 
-    describe('Executing state', function () {
-      beforeEach(async function () {
-        [
-          fundProxy,
-          fundVault,
-          denomination,
-          shareToken,
-          taskExecutor,
-          aFurucombo,
-          hFunds,
-          ,
-          ,
-          oracle,
-          comptroller,
-          ,
-          hQuickSwap,
-          ,
-        ] = await createFund(
-          owner,
-          collector,
-          manager,
-          liquidator,
-          denominationAddress,
-          mortgageAddress,
-          tokenAAddress,
-          tokenBAddress,
-          denominationAggregator,
-          tokenAAggregator,
-          tokenBAggregator,
-          level,
-          mortgageAmount,
-          mFeeRate10Percent,
-          pFeeRate,
-          execFeePercentage,
-          pendingExpiration,
-          valueTolerance,
-          crystallizationPeriod,
-          shareTokenName,
-          fRegistry,
-          furucombo
-        );
+    describe('Without state change', function () {
+      describe('Executing state', function () {
+        beforeEach(async function () {
+          [
+            fundProxy,
+            fundVault,
+            denomination,
+            shareToken,
+            taskExecutor,
+            aFurucombo,
+            hFunds,
+            ,
+            ,
+            oracle,
+            comptroller,
+            ,
+            hQuickSwap,
+            ,
+          ] = await createFund(
+            owner,
+            collector,
+            manager,
+            liquidator,
+            denominationAddress,
+            mortgageAddress,
+            tokenAAddress,
+            tokenBAddress,
+            denominationAggregator,
+            tokenAAggregator,
+            tokenBAggregator,
+            level,
+            mortgageAmount,
+            mFeeRate10Percent,
+            pFeeRate,
+            execFeePercentage,
+            pendingExpiration,
+            valueTolerance,
+            crystallizationPeriod,
+            shareTokenName,
+            fRegistry,
+            furucombo
+          );
+        });
+
+        it('user1 purchase', async function () {
+          const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+          const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
+          const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+          const [user1Share, state] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
+
+          const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+          const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
+
+          expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
+          expect(user1Share).to.be.eq(purchaseAmount.sub(MINIMUM_SHARE)); // initial mint, share = purchaseAmount - MINIMUM_SHARE
+          expect(user1Share).to.be.eq(user1ExpectedShare);
+
+          // initial mint, manager shouldn't get management fee
+          expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.eq(0);
+
+          expect(state).to.be.eq(FUND_STATE.EXECUTING);
+        });
+
+        it('user1 and user2 purchase', async function () {
+          const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+          const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
+
+          // user1 purchase
+          const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+          const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
+
+          // user2 purchase
+          const user2ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
+          const [user2Share, state] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
+
+          const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+          const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
+
+          expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('2'))));
+
+          expect(user1Share).to.be.eq(user1ExpectedShare);
+          expectEqWithinBps(user2Share, user2ExpectedShare, 10); // Didn't include management fee when calculate user2ExpectedShare, but they should really close
+          expect(user2Share).to.be.gt(user1Share); // user2 purchase after user1, user2's share should greater than user1's share
+
+          // manager should get some management fee
+          expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.gt(0);
+
+          expect(state).to.be.eq(FUND_STATE.EXECUTING);
+        });
       });
 
-      it('user1 purchase', async function () {
-        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
-        const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
-        const [user1Share, state] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
+      describe('Pending state', function () {
+        const swapAmount = purchaseAmount.div(2);
+        const reserveAmount = purchaseAmount.sub(swapAmount);
+        const redeemAmount = reserveAmount.add(mwei('500'));
+        const pendingPurchaseAmount = mwei('100');
+        beforeEach(async function () {
+          [
+            fundProxy,
+            fundVault,
+            denomination,
+            shareToken,
+            taskExecutor,
+            aFurucombo,
+            hFunds,
+            ,
+            ,
+            oracle,
+            comptroller,
+            ,
+            hQuickSwap,
+            ,
+          ] = await createFund(
+            owner,
+            collector,
+            manager,
+            liquidator,
+            denominationAddress,
+            mortgageAddress,
+            tokenAAddress,
+            tokenBAddress,
+            denominationAggregator,
+            tokenAAggregator,
+            tokenBAggregator,
+            level,
+            mortgageAmount,
+            mFeeRate10Percent,
+            pFeeRate,
+            execFeePercentage,
+            pendingExpiration,
+            valueTolerance,
+            crystallizationPeriod,
+            shareTokenName,
+            fRegistry,
+            furucombo
+          );
 
-        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
+          await setPendingAssetFund(
+            manager,
+            user0,
+            fundProxy,
+            denomination,
+            shareToken,
+            purchaseAmount,
+            swapAmount,
+            redeemAmount,
+            execFeePercentage,
+            denominationAddress,
+            tokenAAddress,
+            hFunds,
+            aFurucombo,
+            taskExecutor,
+            hQuickSwap
+          );
+        });
 
-        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
-        expect(user1Share).to.be.eq(purchaseAmount.sub(MINIMUM_SHARE)); // initial mint, share = purchaseAmount - MINIMUM_SHARE
-        expect(user1Share).to.be.eq(user1ExpectedShare);
+        it('user1 purchase', async function () {
+          const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+          const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
+          const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+          const [user1Share, state] = await purchaseFund(
+            user1,
+            fundProxy,
+            denomination,
+            shareToken,
+            pendingPurchaseAmount
+          );
+          const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+          const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
 
-        // initial mint, manager shouldn't get management fee
-        expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.eq(0);
+          expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount));
+          expect(user1Share).to.be.eq(user1ExpectedShare);
 
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-      });
+          // manager shouldn't get management fee when pending state
+          expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.eq(0);
 
-      it('user1 and user2 purchase', async function () {
-        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
+          expect(state).to.be.eq(FUND_STATE.PENDING);
+        });
 
-        // user1 purchase
-        const user1ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
-        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, purchaseAmount);
+        it('user1 and user2 purchase', async function () {
+          const vaultBalanceBefore = await denomination.balanceOf(fundVault);
+          const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
 
-        // user2 purchase
-        const user2ExpectedShare = await fundProxy.calculateShare(purchaseAmount);
-        const [user2Share, state] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
+          // user1 purchase
+          const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+          const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
 
-        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
+          // user2 purchase
+          const user2ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
+          const [user2Share, state] = await purchaseFund(
+            user2,
+            fundProxy,
+            denomination,
+            shareToken,
+            pendingPurchaseAmount
+          );
 
-        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('2'))));
+          const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+          const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
 
-        expect(user1Share).to.be.eq(user1ExpectedShare);
-        expectEqWithinBps(user2Share, user2ExpectedShare, 10); // Didn't include management fee when calculate user2ExpectedShare, but they should really close
-        expect(user2Share).to.be.gt(user1Share); // user2 purchase after user1, user2's share should greater than user1's share
+          expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(BigNumber.from('2'))));
 
-        // manager should get some management fee
-        expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.gt(0);
+          expect(user1Share).to.be.eq(user1ExpectedShare);
+          expect(user2Share).to.be.eq(user2ExpectedShare);
+          expect(user2Share).to.be.eq(user1Share);
 
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-      });
-    });
+          // manager shouldn't get management fee when pending state
+          expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.eq(0);
 
-    describe('Pending state', function () {
-      const swapAmount = purchaseAmount.div(2);
-      const reserveAmount = purchaseAmount.sub(swapAmount);
-      const redeemAmount = reserveAmount.add(mwei('500'));
-      const pendingPurchaseAmount = mwei('100');
-      beforeEach(async function () {
-        [
-          fundProxy,
-          fundVault,
-          denomination,
-          shareToken,
-          taskExecutor,
-          aFurucombo,
-          hFunds,
-          ,
-          ,
-          oracle,
-          comptroller,
-          ,
-          hQuickSwap,
-          ,
-        ] = await createFund(
-          owner,
-          collector,
-          manager,
-          liquidator,
-          denominationAddress,
-          mortgageAddress,
-          tokenAAddress,
-          tokenBAddress,
-          denominationAggregator,
-          tokenAAggregator,
-          tokenBAggregator,
-          level,
-          mortgageAmount,
-          mFeeRate10Percent,
-          pFeeRate,
-          execFeePercentage,
-          pendingExpiration,
-          valueTolerance,
-          crystallizationPeriod,
-          shareTokenName,
-          fRegistry,
-          furucombo
-        );
-
-        await setPendingAssetFund(
-          manager,
-          user0,
-          fundProxy,
-          denomination,
-          shareToken,
-          purchaseAmount,
-          swapAmount,
-          redeemAmount,
-          execFeePercentage,
-          denominationAddress,
-          tokenAAddress,
-          hFunds,
-          aFurucombo,
-          taskExecutor,
-          hQuickSwap
-        );
-      });
-
-      it('user1 purchase', async function () {
-        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
-        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
-        const [user1Share, state] = await purchaseFund(
-          user1,
-          fundProxy,
-          denomination,
-          shareToken,
-          pendingPurchaseAmount
-        );
-        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
-
-        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount));
-        expect(user1Share).to.be.eq(user1ExpectedShare);
-
-        // manager shouldn't get management fee when pending state
-        expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.eq(0);
-
-        expect(state).to.be.eq(FUND_STATE.PENDING);
-      });
-
-      it('user1 and user2 purchase', async function () {
-        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
-        const managerShareBalanceBefore = await shareToken.balanceOf(manager.address);
-
-        // user1 purchase
-        const user1ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
-        const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, pendingPurchaseAmount);
-
-        // user2 purchase
-        const user2ExpectedShare = await getExpectedShareWhenPending(pendingPurchaseAmount);
-        const [user2Share, state] = await purchaseFund(
-          user2,
-          fundProxy,
-          denomination,
-          shareToken,
-          pendingPurchaseAmount
-        );
-
-        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
-        const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
-
-        expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(pendingPurchaseAmount.mul(BigNumber.from('2'))));
-
-        expect(user1Share).to.be.eq(user1ExpectedShare);
-        expect(user2Share).to.be.eq(user2ExpectedShare);
-        expect(user2Share).to.be.eq(user1Share);
-
-        // manager shouldn't get management fee when pending state
-        expect(managerShareBalanceAfter.sub(managerShareBalanceBefore)).to.be.eq(0);
-
-        expect(state).to.be.eq(FUND_STATE.PENDING);
+          expect(state).to.be.eq(FUND_STATE.PENDING);
+        });
       });
     });
   }); // describe('Without state change') end
