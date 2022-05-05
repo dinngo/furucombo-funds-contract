@@ -24,8 +24,7 @@ contract PerformanceFeeModuleMock is PerformanceFeeModule {
     function mintShareToken(address user_, uint256 share_) public {
         _updatePerformanceFee(grossAssetValueMock);
         shareToken.mint(user_, share_);
-        uint256 totalShare = shareToken.netTotalShare();
-        lastGrossSharePrice64x64 = grossAssetValueMock.divu(totalShare);
+        _updateGrossSharePrice(grossAssetValueMock);
     }
 
     function setPerformanceFeeRate(uint256 feeRate_) public returns (int128) {

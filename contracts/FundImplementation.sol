@@ -343,8 +343,10 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Update the gross share price after the purchase.
     function _afterPurchase(uint256 grossAssetValue_) internal override {
+        _updateGrossSharePrice(grossAssetValue_);
         if (state == State.Pending && _isPendingResolvable(true, grossAssetValue_)) {
-            _settlePendingShare(true);
+            grossAssetValue_ -= _settlePendingShare(true);
+            _updateGrossSharePrice(grossAssetValue_);
             _resume();
         }
         return;
@@ -357,5 +359,10 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _updateManagementFee();
         _updatePerformanceFee(grossAssetValue);
         return grossAssetValue;
+    }
+
+    function _afterRedeem(uint256 grossAssetValue_) internal override {
+        _updateGrossSharePrice(grossAssetValue_);
+        return;
     }
 }
