@@ -48,8 +48,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         _updatePerformanceFee(grossAssetValue);
         address manager = owner();
         shareToken.move(_OUTSTANDING_ACCOUNT, manager, lastOutstandingShare);
-        totalShare = shareToken.netTotalShare();
-        lastGrossSharePrice64x64 = grossAssetValue.divu(totalShare);
+        _updateGrossSharePrice(grossAssetValue);
         uint256 result = lastOutstandingShare;
         lastOutstandingShare = 0;
         pFeeSum = 0;
@@ -125,5 +124,10 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         }
         lastOutstandingShare = outstandingShare;
         lastGrossSharePrice64x64 = grossSharePrice64x64;
+    }
+
+    function _updateGrossSharePrice(uint256 grossAssetValue_) internal virtual {
+        uint256 totalShare = shareToken.netTotalShare();
+        lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
     }
 }

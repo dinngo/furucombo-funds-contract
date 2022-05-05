@@ -188,7 +188,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
         grossAssetValue -= balance;
         denomination.safeTransferFrom(address(vault), user_, balance);
-        _afterRedeem();
+        _afterRedeem(grossAssetValue);
         emit Redeemed(user_, balance, shareRedeemed);
 
         return balance;
@@ -293,7 +293,8 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return 0;
     }
 
-    function _afterRedeem() internal virtual {
+    function _afterRedeem(uint256 grossAssetValue_) internal virtual {
+        grossAssetValue_;
         return;
     }
 
