@@ -703,7 +703,7 @@ export async function purchaseFund(
   denomination: IERC20,
   shareToken: ShareToken,
   amount: any
-): Promise<any> {
+): Promise<[BigNumber, any]> {
   const initShareTokenAmount = await shareToken.balanceOf(investor.address);
   await denomination.connect(investor).approve(fundProxy.address, amount);
   await fundProxy.connect(investor).purchase(amount);

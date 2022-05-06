@@ -120,12 +120,13 @@ describe('ManagerClaimManagementFee', function () {
     await oracle.connect(owner).setStalePeriod(ONE_YEAR * 2);
   });
 
-  const setupEachTestM01 = deployments.createFixture(async ({ deployments, ethers }, options) => {
+  // rate cannot < 2% since mgmt fee would be too small to collect
+  const setupEachTestM02 = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
 
     await _preSetup(ethers);
 
-    const mFeeRate = FUND_PERCENTAGE_BASE * 0.01;
+    const mFeeRate = FUND_PERCENTAGE_BASE * 0.02;
 
     // Deploy furucombo funds contracts
     [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
@@ -252,12 +253,12 @@ describe('ManagerClaimManagementFee', function () {
       });
     });
 
-    describe('1% management fee', function () {
+    describe('2% management fee', function () {
       const purchaseAmount = initialFunds;
-      const feeRate = FUND_PERCENTAGE_BASE * 0.01;
+      const feeRate = FUND_PERCENTAGE_BASE * 0.02;
 
       beforeEach(async function () {
-        await setupEachTestM01();
+        await setupEachTestM02();
       });
 
       it('claim management fee when user redeem after purchase', async function () {
@@ -311,13 +312,13 @@ describe('ManagerClaimManagementFee', function () {
   });
 
   describe('in pending', function () {
-    describe('1% management fee', function () {
+    describe('2% management fee', function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
       const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
 
       beforeEach(async function () {
-        await setupEachTestM01();
+        await setupEachTestM02();
         await setPendingAssetFund(
           manager,
           investor,

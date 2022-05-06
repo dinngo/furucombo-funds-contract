@@ -163,7 +163,7 @@ describe('ManagerClaimPerformanceFee', function () {
       });
 
       it('deduct 0 fee when asset value declines', async function () {
-        const pFee = await _assetValueDeclineTestII(purchaseAmount.div(2));
+        const pFee = await _assetValueDeclineTestII(initialAssetValue, purchaseAmount.div(2));
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
@@ -180,16 +180,14 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: underflow
-      it.skip('claim 0 fee when asset value grows + user fully redeem', async function () {
+      it('claim 0 fee when asset value grows + user fully redeem', async function () {
         const [pFee] = await _assetValueGrowTest(0);
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: underflow
-      it.skip('claim 0 fee when asset value grows + user partially redeem', async function () {
-        const [pFee] = await _assetValueGrowTestII(purchaseAmount, acceptPending, 0);
+      it('claim 0 fee when asset value grows + user partially redeem', async function () {
+        const [pFee] = await _assetValueGrowTestII(initialAssetValue, purchaseAmount, acceptPending, 0);
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
       });
@@ -234,7 +232,7 @@ describe('ManagerClaimPerformanceFee', function () {
       });
 
       it('deduct fee when asset value declines', async function () {
-        const pFee = await _assetValueDeclineTestII(purchaseAmount.div(2));
+        const pFee = await _assetValueDeclineTestII(initialAssetValue, purchaseAmount.div(2));
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
@@ -245,25 +243,28 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: after revise this one, the result goes to underflow ...
-      it.skip('claim 0 fee when asset value is not changed (decline->grow back)', async function () {
+      // TODO: check again
+      it.only('claim 0 fee when asset value is not changed (decline->grow back)', async function () {
         const pFee = await _assetValueNotChangedTestII(investor, initialAssetValue, purchaseAmount, acceptPending);
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: after revise this one, the result goes to underflow ...
-      it.skip('claim fee when asset value grows + user fully redeem', async function () {
+      it('claim fee when asset value grows + user fully redeem', async function () {
         const feeRate = FUND_PERCENTAGE_BASE * 0.01; // 1%
         const [pFee, expectPFee] = await _assetValueGrowTest(feeRate);
         expectEqWithinBps(pFee, expectPFee, 1);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: fee should be in the expected range
-      it.skip('claim fee when asset value grows + user partially redeem', async function () {
+      it('claim fee when asset value grows + user partially redeem', async function () {
         const feeRate = FUND_PERCENTAGE_BASE * 0.01; // 1%
-        const [pFee, expectPFee] = await _assetValueGrowTestII(purchaseAmount, acceptPending, feeRate);
+        const [pFee, expectPFee] = await _assetValueGrowTestII(
+          initialAssetValue,
+          purchaseAmount,
+          acceptPending,
+          feeRate
+        );
         expectEqWithinBps(pFee, expectPFee, 1);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
       });
@@ -308,7 +309,7 @@ describe('ManagerClaimPerformanceFee', function () {
       });
 
       it('deduct fee when asset value declines', async function () {
-        const pFee = await _assetValueDeclineTestII(purchaseAmount.div(2));
+        const pFee = await _assetValueDeclineTestII(initialAssetValue, purchaseAmount.div(2));
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
@@ -319,25 +320,28 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: underflow
+      // TODO: check again
       it.skip('claim 0 fee when asset value is not changed (decline->grow back)', async function () {
         const pFee = await _assetValueNotChangedTestII(investor, initialAssetValue, purchaseAmount, acceptPending);
         expect(pFee).to.be.eq(0);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: underflow
-      it.skip('claim fee when asset value grows + user fully redeem', async function () {
+      it('claim fee when asset value grows + user fully redeem', async function () {
         const feeRate = FUND_PERCENTAGE_BASE * 0.99; // 99%
         const [pFee, expectPFee] = await _assetValueGrowTest(feeRate);
         expectEqWithinBps(pFee, expectPFee, 1);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: underflow
-      it.skip('claim fee when asset value grows + user partially redeem', async function () {
+      it('claim fee when asset value grows + user partially redeem', async function () {
         const feeRate = FUND_PERCENTAGE_BASE * 0.99; // 99%
-        const [pFee, expectPFee] = await _assetValueGrowTestII(purchaseAmount, acceptPending, feeRate);
+        const [pFee, expectPFee] = await _assetValueGrowTestII(
+          initialAssetValue,
+          purchaseAmount,
+          acceptPending,
+          feeRate
+        );
         expectEqWithinBps(pFee, expectPFee, 1);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
       });
@@ -368,7 +372,7 @@ describe('ManagerClaimPerformanceFee', function () {
     });
   });
   // TODO: revisit each test case from pending state angle
-  describe.skip('in pending', function () {
+  describe('in pending', function () {
     const swapAmount = purchaseAmount.div(2);
     const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
     const initialAssetValue = swapAmount.add(MINIMUM_SHARE);
@@ -405,7 +409,7 @@ describe('ManagerClaimPerformanceFee', function () {
       });
 
       it('deduct fee when asset value declines', async function () {
-        const pFee = await _assetValueDeclineTestII(mwei('300'));
+        const pFee = await _assetValueDeclineTestII(initialAssetValue, mwei('300'));
         expect(pFee).to.be.eq(0);
         expect(await fundProxy.state()).to.be.eq(FUND_STATE.PENDING);
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
@@ -418,7 +422,7 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      it('claim 0 fee when asset value is not changed (decline->grow back)', async function () {
+      it.skip('claim 0 fee when asset value is not changed (decline->grow back)', async function () {
         const _purchaseAmount = redeemAmount.sub(swapAmount);
         const pFee = await _assetValueNotChangedTestII(manager, initialAssetValue, _purchaseAmount, acceptPending);
         expect(pFee).to.be.eq(0);
@@ -426,14 +430,9 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
-      // TODO: underflow
-      it.skip('claim fee when asset value grows + user partially redeem', async function () {
+      it('claim fee when asset value grows + user partially redeem', async function () {
         const feeRate = FUND_PERCENTAGE_BASE * 0.99; // 99%
-        const [[pFee, expectPFee]] = await _assetValueGrowTestII(
-          initialFunds.sub(purchaseAmount),
-          acceptPending,
-          feeRate
-        );
+        const [pFee, expectPFee] = await _assetValueGrowTestII(initialAssetValue, mwei('300'), acceptPending, feeRate);
         expectEqWithinBps(pFee, expectPFee, 1);
         expect(await fundProxy.state()).to.be.eq(FUND_STATE.PENDING);
         expect(await shareToken.balanceOf(OUTSTANDING_ACCOUNT)).to.be.eq(0);
@@ -492,8 +491,7 @@ describe('ManagerClaimPerformanceFee', function () {
         );
       });
 
-      // TODO: underflow
-      it.skip('unexpected denomination in vault', async function () {
+      it('unexpected denomination in vault', async function () {
         const pFee = await _unexpectedDenominationTest(mwei('300'));
 
         expect(pFee).to.be.gt(0);
@@ -543,7 +541,6 @@ describe('ManagerClaimPerformanceFee', function () {
 
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
-
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
   }
 
@@ -554,7 +551,7 @@ describe('ManagerClaimPerformanceFee', function () {
     await fundProxy.setGrossAssetValueMock(purchaseAmount.div(2));
     await redeemFund(investor, fundProxy, denomination, share, acceptPending);
 
-    // share value declines to half
+    // redeem all shares
     await fundProxy.setGrossAssetValueMock(MINIMUM_SHARE);
 
     // claim pFee
@@ -577,7 +574,7 @@ describe('ManagerClaimPerformanceFee', function () {
     await fundProxy.setGrossAssetValueMock(initAssetValue.add(purchaseAmount).div(2));
     await redeemFund(investor, fundProxy, denomination, share, acceptPending);
 
-    // share value declines to half
+    // asset value backs to initial
     await fundProxy.setGrossAssetValueMock(initAssetValue.div(2));
 
     // claim pFee
@@ -589,18 +586,20 @@ describe('ManagerClaimPerformanceFee', function () {
     return afterShare.sub(beforeShare);
   }
 
-  async function _assetValueDeclineTestII(purchaseAmount: any): Promise<any> {
+  async function _assetValueDeclineTestII(initialAssetValue: BigNumber, purchaseAmount: any): Promise<any> {
     await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
     // asset value grows (asset value + ~3000)
     // transfer asset to simulate asset grow
     const vaultAddr = await fundProxy.vault();
-    await tokenA.connect(tokenAProvider).transfer(vaultAddr, ether('3000'));
+    const assetGrowValue = ether('3000');
+    // use tokenA to avoid turning the fund back to executing
+    await tokenA.connect(tokenAProvider).transfer(vaultAddr, assetGrowValue);
     await fundProxy.connect(manager).addAsset(tokenAAddress);
     await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
-    // asset value declines (asset value from ~6000 -> 1500)
-    await fundProxy.setGrossAssetValueMock(mwei('1500'));
+    // asset value declines to almost zero
+    await fundProxy.setGrossAssetValueMock(MINIMUM_SHARE);
 
     // claim pFee
     const beforeShare = await shareToken.balanceOf(manager.address);
@@ -667,19 +666,27 @@ describe('ManagerClaimPerformanceFee', function () {
     acceptPending: any
   ): Promise<any> {
     const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+    console.log('share', share);
+    console.log('share div 2', share.div(2));
+    console.log('initAssetValue', initAssetValue);
     console.log('purchaseAmount', purchaseAmount);
 
     // asset value declines to half
     await fundProxy.setGrossAssetValueMock(initAssetValue.add(purchaseAmount).div(2));
 
     // redeem half of share
-    const [balance] = await redeemFund(investor, fundProxy, denomination, BigNumber.from(share).div(2), acceptPending);
+    const [balance] = await redeemFund(investor, fundProxy, denomination, share.div(2), acceptPending);
 
     console.log('balance', balance);
 
     // asset value grows back to initial value
     const afterBalance = initAssetValue.add(purchaseAmount.sub(balance));
     await fundProxy.setGrossAssetValueMock(afterBalance);
+
+    // TODO: rmv later
+    console.log('afterBalance', afterBalance);
+    const vault = await fundProxy.vault();
+    console.log('asset val', await denomination.balanceOf(vault));
 
     // redeem another half of share
     const [balanceII] = await redeemFund(
@@ -692,9 +699,9 @@ describe('ManagerClaimPerformanceFee', function () {
 
     console.log('balanceII', balanceII);
 
-    // return 0;
+    console.log('asset remain val', await denomination.balanceOf(vault));
 
-    await fundProxy.setGrossAssetValueMock(BigNumber.from(afterBalance).sub(balanceII));
+    await fundProxy.setGrossAssetValueMock(afterBalance.sub(balanceII));
 
     // claim pFee
     const beforeShare = await shareToken.balanceOf(manager.address);
@@ -732,11 +739,16 @@ describe('ManagerClaimPerformanceFee', function () {
     return [afterShare.sub(beforeShare), expectValue];
   }
 
-  async function _assetValueGrowTestII(purchaseAmount: any, acceptPending: any, feeRate: number): Promise<any> {
+  async function _assetValueGrowTestII(
+    initialAssetValue: BigNumber,
+    purchaseAmount: any,
+    acceptPending: any,
+    feeRate: number
+  ): Promise<any> {
     const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
     // asset value grows to double
-    const afterValue = purchaseAmount.mul(2);
+    const afterValue = initialAssetValue.add(purchaseAmount).mul(2); //purchaseAmount.mul(2);
     await fundProxy.setGrossAssetValueMock(afterValue);
 
     // Deduct the current value by net total share to get the wealth
@@ -744,7 +756,7 @@ describe('ManagerClaimPerformanceFee', function () {
     const netShare = await shareToken.netTotalShare();
     const wealth = afterValue.sub(netShare);
     const expectValue = await _calculateFee(wealth, feeRate);
-    const [redeemValue] = await redeemFund(investor, fundProxy, denomination, share * 0.5, acceptPending);
+    const [redeemValue] = await redeemFund(investor, fundProxy, denomination, share.div(2), acceptPending);
 
     // The redeemed value should be deducted manually
     await fundProxy.setGrossAssetValueMock(afterValue.sub(redeemValue));
@@ -834,7 +846,7 @@ describe('ManagerClaimPerformanceFee', function () {
     await fundProxy.setGrossAssetValueMock(mwei('6000'));
 
     // trigger _updatePerformance
-    await redeemFund(investor, fundProxy, denomination, share * 0.5, acceptPending);
+    await redeemFund(investor, fundProxy, denomination, share.div(2), acceptPending);
   }
 
   async function _tempAddressTest(purchaseAmount: any) {
