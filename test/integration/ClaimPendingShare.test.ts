@@ -29,6 +29,8 @@ import {
   USDC_PROVIDER,
   FUND_STATE,
   ONE_DAY,
+  MINIMUM_SHARE,
+  FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 
 describe('ClaimPendingShare', function () {
@@ -53,17 +55,16 @@ describe('ClaimPendingShare', function () {
   const mortgageAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const pendingExpiration = ONE_DAY;
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 0; // 0%
   const acceptPending = false;
 
   const initialFunds = mwei('3000');
   const purchaseAmount = initialFunds;
   const swapAmount = purchaseAmount.div(2);
-  const redeemAmount = purchaseAmount;
+  const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
 
   const shareTokenName = 'TEST';
 
@@ -113,7 +114,6 @@ describe('ClaimPendingShare', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecutionRatio,
         shareTokenName,
         fRegistry,
         furucombo
@@ -123,9 +123,11 @@ describe('ClaimPendingShare', function () {
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
   });
+
   beforeEach(async function () {
     await setupTest();
   });
+
   describe('success', function () {
     it('1 user after close', async function () {
       const initDenomination = await denomination.balanceOf(investor.address);
@@ -178,6 +180,7 @@ describe('ClaimPendingShare', function () {
       expect(afterBalance).to.be.lt(initDenomination);
       expect(afterBalance).to.be.gt(beforeBalance);
     });
+
     // two user claim
     it('1 user after resume', async function () {
       const initDenomination = await denomination.balanceOf(investor.address);
@@ -212,6 +215,7 @@ describe('ClaimPendingShare', function () {
       expect(afterBalance).to.be.lt(initDenomination);
       expect(afterBalance).to.be.gt(beforeBalance);
     });
+
     it('2 users after close', async function () {
       const initDenominationI = await denomination.balanceOf(investor.address);
       const initDenominationM = await denomination.balanceOf(manager.address);
@@ -237,9 +241,10 @@ describe('ClaimPendingShare', function () {
       );
 
       const acceptPending = true;
-      const redeemAmount = purchaseAmount;
-      await redeemFund(investor, fundProxy, denomination, redeemAmount, acceptPending);
-      await redeemFund(manager, fundProxy, denomination, redeemAmount, acceptPending);
+      const firstRedeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
+      const secondRedeemAmount = purchaseAmount;
+      await redeemFund(investor, fundProxy, denomination, firstRedeemAmount, acceptPending);
+      await redeemFund(manager, fundProxy, denomination, secondRedeemAmount, acceptPending);
 
       // investor 3
       await denomination.connect(denominationProvider).transfer(liquidator.address, initialFunds.mul(2));
@@ -284,6 +289,7 @@ describe('ClaimPendingShare', function () {
       expect(afterBalance2).to.be.lt(initDenominationM);
       expect(afterBalance2).to.be.gt(beforeBalance2);
     });
+
     // two user claim
     it('2 users after resume', async function () {
       const initDenominationI = await denomination.balanceOf(investor.address);
@@ -310,9 +316,10 @@ describe('ClaimPendingShare', function () {
       );
 
       const acceptPending = true;
-      const redeemAmount = purchaseAmount;
-      await redeemFund(investor, fundProxy, denomination, redeemAmount, acceptPending);
-      await redeemFund(manager, fundProxy, denomination, redeemAmount, acceptPending);
+      const firstRedeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
+      const secondRedeemAmount = purchaseAmount;
+      await redeemFund(investor, fundProxy, denomination, firstRedeemAmount, acceptPending);
+      await redeemFund(manager, fundProxy, denomination, secondRedeemAmount, acceptPending);
 
       // investor 3
       await denomination.connect(denominationProvider).transfer(liquidator.address, initialFunds.mul(2));
@@ -339,6 +346,7 @@ describe('ClaimPendingShare', function () {
       expect(afterBalance2).to.be.lt(initDenominationM);
       expect(afterBalance2).to.be.gt(beforeBalance2);
     });
+
     it('after resume + operation', async function () {
       const acceptPending = true;
 
@@ -374,17 +382,20 @@ describe('ClaimPendingShare', function () {
       expect(afterBalance).to.be.gt(beforeBalance);
     });
   });
+
   describe('fail', function () {
     it('should revert: without purchase', async function () {
-      await expect(fundProxy.claimPendingRedemption(investor.address)).to.be.revertedWith('RevertCode(77)'); //SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
+      await expect(fundProxy.claimPendingRedemption(investor.address)).to.be.revertedWith('RevertCode(76)'); //SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
+
     it('should revert: without redeem pending', async function () {
       const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
 
       await redeemFund(investor, fundProxy, denomination, share, acceptPending);
 
-      await expect(fundProxy.claimPendingRedemption(investor.address)).to.be.revertedWith('RevertCode(77)'); //SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
+      await expect(fundProxy.claimPendingRedemption(investor.address)).to.be.revertedWith('RevertCode(76)'); //SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
+
     it('should revert: claim twice', async function () {
       await setPendingAssetFund(
         manager,
@@ -410,7 +421,7 @@ describe('ClaimPendingShare', function () {
       expect(state).to.be.eq(FUND_STATE.EXECUTING);
 
       await fundProxy.claimPendingRedemption(investor.address);
-      await expect(fundProxy.claimPendingRedemption(investor.address)).to.be.revertedWith('RevertCode(77)'); //SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
+      await expect(fundProxy.claimPendingRedemption(investor.address)).to.be.revertedWith('RevertCode(76)'); //SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE
     });
   });
 });

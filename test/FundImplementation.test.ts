@@ -50,7 +50,7 @@ describe('FundImplementation', function () {
   const aggregatorB = CHAINLINK_WBTC_USD;
   const tokenAAmount = ethers.utils.parseEther('1');
   const tokenBAmount = ethers.utils.parseUnits('1', 8);
-  const execFeePercentage = 200; // 20%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const managementFeeRate = 0; // 0%
   const performanceFeeRate = 1000; // 10%
   const pendingExpiration = 43200; // 0.5 day

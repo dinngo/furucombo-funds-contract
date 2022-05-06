@@ -29,6 +29,7 @@ import {
   CHAINLINK_ETH_USD,
   USDC_PROVIDER,
   ONE_DAY,
+  FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 import { ComptrollerImplementation } from '../../typechain/ComptrollerImplementation';
 
@@ -54,11 +55,10 @@ describe('SetComptroller', function () {
   const mortgageAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const valueTolerance = 0;
   const pendingExpiration = ONE_DAY;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 0; // 0%
 
   const initialFunds = mwei('3000');
   const purchaseAmount = initialFunds;
@@ -126,7 +126,6 @@ describe('SetComptroller', function () {
       pendingExpiration,
       valueTolerance,
       crystallizationPeriod,
-      reserveExecutionRatio,
       shareTokenName,
       fRegistry,
       furucombo
@@ -161,7 +160,7 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(44)' // CHAINLINK_ZERO_ADDRESS
+        'RevertCode(41)' // CHAINLINK_ZERO_ADDRESS
       );
 
       // add asset
@@ -192,7 +191,7 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(48)' // CHAINLINK_STALE_PRICE
+        'RevertCode(45)' // CHAINLINK_STALE_PRICE
       );
 
       // stale period

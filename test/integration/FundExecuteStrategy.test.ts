@@ -53,7 +53,7 @@ describe('FundExecuteStrategy', function () {
   const mortgageAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const valueTolerance = 9000; // 90%
   const pendingExpiration = ONE_DAY; // 1 day
   const crystallizationPeriod = 300; // 5m
