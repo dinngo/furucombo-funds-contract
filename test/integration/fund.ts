@@ -1,5 +1,5 @@
-import { constants, Wallet, Signer, BigNumber } from 'ethers';
-import { simpleEncode, getCallData, mwei, increaseNextBlockTimeBy } from '../utils/utils';
+import { constants, Wallet, BigNumber } from 'ethers';
+import { simpleEncode, getCallData, increaseNextBlockTimeBy } from '../utils/utils';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 
@@ -24,7 +24,7 @@ import {
   HSushiSwap,
 } from '../../typechain';
 
-import { DS_PROXY_REGISTRY, WL_ANY_SIG, FUND_STATE, FEE_BASE, ONE_YEAR } from '../utils/constants';
+import { WL_ANY_SIG, FUND_STATE, FUND_PERCENTAGE_BASE, ONE_YEAR } from '../utils/constants';
 
 import {
   deployAssetOracleAndRouterAndRegistry,
@@ -248,6 +248,7 @@ export async function createReviewingFund(
     assetRouter,
     hQuickSwap,
     hSushiSwap,
+    mortgage,
   ];
 }
 
@@ -301,7 +302,6 @@ export async function createFundInfra(
   mortgageVault = await deployMortgageVault(mortgage.address);
 
   [fundImplementation, comptrollerProxy, fundProxyFactory] = await deployComptrollerAndFundProxyFactory(
-    DS_PROXY_REGISTRY,
     assetRouter.address,
     collector.address,
     execFeePercentage,
@@ -412,7 +412,6 @@ export async function createMockFundInfra(
   mortgageVault = await deployMortgageVault(mortgage.address);
 
   [fundImplementationMock, comptrollerProxy, fundProxyFactory] = await deployMockComptrollerAndFundProxyFactory(
-    DS_PROXY_REGISTRY,
     assetRouter.address,
     collector.address,
     execFeePercentage,
@@ -455,14 +454,6 @@ export async function createMockFundInfra(
     hQuickSwap,
     hSushiSwap
   );
-
-  console.log('oracle', oracle.address);
-  console.log('assetRegistry', assetRegistry.address);
-  console.log('assetRouter', assetRouter.address);
-  console.log('fundImplementationMock', fundImplementationMock.address);
-  console.log('comptrollerProxy', comptrollerProxy.address);
-  console.log('taskExecutor', taskExecutor.address);
-  console.log('aFurucombo', aFurucombo.address);
 
   return [
     fundProxyFactory,
@@ -660,6 +651,7 @@ export async function setLiquidatingAssetFund(
   hFunds: HFunds,
   aFurucombo: AFurucombo,
   taskExecutor: TaskExecutor,
+  oracle: Chainlink,
   hSwap: HQuickSwap | HSushiSwap,
   pendingExpiration: any
 ): Promise<any> {
@@ -680,6 +672,9 @@ export async function setLiquidatingAssetFund(
     taskExecutor,
     hSwap
   );
+
+  // Set oracle stale period
+  await oracle.setStalePeriod(pendingExpiration * 2);
 
   await increaseNextBlockTimeBy(pendingExpiration);
   await fundProxy.connect(liquidator).liquidate();
@@ -772,7 +767,9 @@ export async function getSwapData(
   taskExecutor: TaskExecutor
 ): Promise<any> {
   // Prepare action data
-  const actionAmountIn = amountIn.mul(BigNumber.from(FEE_BASE).sub(execFeePercentage)).div(FEE_BASE);
+  const actionAmountIn = amountIn
+    .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
+    .div(FUND_PERCENTAGE_BASE);
   const tokensIn = [inTokenAddress];
   const amountsIn = [amountIn];
   const tokensOut = [outTokenAddress];

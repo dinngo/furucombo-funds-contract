@@ -32,6 +32,7 @@ import {
   ONE_DAY,
   DAI_PROVIDER,
   LINK_TOKEN,
+  FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 
 describe('ManagerOperateAsset', function () {
@@ -59,11 +60,10 @@ describe('ManagerOperateAsset', function () {
   const mortgageAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const pendingExpiration = ONE_DAY; // 1 day
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 0; // 0%
 
   const initialFunds = mwei('3000');
   const transferAmount = ether('3000');
@@ -85,7 +85,7 @@ describe('ManagerOperateAsset', function () {
   let tokenA: IERC20;
   let shareToken: ShareToken;
 
-  let poolVaultAddress: string;
+  let fundVaultAddress: string;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
@@ -102,7 +102,7 @@ describe('ManagerOperateAsset', function () {
     // Deploy furucombo funds contracts
     [
       fundProxy,
-      poolVaultAddress,
+      fundVaultAddress,
       denomination,
       shareToken,
       taskExecutor,
@@ -133,13 +133,12 @@ describe('ManagerOperateAsset', function () {
       pendingExpiration,
       valueTolerance,
       crystallizationPeriod,
-      reserveExecutionRatio,
       shareTokenName,
       fRegistry,
       furucombo
     );
 
-    fundVault = await impersonateAndInjectEther(poolVaultAddress);
+    fundVault = await impersonateAndInjectEther(fundVaultAddress);
 
     // Transfer token to investors
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
@@ -159,9 +158,9 @@ describe('ManagerOperateAsset', function () {
       expect(afterAssetList[afterAssetList.length - 1]).to.be.eq(tokenA.address);
     });
     it('increase right token amount', async function () {
-      const beforeAssetAmount = await tokenA.balanceOf(poolVaultAddress);
+      const beforeAssetAmount = await tokenA.balanceOf(fundVaultAddress);
       await _addAsset(tokenA, tokenAProvider, transferAmount);
-      const afterAssetAmount = await tokenA.balanceOf(poolVaultAddress);
+      const afterAssetAmount = await tokenA.balanceOf(fundVaultAddress);
       expect(afterAssetAmount.sub(beforeAssetAmount)).to.be.eq(transferAmount);
     });
     it('increase right total asset value', async function () {
@@ -175,7 +174,7 @@ describe('ManagerOperateAsset', function () {
       expect(afterTotalAssetValue.sub(beforeTotalAssetValue)).to.be.eq(assetValue);
     });
     it('emit event', async function () {
-      await tokenA.connect(tokenAProvider).transfer(poolVaultAddress, transferAmount);
+      await tokenA.connect(tokenAProvider).transfer(fundVaultAddress, transferAmount);
       await expect(fundProxy.connect(manager).addAsset(tokenA.address))
         .to.emit(fundProxy, 'AssetAdded')
         .withArgs(tokenA.address);
@@ -187,12 +186,12 @@ describe('ManagerOperateAsset', function () {
       expect(afterAssetList).to.be.deep.eq(beforeAssetList);
     });
     it('should revert: by non-manager', async function () {
-      await tokenA.connect(tokenAProvider).transfer(poolVaultAddress, transferAmount);
+      await tokenA.connect(tokenAProvider).transfer(fundVaultAddress, transferAmount);
       await expect(fundProxy.addAsset(tokenA.address)).to.be.revertedWith('Ownable: caller is not the owner');
     });
     it('should revert: invalid asset', async function () {
       const invalidToken = LINK_TOKEN;
-      await expect(fundProxy.connect(manager).addAsset(invalidToken)).to.be.revertedWith('RevertCode(11)'); //IMPLEMENTATION_INVALID_ASSET
+      await expect(fundProxy.connect(manager).addAsset(invalidToken)).to.be.revertedWith('RevertCode(12)'); //IMPLEMENTATION_INVALID_ASSET
     });
   });
   describe('remove asset', function () {
@@ -228,7 +227,7 @@ describe('ManagerOperateAsset', function () {
     });
   });
   async function _addAsset(token: IERC20, tokenProvider: Signer, transferAmount: any) {
-    await token.connect(tokenProvider).transfer(poolVaultAddress, transferAmount);
+    await token.connect(tokenProvider).transfer(fundVaultAddress, transferAmount);
     await fundProxy.connect(manager).addAsset(token.address);
   }
   async function _removeAsset(token: IERC20, transferAmount: any) {

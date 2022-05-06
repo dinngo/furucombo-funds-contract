@@ -30,8 +30,8 @@ import {
   USDC_PROVIDER,
   FUND_STATE,
   ONE_DAY,
-  ONE_YEAR,
-  FEE_BASE,
+  FUND_PERCENTAGE_BASE,
+  MINIMUM_SHARE,
 } from '../utils/constants';
 
 describe('InvestorPurchaseFund', function () {
@@ -57,11 +57,10 @@ describe('InvestorPurchaseFund', function () {
   const mFeeRate = 0;
   const mFeeRate10Percent = 1000;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const pendingExpiration = ONE_DAY;
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 0; // 0%
 
   const initialFunds = mwei('6000');
 
@@ -91,7 +90,7 @@ describe('InvestorPurchaseFund', function () {
     const currentTotalPendingBonus = await fundProxy.currentTotalPendingBonus();
     const penalty = await comptroller.pendingPenalty();
 
-    let bonus = share.mul(penalty).div(BigNumber.from(FEE_BASE).sub(penalty));
+    let bonus = share.mul(penalty).div(BigNumber.from(FUND_PERCENTAGE_BASE).sub(penalty));
     bonus = currentTotalPendingBonus > bonus ? bonus : currentTotalPendingBonus;
     return bonus;
   }
@@ -144,7 +143,6 @@ describe('InvestorPurchaseFund', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecutionRatio,
         shareTokenName,
         fRegistry,
         furucombo
@@ -172,7 +170,7 @@ describe('InvestorPurchaseFund', function () {
           const vaultBalanceAfter = await denomination.balanceOf(fundVault);
 
           expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
-          expect(user1Share).to.be.eq(purchaseAmount); // initial mint, share = purchaseAmount
+          expect(user1Share).to.be.eq(purchaseAmount.sub(MINIMUM_SHARE)); // initial mint, share = purchaseAmount - MINIMUM_SHARE
           expect(user1Share).to.be.eq(user1ExpectedShare);
 
           expect(state).to.be.eq(FUND_STATE.EXECUTING);
@@ -193,7 +191,6 @@ describe('InvestorPurchaseFund', function () {
 
           expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('2'))));
 
-          expect(user1Share).to.be.eq(user2Share);
           expect(user1Share).to.be.eq(user1ExpectedShare);
           expect(user2Share).to.be.eq(user2ExpectedShare);
 
@@ -225,14 +222,16 @@ describe('InvestorPurchaseFund', function () {
 
           expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount.mul(BigNumber.from('4'))));
 
-          expect(user1Share).to.be.eq(user2Share);
-          expect(user3Share).to.be.eq(user1Share.add(user2Share));
+          expect(user1Share).to.be.eq(user2Share.sub(MINIMUM_SHARE));
+          expect(user3Share).to.be.eq(user1Share.add(user2Share).add(MINIMUM_SHARE));
           expect(user1Share).to.be.eq(user1ExpectedShare);
           expect(user2Share).to.be.eq(user2ExpectedShare);
           expect(user3Share).to.be.eq(user3ExpectedShare);
 
           expect(state).to.be.eq(FUND_STATE.EXECUTING);
         });
+        // TODO
+        it.skip('should revert: get 0 share', async function () {});
       }); // describe('Executing state') ends
 
       describe('Pending state', function () {
@@ -339,6 +338,9 @@ describe('InvestorPurchaseFund', function () {
 
           expect(state).to.be.eq(FUND_STATE.PENDING);
         });
+
+        // TODO:
+        it.skip('get no bonus when in the same block with redeem', async function () {});
       }); // describe('Pending state') end
 
       describe('Executing state, funds with other asset', function () {
@@ -531,13 +533,16 @@ describe('InvestorPurchaseFund', function () {
 
           expect(state).to.be.eq(FUND_STATE.PENDING);
         });
+
+        // TODO:
+        it.skip('get no bonus when in the same block with redeem', async function () {});
       });
     }); // describe('Without state change') end
 
     describe('With state change', function () {
       const purchaseAmount = mwei('2000');
 
-      describe('Pending state', function () {
+      describe('Pending -> Executing', function () {
         const swapAmount = purchaseAmount.div(2);
         const reserveAmount = purchaseAmount.sub(swapAmount);
         const redeemAmount = reserveAmount.add(mwei('500'));
@@ -632,6 +637,8 @@ describe('InvestorPurchaseFund', function () {
           expect(user2State).to.be.eq(FUND_STATE.PENDING);
           expect(user3State).to.be.eq(FUND_STATE.EXECUTING);
         });
+        // TODO:
+        it.skip('get no bonus when in the same block with redeem', async function () {});
       });
     }); // describe('With state change') end
 
@@ -639,37 +646,36 @@ describe('InvestorPurchaseFund', function () {
       const purchaseAmount = mwei('2000');
       const swapAmount = purchaseAmount.div(2);
 
-    describe('Executing state, funds with other asset', function () {
-      const swapAmount = purchaseAmount.div(2);
-      beforeEach(async function () {
-        await setExecutingAssetFund(
-          manager,
-          user0,
-          fundProxy,
-          denomination,
-          shareToken,
-          purchaseAmount,
-          swapAmount,
-          execFeePercentage,
-          denominationAddress,
-          tokenBAddress,
-          hFunds,
-          aFurucombo,
-          taskExecutor,
-          hQuickSwap
-        );
+      describe('Executing state, funds with other asset', function () {
+        beforeEach(async function () {
+          await setExecutingAssetFund(
+            manager,
+            user0,
+            fundProxy,
+            denomination,
+            shareToken,
+            purchaseAmount,
+            swapAmount,
+            execFeePercentage,
+            denominationAddress,
+            tokenBAddress,
+            hFunds,
+            aFurucombo,
+            taskExecutor,
+            hQuickSwap
+          );
 
-        await oracle.connect(owner).setStalePeriod(1);
-        await increaseNextBlockTimeBy(ONE_DAY);
-      });
+          await oracle.connect(owner).setStalePeriod(1);
+          await increaseNextBlockTimeBy(ONE_DAY);
+        });
 
-      it('should revert: CHAINLINK_STALE_PRICE', async function () {
-        await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
-        await expect(fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(48)'); // CHAINLINK_STALE_PRICE
-      });
-    }); // describe('Dead oracle') end
+        it('should revert: CHAINLINK_STALE_PRICE', async function () {
+          await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
+          await expect(fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(45)'); // CHAINLINK_STALE_PRICE
+        });
+      }); // describe('Dead oracle') end
+    });
   });
-
   describe('Funds with management fee', function () {
     const purchaseAmount = mwei('2000');
 
@@ -719,7 +725,6 @@ describe('InvestorPurchaseFund', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecutionRatio,
         shareTokenName,
         fRegistry,
         furucombo
@@ -774,7 +779,6 @@ describe('InvestorPurchaseFund', function () {
           pendingExpiration,
           valueTolerance,
           crystallizationPeriod,
-          reserveExecutionRatio,
           shareTokenName,
           fRegistry,
           furucombo
@@ -791,7 +795,7 @@ describe('InvestorPurchaseFund', function () {
         const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
-        expect(user1Share).to.be.eq(purchaseAmount); // initial mint, share = purchaseAmount
+        expect(user1Share).to.be.eq(purchaseAmount.sub(MINIMUM_SHARE)); // initial mint, share = purchaseAmount - MINIMUM_SHARE
         expect(user1Share).to.be.eq(user1ExpectedShare);
 
         // initial mint, manager shouldn't get management fee
@@ -869,7 +873,6 @@ describe('InvestorPurchaseFund', function () {
           pendingExpiration,
           valueTolerance,
           crystallizationPeriod,
-          reserveExecutionRatio,
           shareTokenName,
           fRegistry,
           furucombo
@@ -951,7 +954,6 @@ describe('InvestorPurchaseFund', function () {
       });
     });
   }); // describe('Without state change') end
-
   describe('With state change', function () {
     const purchaseAmount = mwei('2000');
 
@@ -1001,7 +1003,6 @@ describe('InvestorPurchaseFund', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecutionRatio,
         shareTokenName,
         fRegistry,
         furucombo
@@ -1056,7 +1057,6 @@ describe('InvestorPurchaseFund', function () {
           pendingExpiration,
           valueTolerance,
           crystallizationPeriod,
-          reserveExecutionRatio,
           shareTokenName,
           fRegistry,
           furucombo
@@ -1073,7 +1073,7 @@ describe('InvestorPurchaseFund', function () {
         const managerShareBalanceAfter = await shareToken.balanceOf(manager.address);
 
         expect(vaultBalanceAfter).to.be.eq(vaultBalanceBefore.add(purchaseAmount));
-        expect(user1Share).to.be.eq(purchaseAmount); // initial mint, share = purchaseAmount
+        expect(user1Share).to.be.eq(purchaseAmount.sub(MINIMUM_SHARE)); // initial mint, share = purchaseAmount - MINIMUM_SHARE
         expect(user1Share).to.be.eq(user1ExpectedShare);
 
         // initial mint, manager shouldn't get management fee
@@ -1151,7 +1151,6 @@ describe('InvestorPurchaseFund', function () {
           pendingExpiration,
           valueTolerance,
           crystallizationPeriod,
-          reserveExecutionRatio,
           shareTokenName,
           fRegistry,
           furucombo

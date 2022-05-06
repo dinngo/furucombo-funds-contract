@@ -40,7 +40,6 @@ export async function deployAssetOracleAndRouterAndRegistry(): Promise<any> {
   // Asset oracle
   const oracle = await (await ethers.getContractFactory('Chainlink')).deploy();
   await oracle.deployed();
-  // console.log('oracle', oracle.address);
 
   // AssetRegistry
   const assetRegistry = await (await ethers.getContractFactory('AssetRegistry')).deploy();
@@ -73,7 +72,6 @@ export async function deployAssetResolvers(resolvers: string[]): Promise<any> {
 }
 
 export async function deployComptrollerAndFundProxyFactory(
-  dsProxyRegistry: string,
   assetRouterAddress: string,
   collectorAddress: string,
   execFeePercentage: any,
@@ -104,7 +102,6 @@ export async function deployComptrollerAndFundProxyFactory(
 }
 
 export async function deployMockComptrollerAndFundProxyFactory(
-  dsProxyRegistry: string,
   assetRouterAddress: string,
   collectorAddress: string,
   execFeePercentage: any,
@@ -114,9 +111,7 @@ export async function deployMockComptrollerAndFundProxyFactory(
   totalAssetValueTolerance: any
 ): Promise<any> {
   // implementation
-  const fundImplementationMock = await (
-    await ethers.getContractFactory('FundImplementationMock')
-  ).deploy(dsProxyRegistry);
+  const fundImplementationMock = await (await ethers.getContractFactory('FundImplementationMock')).deploy();
   await fundImplementationMock.deployed();
 
   // comptroller
@@ -230,7 +225,6 @@ export async function createFundProxyMock(
     shareTokenName
   );
   const eventArgs = await getEventArgs(receipt, 'FundCreated');
-  console.log('args.newFund', eventArgs.newFund);
   const fundProxy = await ethers.getContractAt('FundImplementationMock', eventArgs.newFund);
   return fundProxy;
 }

@@ -30,6 +30,7 @@ import {
   FUND_STATE,
   ONE_DAY,
   WL_ANY_SIG,
+  FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 import { ComptrollerImplementation } from '../../typechain/ComptrollerImplementation';
 
@@ -55,11 +56,10 @@ describe('SetComptroller', function () {
   const mortgageAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const valueTolerance = 0;
   const pendingExpiration = ONE_DAY;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 0; // 0%
 
   const initialFunds = mwei('3000');
   const purchaseAmount = initialFunds;
@@ -126,7 +126,6 @@ describe('SetComptroller', function () {
       pendingExpiration,
       valueTolerance,
       crystallizationPeriod,
-      reserveExecutionRatio,
       shareTokenName,
       fRegistry,
       furucombo
@@ -145,7 +144,7 @@ describe('SetComptroller', function () {
     it('permit & forbid denomination', async function () {
       await comptrollerProxy.forbidDenominations([denomination.address]);
       await expect(fundProxy.connect(manager).finalize()).to.be.revertedWith(
-        'RevertCode(12)' //IMPLEMENTATION_INVALID_DENOMINATION
+        'RevertCode(7)' //IMPLEMENTATION_INVALID_DENOMINATION
       );
 
       await comptrollerProxy.permitDenominations([denomination.address], [dust]);
@@ -195,7 +194,7 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(33)' // TASK_EXECUTOR_INVALID_DEALING_ASSET
+        'RevertCode(29)' // TASK_EXECUTOR_INVALID_DEALING_ASSET
       );
 
       // permit asset
@@ -226,7 +225,7 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(38)' // TASK_EXECUTOR_INVALID_INITIAL_ASSET
+        'RevertCode(34)' // TASK_EXECUTOR_INVALID_INITIAL_ASSET
       );
 
       // set initial asset check
@@ -257,7 +256,7 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(31)' // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
+        'RevertCode(27)' // TASK_EXECUTOR_INVALID_COMPTROLLER_DELEGATE_CALL
       );
 
       // permit delegatecall
@@ -291,7 +290,7 @@ describe('SetComptroller', function () {
         taskExecutor
       );
       await expect(fundProxy.connect(manager).execute(data)).to.be.revertedWith(
-        'RevertCode(41)' // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
+        'RevertCode(39)' // AFURUCOMBO_INVALID_COMPTROLLER_HANDLER_CALL
       );
 
       // permit handler

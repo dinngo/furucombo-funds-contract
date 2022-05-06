@@ -37,6 +37,8 @@ import {
   USDC_PROVIDER,
   FUND_STATE,
   ONE_DAY,
+  MINIMUM_SHARE,
+  FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 
 describe('InvestorRedeemFund', function () {
@@ -61,11 +63,10 @@ describe('InvestorRedeemFund', function () {
   const mortgageAmount = 0;
   const mFeeRate = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const pendingExpiration = ONE_DAY;
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecution = 0; // 0%
   const acceptPending = false;
 
   const initialFunds = mwei('3000');
@@ -118,7 +119,6 @@ describe('InvestorRedeemFund', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecution,
         shareTokenName,
         fRegistry,
         furucombo
@@ -143,13 +143,14 @@ describe('InvestorRedeemFund', function () {
           const afterShareAmount = await shareToken.balanceOf(investor.address);
 
           expect(state).to.be.eq(FUND_STATE.EXECUTING);
-          expect(balance).to.be.eq(purchaseAmount);
+          expect(balance).to.be.eq(purchaseAmount.sub(MINIMUM_SHARE));
           expect(afterShareAmount).to.be.eq(0);
         });
       });
 
       // fund owns assets
       describe('redeem executing asset fund', function () {
+        // 1000 = 2000 - 1000
         const reserveAmount = purchaseAmount.sub(swapAmount);
 
         beforeEach(async function () {
@@ -172,23 +173,24 @@ describe('InvestorRedeemFund', function () {
         });
 
         it('stay in executing when redeem succeeds', async function () {
+          // 500 = 1000/2
           const redeemShare = reserveAmount.div(2);
-          const expectedShareAmount = purchaseAmount.sub(redeemShare);
+          const expectedShareAmount = purchaseAmount.sub(MINIMUM_SHARE).sub(redeemShare);
           const [, expectedBalance] = await fundProxy.calculateRedeemableBalance(redeemShare);
           const [balance, state] = await redeemFund(investor, fundProxy, denomination, redeemShare, acceptPending);
           const shareAmount = await shareToken.balanceOf(investor.address);
 
           expect(state).to.be.eq(FUND_STATE.EXECUTING);
-          expect(expectedBalance.eq(BigNumber.from(balance))).to.be.true;
+          expect(BigNumber.from(balance)).to.be.eq(expectedBalance);
           expect(shareAmount).to.be.eq(expectedShareAmount);
         });
         it('should revert: not accept pending', async function () {
-          const redeemAmount = purchaseAmount;
+          const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
           let acceptPending: any;
           acceptPending = false;
 
           await expect(fundProxy.connect(investor).redeem(redeemAmount, acceptPending)).to.be.revertedWith(
-            'RevertCode(70)'
+            'RevertCode(74)'
           ); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
         });
       });
@@ -217,7 +219,7 @@ describe('InvestorRedeemFund', function () {
         });
 
         it('turn to pending when redeem finish', async function () {
-          const redeemAmount = purchaseAmount;
+          const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
           const acceptPending = true;
           const [, expectedBalance] = await fundProxy.calculateRedeemableBalance(redeemAmount);
           const [balance, state] = await redeemFund(investor, fundProxy, denomination, redeemAmount, acceptPending);
@@ -225,7 +227,7 @@ describe('InvestorRedeemFund', function () {
           const shareAmount = await shareToken.balanceOf(investor.address);
 
           expect(state).to.be.eq(FUND_STATE.PENDING);
-          expect(expectedBalance.eq(BigNumber.from(balance))).to.be.true;
+          expect(BigNumber.from(balance)).to.be.eq(expectedBalance);
           expect(shareAmount).to.be.eq(0);
         });
       });
@@ -257,7 +259,7 @@ describe('InvestorRedeemFund', function () {
 
         it('stay in pending when redeem finish', async function () {
           const _redeemAmount = mwei('500');
-          const expectedShareAmount = purchaseAmount.sub(redeemAmount).sub(_redeemAmount);
+          const expectedShareAmount = purchaseAmount.sub(MINIMUM_SHARE).sub(redeemAmount).sub(_redeemAmount);
 
           const [, expectedBalance] = await fundProxy.calculateRedeemableBalance(_redeemAmount);
           const [balance, state] = await redeemFund(investor, fundProxy, denomination, _redeemAmount, acceptPending);
@@ -265,8 +267,15 @@ describe('InvestorRedeemFund', function () {
           const shareAmount = await shareToken.balanceOf(investor.address);
 
           expect(state).to.be.eq(FUND_STATE.PENDING);
-          expect(expectedBalance.eq(BigNumber.from(balance))).to.be.true;
+          expect(BigNumber.from(balance)).to.be.eq(expectedBalance);
           expect(shareAmount).to.be.eq(expectedShareAmount);
+        });
+        it('should revert: redeem amount > user balance', async function () {
+          const _redeemAmount = purchaseAmount;
+
+          await expect(fundProxy.connect(investor).redeem(_redeemAmount, acceptPending)).to.be.revertedWith(
+            'RevertCode(73)'
+          ); // SHARE_MODULE_INSUFFICIENT_SHARE
         });
       });
     });
@@ -287,7 +296,7 @@ describe('InvestorRedeemFund', function () {
 
       const afterBalance = await denomination.balanceOf(fundVault);
 
-      expect(afterBalance).to.be.eq(initBalance.sub(purchaseAmount));
+      expect(afterBalance).to.be.eq(initBalance.sub(purchaseAmount).add(MINIMUM_SHARE));
     });
     it('user get the right amount of denomination back when redeem full', async function () {
       const initBalance = await denomination.balanceOf(investor.address);
@@ -304,7 +313,7 @@ describe('InvestorRedeemFund', function () {
 
       const afterBalance = await denomination.balanceOf(investor.address);
 
-      expect(afterBalance).to.be.eq(initBalance);
+      expect(afterBalance).to.be.eq(initBalance.sub(MINIMUM_SHARE));
     });
     //TODO: check again after pending list MR
     it.skip('redeem the same amount before/after claimPending', async function () {});

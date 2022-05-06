@@ -17,7 +17,7 @@ import {
 
 import { expectEqWithinBps, mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
-import { createFund, redeemFund } from './fund';
+import { createFund, redeemFund, setLiquidatingAssetFund, setClosedDenominationFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,
@@ -28,10 +28,11 @@ import {
   CHAINLINK_USDC_USD,
   CHAINLINK_ETH_USD,
   USDC_PROVIDER,
-  FEE_BASE,
+  FUND_PERCENTAGE_BASE,
   ONE_YEAR,
   ONE_DAY,
   FUND_STATE,
+  MINIMUM_SHARE,
 } from '../utils/constants';
 import { setPendingAssetFund, purchaseFund } from './fund';
 
@@ -58,11 +59,10 @@ describe('ManagerClaimManagementFee', function () {
   const level = 1;
   const mortgageAmount = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const pendingExpiration = ONE_DAY;
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecution = 0;
   const initialFunds = mwei('3000');
 
   const shareTokenName = 'TEST';
@@ -109,7 +109,6 @@ describe('ManagerClaimManagementFee', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecution,
         shareTokenName,
         fRegistry,
         furucombo
@@ -121,12 +120,12 @@ describe('ManagerClaimManagementFee', function () {
     await oracle.connect(owner).setStalePeriod(ONE_YEAR * 2);
   });
 
-  const setupEachTestM02 = deployments.createFixture(async ({ deployments, ethers }, options) => {
+  const setupEachTestM01 = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
 
     await _preSetup(ethers);
 
-    const mFeeRate = FEE_BASE * 0.02;
+    const mFeeRate = FUND_PERCENTAGE_BASE * 0.01;
 
     // Deploy furucombo funds contracts
     [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
@@ -150,7 +149,6 @@ describe('ManagerClaimManagementFee', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecution,
         shareTokenName,
         fRegistry,
         furucombo
@@ -167,7 +165,7 @@ describe('ManagerClaimManagementFee', function () {
 
     await _preSetup(ethers);
 
-    const mFeeRate = FEE_BASE * 0.99;
+    const mFeeRate = FUND_PERCENTAGE_BASE * 0.99;
 
     // Deploy furucombo funds contracts
     [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
@@ -191,7 +189,6 @@ describe('ManagerClaimManagementFee', function () {
         pendingExpiration,
         valueTolerance,
         crystallizationPeriod,
-        reserveExecution,
         shareTokenName,
         fRegistry,
         furucombo
@@ -213,23 +210,39 @@ describe('ManagerClaimManagementFee', function () {
     [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
   }
 
-  beforeEach(async function () {
-    // await setupTest();
-  });
+  async function _claimNoFeeTest() {
+    // Get before states
+    const beforeShare = await shareToken.balanceOf(manager.address);
+    const beforeLastClaimTime = await fundProxy.lastMFeeClaimTime();
+
+    // Claim mgmt fee
+    await increaseNextBlockTimeBy(ONE_YEAR);
+    await fundProxy.claimManagementFee();
+
+    // Verify states
+    const afterLastClaimTime = await fundProxy.lastMFeeClaimTime();
+    const afterShare = await shareToken.balanceOf(manager.address);
+    expect(afterShare).eq(beforeShare);
+    expect(afterLastClaimTime).to.be.eq(beforeLastClaimTime);
+  }
+
   describe('in executing', function () {
     describe('0% management fee', function () {
       const purchaseAmount = initialFunds;
+
       beforeEach(async function () {
         await setupEachTestM0();
       });
+
       it('claim 0 fee when user redeem after purchase', async function () {
         const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
         const [balance] = await redeemFund(investor, fundProxy, denomination, share, accpetPending);
         await fundProxy.claimManagementFee();
         const mFee = await shareToken.balanceOf(manager.address);
-        expect(balance).to.be.eq(initialFunds);
+        expect(balance).to.be.eq(initialFunds.sub(MINIMUM_SHARE));
         expect(mFee).to.be.eq(0);
       });
+
       it('claim 0 fee after 1 year', async function () {
         await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
         await increaseNextBlockTimeBy(ONE_YEAR);
@@ -238,69 +251,73 @@ describe('ManagerClaimManagementFee', function () {
         expect(mFee).to.be.eq(0);
       });
     });
-    describe('2% management fee', function () {
+
+    describe('1% management fee', function () {
       const purchaseAmount = initialFunds;
-      const feeRate = FEE_BASE * 0.02;
+      const feeRate = FUND_PERCENTAGE_BASE * 0.01;
+
       beforeEach(async function () {
-        await setupEachTestM02();
+        await setupEachTestM01();
       });
+
       it('claim management fee when user redeem after purchase', async function () {
         const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
-        const [balance] = await redeemFund(investor, fundProxy, denomination, share, accpetPending);
         // Management fee settlement is processed when redeeming
-        // await fundProxy.claimManagementFee();
+        const [balance] = await redeemFund(investor, fundProxy, denomination, share, accpetPending);
         const mFee = await shareToken.balanceOf(manager.address);
         expect(balance).to.be.lt(initialFunds);
         expect(mFee).to.be.gt(0);
       });
+
       it('claim management fee when manager redeem after purchase', async function () {
         const [share] = await purchaseFund(manager, fundProxy, denomination, shareToken, purchaseAmount);
-        const [balance] = await redeemFund(manager, fundProxy, denomination, share, accpetPending);
         // Management fee settlement is processed when redeeming
-        // await fundProxy.claimManagementFee();
+        const [balance] = await redeemFund(manager, fundProxy, denomination, share, accpetPending);
         const mFee = await shareToken.balanceOf(manager.address);
         expect(balance).to.be.lt(initialFunds);
         expect(mFee).to.be.gt(0);
       });
-      it('should claim management fee after 1 year', async function () {
+
+      it('claim management fee after 1 year', async function () {
         const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
         const expectAmount = share
-          .mul(FEE_BASE)
-          .div(FEE_BASE - feeRate)
+          .mul(FUND_PERCENTAGE_BASE)
+          .div(FUND_PERCENTAGE_BASE - feeRate)
           .sub(share);
         await increaseNextBlockTimeBy(ONE_YEAR);
-        await redeemFund(investor, fundProxy, denomination, share, accpetPending);
         // Management fee settlement is processed when redeeming
-        // await fundProxy.claimManagementFee();
+        await redeemFund(investor, fundProxy, denomination, share, accpetPending);
         const mFee = await shareToken.balanceOf(manager.address);
         expectEqWithinBps(mFee, expectAmount, 1);
       });
     });
+
     describe('99% management fee', function () {
       const purchaseAmount = initialFunds;
 
       beforeEach(async function () {
         await setupEachTestM99();
       });
+
       it('claim fee', async function () {
         const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+        // Management fee settlement is processed when redeeming
         const [balance] = await redeemFund(investor, fundProxy, denomination, share, accpetPending);
-
         const mFee = await shareToken.balanceOf(manager.address);
         expect(balance).to.be.lt(initialFunds);
         expect(mFee).to.be.gt(0);
       });
     });
   });
+
   describe('in pending', function () {
-    //TODO: add different fee rate
-    describe('2% management fee', function () {
+    describe('1% management fee', function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
 
       beforeEach(async function () {
-        await setupEachTestM02();
+        await setupEachTestM01();
         await setPendingAssetFund(
           manager,
           investor,
@@ -319,13 +336,23 @@ describe('ManagerClaimManagementFee', function () {
           hQuickSwap
         );
       });
+
       it('claim no fee', async function () {
+        // Get before states
         const beforeShare = await shareToken.balanceOf(manager.address);
+        const beforeLastClaimTime = await fundProxy.lastMFeeClaimTime();
+
+        // Claim mgmt fee
         await increaseNextBlockTimeBy(ONE_YEAR);
         await fundProxy.claimManagementFee();
+
+        // Verify states
+        const afterLastClaimTime = await fundProxy.lastMFeeClaimTime();
         const afterShare = await shareToken.balanceOf(manager.address);
-        expect(afterShare.eq(beforeShare)).to.be.true;
+        expect(afterShare).eq(beforeShare);
+        expect(afterLastClaimTime).to.be.gt(beforeLastClaimTime);
       });
+
       it('claim fee when back to executing', async function () {
         const beforeShare = await shareToken.balanceOf(manager.address);
 
@@ -336,7 +363,98 @@ describe('ManagerClaimManagementFee', function () {
         expect(state).to.be.eq(FUND_STATE.EXECUTING);
         await fundProxy.claimManagementFee();
         const afterShare = await shareToken.balanceOf(manager.address);
-        expect(afterShare.gt(beforeShare)).to.be.true;
+        expect(afterShare).gt(beforeShare);
+      });
+    });
+
+    describe('99% management fee', function () {
+      const purchaseAmount = initialFunds;
+      const swapAmount = purchaseAmount.div(2);
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
+
+      beforeEach(async function () {
+        await setupEachTestM99();
+        await setPendingAssetFund(
+          manager,
+          investor,
+          fundProxy,
+          denomination,
+          shareToken,
+          purchaseAmount,
+          swapAmount,
+          redeemAmount,
+          execFeePercentage,
+          denominationAddress,
+          tokenAAddress,
+          hFunds,
+          aFurucombo,
+          taskExecutor,
+          hQuickSwap
+        );
+      });
+
+      it('claim fee when back to executing', async function () {
+        const beforeShare = await shareToken.balanceOf(manager.address);
+
+        // initial fund for another investor
+        await denomination.connect(denominationProvider).transfer(liquidator.address, initialFunds);
+
+        const [, state] = await purchaseFund(liquidator, fundProxy, denomination, shareToken, purchaseAmount);
+        expect(state).to.be.eq(FUND_STATE.EXECUTING);
+        await fundProxy.claimManagementFee();
+        const afterShare = await shareToken.balanceOf(manager.address);
+        expect(afterShare).gt(beforeShare);
+      });
+    });
+  });
+
+  describe('in liquidating', function () {
+    describe('99% management fee', function () {
+      const purchaseAmount = initialFunds;
+      const swapAmount = purchaseAmount.div(2);
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
+
+      beforeEach(async function () {
+        await setupEachTestM99();
+        await setLiquidatingAssetFund(
+          manager,
+          investor,
+          liquidator,
+          fundProxy,
+          denomination,
+          shareToken,
+          purchaseAmount,
+          swapAmount,
+          redeemAmount,
+          execFeePercentage,
+          denominationAddress,
+          tokenAAddress,
+          hFunds,
+          aFurucombo,
+          taskExecutor,
+          oracle,
+          hQuickSwap,
+          pendingExpiration
+        );
+      });
+
+      it('claim no fee', async function () {
+        _claimNoFeeTest();
+      });
+    });
+  });
+
+  describe('in closed', function () {
+    describe('99% management fee', function () {
+      const purchaseAmount = initialFunds;
+
+      beforeEach(async function () {
+        await setupEachTestM99();
+        await setClosedDenominationFund(manager, investor, fundProxy, denomination, shareToken, purchaseAmount);
+      });
+
+      it('claim no fee', async function () {
+        _claimNoFeeTest();
       });
     });
   });

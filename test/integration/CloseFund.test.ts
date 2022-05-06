@@ -15,7 +15,7 @@ import {
   HQuickSwap,
 } from '../../typechain';
 
-import { mwei, impersonateAndInjectEther } from '../utils/utils';
+import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, ether } from '../utils/utils';
 
 import {
   setPendingAssetFund,
@@ -37,6 +37,9 @@ import {
   USDC_PROVIDER,
   FUND_STATE,
   ONE_DAY,
+  MINIMUM_SHARE,
+  FUND_PERCENTAGE_BASE,
+  BAT_PROVIDER,
 } from '../utils/constants';
 
 describe('CloseFund', function () {
@@ -46,8 +49,10 @@ describe('CloseFund', function () {
   let investor: Wallet;
   let liquidator: Wallet;
   let denominationProvider: Signer;
+  let mortgageProvider: Signer;
 
   const denominationProviderAddress = USDC_PROVIDER;
+  const mortgageProviderAddress = BAT_PROVIDER;
   const denominationAddress = USDC_TOKEN;
   const mortgageAddress = BAT_TOKEN;
   const tokenAAddress = DAI_TOKEN;
@@ -58,14 +63,13 @@ describe('CloseFund', function () {
   const tokenBAggregator = CHAINLINK_ETH_USD;
 
   const level = 1;
-  const mortgageAmount = 0;
+  const mortgageAmount = ether('10');
   const mFeeRate = 0;
   const pFeeRate = 0;
-  const execFeePercentage = 200; // 2%
+  const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
   const pendingExpiration = ONE_DAY; // 1 day
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const reserveExecutionRatio = 0; // 0%
 
   const initialFunds = mwei('3000');
 
@@ -83,6 +87,8 @@ describe('CloseFund', function () {
 
   let denomination: IERC20;
   let tokenA: IERC20;
+  let mortgage: IERC20;
+
   let shareToken: ShareToken;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
@@ -91,42 +97,64 @@ describe('CloseFund', function () {
 
     // Setup tokens and providers
     denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
+    mortgageProvider = await impersonateAndInjectEther(mortgageProviderAddress);
 
     // Deploy furucombo
     [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
     // Deploy furucombo funds contracts
-    [fundProxy, , denomination, shareToken, taskExecutor, aFurucombo, hFunds, tokenA, , oracle, , , hQuickSwap] =
-      await createReviewingFund(
-        owner,
-        collector,
-        manager,
-        liquidator,
-        denominationAddress,
-        mortgageAddress,
-        tokenAAddress,
-        tokenBAddress,
-        denominationAggregator,
-        tokenAAggregator,
-        tokenBAggregator,
-        level,
-        mortgageAmount,
-        mFeeRate,
-        pFeeRate,
-        execFeePercentage,
-        pendingExpiration,
-        valueTolerance,
-        crystallizationPeriod,
-        reserveExecutionRatio,
-        shareTokenName,
-        fRegistry,
-        furucombo
-      );
+    [
+      fundProxy,
+      ,
+      denomination,
+      shareToken,
+      taskExecutor,
+      aFurucombo,
+      hFunds,
+      tokenA,
+      ,
+      oracle,
+      ,
+      ,
+      hQuickSwap,
+      ,
+      mortgage,
+    ] = await createReviewingFund(
+      owner,
+      collector,
+      manager,
+      liquidator,
+      denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
+      level,
+      mortgageAmount,
+      mFeeRate,
+      pFeeRate,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
+      crystallizationPeriod,
+      shareTokenName,
+      fRegistry,
+      furucombo
+    );
 
-    // Transfer token to investors
+    // Transfer denomination to investors
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
     await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
+
+    // Transfer mortgage to manager
+    await mortgage.connect(mortgageProvider).transfer(manager.address, mortgageAmount);
+
+    // Approve mortgage to fund proxy
+    await mortgage.connect(manager).approve(fundProxy.address, mortgageAmount);
   });
+
   beforeEach(async function () {
     await setupTest();
   });
@@ -137,6 +165,7 @@ describe('CloseFund', function () {
         'InvalidState(1)' // REVIEWING
       );
     });
+
     it('should revert: in executing with assets', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
@@ -159,13 +188,14 @@ describe('CloseFund', function () {
         hQuickSwap
       );
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith(
-        'RevertCode(64)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
+        'RevertCode(62)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
       );
     });
+
     it('should revert: in pending', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
       await fundProxy.connect(manager).finalize();
 
       await setPendingAssetFund(
@@ -189,14 +219,16 @@ describe('CloseFund', function () {
         'InvalidState(3)' // PENDING
       );
     });
+
     it('should revert: by non-manager', async function () {
       await fundProxy.connect(manager).finalize();
       await expect(fundProxy.close()).to.be.revertedWith('Ownable: caller is not the owner');
     });
+
     it('should revert: by non-liquidator in liquidating ', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
       await fundProxy.connect(manager).finalize();
       await setLiquidatingAssetFund(
         manager,
@@ -214,16 +246,18 @@ describe('CloseFund', function () {
         hFunds,
         aFurucombo,
         taskExecutor,
+        oracle,
         hQuickSwap,
         pendingExpiration
       );
 
       await expect(fundProxy.connect(manager).close()).to.be.revertedWith('Ownable: caller is not the owner');
     });
+
     it('should revert: by liquidator in liquidating with assets but exceeds oracle stale period ', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
       await fundProxy.connect(manager).finalize();
       await setLiquidatingAssetFund(
         manager,
@@ -241,18 +275,21 @@ describe('CloseFund', function () {
         hFunds,
         aFurucombo,
         taskExecutor,
+        oracle,
         hQuickSwap,
         pendingExpiration
       );
-
+      const exceedOracleStalePeriod = pendingExpiration * 2;
+      await increaseNextBlockTimeBy(exceedOracleStalePeriod);
       await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
-        'RevertCode(48)' // CHAINLINK_STALE_PRICE
+        'RevertCode(45)' // CHAINLINK_STALE_PRICE
       );
     });
+
     it('should revert: by liquidator in liquidating with assets within redeem share left', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
       await fundProxy.connect(manager).finalize();
       await setLiquidatingAssetFund(
         manager,
@@ -270,6 +307,7 @@ describe('CloseFund', function () {
         hFunds,
         aFurucombo,
         taskExecutor,
+        oracle,
         hQuickSwap,
         pendingExpiration
       );
@@ -283,6 +321,7 @@ describe('CloseFund', function () {
         'InvalidState(4)' // LIQUIDATING
       );
     });
+
     it('should revert: by liquidator in liquidating with assets without redeem share left', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(3).mul(2);
@@ -304,13 +343,10 @@ describe('CloseFund', function () {
         hFunds,
         aFurucombo,
         taskExecutor,
+        oracle,
         hQuickSwap,
         pendingExpiration
       );
-
-      const stalePeriod = pendingExpiration * 2;
-      await oracle.setStalePeriod(stalePeriod);
-      expect(await oracle.stalePeriod()).to.be.eq(stalePeriod);
 
       const vault = await fundProxy.vault();
       const tokenAAmount = await tokenA.balanceOf(vault);
@@ -333,23 +369,33 @@ describe('CloseFund', function () {
       );
 
       await expect(fundProxy.connect(liquidator).close()).to.be.revertedWith(
-        'RevertCode(64)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
+        'RevertCode(62)' // ASSET_MODULE_DIFFERENT_ASSET_REMAINING
       );
     });
   });
 
   describe('success', function () {
     it('by manager in executing without any asset', async function () {
+      // Init env.
       const purchaseAmount = initialFunds;
       await fundProxy.connect(manager).finalize();
+      const beforeBalance = await mortgage.balanceOf(manager.address);
       await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+
+      // Close fund
       await fundProxy.connect(manager).close();
+
+      // Verify State
+      const afterBalance = await mortgage.balanceOf(manager.address);
+
+      expect(afterBalance.sub(beforeBalance)).to.be.eq(mortgageAmount);
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.CLOSED);
     });
-    it('by liquidator in liquidating without assets', async function () {
+
+    it('by liquidator in liquidating with assets', async function () {
       const purchaseAmount = initialFunds;
       const swapAmount = purchaseAmount.div(2);
-      const redeemAmount = purchaseAmount;
+      const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
       await fundProxy.connect(manager).finalize();
       await setLiquidatingAssetFund(
         manager,
@@ -367,6 +413,7 @@ describe('CloseFund', function () {
         hFunds,
         aFurucombo,
         taskExecutor,
+        oracle,
         hQuickSwap,
         pendingExpiration
       );
@@ -394,8 +441,15 @@ describe('CloseFund', function () {
         fundProxy,
         liquidator
       );
+
+      // Close fund
+      const beforeBalance = await mortgage.balanceOf(liquidator.address);
       await fundProxy.connect(liquidator).close();
+      const afterBalance = await mortgage.balanceOf(liquidator.address);
+
+      // Verify states
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.CLOSED);
+      expect(afterBalance.sub(beforeBalance)).to.be.eq(mortgageAmount);
     });
   });
 });

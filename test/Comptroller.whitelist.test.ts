@@ -13,7 +13,7 @@ import {
   AssetRegistry,
   SimpleToken,
 } from '../typechain';
-import { DS_PROXY_REGISTRY, WL_ANY_SIG, WL_ANY_ADDRESS } from './utils/constants';
+import { DS_PROXY_REGISTRY, WL_ANY_SIG, WL_ANY_ADDRESS, FUND_PERCENTAGE_BASE } from './utils/constants';
 
 describe('ComptrollerImplementation_Whitelist', function () {
   let comptrollerImplementation: ComptrollerImplementation;
@@ -55,7 +55,7 @@ describe('ComptrollerImplementation_Whitelist', function () {
     assetRouter = await (await ethers.getContractFactory('AssetRouter')).deploy(oracle.address, registry.address);
     await assetRouter.deployed();
 
-    const execFeePercentage = 200; // 2%
+    const execFeePercentage = FUND_PERCENTAGE_BASE * 0.02; // 2%
 
     mortgageVault = await (await ethers.getContractFactory('MortgageVault')).deploy(tokenM.address);
     await mortgageVault.deployed();
