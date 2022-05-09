@@ -373,7 +373,7 @@ describe('InvestorPurchaseFund', function () {
           await network.provider.send('evm_setAutomine', [true]);
 
           const user0ShareAfter = await shareToken.balanceOf(user0.address);
-          expectEqWithinBps(user0ShareAfter, expectedNoBonusShare, 10);
+          expectEqWithinBps(user0ShareAfter, expectedNoBonusShare, 10); // set 0.1% tolerance cause expectedNoBonusShare might have slightly diff(1 wei) due to BigNumber arithmetic.
         });
       }); // describe('Pending state') end
 
