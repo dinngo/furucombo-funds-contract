@@ -466,6 +466,7 @@ export async function createMockFundInfra(
     mortgage,
     mortgageVault,
     hQuickSwap,
+    oracle,
   ];
 }
 
