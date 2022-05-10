@@ -362,7 +362,14 @@ describe('InvestorPurchaseFund', function () {
         it('get no bonus when in the same block with redeem', async function () {
           // purchase to make fund back to executing
           const user1PurchaseAmount = redeemAmount.sub(reserveAmount).add(mwei('100'));
-          const [user1Share] = await purchaseFund(user1, fundProxy, denomination, shareToken, user1PurchaseAmount);
+          const [user1Share, state] = await purchaseFund(
+            user1,
+            fundProxy,
+            denomination,
+            shareToken,
+            user1PurchaseAmount
+          );
+          expect(state).to.be.eq(FUND_STATE.EXECUTING);
 
           const expectedNoBonusShare = await fundProxy.calculateShare(purchaseAmount);
 
