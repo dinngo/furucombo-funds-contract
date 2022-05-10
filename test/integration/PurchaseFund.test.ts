@@ -17,7 +17,15 @@ import {
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, expectEqWithinBps } from '../utils/utils';
 
-import { createFund, purchaseFund, redeemFund, setPendingAssetFund, setExecutingAssetFund } from './fund';
+import {
+  createFund,
+  purchaseFund,
+  redeemFund,
+  setPendingAssetFund,
+  setExecutingAssetFund,
+  setLiquidatingAssetFund,
+  setClosedDenominationFund,
+} from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,
@@ -983,6 +991,105 @@ describe('InvestorPurchaseFund', function () {
           expect(state).to.be.eq(FUND_STATE.PENDING);
         });
       });
+    }); // describe('Without state change') end
+  }); // describe('Funds with management fee') end
+
+  describe('Other should revert cases', function () {
+    const purchaseAmount = mwei('2000');
+    const swapAmount = purchaseAmount.div(2);
+    const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
+
+    const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+      await deployments.fixture(''); // ensure you start from a fresh deployments
+      [owner, collector, manager, user0, user1, liquidator] = await (ethers as any).getSigners();
+
+      // Setup tokens and providers
+      denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
+
+      // Deploy furucombo
+      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+
+      // Deploy furucombo funds contracts
+      [
+        fundProxy,
+        fundVault,
+        denomination,
+        shareToken,
+        taskExecutor,
+        aFurucombo,
+        hFunds,
+        ,
+        ,
+        oracle,
+        comptroller,
+        ,
+        hQuickSwap,
+        ,
+      ] = await createFund(
+        owner,
+        collector,
+        manager,
+        liquidator,
+        denominationAddress,
+        mortgageAddress,
+        tokenAAddress,
+        tokenBAddress,
+        denominationAggregator,
+        tokenAAggregator,
+        tokenBAggregator,
+        level,
+        mortgageAmount,
+        mFeeRate,
+        pFeeRate,
+        execFeePercentage,
+        pendingExpiration,
+        valueTolerance,
+        crystallizationPeriod,
+        shareTokenName,
+        fRegistry,
+        furucombo
+      );
+
+      // Transfer token to users
+      await denomination.connect(denominationProvider).transfer(user0.address, initialFunds);
+      await denomination.connect(denominationProvider).transfer(user1.address, initialFunds);
+      await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
     });
-  }); // describe('Without state change') end
+
+    beforeEach(async function () {
+      await setupTest();
+    });
+
+    it('should revert: purchase when fund in liquidating', async function () {
+      await setLiquidatingAssetFund(
+        manager,
+        user0,
+        liquidator,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        oracle,
+        hQuickSwap,
+        pendingExpiration
+      );
+
+      await denomination.connect(user1).approve(fundProxy.address, purchaseAmount);
+      await expect(fundProxy.connect(user1).purchase(purchaseAmount)).to.be.revertedWith('InvalidState(4)'); // LIQUIDATING
+    });
+
+    it('should revert: purchase when fund in close', async function () {
+      await setClosedDenominationFund(manager, user0, fundProxy, denomination, shareToken, purchaseAmount);
+      await denomination.connect(user1).approve(fundProxy.address, purchaseAmount);
+      await expect(fundProxy.connect(user1).purchase(purchaseAmount)).to.be.revertedWith('InvalidState(5)'); // CLOSED
+    });
+  });
 });
