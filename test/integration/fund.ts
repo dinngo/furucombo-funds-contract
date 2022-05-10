@@ -612,7 +612,7 @@ export async function setPendingAssetFund(
   taskExecutor: TaskExecutor,
   hSwap: HQuickSwap | HSushiSwap
 ): Promise<any> {
-  expect(redeemAmount.lte(purchaseAmount)).to.be.true;
+  expect(redeemAmount).to.be.lte(purchaseAmount);
 
   await setExecutingAssetFund(
     manager,
