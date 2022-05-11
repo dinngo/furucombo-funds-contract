@@ -150,7 +150,7 @@ describe('InvestorRedeemFund', function () {
         await shareToken.connect(user0).transfer(user3.address, eachUserSharesDouble);
       });
 
-      it('user1 redeem all share', async function () {
+      it('redeem', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
@@ -172,7 +172,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
       });
 
-      it('user1 and user2 redeem all share, they should get the same redeem amount', async function () {
+      it('redeem same share should get the same redeem amount', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const user2BalanceBefore = await denomination.balanceOf(user2.address);
 
@@ -200,7 +200,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
       });
 
-      it('user1, user2 and user3 redeem all share, user3 redeem amount should be twice the user1 redeem amount', async function () {
+      it('redeem double share should get double redeem amount', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const user2BalanceBefore = await denomination.balanceOf(user2.address);
         const user3BalanceBefore = await denomination.balanceOf(user3.address);
@@ -272,11 +272,11 @@ describe('InvestorRedeemFund', function () {
         await shareToken.connect(user0).transfer(user3.address, eachUserSharesDouble);
       });
 
-      it('should revert: user1 redeem with not accepting pending', async function () {
+      it('should revert: redeem with not accepting pending', async function () {
         await expect(fundProxy.connect(user1).redeem(eachUserShares, false)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
       });
 
-      it('user1 redeem and doesnt get any money, fund share token increase', async function () {
+      it('redeem', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
 
@@ -291,7 +291,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares);
       });
 
-      it('user1 and user2 redeem and dont get any money, fund share token increase', async function () {
+      it('redeem same share', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const user2BalanceBefore = await denomination.balanceOf(user2.address);
         const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
@@ -314,7 +314,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares.mul(2));
       });
 
-      it('user1, user2 and user3 redeem and dont get any money, fund share token increase', async function () {
+      it('redeem double share', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const user2BalanceBefore = await denomination.balanceOf(user2.address);
         const user3BalanceBefore = await denomination.balanceOf(user3.address);
@@ -360,7 +360,7 @@ describe('InvestorRedeemFund', function () {
         await shareToken.connect(user0).transfer(user3.address, eachUserSharesDouble);
       });
 
-      it('user1 redeem all share', async function () {
+      it('redeem', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
 
         const [user1RedeemAmount, fundState] = await redeemFund(
@@ -379,7 +379,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundState).to.be.eq(FUND_STATE.CLOSED);
       });
 
-      it('user1 and user2 redeem all share, they should get the same redeem amount', async function () {
+      it('redeem same share should get the same redeem amount', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const user2BalanceBefore = await denomination.balanceOf(user2.address);
 
@@ -407,7 +407,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundState).to.be.eq(FUND_STATE.CLOSED);
       });
 
-      it('user1, user2 and user3 redeem all share, user3 redeem amount should be twice the user1 redeem amount', async function () {
+      it('redeem double share should get double redeem amount', async function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const user2BalanceBefore = await denomination.balanceOf(user2.address);
         const user3BalanceBefore = await denomination.balanceOf(user3.address);
@@ -470,11 +470,11 @@ describe('InvestorRedeemFund', function () {
         totalShare = await shareToken.balanceOf(user0.address);
       });
 
-      it('should revert: user0 redeem with not accepting pending', async function () {
+      it('should revert: redeem with not accepting pending', async function () {
         await expect(fundProxy.connect(user0).redeem(totalShare, false)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
       });
 
-      it('user1 redeem and get partial money, fund goes to pending', async function () {
+      it('redeem', async function () {
         // user1 redeem all shares
         await shareToken.connect(user0).transfer(user1.address, totalShare);
 
@@ -492,7 +492,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundState).to.be.eq(FUND_STATE.PENDING);
       });
 
-      it('user1 and user2 redeem. user2 get partial money, fund goes to pending', async function () {
+      it('2nd user redeem let fund goes to pending', async function () {
         // user1 redeem, fund still in executing. user2 redeem led to fund go to pending.
         const user1RedeemShare = swapAmount.div(2);
         const user2RedeemShare = swapAmount;
@@ -526,7 +526,7 @@ describe('InvestorRedeemFund', function () {
         expect(fundState2).to.be.eq(FUND_STATE.PENDING);
       });
 
-      it('user1, user2 and user3 redeem. user3 get partial money, fund goes to pending', async function () {
+      it('3rd user redeem let fund goes to pending', async function () {
         // user1 and user2 redeem, fund still in executing. user3 redeem led to fund go to pending.
         const user1RedeemShare = swapAmount.div(3);
         const user2RedeemShare = user1RedeemShare;
@@ -595,7 +595,7 @@ describe('InvestorRedeemFund', function () {
       );
     });
 
-    it('user1 redeem and fund remains in executing', async function () {
+    it('redeem and fund remains in executing', async function () {
       // purchase to make pending amount to be settled
       const [, fundState2] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
       expect(fundState2).to.be.eq(FUND_STATE.EXECUTING);
@@ -623,7 +623,7 @@ describe('InvestorRedeemFund', function () {
       expect(user1ShareAfter).to.be.eq(0);
     });
 
-    it('user1 redeem and fund goes to pending', async function () {
+    it('redeem and fund goes to pending', async function () {
       // purchase to make pending amount to be settled
       const [, fundState2] = await purchaseFund(
         user2,
