@@ -612,7 +612,7 @@ export async function setPendingAssetFund(
   taskExecutor: TaskExecutor,
   hSwap: HQuickSwap | HSushiSwap
 ): Promise<any> {
-  expect(redeemAmount.lte(purchaseAmount)).to.be.true;
+  expect(redeemAmount).to.be.lte(purchaseAmount);
 
   await setExecutingAssetFund(
     manager,
@@ -768,9 +768,10 @@ export async function getSwapData(
   taskExecutor: TaskExecutor
 ): Promise<any> {
   // Prepare action data
-  const actionAmountIn = amountIn
-    .mul(BigNumber.from(FUND_PERCENTAGE_BASE).sub(execFeePercentage))
-    .div(FUND_PERCENTAGE_BASE);
+
+  const executionFee = amountIn.mul(execFeePercentage).div(FUND_PERCENTAGE_BASE);
+  const actionAmountIn = amountIn.sub(executionFee);
+
   const tokensIn = [inTokenAddress];
   const amountsIn = [amountIn];
   const tokensOut = [outTokenAddress];
