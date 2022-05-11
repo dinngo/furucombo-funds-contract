@@ -93,7 +93,7 @@ export const SNX_SYMBOL = 'SNX';
 
 /* OMG */
 export const OMG_TOKEN = '0x62414D03084EeB269E18C970a21f45D2967F0170';
-export const OMG_PROVIDER = '0x3a1bbd14c1c0e2Ebf7cd906961d122dADd5448A7';
+export const OMG_PROVIDER = '0xb75214805f3a1488380f818a77e391aec4b7536a';
 export const OMG_SYMBOL = 'OMG';
 
 /* SUSHI */

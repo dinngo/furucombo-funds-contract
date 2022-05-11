@@ -42,6 +42,8 @@ import {
   FUND_STATE,
   DAI_PROVIDER,
   MINIMUM_SHARE,
+  OMG_PROVIDER,
+  OMG_TOKEN,
 } from '../utils/constants';
 
 describe('ManagerClaimPerformanceFee', function () {
@@ -67,7 +69,7 @@ describe('ManagerClaimPerformanceFee', function () {
   const level = 1;
   const mortgageAmount = 0;
   const mFeeRate = 0;
-  const execFeePercentage = 0; //FUND_PERCENTAGE_BASE * 0.02; // 2%
+  const execFeePercentage = 0; // 0%
   const pendingExpiration = ONE_DAY; // 1 day
   const crystallizationPeriod = 300; // 5m
   const shareTokenName = 'TEST';
@@ -98,6 +100,7 @@ describe('ManagerClaimPerformanceFee', function () {
     await _preCreateFundProxyMock();
 
     const pFeeRate = 0;
+
     // Create and finalize furucombo fund
     fundProxy = await createFundProxyMock(
       fundProxyFactory,
@@ -119,6 +122,7 @@ describe('ManagerClaimPerformanceFee', function () {
     await _preCreateFundProxyMock();
 
     const pFeeRate = FUND_PERCENTAGE_BASE * 0.01;
+
     // Create and finalize furucombo fund
     fundProxy = await createFundProxyMock(
       fundProxyFactory,
@@ -354,6 +358,32 @@ describe('ManagerClaimPerformanceFee', function () {
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.eq(0);
       });
 
+      it('claim the same fee when receive unexpected asset in vault', async function () {
+        let unexpectedToken: IERC20;
+        const unexpectedTokenProviderAddress = OMG_PROVIDER;
+        unexpectedToken = await ethers.getContractAt('IERC20', OMG_TOKEN);
+
+        await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+
+        // claim pFee
+        await increaseNextBlockTimeBy(crystallizationPeriod);
+        await fundProxy.connect(manager).crystallize();
+        const beforeShare = await shareToken.balanceOf(manager.address);
+
+        // transfer unexpected token
+        let unexpectedTokenProvider = await impersonateAndInjectEther(unexpectedTokenProviderAddress);
+        const vaultAddr = await fundProxy.vault();
+        const donateAmount = ether('10');
+        await unexpectedToken.connect(unexpectedTokenProvider).transfer(vaultAddr, donateAmount);
+
+        // claim pFee
+        await increaseNextBlockTimeBy(crystallizationPeriod);
+        await fundProxy.connect(manager).crystallize();
+        const afterShare = await shareToken.balanceOf(manager.address);
+
+        expect(afterShare).to.be.eq(beforeShare);
+      });
+
       it('should revert: still in crystallization period', async function () {
         await _crystallizationPeriodTest(purchaseAmount, acceptPending);
 
@@ -465,6 +495,7 @@ describe('ManagerClaimPerformanceFee', function () {
           'RevertCode(65)' // PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET
         );
       });
+
       it('move fee to outstanding address when user purchase fund', async function () {
         await _tempAddressTest(mwei('100'));
         expect(await shareToken.balanceOf(outstandingAccount)).to.be.gt(0);
