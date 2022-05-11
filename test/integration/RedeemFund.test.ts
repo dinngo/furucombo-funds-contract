@@ -12,20 +12,12 @@ import {
   TaskExecutor,
   ShareToken,
   HQuickSwap,
+  Chainlink,
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
-import {
-  createFund,
-  redeemFund,
-  purchaseFund,
-  setExecutingDenominationFund,
-  setExecutingAssetFund,
-  setPendingAssetFund,
-  setClosedDenominationFund,
-  execSwap,
-} from './fund';
+import { createFund, redeemFund, purchaseFund, setExecutingAssetFund, setPendingAssetFund, execSwap } from './fund';
 
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -39,15 +31,14 @@ import {
   USDC_PROVIDER,
   FUND_STATE,
   ONE_DAY,
-  MINIMUM_SHARE,
   FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 
 describe('InvestorRedeemFund', function () {
+  let oracle: Chainlink;
   let owner: Wallet;
   let collector: Wallet;
   let manager: Wallet;
-  let investor: Wallet;
   let liquidator: Wallet;
   let denominationProvider: Signer;
   let user0: Wallet, user1: Wallet, user2: Wallet, user3: Wallet, user4: Wallet;
@@ -70,12 +61,9 @@ describe('InvestorRedeemFund', function () {
   const pendingExpiration = ONE_DAY;
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const acceptPending = false;
 
   const initialFunds = mwei('6000');
   const purchaseAmount = mwei('4000');
-  const swapAmount = initialFunds.div(2);
-
   const shareTokenName = 'TEST';
 
   let fRegistry: FurucomboRegistry;
@@ -101,7 +89,7 @@ describe('InvestorRedeemFund', function () {
     [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
     // Deploy furucombo funds contracts
-    [fundProxy, fundVault, denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , , , , hQuickSwap] =
+    [fundProxy, fundVault, denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
       await createFund(
         owner,
         collector,
@@ -486,7 +474,7 @@ describe('InvestorRedeemFund', function () {
         hQuickSwap
       );
 
-      // purchase to make to executing
+      // purchase to make pending amount to be settled
       const [, user2State] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
       expect(user2State).to.be.eq(FUND_STATE.EXECUTING);
 
@@ -539,8 +527,8 @@ describe('InvestorRedeemFund', function () {
     });
 
     it('should revert: CHAINLINK_STALE_PRICE', async function () {
-      await denomination.connect(user1).approve(fundProxy.address, mwei('100'));
-      await expect(fundProxy.connect(user1).purchase(mwei('100'))).to.be.revertedWith('RevertCode(45)'); // CHAINLINK_STALE_PRICE
+      const share = await shareToken.balanceOf(user0.address);
+      await expect(fundProxy.connect(user0).redeem(share, true)).to.be.revertedWith('RevertCode(45)'); // CHAINLINK_STALE_PRICE
     });
   }); // describe('Dead oracle') end
 });
