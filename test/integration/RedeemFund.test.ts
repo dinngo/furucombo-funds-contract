@@ -12,16 +12,18 @@ import {
   TaskExecutor,
   ShareToken,
   HQuickSwap,
+  Chainlink,
 } from '../../typechain';
 
-import { mwei, impersonateAndInjectEther } from '../utils/utils';
+import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
 import {
   createFund,
   redeemFund,
-  setExecutingDenominationFund,
+  purchaseFund,
   setExecutingAssetFund,
   setPendingAssetFund,
+  setLiquidatingAssetFund,
   setClosedDenominationFund,
 } from './fund';
 
@@ -37,17 +39,17 @@ import {
   USDC_PROVIDER,
   FUND_STATE,
   ONE_DAY,
-  MINIMUM_SHARE,
   FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 
 describe('InvestorRedeemFund', function () {
+  let oracle: Chainlink;
   let owner: Wallet;
   let collector: Wallet;
   let manager: Wallet;
-  let investor: Wallet;
   let liquidator: Wallet;
   let denominationProvider: Signer;
+  let user0: Wallet, user1: Wallet, user2: Wallet, user3: Wallet, user4: Wallet;
 
   const denominationProviderAddress = USDC_PROVIDER;
   const denominationAddress = USDC_TOKEN;
@@ -67,12 +69,9 @@ describe('InvestorRedeemFund', function () {
   const pendingExpiration = ONE_DAY;
   const valueTolerance = 0;
   const crystallizationPeriod = 300; // 5m
-  const acceptPending = false;
 
-  const initialFunds = mwei('3000');
-  const purchaseAmount = mwei('2000');
-  const swapAmount = purchaseAmount.div(2);
-
+  const initialFunds = mwei('6000');
+  const purchaseAmount = mwei('4000');
   const shareTokenName = 'TEST';
 
   let fRegistry: FurucomboRegistry;
@@ -89,7 +88,7 @@ describe('InvestorRedeemFund', function () {
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
+    [owner, collector, manager, user0, user1, user2, user3, user4, liquidator] = await (ethers as any).getSigners();
 
     // Setup tokens and providers
     denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
@@ -98,7 +97,7 @@ describe('InvestorRedeemFund', function () {
     [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
     // Deploy furucombo funds contracts
-    [fundProxy, fundVault, denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , , , , hQuickSwap] =
+    [fundProxy, fundVault, denomination, shareToken, taskExecutor, aFurucombo, hFunds, , , oracle, , , hQuickSwap, ,] =
       await createFund(
         owner,
         collector,
@@ -124,199 +123,626 @@ describe('InvestorRedeemFund', function () {
         furucombo
       );
 
-    // Transfer token to investor
-    await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
+    // Transfer token to users
+    await denomination.connect(denominationProvider).transfer(user0.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(user1.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(user2.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(user3.address, initialFunds);
   });
+
   beforeEach(async function () {
     await setupTest();
   });
-  //add check vault balance
-  describe('State Changes', function () {
-    describe('redeem executing and stay in executing', function () {
-      describe('redeem executing denomination fund', function () {
-        beforeEach(async function () {
-          await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
-        });
-        it('stay in executing', async function () {
-          const shareAmount = await shareToken.balanceOf(investor.address);
-          const [balance, state] = await redeemFund(investor, fundProxy, denomination, shareAmount, acceptPending);
-          const afterShareAmount = await shareToken.balanceOf(investor.address);
 
-          expect(state).to.be.eq(FUND_STATE.EXECUTING);
-          expect(balance).to.be.eq(purchaseAmount.sub(MINIMUM_SHARE));
-          expect(afterShareAmount).to.be.eq(0);
-        });
+  describe('Without state change', function () {
+    describe('Executing state', function () {
+      const acceptPending = false;
+      let eachUserShares: BigNumber, eachUserSharesDouble: BigNumber;
+      let totalShare: BigNumber;
+
+      beforeEach(async function () {
+        const [user0Share] = await purchaseFund(user0, fundProxy, denomination, shareToken, initialFunds);
+        totalShare = user0Share;
+        eachUserShares = totalShare.div(6);
+        eachUserSharesDouble = eachUserShares.mul(2);
+        await shareToken.connect(user0).transfer(user1.address, eachUserShares);
+        await shareToken.connect(user0).transfer(user2.address, eachUserShares);
+        await shareToken.connect(user0).transfer(user3.address, eachUserSharesDouble);
       });
 
-      // fund owns assets
-      describe('redeem executing asset fund', function () {
-        // 1000 = 2000 - 1000
-        const reserveAmount = purchaseAmount.sub(swapAmount);
+      it('redeem', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const vaultBalanceBefore = await denomination.balanceOf(fundVault);
 
-        beforeEach(async function () {
-          await setExecutingAssetFund(
-            manager,
-            investor,
-            fundProxy,
-            denomination,
-            shareToken,
-            purchaseAmount,
-            swapAmount,
-            execFeePercentage,
-            denominationAddress,
-            tokenAAddress,
-            hFunds,
-            aFurucombo,
-            taskExecutor,
-            hQuickSwap
-          );
-        });
+        const [user1RedeemAmount, fundState] = await redeemFund(
+          user1,
+          fundProxy,
+          denomination,
+          eachUserShares,
+          acceptPending
+        );
 
-        it('stay in executing when redeem succeeds', async function () {
-          // 500 = 1000/2
-          const redeemShare = reserveAmount.div(2);
-          const expectedShareAmount = purchaseAmount.sub(MINIMUM_SHARE).sub(redeemShare);
-          const [, expectedBalance] = await fundProxy.calculateRedeemableBalance(redeemShare);
-          const [balance, state] = await redeemFund(investor, fundProxy, denomination, redeemShare, acceptPending);
-          const shareAmount = await shareToken.balanceOf(investor.address);
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const vaultBalanceAfter = await denomination.balanceOf(fundVault);
+        const user1Share = await shareToken.balanceOf(user1.address);
 
-          expect(state).to.be.eq(FUND_STATE.EXECUTING);
-          expect(BigNumber.from(balance)).to.be.eq(expectedBalance);
-          expect(shareAmount).to.be.eq(expectedShareAmount);
-        });
-        it('should revert: not accept pending', async function () {
-          const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
-          let acceptPending: any;
-          acceptPending = false;
-
-          await expect(fundProxy.connect(investor).redeem(redeemAmount, acceptPending)).to.be.revertedWith(
-            'RevertCode(74)'
-          ); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
-        });
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
+        expect(vaultBalanceBefore.sub(vaultBalanceAfter)).to.be.eq(user1RedeemAmount);
+        expect(user1Share).to.be.eq(0);
+        expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
       });
-    });
 
-    describe('redeem executing and turns to pending', function () {
-      // fund with assets
-      describe('redeem executing asset fund', function () {
-        beforeEach(async function () {
-          await setExecutingAssetFund(
-            manager,
-            investor,
-            fundProxy,
-            denomination,
-            shareToken,
-            purchaseAmount,
-            swapAmount,
-            execFeePercentage,
-            denominationAddress,
-            tokenAAddress,
-            hFunds,
-            aFurucombo,
-            taskExecutor,
-            hQuickSwap
-          );
-        });
+      it('redeem same share should get the same redeem amount', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const user2BalanceBefore = await denomination.balanceOf(user2.address);
 
-        it('turn to pending when redeem finish', async function () {
-          const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
-          const acceptPending = true;
-          const [, expectedBalance] = await fundProxy.calculateRedeemableBalance(redeemAmount);
-          const [balance, state] = await redeemFund(investor, fundProxy, denomination, redeemAmount, acceptPending);
+        const [user1RedeemAmount] = await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
 
-          const shareAmount = await shareToken.balanceOf(investor.address);
+        const [user2RedeemAmount, fundState] = await redeemFund(
+          user2,
+          fundProxy,
+          denomination,
+          eachUserShares,
+          acceptPending
+        );
 
-          expect(state).to.be.eq(FUND_STATE.PENDING);
-          expect(BigNumber.from(balance)).to.be.eq(expectedBalance);
-          expect(shareAmount).to.be.eq(0);
-        });
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const user2BalanceAfter = await denomination.balanceOf(user2.address);
+
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
+        expect(user2BalanceAfter).to.be.eq(user2BalanceBefore.add(user2RedeemAmount));
+        expect(user1RedeemAmount).to.be.eq(user2RedeemAmount);
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
       });
-    });
-    describe('redeem pending and stay in pending', function () {
-      describe('redeem pending asset fund', function () {
-        const redeemAmount = purchaseAmount.sub(swapAmount).add(mwei('100'));
-        const acceptPending = true;
 
-        beforeEach(async function () {
-          await setPendingAssetFund(
-            manager,
-            investor,
-            fundProxy,
-            denomination,
-            shareToken,
-            purchaseAmount,
-            swapAmount,
-            redeemAmount,
-            execFeePercentage,
-            denominationAddress,
-            tokenAAddress,
-            hFunds,
-            aFurucombo,
-            taskExecutor,
-            hQuickSwap
-          );
-        });
+      it('redeem double share should get double redeem amount', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const user2BalanceBefore = await denomination.balanceOf(user2.address);
+        const user3BalanceBefore = await denomination.balanceOf(user3.address);
 
-        it('stay in pending when redeem finish', async function () {
-          const _redeemAmount = mwei('500');
-          const expectedShareAmount = purchaseAmount.sub(MINIMUM_SHARE).sub(redeemAmount).sub(_redeemAmount);
+        const [user1RedeemAmount] = await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
 
-          const [, expectedBalance] = await fundProxy.calculateRedeemableBalance(_redeemAmount);
-          const [balance, state] = await redeemFund(investor, fundProxy, denomination, _redeemAmount, acceptPending);
+        const [user2RedeemAmount] = await redeemFund(user2, fundProxy, denomination, eachUserShares, acceptPending);
 
-          const shareAmount = await shareToken.balanceOf(investor.address);
+        const [user3RedeemAmount, fundState] = await redeemFund(
+          user3,
+          fundProxy,
+          denomination,
+          eachUserSharesDouble,
+          acceptPending
+        );
 
-          expect(state).to.be.eq(FUND_STATE.PENDING);
-          expect(BigNumber.from(balance)).to.be.eq(expectedBalance);
-          expect(shareAmount).to.be.eq(expectedShareAmount);
-        });
-        it('should revert: redeem amount > user balance', async function () {
-          const _redeemAmount = purchaseAmount;
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const user2BalanceAfter = await denomination.balanceOf(user2.address);
+        const user3BalanceAfter = await denomination.balanceOf(user3.address);
 
-          await expect(fundProxy.connect(investor).redeem(_redeemAmount, acceptPending)).to.be.revertedWith(
-            'RevertCode(73)'
-          ); // SHARE_MODULE_INSUFFICIENT_SHARE
-        });
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+        const user3Share = await shareToken.balanceOf(user3.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
+        expect(user2BalanceAfter).to.be.eq(user2BalanceBefore.add(user2RedeemAmount));
+        expect(user3BalanceAfter).to.be.eq(user3BalanceBefore.add(user3RedeemAmount));
+        expect(user1RedeemAmount).to.be.eq(user2RedeemAmount);
+        expect(user3RedeemAmount).to.be.eq(user1RedeemAmount.mul(2));
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(user3Share).to.be.eq(0);
+        expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
       });
-    });
-  });
-  describe('redeem in closed fund', function () {
-    it('vault denomination decreases when user redeems', async function () {
-      const redeemAmount = await setClosedDenominationFund(
+    }); // describe('Executing state') end
+
+    describe('Pending state', function () {
+      const acceptPending = true;
+      let eachUserShares: BigNumber, eachUserSharesDouble: BigNumber;
+
+      beforeEach(async function () {
+        const swapAmount = mwei('3000');
+        const redeemAmount = purchaseAmount.sub(swapAmount).add(mwei('1500'));
+
+        // makes fund pending
+        await setPendingAssetFund(
+          manager,
+          user0,
+          fundProxy,
+          denomination,
+          shareToken,
+          purchaseAmount,
+          swapAmount,
+          redeemAmount,
+          execFeePercentage,
+          denominationAddress,
+          tokenBAddress,
+          hFunds,
+          aFurucombo,
+          taskExecutor,
+          hQuickSwap
+        );
+
+        const user0Share = await shareToken.balanceOf(user0.address);
+        eachUserShares = user0Share.div(6);
+        eachUserSharesDouble = eachUserShares.mul(2);
+        await shareToken.connect(user0).transfer(user1.address, eachUserShares);
+        await shareToken.connect(user0).transfer(user2.address, eachUserShares);
+        await shareToken.connect(user0).transfer(user3.address, eachUserSharesDouble);
+      });
+
+      it('should revert: redeem with not accepting pending', async function () {
+        await expect(fundProxy.connect(user1).redeem(eachUserShares, false)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
+      });
+
+      it('redeem', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
+
+        await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
+
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const fundShareTokenAfter = await shareToken.balanceOf(fundProxy.address);
+        const user1Share = await shareToken.balanceOf(user1.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore);
+        expect(user1Share).to.be.eq(0);
+        expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares);
+      });
+
+      it('redeem same share', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const user2BalanceBefore = await denomination.balanceOf(user2.address);
+        const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
+
+        await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
+        await redeemFund(user2, fundProxy, denomination, eachUserShares, acceptPending);
+
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const user2BalanceAfter = await denomination.balanceOf(user2.address);
+
+        const fundShareTokenAfter = await shareToken.balanceOf(fundProxy.address);
+
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore);
+        expect(user2BalanceAfter).to.be.eq(user2BalanceBefore);
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares.mul(2));
+      });
+
+      it('redeem double share', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const user2BalanceBefore = await denomination.balanceOf(user2.address);
+        const user3BalanceBefore = await denomination.balanceOf(user3.address);
+        const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
+
+        await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
+        await redeemFund(user2, fundProxy, denomination, eachUserShares, acceptPending);
+        await redeemFund(user3, fundProxy, denomination, eachUserSharesDouble, acceptPending);
+
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const user2BalanceAfter = await denomination.balanceOf(user2.address);
+        const user3BalanceAfter = await denomination.balanceOf(user3.address);
+
+        const fundShareTokenAfter = await shareToken.balanceOf(fundProxy.address);
+
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+        const user3Share = await shareToken.balanceOf(user3.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore);
+        expect(user2BalanceAfter).to.be.eq(user2BalanceBefore);
+        expect(user3BalanceAfter).to.be.eq(user3BalanceBefore);
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(user3Share).to.be.eq(0);
+        expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares.mul(4));
+      });
+    }); // describe('Pending state') end
+
+    describe('Close state', function () {
+      const acceptPending = true;
+      let eachUserShares: BigNumber, eachUserSharesDouble: BigNumber;
+      let totalShare: BigNumber;
+
+      beforeEach(async function () {
+        await setClosedDenominationFund(manager, user0, fundProxy, denomination, shareToken, purchaseAmount);
+
+        totalShare = await shareToken.balanceOf(user0.address);
+        eachUserShares = totalShare.div(4);
+        eachUserSharesDouble = eachUserShares.mul(2);
+        await shareToken.connect(user0).transfer(user1.address, eachUserShares);
+        await shareToken.connect(user0).transfer(user2.address, eachUserShares);
+        await shareToken.connect(user0).transfer(user3.address, eachUserSharesDouble);
+      });
+
+      it('redeem', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+
+        const [user1RedeemAmount, fundState] = await redeemFund(
+          user1,
+          fundProxy,
+          denomination,
+          eachUserShares,
+          acceptPending
+        );
+
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const user1Share = await shareToken.balanceOf(user1.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
+        expect(user1Share).to.be.eq(0);
+        expect(fundState).to.be.eq(FUND_STATE.CLOSED);
+      });
+
+      it('redeem same share should get the same redeem amount', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const user2BalanceBefore = await denomination.balanceOf(user2.address);
+
+        const [user1RedeemAmount] = await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
+
+        const [user2RedeemAmount, fundState] = await redeemFund(
+          user2,
+          fundProxy,
+          denomination,
+          eachUserShares,
+          acceptPending
+        );
+
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const user2BalanceAfter = await denomination.balanceOf(user2.address);
+
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
+        expect(user2BalanceAfter).to.be.eq(user2BalanceBefore.add(user2RedeemAmount));
+        expect(user1RedeemAmount).to.be.eq(user2RedeemAmount);
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(fundState).to.be.eq(FUND_STATE.CLOSED);
+      });
+
+      it('redeem double share should get double redeem amount', async function () {
+        const user1BalanceBefore = await denomination.balanceOf(user1.address);
+        const user2BalanceBefore = await denomination.balanceOf(user2.address);
+        const user3BalanceBefore = await denomination.balanceOf(user3.address);
+
+        const [user1RedeemAmount] = await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
+
+        const [user2RedeemAmount] = await redeemFund(user2, fundProxy, denomination, eachUserShares, acceptPending);
+
+        const [user3RedeemAmount, fundState] = await redeemFund(
+          user3,
+          fundProxy,
+          denomination,
+          eachUserSharesDouble,
+          acceptPending
+        );
+
+        const user1BalanceAfter = await denomination.balanceOf(user1.address);
+        const user2BalanceAfter = await denomination.balanceOf(user2.address);
+        const user3BalanceAfter = await denomination.balanceOf(user3.address);
+
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+        const user3Share = await shareToken.balanceOf(user3.address);
+
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
+        expect(user2BalanceAfter).to.be.eq(user2BalanceBefore.add(user2RedeemAmount));
+        expect(user3BalanceAfter).to.be.eq(user3BalanceBefore.add(user3RedeemAmount));
+        expect(user1RedeemAmount).to.be.eq(user2RedeemAmount);
+        expect(user3RedeemAmount).to.be.eq(user1RedeemAmount.mul(2));
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(user3Share).to.be.eq(0);
+        expect(fundState).to.be.eq(FUND_STATE.CLOSED);
+      });
+    }); // describe('Close state') end
+  }); // describe('Without state change') end
+
+  describe('State change', function () {
+    describe('Executing --> Pending', function () {
+      const acceptPending = true;
+      const swapAmount = initialFunds.div(2);
+      let totalShare: BigNumber;
+      beforeEach(async function () {
+        await setExecutingAssetFund(
+          manager,
+          user0,
+          fundProxy,
+          denomination,
+          shareToken,
+          initialFunds,
+          swapAmount,
+          execFeePercentage,
+          denominationAddress,
+          tokenAAddress,
+          hFunds,
+          aFurucombo,
+          taskExecutor,
+          hQuickSwap
+        );
+        totalShare = await shareToken.balanceOf(user0.address);
+      });
+
+      it('should revert: redeem with not accepting pending', async function () {
+        await expect(fundProxy.connect(user0).redeem(totalShare, false)).to.be.revertedWith('RevertCode(74)'); // SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION
+      });
+
+      it('redeem', async function () {
+        // user1 redeem all shares
+        await shareToken.connect(user0).transfer(user1.address, totalShare);
+
+        const expectedRedeemBalance = await fundProxy.calculateBalance(totalShare);
+        const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
+
+        const [user1Balance, fundState] = await redeemFund(user1, fundProxy, denomination, totalShare, acceptPending);
+
+        const fundShareTokenAfter = await shareToken.balanceOf(fundProxy.address);
+        const user1Share = await shareToken.balanceOf(user1.address);
+
+        expect(expectedRedeemBalance).to.be.gt(user1Balance);
+        expect(fundShareTokenAfter).to.be.gt(fundShareTokenBefore);
+        expect(user1Share).to.be.eq(0);
+        expect(fundState).to.be.eq(FUND_STATE.PENDING);
+      });
+
+      it('2nd user redeem let fund goes to pending', async function () {
+        // user1 redeem, fund still in executing. user2 redeem led to fund go to pending.
+        const user1RedeemShare = swapAmount.div(2);
+        const user2RedeemShare = swapAmount;
+        await shareToken.connect(user0).transfer(user1.address, user1RedeemShare);
+        await shareToken.connect(user0).transfer(user2.address, user2RedeemShare);
+
+        const user1ExpectedRedeemBalance = await fundProxy.calculateBalance(user1RedeemShare);
+        const user2ExpectedRedeemBalance = await fundProxy.calculateBalance(user2RedeemShare);
+
+        const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
+
+        const [user1Balance, fundState1] = await redeemFund(user1, fundProxy, denomination, user1RedeemShare, false);
+        const [user2Balance, fundState2] = await redeemFund(
+          user2,
+          fundProxy,
+          denomination,
+          user2RedeemShare,
+          acceptPending
+        );
+
+        const fundShareTokenAfter = await shareToken.balanceOf(fundProxy.address);
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+
+        expect(user1ExpectedRedeemBalance).to.be.eq(user1Balance);
+        expect(user2ExpectedRedeemBalance).to.be.gt(user2Balance);
+        expect(fundShareTokenAfter).to.be.gt(fundShareTokenBefore);
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(fundState1).to.be.eq(FUND_STATE.EXECUTING);
+        expect(fundState2).to.be.eq(FUND_STATE.PENDING);
+      });
+
+      it('3rd user redeem let fund goes to pending', async function () {
+        // user1 and user2 redeem, fund still in executing. user3 redeem led to fund go to pending.
+        const user1RedeemShare = swapAmount.div(3);
+        const user2RedeemShare = user1RedeemShare;
+        const user3RedeemShare = swapAmount;
+        await shareToken.connect(user0).transfer(user1.address, user1RedeemShare);
+        await shareToken.connect(user0).transfer(user2.address, user2RedeemShare);
+        await shareToken.connect(user0).transfer(user3.address, user3RedeemShare);
+
+        const user1And2ExpectedRedeemBalance = await fundProxy.calculateBalance(user1RedeemShare);
+        const user3ExpectedRedeemBalance = await fundProxy.calculateBalance(user3RedeemShare);
+
+        const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
+
+        const [user1Balance] = await redeemFund(user1, fundProxy, denomination, user1RedeemShare, false);
+        const [user2Balance, fundState2] = await redeemFund(user2, fundProxy, denomination, user2RedeemShare, false);
+        const [user3Balance, fundState3] = await redeemFund(
+          user3,
+          fundProxy,
+          denomination,
+          user3RedeemShare,
+          acceptPending
+        );
+
+        const fundShareTokenAfter = await shareToken.balanceOf(fundProxy.address);
+        const user1Share = await shareToken.balanceOf(user1.address);
+        const user2Share = await shareToken.balanceOf(user2.address);
+        const user3Share = await shareToken.balanceOf(user3.address);
+
+        expect(user1And2ExpectedRedeemBalance).to.be.eq(user1Balance);
+        expect(user1And2ExpectedRedeemBalance).to.be.eq(user2Balance);
+        expect(user3ExpectedRedeemBalance).to.be.gt(user3Balance);
+        expect(fundShareTokenAfter).to.be.gt(fundShareTokenBefore);
+        expect(user1Share).to.be.eq(0);
+        expect(user2Share).to.be.eq(0);
+        expect(user3Share).to.be.eq(0);
+        expect(fundState2).to.be.eq(FUND_STATE.EXECUTING);
+        expect(fundState3).to.be.eq(FUND_STATE.PENDING);
+      });
+    }); // describe('Executing --> Pending') end
+  }); // describe('state change') end
+
+  describe('Claimable pending', function () {
+    const purchaseAmount = mwei('4000');
+    const swapAmount = mwei('3000');
+    const reserveAmount = purchaseAmount.sub(swapAmount);
+    const redeemAmount = reserveAmount.add(mwei('100'));
+
+    beforeEach(async function () {
+      // makes fund pending
+      await setPendingAssetFund(
         manager,
-        investor,
+        user1,
         fundProxy,
         denomination,
         shareToken,
-        purchaseAmount
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenBAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap
       );
-      const initBalance = await denomination.balanceOf(fundVault);
-
-      await redeemFund(investor, fundProxy, denomination, redeemAmount, acceptPending);
-
-      const afterBalance = await denomination.balanceOf(fundVault);
-
-      expect(afterBalance).to.be.eq(initBalance.sub(purchaseAmount).add(MINIMUM_SHARE));
     });
-    it('user get the right amount of denomination back when redeem full', async function () {
-      const initBalance = await denomination.balanceOf(investor.address);
 
-      const redeemAmount = await setClosedDenominationFund(
-        manager,
-        investor,
+    it('redeem and fund remains in executing', async function () {
+      // purchase to make pending amount to be settled
+      const [, fundState2] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
+      expect(fundState2).to.be.eq(FUND_STATE.EXECUTING);
+
+      // check user1 pending redemption is claimable or not
+      const claimable = await fundProxy.isPendingRedemptionClaimable(user1.address);
+      expect(claimable).to.be.true;
+
+      const expectedClaimableAmount = await fundProxy.callStatic.claimPendingRedemption(user1.address);
+
+      // user1 redeem
+      const user1ShareBefore = await shareToken.balanceOf(user1.address);
+      const expectedRedeemBalance = await fundProxy.calculateBalance(user1ShareBefore);
+      const user1BalanceBefore = await denomination.balanceOf(user1.address);
+
+      const redeemTx = await fundProxy.connect(user1).redeem(user1ShareBefore, true);
+
+      const user1BalanceAfter = await denomination.balanceOf(user1.address);
+      const user1ShareAfter = await shareToken.balanceOf(user1.address);
+      const fundState = await fundProxy.state();
+
+      expect(expectedClaimableAmount.add(expectedRedeemBalance)).to.be.eq(user1BalanceAfter.sub(user1BalanceBefore));
+      expect(redeemTx).to.emit(fundProxy, 'RedemptionClaimed').withArgs(user1.address);
+      expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
+      expect(user1ShareAfter).to.be.eq(0);
+    });
+
+    it('redeem and fund goes to pending', async function () {
+      // purchase to make pending amount to be settled
+      const [, fundState2] = await purchaseFund(
+        user2,
         fundProxy,
         denomination,
         shareToken,
-        purchaseAmount
+        redeemAmount.sub(reserveAmount).add(mwei('100')) // makes fund goes to executing and without too much reserve
       );
-      await redeemFund(investor, fundProxy, denomination, redeemAmount, acceptPending);
 
-      const afterBalance = await denomination.balanceOf(investor.address);
+      expect(fundState2).to.be.eq(FUND_STATE.EXECUTING);
 
-      expect(afterBalance).to.be.eq(initBalance.sub(MINIMUM_SHARE));
+      // check user1 pending redemption is claimable or not
+      const claimable = await fundProxy.isPendingRedemptionClaimable(user1.address);
+      expect(claimable).to.be.true;
+
+      const expectedClaimableAmount = await fundProxy.callStatic.claimPendingRedemption(user1.address);
+
+      // user1 redeem
+      const user1ShareBefore = await shareToken.balanceOf(user1.address);
+      const expectedRedeemBalance = await fundProxy.calculateBalance(user1ShareBefore);
+      const user1BalanceBefore = await denomination.balanceOf(user1.address);
+
+      const redeemTx = await fundProxy.connect(user1).redeem(user1ShareBefore, true);
+
+      const user1BalanceAfter = await denomination.balanceOf(user1.address);
+      const user1ShareAfter = await shareToken.balanceOf(user1.address);
+      const fundState = await fundProxy.state();
+
+      expect(expectedClaimableAmount.add(expectedRedeemBalance)).to.be.gt(user1BalanceAfter.sub(user1BalanceBefore));
+      expect(redeemTx).to.emit(fundProxy, 'RedemptionClaimed').withArgs(user1.address);
+      expect(fundState).to.be.eq(FUND_STATE.PENDING);
+      expect(user1ShareAfter).to.be.eq(0);
     });
-    //TODO: check again after pending list MR
-    it.skip('redeem the same amount before/after claimPending', async function () {});
   });
-  // TODO: redeem in different states?
+
+  describe('Dead oracle', function () {
+    const purchaseAmount = mwei('2000');
+    const swapAmount = purchaseAmount.div(2);
+
+    beforeEach(async function () {
+      await setExecutingAssetFund(
+        manager,
+        user0,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenBAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap
+      );
+
+      await oracle.connect(owner).setStalePeriod(1);
+      await increaseNextBlockTimeBy(ONE_DAY);
+    });
+
+    it('should revert: CHAINLINK_STALE_PRICE', async function () {
+      const share = await shareToken.balanceOf(user0.address);
+      await expect(fundProxy.connect(user0).redeem(share, true)).to.be.revertedWith('RevertCode(45)'); // CHAINLINK_STALE_PRICE
+    });
+  }); // describe('Dead oracle') end
+
+  describe('Other should revert cases', function () {
+    const purchaseAmount = mwei('2000');
+    const swapAmount = purchaseAmount.div(2);
+    const redeemAmount = purchaseAmount.sub(swapAmount).add(mwei('100'));
+    it('should revert: redeem in liquidating', async function () {
+      await setLiquidatingAssetFund(
+        manager,
+        user0,
+        liquidator,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        oracle,
+        hQuickSwap,
+        pendingExpiration
+      );
+      const share = await shareToken.balanceOf(user0.address);
+      await expect(fundProxy.connect(user0).redeem(share, true)).to.be.revertedWith('InvalidState(4)'); // LIQUIDATING
+    });
+
+    it('should revert: redeem more than user share', async function () {
+      await setExecutingAssetFund(
+        manager,
+        user0,
+        fundProxy,
+        denomination,
+        shareToken,
+        initialFunds,
+        swapAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap
+      );
+      const share = await shareToken.balanceOf(user0.address);
+      await expect(fundProxy.connect(user0).redeem(share.add(1), true)).to.be.revertedWith('RevertCode(73)'); // SHARE_MODULE_INSUFFICIENT_SHARE
+    });
+
+    it('should revert: redeem zero share', async function () {
+      await expect(fundProxy.connect(user0).redeem(0, true)).to.be.revertedWith('RevertCode(72)'); // SHARE_MODULE_REDEEM_ZERO_SHARE
+    });
+  }); // describe('Other should revert cases') end
 });
