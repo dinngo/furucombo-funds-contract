@@ -596,29 +596,6 @@ describe('InvestorRedeemFund', function () {
     });
 
     it('user1 redeem and fund remains in executing', async function () {
-      // const purchaseAmount = mwei('4000');
-      // const swapAmount = mwei('3000');
-      // const redeemAmount = purchaseAmount.sub(swapAmount).add(mwei('1000'));
-
-      // // makes fund pending
-      // await setPendingAssetFund(
-      //   manager,
-      //   user1,
-      //   fundProxy,
-      //   denomination,
-      //   shareToken,
-      //   purchaseAmount,
-      //   swapAmount,
-      //   redeemAmount,
-      //   execFeePercentage,
-      //   denominationAddress,
-      //   tokenBAddress,
-      //   hFunds,
-      //   aFurucombo,
-      //   taskExecutor,
-      //   hQuickSwap
-      // );
-
       // purchase to make pending amount to be settled
       const [, fundState2] = await purchaseFund(user2, fundProxy, denomination, shareToken, purchaseAmount);
       expect(fundState2).to.be.eq(FUND_STATE.EXECUTING);
@@ -647,30 +624,6 @@ describe('InvestorRedeemFund', function () {
     });
 
     it('user1 redeem and fund goes to pending', async function () {
-      // const purchaseAmount = mwei('4000');
-      // const swapAmount = mwei('3000');
-      // const reserveAmount = purchaseAmount.sub(swapAmount);
-      // const redeemAmount = reserveAmount.add(mwei('100'));
-
-      // // makes fund pending
-      // await setPendingAssetFund(
-      //   manager,
-      //   user1,
-      //   fundProxy,
-      //   denomination,
-      //   shareToken,
-      //   purchaseAmount,
-      //   swapAmount,
-      //   redeemAmount,
-      //   execFeePercentage,
-      //   denominationAddress,
-      //   tokenBAddress,
-      //   hFunds,
-      //   aFurucombo,
-      //   taskExecutor,
-      //   hQuickSwap
-      // );
-
       // purchase to make pending amount to be settled
       const [, fundState2] = await purchaseFund(
         user2,
