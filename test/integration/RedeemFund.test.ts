@@ -17,7 +17,15 @@ import {
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
 
-import { createFund, redeemFund, purchaseFund, setExecutingAssetFund, setPendingAssetFund, execSwap } from './fund';
+import {
+  createFund,
+  redeemFund,
+  purchaseFund,
+  setExecutingAssetFund,
+  setPendingAssetFund,
+  execSwap,
+  setLiquidatingAssetFund,
+} from './fund';
 
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -531,4 +539,34 @@ describe('InvestorRedeemFund', function () {
       await expect(fundProxy.connect(user0).redeem(share, true)).to.be.revertedWith('RevertCode(45)'); // CHAINLINK_STALE_PRICE
     });
   }); // describe('Dead oracle') end
+
+  describe('Other should revert cases', function () {
+    const purchaseAmount = mwei('2000');
+    const swapAmount = purchaseAmount.div(2);
+    const redeemAmount = purchaseAmount.sub(swapAmount).add(mwei('100'));
+    it('should revert: redeem in liquidating', async function () {
+      await setLiquidatingAssetFund(
+        manager,
+        user0,
+        liquidator,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        oracle,
+        hQuickSwap,
+        pendingExpiration
+      );
+      const share = await shareToken.balanceOf(user0.address);
+      await expect(fundProxy.connect(user0).redeem(share, true)).to.be.revertedWith('InvalidState(4)'); // LIQUIDATING
+    });
+  }); // describe('Other should revert cases') end
 });
