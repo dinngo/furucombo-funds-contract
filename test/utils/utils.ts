@@ -80,11 +80,7 @@ export function getCallActionData(ethValue: any, artifact: any, funcName: string
 }
 
 export async function impersonateAndInjectEther(address: string) {
-  // Impersonate pair
-  await hre.network.provider.send('hardhat_impersonateAccount', [address]);
-
-  // Inject 1 ether
-  await hre.network.provider.send('hardhat_setBalance', [address, '0xde0b6b3a7640000']);
+  _impersonateAndInjectEther(address);
   return await (ethers as any).getSigner(address);
 }
 
@@ -193,7 +189,7 @@ export async function tokenProviderCurveGauge(lpToken: string) {
 
   // Return non-zero gauge
   let gauge;
-  for (let element of gauges[0]) {
+  for (const element of gauges[0]) {
     if (element != constants.AddressZero) {
       gauge = element;
       break;
@@ -266,6 +262,14 @@ export function decimal6(amount: any) {
   return BigNumber.from(amount).mul(BigNumber.from('1000000'));
 }
 
+export function decimal6To18(amount: any) {
+  return amount.mul(ether('1')).div(mwei('1'));
+}
+
+export function decimal18To6(amount: any) {
+  return amount.mul(mwei('1')).div(ether('1'));
+}
+
 export async function increaseNextBlockTimeBy(interval: number) {
   const blockNumber = await ethers.provider.getBlockNumber();
   let block = null;
@@ -274,4 +278,5 @@ export async function increaseNextBlockTimeBy(interval: number) {
   }
   const jsonRpc = new ethers.providers.JsonRpcProvider();
   await jsonRpc.send('evm_setNextBlockTimestamp', [block.timestamp + interval]);
+  await jsonRpc.send('evm_mine', []);
 }

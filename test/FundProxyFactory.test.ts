@@ -121,6 +121,8 @@ describe('FundProxyFactory', function () {
         .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName);
       const eventArgs = await getEventArgs(receipt, 'FundCreated');
       const fundProxy = await ethers.getContractAt('FundImplementation', eventArgs.newFund);
+      const shareTokenAddress = await fundProxy.shareToken();
+      const shareToken = await ethers.getContractAt('ShareToken', shareTokenAddress);
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.REVIEWING);
       expect(await fundProxyFactory.isFundCreated(fundProxy.address)).to.be.true;
     });

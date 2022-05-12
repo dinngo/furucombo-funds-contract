@@ -168,7 +168,7 @@ describe('Chainlink', function () {
       // Calculate AMM price
       const ammAmount = baseAmount.mul(pairBalanceB).div(pairBalanceA);
 
-      expectEqWithinBps(chainlinkAmount, ammAmount, 100);
+      expectEqWithinBps(chainlinkAmount, ammAmount, 500);
     });
 
     it('base is tokenB', async function () {
@@ -181,7 +181,7 @@ describe('Chainlink', function () {
       // Calculate AMM price
       const ammAmount = baseAmount.mul(pairBalanceA).div(pairBalanceB);
 
-      expectEqWithinBps(chainlinkAmount, ammAmount, 100);
+      expectEqWithinBps(chainlinkAmount, ammAmount, 500);
     });
 
     it('zero amount', async function () {
