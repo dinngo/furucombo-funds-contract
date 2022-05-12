@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import {
@@ -22,6 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     console.log('executing "Registry" newly deployed setup');
 
+    const hash = '0x' + getGitHash().padEnd(64, '0');
     const registry = await ethers.getContractAt('FurucomboRegistry', result.address);
 
     // Register handler
@@ -32,18 +34,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hCurve = await deployments.get('HCurve');
     const hParaSwapV5 = await deployments.get('HParaSwapV5');
 
-    await registry.register(hAaveProtocolV2.address, ethers.utils.formatBytes32String('HAaveProtocolV2'));
-    await registry.register(hFunds.address, ethers.utils.formatBytes32String('HFunds'));
-    await registry.register(hQuickSwap.address, ethers.utils.formatBytes32String('HQuickSwap'));
-    await registry.register(hSushiSwap.address, ethers.utils.formatBytes32String('HSushiSwap'));
-    await registry.register(hCurve.address, ethers.utils.formatBytes32String('HCurve'));
-    await registry.register(hParaSwapV5.address, ethers.utils.formatBytes32String('HParaSwapV5'));
+    await registry.register(hAaveProtocolV2.address, hash);
+    await registry.register(hFunds.address, hash);
+    await registry.register(hQuickSwap.address, hash);
+    await registry.register(hSushiSwap.address, hash);
+    await registry.register(hCurve.address, hash);
+    await registry.register(hParaSwapV5.address, hash);
 
     // Register caller
-    await registry.registerCaller(
-      AAVE_LENDING_POOL,
-      ethers.utils.hexConcat([hAaveProtocolV2.address, '0x000000000000000000000000'])
-    );
+    await registry.registerCaller(AAVE_LENDING_POOL, hAaveProtocolV2.address.padEnd(66, '0'));
 
     // Set HCurve callee
     await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_AAVE_SWAP);
@@ -52,6 +51,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_EURTUSD_DEPOSIT);
   }
 };
+
+function getGitHash(): string {
+  const rev = readFileSync('.git/HEAD').toString().trim();
+  if (rev.indexOf(':') === -1) {
+    return rev;
+  } else {
+    return readFileSync('.git/' + rev.substring(5))
+      .toString()
+      .trim();
+  }
+}
 
 export default func;
 

@@ -46,8 +46,8 @@ export const WL_PARASWAP_V5_SIGS = [
 ];
 export const LEVEL = 1;
 export const LEVEL_AMOUNT = 0;
-export const EXEC_FEE_PERCENTAGE = 200; // 2%
-export const PENDING_EXPIRATION = 86400; // 1 day
+export const EXEC_FEE_PERCENTAGE = 20; // 0.2%
+export const PENDING_EXPIRATION = 86400 * 3; // 3 days
 export const VALUE_TOLERANCE = 9000; // 90%
 
 export const denominations: Record<string, BigNumber> = {
