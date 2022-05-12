@@ -32,7 +32,6 @@ import {
   FUND_STATE,
   ONE_DAY,
   MINIMUM_SHARE,
-  FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
 
 describe('ClaimPendingShare', function () {
@@ -180,6 +179,14 @@ describe('ClaimPendingShare', function () {
     expect(await fundProxy.state()).to.be.eq(FUND_STATE.LIQUIDATING);
   }
 
+  async function claimAndCheckCorrectness(address: string) {
+    const beforeBalance = await denomination.balanceOf(address);
+    const expectedClaimAmount = await getExpectedClaimAmount(address);
+    await fundProxy.claimPendingRedemption(address);
+    const afterBalance = await denomination.balanceOf(address);
+    expect(afterBalance).to.be.eq(beforeBalance.add(expectedClaimAmount));
+  }
+
   beforeEach(async function () {
     await setupTest();
   });
@@ -210,13 +217,8 @@ describe('ClaimPendingShare', function () {
         expect(state).to.be.eq(FUND_STATE.EXECUTING);
 
         // user1 claim pending
-        const beforeBalance = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance = await denomination.balanceOf(user1.address);
-
+        await claimAndCheckCorrectness(user1.address);
         expect(await fundProxy.state()).to.be.eq(FUND_STATE.EXECUTING);
-        expect(afterBalance).to.be.eq(beforeBalance.add(user1ExpectedClaimAmount));
       });
 
       it('2 users claim pending share', async function () {
@@ -249,21 +251,11 @@ describe('ClaimPendingShare', function () {
         expect(state).to.be.eq(FUND_STATE.EXECUTING);
 
         // user1 claim pending
-        const beforeBalance1 = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance1 = await denomination.balanceOf(user1.address);
-
+        await claimAndCheckCorrectness(user1.address);
         expect(await fundProxy.state()).to.be.eq(FUND_STATE.EXECUTING);
-        expect(afterBalance1).to.be.eq(beforeBalance1.add(user1ExpectedClaimAmount));
 
         // user2 claim pending
-        const beforeBalance2 = await denomination.balanceOf(user2.address);
-        const user2ExpectedClaimAmount = await getExpectedClaimAmount(user2.address);
-        await fundProxy.claimPendingRedemption(user2.address);
-        const afterBalance2 = await denomination.balanceOf(user2.address);
-
-        expect(afterBalance2).to.be.eq(beforeBalance2.add(user2ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user2.address);
       });
     });
 
@@ -295,12 +287,7 @@ describe('ClaimPendingShare', function () {
         await spendAllAndMakeFundGoesToPending(user2);
 
         // user1 claim pending
-        const beforeBalance = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance = await denomination.balanceOf(user1.address);
-
-        expect(afterBalance).to.be.eq(beforeBalance.add(user1ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user1.address);
       });
 
       it('2 users claim pending share', async function () {
@@ -334,20 +321,10 @@ describe('ClaimPendingShare', function () {
         await spendAllAndMakeFundGoesToPending(user3);
 
         // user1 claim pending
-        const beforeBalance1 = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance1 = await denomination.balanceOf(user1.address);
-
-        expect(afterBalance1).to.be.eq(beforeBalance1.add(user1ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user1.address);
 
         // user2 claim pending
-        const beforeBalance2 = await denomination.balanceOf(user2.address);
-        const user2ExpectedClaimAmount = await getExpectedClaimAmount(user2.address);
-        await fundProxy.claimPendingRedemption(user2.address);
-        const afterBalance2 = await denomination.balanceOf(user2.address);
-
-        expect(afterBalance2).to.be.eq(beforeBalance2.add(user2ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user2.address);
       });
     });
 
@@ -380,12 +357,7 @@ describe('ClaimPendingShare', function () {
         await makeFundGoesToLiquidating();
 
         // user1 claim pending
-        const beforeBalance = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance = await denomination.balanceOf(user1.address);
-
-        expect(afterBalance).to.be.eq(beforeBalance.add(user1ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user1.address);
       });
 
       it('2 users claim pending share', async function () {
@@ -422,20 +394,10 @@ describe('ClaimPendingShare', function () {
         await makeFundGoesToLiquidating();
 
         // user1 claim pending
-        const beforeBalance1 = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance1 = await denomination.balanceOf(user1.address);
-
-        expect(afterBalance1).to.be.eq(beforeBalance1.add(user1ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user1.address);
 
         // user2 claim pending
-        const beforeBalance2 = await denomination.balanceOf(user2.address);
-        const user2ExpectedClaimAmount = await getExpectedClaimAmount(user2.address);
-        await fundProxy.claimPendingRedemption(user2.address);
-        const afterBalance2 = await denomination.balanceOf(user2.address);
-
-        expect(afterBalance2).to.be.eq(beforeBalance2.add(user2ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user2.address);
       });
     });
     describe('Closed', function () {
@@ -479,12 +441,7 @@ describe('ClaimPendingShare', function () {
         await fundProxy.connect(manager).close();
 
         // user1 claim pending
-        const beforeBalance = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance = await denomination.balanceOf(user1.address);
-
-        expect(afterBalance).to.be.eq(beforeBalance.add(user1ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user1.address);
       });
 
       it('2 users claim pending share', async function () {
@@ -536,20 +493,10 @@ describe('ClaimPendingShare', function () {
         expect(await fundProxy.state()).to.be.eq(FUND_STATE.CLOSED);
 
         // user1 claim pending
-        const beforeBalance1 = await denomination.balanceOf(user1.address);
-        const user1ExpectedClaimAmount = await getExpectedClaimAmount(user1.address);
-        await fundProxy.claimPendingRedemption(user1.address);
-        const afterBalance1 = await denomination.balanceOf(user1.address);
-
-        expect(afterBalance1).to.be.eq(beforeBalance1.add(user1ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user1.address);
 
         // user2 claim pending
-        const beforeBalance2 = await denomination.balanceOf(user2.address);
-        const user2ExpectedClaimAmount = await getExpectedClaimAmount(user2.address);
-        await fundProxy.claimPendingRedemption(user2.address);
-        const afterBalance2 = await denomination.balanceOf(user2.address);
-
-        expect(afterBalance2).to.be.eq(beforeBalance2.add(user2ExpectedClaimAmount));
+        await claimAndCheckCorrectness(user2.address);
       });
     });
   });
