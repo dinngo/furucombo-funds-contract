@@ -7,6 +7,7 @@ import {IUniswapV2Pair} from "../../../interfaces/IUniswapV2Pair.sol";
 import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
 
+/// @title The uniswap v2 like resolver
 contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
     using SafeCast for int256;
 

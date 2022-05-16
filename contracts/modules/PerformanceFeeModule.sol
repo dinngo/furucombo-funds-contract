@@ -20,14 +20,16 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
 
-    /// @notice Returns the earliest time that can be crystallized next
-    /// even if more than one period has passed.
+    /// @notice Returns the earliest time that can be crystallized next even if
+    ///     more than one period has passed.
+    /// @return The timestamp of next crystallization.
     function getNextCrystallizationTime() external view returns (uint256) {
         uint256 lastPeriod = _timeToPeriod(lastCrystallization);
         return _periodToTime(lastPeriod + 1);
     }
 
     /// @notice Check if it can be crystallized.
+    /// @return The boolean of can crystallize or not.
     function isCrystallizable() public view virtual returns (bool) {
         uint256 nowPeriod = _timeToPeriod(block.timestamp);
         uint256 lastPeriod = _timeToPeriod(lastCrystallization);
@@ -36,11 +38,14 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     /// @notice Crystallize for the performance fee.
     /// @return Return the performance fee amount to be claimed.
+    /// @dev This will check whether it can be crystallized or not.
     function crystallize() public virtual returns (uint256) {
         Errors._require(isCrystallizable(), Errors.Code.PERFORMANCE_FEE_MODULE_CAN_NOT_CRYSTALLIZED_YET);
         return _crystallize();
     }
 
+    /// @notice Crystallize for the performance fee.
+    /// @return Return the performance fee amount to be claimed.
     function _crystallize() internal virtual returns (uint256) {
         uint256 totalShare = shareToken.netTotalShare();
         if (totalShare == 0) return 0;
@@ -60,20 +65,21 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Convert the time to the number of crystallization periods.
+    /// @param timestamp_ The timastamp want to convert.
+    /// @return The period of crystallization.
     function _timeToPeriod(uint256 timestamp_) internal view returns (uint256) {
         Errors._require(timestamp_ >= crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
         return (timestamp_ - crystallizationStart) / crystallizationPeriod;
     }
 
     /// @notice Convert the number of crystallization periods to time.
+    /// @param period_ The period want to convert.
+    /// @return The timestamp of period.
     function _periodToTime(uint256 period_) internal view returns (uint256) {
         return crystallizationStart + period_ * crystallizationPeriod;
     }
 
-    function __getGrossAssetValue() internal view virtual returns (uint256);
-
-    /// @notice Initial the performance fee crystallization time
-    /// and high water mark.
+    /// @notice Initial the performance fee crystallization time and high water mark.
     function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = _FEE_BASE64x64;
         hwm64x64 = _FEE_BASE64x64;
@@ -83,6 +89,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     /// @notice Set the performance fee rate.
     /// @param feeRate_ The fee rate on a 1e4 basis.
+    /// @return The performance fee rate.
     function _setPerformanceFeeRate(uint256 feeRate_) internal virtual returns (int128) {
         Errors._require(
             feeRate_ < _FUND_PERCENTAGE_BASE,
@@ -101,6 +108,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     /// @notice Update the performance fee base on the performance since last
     /// time. The fee will be minted as outstanding share.
+    /// @param grossAssetValue_ The gross asset value.
     function _updatePerformanceFee(uint256 grossAssetValue_) internal virtual {
         // Get accumulated wealth
         uint256 totalShare = shareToken.netTotalShare();
@@ -126,8 +134,14 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         lastGrossSharePrice64x64 = grossSharePrice64x64;
     }
 
+    /// @notice Update gross share price.
+    /// @param grossAssetValue_ The gross asset value.
     function _updateGrossSharePrice(uint256 grossAssetValue_) internal virtual {
         uint256 totalShare = shareToken.netTotalShare();
         lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
     }
+
+    /// @notice Get the gross asset value.
+    /// @return The value of gross asset.
+    function __getGrossAssetValue() internal view virtual returns (uint256);
 }

@@ -7,6 +7,7 @@ import {Errors} from "../../utils/Errors.sol";
 import {IAssetOracle} from "../interfaces/IAssetOracle.sol";
 import {IChainlinkAggregatorV3} from "../interfaces/IChainlinkAggregatorV3.sol";
 
+/// @title Chainlink oracle
 contract Chainlink is IAssetOracle, Ownable {
     uint256 public stalePeriod;
 
@@ -40,6 +41,8 @@ contract Chainlink is IAssetOracle, Ownable {
         return (baseAmount_ * basePrice * quoteUnit) / (baseUnit * quotePrice);
     }
 
+    /// @notice Set the stale period.
+    /// @param stalePeriod_ The period of stale.
     function setStalePeriod(uint256 stalePeriod_) external onlyOwner {
         stalePeriod = stalePeriod_;
         emit StalePeriodUpdated(stalePeriod_);

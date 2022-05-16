@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Errors} from "./utils/Errors.sol";
 
+/// @title The fund mortage vault
 contract MortgageVault {
     using SafeERC20 for IERC20;
 
@@ -18,6 +19,8 @@ contract MortgageVault {
         mortgageToken = token_;
     }
 
+    /// @notice Mortgage the token in this contract.
+    /// @param amount_ The mortage token amount.
     function mortgage(uint256 amount_) external {
         if (amount_ == 0) return;
         address fund = msg.sender;
@@ -28,6 +31,8 @@ contract MortgageVault {
         emit Mortgaged(fund, amount_);
     }
 
+    /// @notice Claim the message sender mortage token to receiver.
+    /// @param receiver_ The receiver address.
     function claim(address receiver_) external {
         address fund = msg.sender;
         uint256 amount = fundAmounts[fund];

@@ -10,6 +10,7 @@ abstract contract ExecutionModule is FundProxyStorageUtils {
     /// @notice Execute on the fund's behalf. Execution is valid during
     /// Executing and Pending state.
     /// @param data_ The data to be applied to the execution.
+    /// @dev This funtion is use in `Executing`, `Pending` and `Liquidating` states.
     function execute(bytes calldata data_)
         public
         virtual
@@ -25,10 +26,12 @@ abstract contract ExecutionModule is FundProxyStorageUtils {
         emit Executed();
     }
 
+    /// @notice The virtual function before execution.
     function _beforeExecute() internal virtual returns (uint256) {
         return 0;
     }
 
+    /// @notice The virtual function after execution.
     function _afterExecute(bytes memory, uint256) internal virtual returns (uint256) {
         return 0;
     }

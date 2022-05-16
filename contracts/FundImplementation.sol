@@ -13,9 +13,9 @@ import {IComptroller} from "./interfaces/IComptroller.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {Errors} from "./utils/Errors.sol";
 
-/// @title The implementation contract for fund.
+/// @title The implementation contract for fund
 /// @notice The functions that requires ownership, interaction between
-/// different modules should be override and implemented here.
+///     different modules should be override and implemented here.
 contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
@@ -28,7 +28,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // State Changes
     /////////////////////////////////////////////////////
-    /// @notice Initializer.
+    /// @notice Initializer, only during reviewing.
     /// @param level_ The tier of the fund.
     /// @param comptroller_ The comptroller address.
     /// @param denomination_ The denomination asset.
@@ -94,6 +94,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Resume the fund by anyone if can settle pending share.
+    /// @dev The resume only during pending state.
     function resume() external nonReentrant whenState(State.Pending) {
         uint256 grossAssetValue = getGrossAssetValue();
         Errors._require(
@@ -117,8 +118,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         _transferOwnership(comptroller.pendingLiquidator());
     }
 
-    /// @notice Close the fund. The pending share will be settled
-    /// without penalty.
+    /// @notice Close the fund. The pending share will be settled without penalty.
+    /// @dev This funtion is use in `Executing` and `Liquidating` states.
+    /// @inheritdoc AssetModule
     function close() public override onlyOwner nonReentrant whenStates(State.Executing, State.Liquidating) {
         _settlePendingShare(false);
         if (state == State.Executing) {
@@ -133,16 +135,19 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     // Setters
     /////////////////////////////////////////////////////
     /// @notice Set management fee rate only during reviewing.
+    /// @param mFeeRate_ The management fee rate on a 1e4 basis.
     function setManagementFeeRate(uint256 mFeeRate_) external onlyOwner whenState(State.Reviewing) {
         _setManagementFeeRate(mFeeRate_);
     }
 
     /// @notice Set performance fee rate only during reviewing.
+    /// @param pFeeRate_ The performance fee rate on a 1e4 basis.
     function setPerformanceFeeRate(uint256 pFeeRate_) external onlyOwner whenState(State.Reviewing) {
         _setPerformanceFeeRate(pFeeRate_);
     }
 
     /// @notice Set crystallization period only during reviewing.
+    /// @param crystallizationPeriod_ The crystallization period to be set in second.
     function setCrystallizationPeriod(uint256 crystallizationPeriod_) external onlyOwner whenState(State.Reviewing) {
         _setCrystallizationPeriod(crystallizationPeriod_);
     }
@@ -150,6 +155,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Getters
     /////////////////////////////////////////////////////
+    /// @notice Get gross asset value.
+    /// @return Convert value to denomication amount.
     function getGrossAssetValue() public view virtual returns (uint256) {
         address[] memory assets = getAssetList();
         uint256 length = assets.length;
@@ -174,12 +181,14 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return comptroller.assetRouter();
     }
 
+    /// inheritdoc ShareModule, PerformanceFeeModule.
     function __getGrossAssetValue() internal view override(ShareModule, PerformanceFeeModule) returns (uint256) {
         return getGrossAssetValue();
     }
 
     /// @notice Get the balance of the denomination asset.
     /// @return The balance of reserve.
+    /// @inheritdoc ShareModule
     function getReserve() public view override returns (uint256) {
         return denomination.balanceOf(address(vault));
     }
@@ -196,6 +205,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Add the asset to the tracking list.
     /// @param asset_ The asset to be added.
+    /// @inheritdoc AssetModule
     function _addAsset(address asset_) internal override {
         Errors._require(comptroller.isValidDealingAsset(level, asset_), Errors.Code.IMPLEMENTATION_INVALID_ASSET);
 
@@ -220,6 +230,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
 
     /// @notice Remove the asset from the tracking list.
     /// @param asset_ The asset to be removed.
+    /// @inheritdoc AssetModule
     function _removeAsset(address asset_) internal override {
         // Do not allow to remove denomination from list
         address _denomination = address(denomination);
@@ -233,6 +244,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         }
     }
 
+    /// @notice Get the denomination dust.
+    /// @param denomination_ The denomination address.
+    /// @return The dust of denomination.
     function _getDenominationDust(address denomination_) internal view returns (int256) {
         return comptroller.getDenominationDust(denomination_).toInt256();
     }
@@ -240,10 +254,12 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Execution module
     /////////////////////////////////////////////////////
+    /// @inheritdoc ExecutionModule
     function execute(bytes calldata data_) public override nonReentrant onlyOwner {
         super.execute(data_);
     }
 
+    /// @notice Check the value is tolerance after execute.
     function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
         uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) /
             _FUND_PERCENTAGE_BASE;
@@ -252,11 +268,15 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Execute an action on the fund's behalf.
+    /// @return The gross asset value.
+    /// @inheritdoc ExecutionModule
     function _beforeExecute() internal virtual override returns (uint256) {
         return getGrossAssetValue();
     }
 
     /// @notice Check the reserve after the execution.
+    /// @return The gross asset value.
+    /// @inheritdoc ExecutionModule
     function _afterExecute(bytes memory response_, uint256 prevGrossAssetValue_) internal override returns (uint256) {
         // Remove asset from assetList
         address[] memory assetList = getAssetList();
@@ -294,6 +314,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     // Management fee module
     /////////////////////////////////////////////////////
     /// @notice Manangement fee should only be accumulated in executing state.
+    /// @return The share being minted this time.
+    /// @inheritdoc ManagementFeeModule
     function _updateManagementFee() internal override returns (uint256) {
         if (state == State.Executing) {
             return super._updateManagementFee();
@@ -306,7 +328,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     /////////////////////////////////////////////////////
     // Performance fee module
     /////////////////////////////////////////////////////
-    /// @notice Crystallize should only be triggered by owner
+    /// @notice Crystallize should only be triggered by owner.
+    /// @dev This funtion is use in `Executing` and `Pending` states.
+    /// @inheritdoc PerformanceFeeModule
     function crystallize()
         public
         override
@@ -318,12 +342,17 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return super.crystallize();
     }
 
+    /// @notice Performance fee should update in executing and pending state.
+    /// @inheritdoc PerformanceFeeModule
     function _updatePerformanceFee(uint256 grossAssetValue_) internal override {
         if (state == State.Executing || state == State.Pending) {
             super._updatePerformanceFee(grossAssetValue_);
         }
     }
 
+    /// @notice Befor performance fee crystallize will update management fee.
+    /// @return The performance fee amount to be claimed.
+    /// @inheritdoc PerformanceFeeModule
     function _crystallize() internal override returns (uint256) {
         _updateManagementFee();
         return super._crystallize();
@@ -333,7 +362,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     // Share module
     /////////////////////////////////////////////////////
     /// @notice Update the management fee and performance fee before purchase
-    /// to get the lastest share price.
+    ///     to get the lastest share price.
+    /// @return The gross asset value.
+    /// @inheritdoc ShareModule
     function _beforePurchase() internal override returns (uint256) {
         uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
@@ -342,6 +373,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Update the gross share price after the purchase.
+    /// @inheritdoc ShareModule
     function _afterPurchase(uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
         if (state == State.Pending && _isPendingResolvable(true, grossAssetValue_)) {
@@ -353,7 +385,9 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Update the management fee and performance fee before redeem
-    /// to get the latest share price.
+    ///     to get the latest share price.
+    /// @return The gross asset value.
+    /// @inheritdoc ShareModule
     function _beforeRedeem() internal override returns (uint256) {
         uint256 grossAssetValue = getGrossAssetValue();
         _updateManagementFee();
@@ -361,6 +395,8 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return grossAssetValue;
     }
 
+    /// @notice Update the gross share price after the redeem.
+    /// @inheritdoc ShareModule
     function _afterRedeem(uint256 grossAssetValue_) internal override {
         _updateGrossSharePrice(grossAssetValue_);
         return;

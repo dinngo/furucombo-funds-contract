@@ -9,6 +9,8 @@ import {IFund} from "./interfaces/IFund.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 import {Errors} from "./utils/Errors.sol";
 
+/// @title Fund proxy factory
+/// @notice Deploys Furucombo Funds with fund proxy, vault and share token.
 contract FundProxyFactory {
     event FundCreated(address indexed newFund, address comptroller, address shareToken, address vault);
 
@@ -19,6 +21,12 @@ contract FundProxyFactory {
         comptroller = comptroller_;
     }
 
+    /// @notice Emitted when a fund is created.
+    /// @param denomination_ The fund denomination.
+    /// @param level_ The tier of the fund.
+    /// @param mFeeRate_ The management fee rate.
+    /// @param pFeeRate_ The performance fee rate.
+    /// @param shareTokenName_ The share token name.
     function createFund(
         IERC20Metadata denomination_,
         uint256 level_,

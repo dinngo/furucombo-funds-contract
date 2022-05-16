@@ -25,6 +25,10 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return _calculateShare(balance_, grossAssetValue);
     }
 
+    /// @notice Calculate the share amount corresponding to the given balance.
+    /// @param balance_ The balance to be queried.
+    /// @param grossAssetValue_ The gross asset value.
+    /// @return share The share amount.
     function _calculateShare(uint256 balance_, uint256 grossAssetValue_) internal view virtual returns (uint256 share) {
         uint256 shareAmount = shareToken.grossTotalShare();
         if (shareAmount == 0) {
@@ -37,8 +41,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
     }
 
-    /// @notice Calculate the balance amount corresponding to the given share
-    /// amount.
+    /// @notice Calculate the balance amount corresponding to the given share amount.
     /// @param share_ The share amount to be queried.
     /// @return balance The balance.
     function calculateBalance(uint256 share_) external view returns (uint256 balance) {
@@ -106,6 +109,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
 
     /// @notice Purchase share with the given balance. Can only purchase at Executing and Pending state.
     /// @return share The share amount being purchased.
+    /// @dev This funtion is use in `Executing` and `Pending` states.
     function purchase(uint256 balance_)
         external
         virtual
@@ -144,6 +148,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     }
 
     /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
+    /// @dev This funtion is use in `Executing`, `Pending` and `Closed` states.
     function redeem(uint256 share_, bool acceptPending_)
         external
         virtual

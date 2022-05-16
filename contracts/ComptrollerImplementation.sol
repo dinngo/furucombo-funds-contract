@@ -11,6 +11,8 @@ import {IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 import {Errors} from "./utils/Errors.sol";
 
+/// @title The implementation contract for comptroller
+/// @notice Set the parameters that fund will share here and permission control.
 contract ComptrollerImplementation is Ownable, IComptroller {
     using Whitelist for Whitelist.ActionWList;
     using Whitelist for Whitelist.AssetWList;
@@ -115,6 +117,17 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         renounceOwnership();
     }
 
+    /// @notice Initializer.
+    /// @param implementation_ The fund implementation address.
+    /// @param assetRouter_ The asset router address.
+    /// @param execFeeCollector_ The execute fee collector address.
+    /// @param execFeePercentage_ The ececute fee percentage on a 1e4 basis.
+    /// @param pendingLiquidator_ The pending liquidator address.
+    /// @param pendingExpiration_ The pending expiration to be set in second.
+    /// @param mortgageVault_ The mortgage vault address.
+    /// @param execAssetValueToleranceRate_ The exec asset value tolerance rate.
+    /// @param dsProxyRegistry_ The DSProxy registry address.
+    /// @param setupAction_ The setup action address.
     function initialize(
         address implementation_,
         IAssetRouter assetRouter_,
@@ -147,84 +160,101 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         beacon.transferOwnership(msg.sender);
     }
 
+    /// @notice Get the implementation address.
+    /// @return The address of implementation address.
     function implementation() external view onlyUnHalted onlyUnbannedFundProxy returns (address) {
         return beacon.implementation();
     }
 
+    /// @inheritdoc IComptroller
     function owner() public view override(Ownable, IComptroller) returns (address) {
         return Ownable.owner();
     }
 
-    // Halt
+    /// @notice Halt the protocol.
     function halt() external onlyOwner {
         fHalt = true;
         emit Halted();
     }
 
+    /// @notice Unhalt the protocol.
     function unHalt() external onlyOwner {
         fHalt = false;
         emit UnHalted();
     }
 
-    // Asset router
+    /// @notice Set asset router.
+    /// @param assetRouter_ The asset router address.
     function setAssetRouter(IAssetRouter assetRouter_) public nonZeroAddress(address(assetRouter_)) onlyOwner {
         assetRouter = assetRouter_;
         emit SetAssetRouter(address(assetRouter_));
     }
 
-    // Mortgage Vault
+    /// @notice Set mortgage vault.
+    /// @param mortgageVault_ The mortage vault address.
     function setMortgageVault(IMortgageVault mortgageVault_) public nonZeroAddress(address(mortgageVault_)) onlyOwner {
         mortgageVault = mortgageVault_;
         emit SetMortgageVault(address(mortgageVault_));
     }
 
-    // Fee
+    /// @notice Set execution fee collector.
+    /// @param collector_ The collector address.
     function setFeeCollector(address collector_) public nonZeroAddress(collector_) onlyOwner {
         execFeeCollector = collector_;
         emit SetExecFeeCollector(collector_);
     }
 
+    /// @notice Set execution fee percentage.
+    /// @param percentage_ The fee percentage on a 1e4 basis.
     function setExecFeePercentage(uint256 percentage_) public onlyOwner {
         execFeePercentage = percentage_;
         emit SetExecFeePercentage(percentage_);
     }
 
-    // Pending
+    /// @notice Set pending liquidator.
+    /// @param liquidator_ The liquidator address.
     function setPendingLiquidator(address liquidator_) public nonZeroAddress(liquidator_) onlyOwner {
         pendingLiquidator = liquidator_;
         emit SetPendingLiquidator(liquidator_);
     }
 
+    /// @notice Set pending expiration.
+    /// @param expiration_ The pending expiration to be set in second.
     function setPendingExpiration(uint256 expiration_) public onlyOwner {
         pendingExpiration = expiration_;
         emit SetPendingExpiration(expiration_);
     }
 
-    // Share
+    /// @notice Set pending state withdraw penalty.
+    /// @param penalty_ The penalty percentage on a 1e4 basis.
     function setPendingPenalty(uint256 penalty_) public onlyOwner {
         pendingPenalty = penalty_;
         emit SetPendingPenalty(penalty_);
     }
 
-    // Maximum kinds of asset
+    /// @notice Set maximum kinds of asset capacity.
+    /// @param assetCapacity_ The number of asset.
     function setAssetCapacity(uint256 assetCapacity_) public onlyOwner {
         assetCapacity = assetCapacity_;
         emit SetAssetCapacity(assetCapacity_);
     }
 
-    // Execution asset value tolerance
+    /// @notice Set execution asset value tolerance rate.
+    /// @param tolerance_ The tolerance rate on a 1e4 basis.
     function setExecAssetValueToleranceRate(uint256 tolerance_) public onlyOwner {
         execAssetValueToleranceRate = tolerance_;
         emit SetExecAssetValueToleranceRate(tolerance_);
     }
 
-    // Initial asset check
+    /// @notice Set to check initial or not.
+    /// @param check_ The boolean of check initial asset.
     function setInitialAssetCheck(bool check_) public onlyOwner {
         fInitialAssetCheck = check_;
         emit SetInitialAssetCheck(check_);
     }
 
-    // set dsproxy registry
+    /// @notice Set the DSProcy registry.
+    /// @param dsProxyRegistry_ The DSProxy Registry address.
     function setDSProxyRegistry(IDSProxyRegistry dsProxyRegistry_)
         public
         nonZeroAddress(address(dsProxyRegistry_))
@@ -234,13 +264,16 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         emit SetDSProxyRegistry(address(dsProxyRegistry_));
     }
 
-    // set setup action
+    /// @notice Set the setup action.
+    /// @param setupAction_ The setup action address.
     function setSetupAction(ISetupAction setupAction_) public nonZeroAddress(address(setupAction_)) onlyOwner {
         setupAction = setupAction_;
         emit SetSetupAction(address(setupAction_));
     }
 
-    // Denomination whitelist
+    /// @notice Permit denomination whitelist.
+    /// @param denominations_ The denomination address array.
+    /// @param dusts_ The permit denomination dust array.
     function permitDenominations(address[] calldata denominations_, uint256[] calldata dusts_) external onlyOwner {
         Errors._require(
             denominations_.length == dusts_.length,
@@ -254,6 +287,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Forbid denomination whitelist.
+    /// @param denominations_ The forbid denomination array.
     function forbidDenominations(address[] calldata denominations_) external onlyOwner {
         for (uint256 i = 0; i < denominations_.length; i++) {
             delete denomination[denominations_[i]];
@@ -261,44 +296,59 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Check the denomination is valid.
+    /// @param denomination_ The denomination address.
+    /// @return The boolean of valid or not.
     function isValidDenomination(address denomination_) external view returns (bool) {
         return denomination[denomination_].isPermitted;
     }
 
+    /// @notice Get the denomination dust.
+    /// @param denomination_ The denomination address.
+    /// @return The dust of denomination.
     function getDenominationDust(address denomination_) external view returns (uint256) {
         return denomination[denomination_].dust;
     }
 
-    // Ban fund proxy
+    /// @notice Ban the fund proxy.
+    /// @param fundProxy_ The fund proxy address.
     function banFundProxy(address fundProxy_) external onlyOwner {
         bannedFundProxy[fundProxy_] = true;
         emit FundProxyBanned(fundProxy_);
     }
 
+    /// @notice Unban the fund proxy.
+    /// @param fundProxy_ The fund proxy address.
     function unbanFundProxy(address fundProxy_) external onlyOwner {
         bannedFundProxy[fundProxy_] = false;
         emit FundProxyUnbanned(fundProxy_);
     }
 
-    // Mortgage tier amount
+    /// @notice Set mortgage tier.
+    /// @param level_ The level of mortgage.
+    /// @param amount_ The amount of mortage level.
     function setMortgageTier(uint256 level_, uint256 amount_) external onlyOwner {
         mortgageTier[level_].isSet = true;
         mortgageTier[level_].amount = amount_;
         emit SetMortgageTier(level_, amount_);
     }
 
+    /// @notice Unset mortgage tier.
+    /// @param level_ The level of mortage.
     function unsetMortgageTier(uint256 level_) external onlyOwner {
         delete mortgageTier[level_];
         emit UnsetMortgageTier(level_);
     }
 
-    // Action
+    /// @notice Set execution action.
+    /// @param action_ The action of address.
     function setExecAction(address action_) external nonZeroAddress(action_) onlyOwner {
         execAction = action_;
         emit SetExecAction(action_);
     }
 
-    // Creator whitelist
+    /// @notice Permit creator whitelist.
+    /// @param creators_ The permit creator address array.
     function permitCreators(address[] calldata creators_) external onlyOwner {
         for (uint256 i = 0; i < creators_.length; i++) {
             _creatorACL._permit(creators_[i]);
@@ -306,6 +356,8 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Forbid creator whitelist.
+    /// @param creators_ The forbid creator address array.
     function forbidCreators(address[] calldata creators_) external onlyOwner {
         for (uint256 i = 0; i < creators_.length; i++) {
             _creatorACL._forbid(creators_[i]);
@@ -313,11 +365,16 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Check is valid creator.
+    /// @param creator_ The creator address.
+    /// @return The boolean of valid or not.
     function isValidCreator(address creator_) external view returns (bool) {
         return _creatorACL._canCall(creator_);
     }
 
-    // Asset whitelist
+    /// @notice Permit asset whitelist.
+    /// @param level_ The permit level.
+    /// @param assets_ The permit asset array of level.
     function permitAssets(uint256 level_, address[] calldata assets_) external onlyOwner {
         for (uint256 i = 0; i < assets_.length; i++) {
             _assetACL._permit(level_, assets_[i]);
@@ -325,6 +382,9 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Forbid asset whitelist.
+    /// @param level_ The forbid level.
+    /// @param assets_ The forbid asset array of level.
     function forbidAssets(uint256 level_, address[] calldata assets_) external onlyOwner {
         for (uint256 i = 0; i < assets_.length; i++) {
             _assetACL._forbid(level_, assets_[i]);
@@ -332,6 +392,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Check is valid dealing assets.
+    /// @param level_ The valid level.
+    /// @param assets_ The asset array of level.
+    /// @return The boolean of valid or not.
     function isValidDealingAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
         for (uint256 i = 0; i < assets_.length; i++) {
             if (!isValidDealingAsset(level_, assets_[i])) {
@@ -341,10 +405,18 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return true;
     }
 
+    /// @notice Check is valid dealing asset.
+    /// @param level_ The valid level.
+    /// @param asset_ The asset of level.
+    /// @return The boolean of valid or not.
     function isValidDealingAsset(uint256 level_, address asset_) public view returns (bool) {
         return _assetACL._canCall(level_, asset_);
     }
 
+    /// @notice Check is valid initial assets.
+    /// @param level_ The valid level.
+    /// @param assets_ The asset array of level.
+    /// @return The boolean of valid or not.
     function isValidInitialAssets(uint256 level_, address[] calldata assets_) external view returns (bool) {
         for (uint256 i = 0; i < assets_.length; i++) {
             if (!isValidInitialAsset(level_, assets_[i])) {
@@ -354,6 +426,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return true;
     }
 
+    /// @notice Check is valid initial asset.
+    /// @param level_ The valid level.
+    /// @param asset_ The asset of level.
+    /// @return The boolean of valid or not.
     function isValidInitialAsset(uint256 level_, address asset_) public view returns (bool) {
         // check if input check flag is true
         if (fInitialAssetCheck) {
@@ -362,15 +438,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return true;
     }
 
-    // DelegateCall whitelist function
-    function canDelegateCall(
-        uint256 level_,
-        address to_,
-        bytes4 sig_
-    ) external view returns (bool) {
-        return _delegateCallACL._canCall(level_, to_, sig_);
-    }
-
+    /// @notice Permit delegate call whitelist.
+    /// @param level_ The permit level.
+    /// @param tos_ The permit delegate call address array.
+    /// @param sigs_ The permit function signature array.
     function permitDelegateCalls(
         uint256 level_,
         address[] calldata tos_,
@@ -382,6 +453,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Forbid delegate call whitelist.
+    /// @param level_ The forbid level.
+    /// @param tos_ The forbid delegate call address array.
+    /// @param sigs_ The forbid function signature array.
     function forbidDelegateCalls(
         uint256 level_,
         address[] calldata tos_,
@@ -393,7 +468,23 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
-    // Contract call whitelist function
+    /// @notice Check delegate can call.
+    /// @param level_ The delegate call level.
+    /// @param to_ The delegate call address.
+    /// @param sig_ The function signature.
+    /// @return The boolean of can call or not.
+    function canDelegateCall(
+        uint256 level_,
+        address to_,
+        bytes4 sig_
+    ) external view returns (bool) {
+        return _delegateCallACL._canCall(level_, to_, sig_);
+    }
+
+    /// @notice Permit contract call whitelist.
+    /// @param level_ The permit level.
+    /// @param tos_ The permit contract call address array.
+    /// @param sigs_ The permit function signature array.
     function permitContractCalls(
         uint256 level_,
         address[] calldata tos_,
@@ -405,6 +496,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Forbid contract call whitelist.
+    /// @param level_ The forbid level.
+    /// @param tos_ The forbid contract call address array.
+    /// @param sigs_ The forbid funcion signature array.
     function forbidContractCalls(
         uint256 level_,
         address[] calldata tos_,
@@ -416,6 +511,11 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Check contract can call.
+    /// @param level_ The contract call level.
+    /// @param to_ The contract call address.
+    /// @param sig_ The function signature.
+    /// @return The boolean of can call or not.
     function canContractCall(
         uint256 level_,
         address to_,
@@ -424,7 +524,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         return _contractCallACL._canCall(level_, to_, sig_);
     }
 
-    // Handler whitelist function
+    /// @notice Permit handler whitelist.
+    /// @param level_ The permit level.
+    /// @param tos_ The permit handler address array.
+    /// @param sigs_ The permit function signature array.
     function permitHandlers(
         uint256 level_,
         address[] calldata tos_,
@@ -436,6 +539,10 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Forbid handler whitelist.
+    /// @param level_ The forbid level.
+    /// @param tos_ The forbid handler address array.
+    /// @param sigs_ The forbid funcion signature array.
     function forbidHandlers(
         uint256 level_,
         address[] calldata tos_,
@@ -447,6 +554,11 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
+    /// @notice Check handler can call.
+    /// @param level_ The handler call level.
+    /// @param to_ The handler call address.
+    /// @param sig_ The function signature.
+    /// @return The boolean of can call or not.
     function canHandlerCall(
         uint256 level_,
         address to_,
