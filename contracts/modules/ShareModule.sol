@@ -18,7 +18,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     event RedemptionClaimed(address indexed user, uint256 assetAmount);
 
     /// @notice Calculate the share amount corresponding to the given balance.
-    /// @param balance_ The balance to be queried.
+    /// @param balance_ The balance of denomination.
     /// @return share The share amount.
     function calculateShare(uint256 balance_) external view returns (uint256 share) {
         uint256 grossAssetValue = __getGrossAssetValue();
@@ -26,7 +26,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     }
 
     /// @notice Calculate the share amount corresponding to the given balance.
-    /// @param balance_ The balance to be queried.
+    /// @param balance_ The queried balance.
     /// @param grossAssetValue_ The gross asset value.
     /// @return share The share amount.
     function _calculateShare(uint256 balance_, uint256 grossAssetValue_) internal view virtual returns (uint256 share) {
@@ -42,7 +42,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     }
 
     /// @notice Calculate the balance amount corresponding to the given share amount.
-    /// @param share_ The share amount to be queried.
+    /// @param share_ The queried share amount.
     /// @return balance The balance.
     function calculateBalance(uint256 share_) external view returns (uint256 balance) {
         uint256 grossAssetValue = __getGrossAssetValue();
@@ -107,9 +107,10 @@ abstract contract ShareModule is FundProxyStorageUtils {
         }
     }
 
-    /// @notice Purchase share with the given balance. Can only purchase at Executing and Pending state.
-    /// @return share The share amount being purchased.
-    /// @dev This funtion is use in `Executing` and `Pending` states.
+    /// @notice Purchase share with the given balance.
+    /// @return share The purchased share amount.
+    /// @dev This function can only be used in `Executing` and `Pending` states.
+
     function purchase(uint256 balance_)
         external
         virtual
@@ -148,7 +149,7 @@ abstract contract ShareModule is FundProxyStorageUtils {
     }
 
     /// @notice Redeem with the given share amount. Need to wait when fund is under liquidation
-    /// @dev This funtion is use in `Executing`, `Pending` and `Closed` states.
+    /// @dev This function can only be used in `Executing`, `Pending` and `Closed` states.
     function redeem(uint256 share_, bool acceptPending_)
         external
         virtual

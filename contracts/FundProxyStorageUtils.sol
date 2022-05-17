@@ -17,19 +17,19 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
     error InvalidState(State current);
 
-    /// @dev Prevents functions from being called outside of this state.
+    /// @dev Prevent functions from being called outside of this state.
     modifier whenState(State expect_) {
         _whenState(expect_);
         _;
     }
 
-    /// @dev Prevents functions from being called outside of this two state.
+    /// @dev Prevent functions from being called outside of these two states.
     modifier whenStates(State expect1_, State expect2_) {
         _whenStates(expect1_, expect2_);
         _;
     }
 
-    /// @dev Prevents functions from being called outside of this three state.
+    /// @dev Prevent functions from being called outside of these three states.
     modifier when3States(
         State expect1_,
         State expect2_,
@@ -45,18 +45,18 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         _;
     }
 
-    /// @dev Prevents functions from being called outside of this state.
+    /// @dev Prevent functions from being called outside of this state.
     function _whenState(State expect_) internal view {
         if (state != expect_) revert InvalidState(state);
     }
 
-    /// @dev Prevents functions from being called outside of this two state.
+    /// @dev Prevent functions from being called outside of this two state.
     function _whenStates(State expect1_, State expect2_) internal view {
         State s = state;
         if (s != expect1_ && s != expect2_) revert InvalidState(s);
     }
 
-    /// @dev Prevents functions from being called outside of this three state.
+    /// @dev Prevent functions from being called outside of this three state.
     function _when3States(
         State expect1_,
         State expect2_,
@@ -71,40 +71,40 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         if (state == expectNot_) revert InvalidState(state);
     }
 
-    /// @dev Trigger initializing to reviewing state change.
+    /// @dev Enter `Reviewing` state from `Initializing` state only.
     function _review() internal whenState(State.Initializing) {
         _enterState(State.Reviewing);
     }
 
-    /// @dev Trigger reviewing to executing state change.
+    /// @dev Enter `Executing` state from `Reviewing` state only.
     function _finalize() internal whenState(State.Reviewing) {
         _enterState(State.Executing);
     }
 
-    /// @dev Trigger executing to pending state change.
+    /// @dev Enter `Pending` state from `Executing` state only.
     function _pend() internal whenState(State.Executing) {
         _enterState(State.Pending);
         pendingStartTime = block.timestamp;
     }
 
-    /// @dev Trigger pending to executing state change.
+    /// @dev Enter `Executing` state from `Pending` state only.
     function _resume() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Executing);
     }
 
-    /// @dev Trigger pending to liquidating state change.
+    /// @dev Enter `Liquidating` state from `Pending` state only.
     function _liquidate() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Liquidating);
     }
 
-    /// @dev Trigger executing and liquidating to closed state change.
+    /// @dev Enter `Closed` state from `Executing` and `Liquidating` states only.
     function _close() internal whenStates(State.Executing, State.Liquidating) {
         _enterState(State.Closed);
     }
 
-    /// @dev Update the fund state and emit state transited event.
+    /// @dev Change the fund state and emit state transited event.
     function _enterState(State state_) internal {
         state = state_;
         emit StateTransited(state_);
@@ -167,7 +167,7 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         }
     }
 
-    /// @notice Set the vault approveal.
+    /// @notice Set the vault approval.
     function _setVaultApproval(ISetupAction setupAction_) internal {
         _checkNotZero(address(vault));
         _checkNotZero(address(setupAction_));
@@ -182,22 +182,22 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         );
     }
 
-    /// @dev Check the uint256 is zero.
+    /// @dev Check if the uint256 is zero.
     function _checkZero(uint256 param_) private pure {
         Errors._require(param_ == 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_NOT_ZERO);
     }
 
-    /// @dev Check the address is zero address.
+    /// @dev Check if the address is zero address.
     function _checkZero(address param_) private pure {
         Errors._require(param_ == address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_NOT_ZERO);
     }
 
-    /// @dev Check the uint256 is not zero.
+    /// @dev Check if the uint256 is not zero.
     function _checkNotZero(uint256 param_) private pure {
         Errors._require(param_ > 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_ZERO);
     }
 
-    /// @dev Check the address is not zero address.
+    /// @dev Check if the address is not zero address.
     function _checkNotZero(address param_) private pure {
         Errors._require(param_ != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_ZERO);
     }

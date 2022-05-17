@@ -9,10 +9,10 @@ import {Errors} from "../../../utils/Errors.sol";
 /// @title Aave protocol v2 asset resolver
 contract RAaveProtocolV2Asset is IAssetResolver, AssetResolverBase {
     /// @notice Calculate asset value
-    /// @param asset_ The asset address, and should be aToken.
-    /// @param amount_ The amount of assets.
-    /// @param quote_ The address of the quote token for which the value is calculated.
-    /// @return The amount of quote token equal to the value.
+    /// @param asset_ The asset address. Should be an aToken address.
+    /// @param amount_ The amount of asset.
+    /// @param quote_ The address of the quote token.
+    /// @return The value of assets in quote token.
     /// @dev The value must be positive.
     function calcAssetValue(
         address asset_,

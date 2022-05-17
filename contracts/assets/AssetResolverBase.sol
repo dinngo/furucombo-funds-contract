@@ -10,19 +10,21 @@ abstract contract AssetResolverBase {
     using SafeCast for uint256;
 
     /// @dev Cast asset value is positive.
-    /// @return The amount in int256 format.
+    /// @return The calculated amount.
     function _castAssetValue(uint256 amount_) internal pure returns (int256) {
         return amount_.toInt256();
     }
 
-    /// @dev Get aseet oracle.
+    /// @dev Get the asset oracle.
     /// @return The asset oracle address.
     function _getAssetOracle() internal view returns (IAssetOracle) {
         return IAssetRouter(msg.sender).oracle();
     }
 
     /// @dev Calculate asset value.
-    /// @notice The value of asset.
+    /// @param asset_ The asset address.
+    /// @param amount_ The amount of asset.
+    /// @param quote_ The address of the quote token.
     function _calcAssetValue(
         address asset_,
         uint256 amount_,

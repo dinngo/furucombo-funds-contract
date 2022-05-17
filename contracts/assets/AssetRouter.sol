@@ -35,8 +35,8 @@ contract AssetRouter is IAssetRouter, Ownable {
     /// @notice Calculate assets total value.
     /// @param assets_ The asset array.
     /// @param amounts_ The amount array of assets.
-    /// @param quote_ The address of the quote token for which the value is calculated.
-    /// @return The amount of quote token equal to the total value.
+    /// @param quote_ The address of the quote token.
+    /// @return The total value of assets in quote token.
     function calcAssetsTotalValue(
         address[] calldata assets_,
         uint256[] calldata amounts_,
@@ -57,9 +57,9 @@ contract AssetRouter is IAssetRouter, Ownable {
     }
 
     /// @param asset_ The asset address.
-    /// @param amount_ The amount of assets.
-    /// @param quote_ The address of the quote token for which the value is calculated.
-    /// @return The amount of quote token equal to the value.
+    /// @param amount_ The amount of asset.
+    /// @param quote_ The address of the quote token.
+    /// @return The value of asset in quote token.
     function calcAssetValue(
         address asset_,
         uint256 amount_,

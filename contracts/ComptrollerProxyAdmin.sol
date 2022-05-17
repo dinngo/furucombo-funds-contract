@@ -4,8 +4,8 @@ pragma solidity 0.8.10;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-/// @title The comptroller proxy contract admin
-/// @dev The admin can control proxy upgrade.
+/// @title The admin contract of comptroller proxy
+/// @dev Admin can control comptroller upgrade.
 contract ComptrollerProxyAdmin is Ownable {
     TransparentUpgradeableProxy public immutable proxy;
 
@@ -46,7 +46,7 @@ contract ComptrollerProxyAdmin is Ownable {
     }
 
     /// @notice Upgrades `proxy` to `implementation_` and calls a function on the new implementation
-    ///     See {TransparentUpgradeableProxy-upgradeToAndCall}.
+    ///         See {TransparentUpgradeableProxy-upgradeToAndCall}.
     /// @dev This contract must be the admin of `proxy`.
     function upgradeAndCall(address implementation_, bytes memory data_) external payable onlyOwner {
         proxy.upgradeToAndCall{value: msg.value}(implementation_, data_);

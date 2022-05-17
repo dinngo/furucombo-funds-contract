@@ -32,13 +32,13 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         comptroller = IComptroller(comptroller_);
     }
 
-    /// @notice task execution function, will charge execution fee first.
+    /// @notice Task execution function, will charge execution fee first.
     /// @param tokensIn_ The list of tokens used in execution.
     /// @param amountsIn_ The amount of tokens used in execution.
     /// @param tos_ The address of action.
     /// @param configs_ The configurations of executing actions.
     /// @param datas_ The action datas.
-    /// @return a The address of dealing asset list.
+    /// @return The address of dealing asset list.
     /// inheritdoc ITaskExecutor, DelegateCallAction, AssetQuotaAction, DealingAssetAction.
     function batchExec(
         address[] calldata tokensIn_,
@@ -46,7 +46,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         address[] calldata tos_,
         bytes32[] calldata configs_,
         bytes[] memory datas_
-    ) external payable delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory a) {
+    ) external payable delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory) {
         _chargeExecutionFee(tokensIn_, amountsIn_);
         return _execs(tos_, configs_, datas_);
     }
@@ -167,7 +167,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         }
     }
 
-    /// @notice Parse the execution return data to the local stack if needed.
+    /// @notice Parse the execution return data into the local stack if needed.
     /// @param ret_ The return data.
     /// @param config_ The configuration.
     /// @param localStack_ The local stack to place the return values.
@@ -192,7 +192,7 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         return index_;
     }
 
-    /// @notice Parse the return data to the local stack.
+    /// @notice Parse the return data into the local stack.
     /// @param localStack_ The local stack to place the return values.
     /// @param ret_ The return data.
     /// @param index_ The current tail.
@@ -221,13 +221,15 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         }
     }
 
-    /// @notice decode eth value from the execution data.
+    /// @notice Decode eth value from the execution data.
     /// @param data_ The execution data.
+    /// @return The first return uint256 value mean eth value,
+    ///         the second return bytes value means execution data.
     function _decodeEthValue(bytes memory data_) internal pure returns (uint256, bytes memory) {
         return abi.decode(data_, (uint256, bytes));
     }
 
-    /// @notice charge execution from input tokens.
+    /// @notice Charge execution fee from input tokens.
     /// @param tokensIn_ The input tokens.
     /// @param amountsIn_ The input token amounts.
     function _chargeExecutionFee(address[] calldata tokensIn_, uint256[] calldata amountsIn_) internal {

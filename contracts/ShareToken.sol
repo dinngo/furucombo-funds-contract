@@ -19,33 +19,33 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         _decimals = decimals_;
     }
 
-    /// @notice Get net total share, exclude outstanding performance fee amount.
+    /// @notice Get net total share, exclude outstanding performance fee.
     /// @return The net total share amount.
     function netTotalShare() external view returns (uint256) {
         return totalSupply() - balanceOf(_OUTSTANDING_PERFORMANCE_FEE_ACCOUNT);
     }
 
-    /// @notice Get the gross total share amount.
+    /// @notice Get the gross total share.
     /// @return The gross total share amount.
     function grossTotalShare() external view returns (uint256) {
         return totalSupply();
     }
 
-    /// @notice Mint the account share token amount.
-    /// @param account_ The share token mint address.
-    /// @param amount_ The share token mint amount.
+    /// @notice Mint share token amount to the account.
+    /// @param account_ The receiver address.
+    /// @param amount_ The share token amount.
     function mint(address account_, uint256 amount_) external onlyOwner {
         _mint(account_, amount_);
     }
 
-    /// @notice Burn the account share token amount.
-    /// @param account_ The share token burn address.
-    /// @param amount_ The share token burn amount.
+    /// @notice Burn the share token amount of the account.
+    /// @param account_ Burn share tokens from this address.
+    /// @param amount_ The share token amount.
     function burn(address account_, uint256 amount_) external onlyOwner {
         _burn(account_, amount_);
     }
 
-    /// @notice Move the share token between two account.
+    /// @notice Move the share token between two accounts.
     /// @param from_ The address from which the share token was transferred.
     /// @param to_ The address to which the share token is transferred.
     /// @param amount_ The share token move amount.
@@ -57,8 +57,8 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         _transfer(from_, to_, amount_);
     }
 
-    /// @notice Move amount tokens from `from` to `to` using the allowance mechanism
-    ///     `amount` is then deducted from the spender's allowance.
+    /// @notice Move tokens between two addresses using the allowance mechanism,
+    ///         `amount` is then deducted from the spender's allowance.
     /// @param spender_ The spender address.
     /// @param from_ The address from which the chare token was transferred.
     /// @param to_ The address to which the share token is transferred.
@@ -73,7 +73,7 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         _transfer(from_, to_, amount_);
     }
 
-    /// @notice Set amount as the allowance of spender over the caller's tokens.
+    /// @notice Set allowance amount.
     /// @param owner_ The owner address.
     /// @param spender_ The spender address.
     /// @param amount_ The share token approve amount.
@@ -92,8 +92,8 @@ contract ShareToken is ERC20Permit, Ownable, IShareToken {
         return _decimals;
     }
 
-    /// @notice Check the from address is not invalid and to is oustanding address.
-    /// @param from_ The address from which the chare token was transferred.
+    /// @notice Check the from address is valid and to is oustanding address.
+    /// @param from_ The address from which the share token is transferred.
     /// @param to_ The address to which the share token is transferred.
     /// @param amount_ The share token transfer amount.
     /// @inheritdoc ERC20

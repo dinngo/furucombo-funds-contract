@@ -16,8 +16,8 @@ contract RUniSwapV2Like is IAssetResolver, AssetResolverBase {
     /// @notice Calculate asset value given the amount.
     /// @param asset_ The asset address.
     /// @param amount_ The base asset amount.
-    /// @param quote_ The quote asset address.
-    /// @return The asset value in quote.
+    /// @param quote_ The address of the quote token.
+    /// @return The value of asset in quote token.
     function calcAssetValue(
         address asset_,
         uint256 amount_,

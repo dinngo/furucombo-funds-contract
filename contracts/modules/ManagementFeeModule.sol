@@ -27,7 +27,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Set the management fee in a yearly basis.
-    /// @param feeRate_ The fee rate in a yearly and is 1e4 base.
+    /// @param feeRate_ The annual fee rate in a 1e4 base.
     /// @return The management fee rate.
     function _setManagementFeeRate(uint256 feeRate_) internal virtual returns (int128) {
         Errors._require(
@@ -38,7 +38,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Set the management fee rate.
-    /// @param feeRate64x64_ The fee rate in a yearly and is 1e4 base.
+    /// @param feeRate64x64_ The annual fee rate in a 1e4 base.
     /// @return The management fee rate.
     /// @dev Calculate the effective fee rate to achieve the fee rate in an exponential model.
     function _setManagementFeeRate(int128 feeRate64x64_) internal returns (int128) {
@@ -48,7 +48,7 @@ abstract contract ManagementFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Update the current management fee and mint to the manager right away.
-    ///     Update the claim time as the basis of the accumulation afterward also.
+    ///         Update the claim time as the basis of the accumulation afterward also.
     /// @return The share being minted this time.
     function _updateManagementFee() internal virtual returns (uint256) {
         uint256 currentTime = block.timestamp;

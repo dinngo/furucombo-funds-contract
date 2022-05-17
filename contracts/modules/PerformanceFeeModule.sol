@@ -20,15 +20,14 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
 
     event PerformanceFeeClaimed(address indexed manager, uint256 shareAmount);
 
-    /// @notice Returns the earliest time that can be crystallized next even if
-    ///     more than one period has passed.
-    /// @return The timestamp of next crystallization.
+    /// @notice Return the next crystallization time even if more than one period has passed.
+    /// @return The available time for crystallization.
     function getNextCrystallizationTime() external view returns (uint256) {
         uint256 lastPeriod = _timeToPeriod(lastCrystallization);
         return _periodToTime(lastPeriod + 1);
     }
 
-    /// @notice Check if it can be crystallized.
+    /// @notice Check if the fund can be crystallized.
     /// @return The boolean of can crystallize or not.
     function isCrystallizable() public view virtual returns (bool) {
         uint256 nowPeriod = _timeToPeriod(block.timestamp);
@@ -65,7 +64,7 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Convert the time to the number of crystallization periods.
-    /// @param timestamp_ The timastamp want to convert.
+    /// @param timestamp_ The timestamp to be converted.
     /// @return The period of crystallization.
     function _timeToPeriod(uint256 timestamp_) internal view returns (uint256) {
         Errors._require(timestamp_ >= crystallizationStart, Errors.Code.PERFORMANCE_FEE_MODULE_TIME_BEFORE_START);
@@ -73,13 +72,17 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
     }
 
     /// @notice Convert the number of crystallization periods to time.
-    /// @param period_ The period want to convert.
-    /// @return The timestamp of period.
+    /// @param period_ The period to be converted.
+    /// @return The starting time of the period.
     function _periodToTime(uint256 period_) internal view returns (uint256) {
         return crystallizationStart + period_ * crystallizationPeriod;
     }
 
-    /// @notice Initial the performance fee crystallization time and high water mark.
+    /// @notice Get the gross asset value.
+    /// @return The value of gross asset.
+    function __getGrossAssetValue() internal view virtual returns (uint256);
+
+    /// @notice Initialize the performance fee, crystallization time and high water mark.
     function _initializePerformanceFee() internal virtual {
         lastGrossSharePrice64x64 = _FEE_BASE64x64;
         hwm64x64 = _FEE_BASE64x64;
@@ -106,8 +109,8 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         crystallizationPeriod = period_;
     }
 
-    /// @notice Update the performance fee base on the performance since last
-    /// time. The fee will be minted as outstanding share.
+    /// @notice Update the performance fee based on the performance since last
+    ///         update. The fee will be minted as outstanding shares.
     /// @param grossAssetValue_ The gross asset value.
     function _updatePerformanceFee(uint256 grossAssetValue_) internal virtual {
         // Get accumulated wealth
@@ -140,8 +143,4 @@ abstract contract PerformanceFeeModule is FundProxyStorageUtils {
         uint256 totalShare = shareToken.netTotalShare();
         lastGrossSharePrice64x64 = grossAssetValue_.divu(totalShare);
     }
-
-    /// @notice Get the gross asset value.
-    /// @return The value of gross asset.
-    function __getGrossAssetValue() internal view virtual returns (uint256);
 }

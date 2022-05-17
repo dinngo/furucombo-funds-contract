@@ -29,9 +29,9 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
 
     /// @notice Set the pool info.
     /// @param asset_ The asset address.
-    /// @param pool_ The pool address.
+    /// @param pool_ The pool address which provides virtual price.
     /// @param valuedAsset_ The valued asset address.
-    /// @param valuedAssetDecimals_ The decimals of value asset.
+    /// @param valuedAssetDecimals_ The decimals of the valued asset.
     function setPoolInfo(
         address asset_,
         address pool_,
@@ -64,10 +64,10 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     }
 
     /// @notice Calculate asset value
-    /// @param asset_ The asset address, and should be curve lp token.
-    /// @param amount_ The amount of assets.
-    /// @param quote_ The address of the quote token for which the value is calculated.
-    /// @return The amount of quote token equal to the value.
+    /// @param asset_ The asset address. Should be a curve lp token address.
+    /// @param amount_ The amount of asset.
+    /// @param quote_ The address of the quote token.
+    /// @return The value of asset in quote token.
     /// @dev The value must be positive.
     function calcAssetValue(
         address asset_,

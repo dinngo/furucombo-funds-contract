@@ -24,7 +24,7 @@ contract Chainlink is IAssetOracle, Ownable {
     /// @notice Calculate quote amount given the base amount.
     /// @param base_ The base asset address.
     /// @param baseAmount_ The base asset amount.
-    /// @param quote_ The quote asset address.
+    /// @param quote_ The address of the quote token.
     /// @return The quote asset amount.
     function calcConversionAmount(
         address base_,
@@ -41,7 +41,7 @@ contract Chainlink is IAssetOracle, Ownable {
         return (baseAmount_ * basePrice * quoteUnit) / (baseUnit * quotePrice);
     }
 
-    /// @notice Set the stale period.
+    /// @notice Set price stale period.
     /// @param stalePeriod_ The period of stale.
     function setStalePeriod(uint256 stalePeriod_) external onlyOwner {
         stalePeriod = stalePeriod_;
