@@ -19,7 +19,7 @@ contract MortgageVault {
         mortgageToken = token_;
     }
 
-    /// @notice Mortgage the token in this contract.
+    /// @notice Mortgage tokens to this contract.
     /// @param amount_ The mortage token amount.
     function mortgage(uint256 amount_) external {
         if (amount_ == 0) return;
@@ -31,7 +31,7 @@ contract MortgageVault {
         emit Mortgaged(fund, amount_);
     }
 
-    /// @notice Claim the message sender mortage token to receiver.
+    /// @notice Claim mortgage tokens of msg.sender and send the tokens to receiver
     /// @param receiver_ The receiver address.
     function claim(address receiver_) external {
         address fund = msg.sender;

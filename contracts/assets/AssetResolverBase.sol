@@ -15,13 +15,13 @@ abstract contract AssetResolverBase {
         return amount_.toInt256();
     }
 
-    /// @dev Get the asset oracle.
+    /// @notice Get the asset oracle.
     /// @return The asset oracle address.
     function _getAssetOracle() internal view returns (IAssetOracle) {
         return IAssetRouter(msg.sender).oracle();
     }
 
-    /// @dev Calculate asset value.
+    /// @notice Calculate asset value.
     /// @param asset_ The asset address.
     /// @param amount_ The amount of asset.
     /// @param quote_ The address of the quote token.

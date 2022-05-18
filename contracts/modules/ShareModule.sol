@@ -25,10 +25,6 @@ abstract contract ShareModule is FundProxyStorageUtils {
         return _calculateShare(balance_, grossAssetValue);
     }
 
-    /// @notice Calculate the share amount corresponding to the given balance.
-    /// @param balance_ The queried balance.
-    /// @param grossAssetValue_ The gross asset value.
-    /// @return share The share amount.
     function _calculateShare(uint256 balance_, uint256 grossAssetValue_) internal view virtual returns (uint256 share) {
         uint256 shareAmount = shareToken.grossTotalShare();
         if (shareAmount == 0) {

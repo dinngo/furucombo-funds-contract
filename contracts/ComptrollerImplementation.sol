@@ -120,7 +120,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
     /// @notice Initializer.
     /// @param implementation_ The fund implementation address.
     /// @param assetRouter_ The asset router address.
-    /// @param execFeeCollector_ The execution fee collector.
+    /// @param execFeeCollector_ The execution fee collector address.
     /// @param execFeePercentage_ The ececute fee percentage on a 1e4 basis.
     /// @param pendingLiquidator_ The pending liquidator address.
     /// @param pendingExpiration_ The pending expiration to be set in second.
@@ -382,7 +382,7 @@ contract ComptrollerImplementation is Ownable, IComptroller {
         }
     }
 
-    /// @notice Remove the asset from whitelist.
+    /// @notice Remove the assets from whitelist.
     /// @param level_ The level to be configured.
     /// @param assets_ The assets to be removed from the given level.
     function forbidAssets(uint256 level_, address[] calldata assets_) external onlyOwner {

@@ -11,13 +11,13 @@ import {IShareToken} from "./interfaces/IShareToken.sol";
 import {IMortgageVault} from "./interfaces/IMortgageVault.sol";
 
 /// @title Furucombo fund proxy storage
-/// @dev This was the first version of the storage. Maintain a consistent storage layout when expanding.
+/// @dev This is the first version of the storage layout which must be consistent after add new states.
 abstract contract FundProxyStorageV1 is Ownable, ReentrancyGuard {
     /// Fund States
     /// Initializing - The initial state of a newly created fund, set the basic parameters of Fund.
     /// Reviewing - After initialization, only the fee parameter can be adjusted.
     /// Executing - Normal operation, when the remaining amount of denomination is positive.
-    /// Pending - Unable to fulfill redemption will enter pending state, when the purchase amount is
+    /// Pending - Unable to fulfill redemption will enter pending state. When the purchase amount is
     ///           sufficient or the strategy is executed to settle the debt, it will resume to Executing state.
     /// Liquidating - When the fund stays in pending state over pendingExpiration, it enters liquidation
     ///               process. The fund will be transferred to the liquidator, who is responsible for

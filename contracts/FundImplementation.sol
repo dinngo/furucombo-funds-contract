@@ -15,7 +15,7 @@ import {Errors} from "./utils/Errors.sol";
 
 /// @title The implementation contract for fund
 /// @notice The functions that requires ownership, interaction between
-///         different modules should be override and implemented here.
+///         different modules should be overridden and implemented here.
 contract FundImplementation is AssetModule, ShareModule, ExecutionModule, ManagementFeeModule, PerformanceFeeModule {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
@@ -259,7 +259,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         super.execute(data_);
     }
 
-    /// @notice Check the gross asset value is more than gross asset value tolerance after execute.
+    /// @notice Check if the gross asset value is more than gross asset value tolerance after execute.
     function _isAfterValueEnough(uint256 prevAssetValue_, uint256 grossAssetValue_) internal view returns (bool) {
         uint256 minGrossAssetValue = (prevAssetValue_ * comptroller.execAssetValueToleranceRate()) /
             _FUND_PERCENTAGE_BASE;
@@ -343,7 +343,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
     }
 
     /// @notice Update the performace fee.
-    /// @dev This function can only be used in `Executing` and `Pending` states.
+    /// @dev This function works only in `Executing` and `Pending` states.
     /// @inheritdoc PerformanceFeeModule
     function _updatePerformanceFee(uint256 grossAssetValue_) internal override {
         if (state == State.Executing || state == State.Pending) {
@@ -373,7 +373,7 @@ contract FundImplementation is AssetModule, ShareModule, ExecutionModule, Manage
         return grossAssetValue;
     }
 
-    /// @notice Update the gross share price after the purchase.
+    /// @notice Update the gross share price after purchase.
     /// @dev Attempt to settle in `Pending` state and resume to `Executing` state
     ///      if the fund is resolvable.
     /// @inheritdoc ShareModule
