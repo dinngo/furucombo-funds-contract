@@ -12,7 +12,7 @@ contract RAaveProtocolV2Asset is IAssetResolver, AssetResolverBase {
     /// @param asset_ The asset address. Should be an aToken address.
     /// @param amount_ The amount of asset.
     /// @param quote_ The address of the quote token.
-    /// @return The value of assets in quote token.
+    /// @return The value of asset in quote token.
     /// @dev The value must be positive.
     function calcAssetValue(
         address asset_,
