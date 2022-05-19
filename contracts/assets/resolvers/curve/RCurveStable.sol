@@ -8,6 +8,7 @@ import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
 import {ICurveLiquidityPool} from "./ICurveLiquidityPool.sol";
 
+/// @title The curve stable resolver
 contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     struct PoolInfo {
         address pool;
@@ -26,6 +27,11 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
     );
     event PoolInfoRemoved(address indexed asset);
 
+    /// @notice Set the pool info.
+    /// @param asset_ The asset address.
+    /// @param pool_ The pool address which provides virtual price.
+    /// @param valuedAsset_ The valued asset address.
+    /// @param valuedAssetDecimals_ The decimals of the valued asset.
     function setPoolInfo(
         address asset_,
         address pool_,
@@ -49,14 +55,22 @@ contract RCurveStable is IAssetResolver, AssetResolverBase, Ownable {
         emit PoolInfoSet(asset_, pool_, valuedAsset_, valuedAssetDecimals_);
     }
 
+    /// @notice Remove the pool info.
+    /// @param asset_ The asset address.
     function removePoolInfo(address asset_) external onlyOwner {
         Errors._require(assetToPoolInfo[asset_].pool != address(0), Errors.Code.RCURVE_STABLE_POOL_INFO_IS_NOT_SET);
         delete assetToPoolInfo[asset_];
         emit PoolInfoRemoved(asset_);
     }
 
+    /// @notice Calculate asset value
+    /// @param asset_ The asset address. Should be a curve lp token address.
+    /// @param amount_ The amount of asset.
+    /// @param quote_ The address of the quote token.
+    /// @return The value of asset in quote token.
+    /// @dev The value must be positive.
     function calcAssetValue(
-        address asset_, // should be curve lp token
+        address asset_,
         uint256 amount_,
         address quote_
     ) external view returns (int256) {

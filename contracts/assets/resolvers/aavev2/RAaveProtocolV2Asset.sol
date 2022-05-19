@@ -6,9 +6,16 @@ import {IAssetResolver} from "../../interfaces/IAssetResolver.sol";
 import {AssetResolverBase} from "../../AssetResolverBase.sol";
 import {Errors} from "../../../utils/Errors.sol";
 
+/// @title Aave protocol v2 asset resolver
 contract RAaveProtocolV2Asset is IAssetResolver, AssetResolverBase {
+    /// @notice Calculate asset value
+    /// @param asset_ The asset address. Should be an aToken address.
+    /// @param amount_ The amount of asset.
+    /// @param quote_ The address of the quote token.
+    /// @return The value of asset in quote token.
+    /// @dev The value must be positive.
     function calcAssetValue(
-        address asset_, // should be aToken
+        address asset_,
         uint256 amount_,
         address quote_
     ) external view returns (int256) {

@@ -10,6 +10,7 @@ import {IAssetOracle} from "./interfaces/IAssetOracle.sol";
 import {IAssetRouter} from "./interfaces/IAssetRouter.sol";
 import {IAssetResolver} from "./interfaces/IAssetResolver.sol";
 
+/// @title Asset router contract
 contract AssetRouter is IAssetRouter, Ownable {
     using SafeCast for uint256;
 
@@ -21,14 +22,21 @@ contract AssetRouter is IAssetRouter, Ownable {
         registry = IAssetRegistry(registry_);
     }
 
+    /// @notice Set the oracle of router.
     function setOracle(address oracle_) external onlyOwner {
         oracle = IAssetOracle(oracle_);
     }
 
+    /// @notice Set the registry of router.
     function setRegistry(address registry_) external onlyOwner {
         registry = IAssetRegistry(registry_);
     }
 
+    /// @notice Calculate assets total value.
+    /// @param assets_ The asset array.
+    /// @param amounts_ The amount array of assets.
+    /// @param quote_ The address of the quote token.
+    /// @return The total value of assets in quote token.
     function calcAssetsTotalValue(
         address[] calldata assets_,
         uint256[] calldata amounts_,
@@ -48,6 +56,10 @@ contract AssetRouter is IAssetRouter, Ownable {
         return uint256(totalValue);
     }
 
+    /// @param asset_ The asset address.
+    /// @param amount_ The amount of asset.
+    /// @param quote_ The address of the quote token.
+    /// @return The value of asset in quote token.
     function calcAssetValue(
         address asset_,
         uint256 amount_,

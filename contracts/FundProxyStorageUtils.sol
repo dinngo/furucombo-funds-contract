@@ -9,6 +9,7 @@ import {IDSProxy, IDSProxyRegistry} from "./interfaces/IDSProxy.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {ISetupAction} from "./interfaces/ISetupAction.sol";
 
+/// @title Furucombo fund proxy storage utility
 abstract contract FundProxyStorageUtils is FundProxyStorage {
     uint256 internal constant _FUND_PERCENTAGE_BASE = 1e4;
 
@@ -16,16 +17,19 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
 
     error InvalidState(State current);
 
+    /// @dev Prevent functions from being called outside of this state.
     modifier whenState(State expect_) {
         _whenState(expect_);
         _;
     }
 
+    /// @dev Prevent functions from being called outside of these two states.
     modifier whenStates(State expect1_, State expect2_) {
         _whenStates(expect1_, expect2_);
         _;
     }
 
+    /// @dev Prevent functions from being called outside of these three states.
     modifier when3States(
         State expect1_,
         State expect2_,
@@ -35,20 +39,24 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         _;
     }
 
+    /// @dev Prevent the function from being called in this state.
     modifier whenNotState(State expectNot_) {
         _whenNotState(expectNot_);
         _;
     }
 
+    /// @dev Prevent functions from being called outside of this state.
     function _whenState(State expect_) internal view {
         if (state != expect_) revert InvalidState(state);
     }
 
+    /// @dev Prevent functions from being called outside of this two state.
     function _whenStates(State expect1_, State expect2_) internal view {
         State s = state;
         if (s != expect1_ && s != expect2_) revert InvalidState(s);
     }
 
+    /// @dev Prevent functions from being called outside of this three state.
     function _when3States(
         State expect1_,
         State expect2_,
@@ -58,56 +66,68 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         if (s != expect1_ && s != expect2_ && s != expect3_) revert InvalidState(s);
     }
 
+    /// @dev Prevent the function from being called in this state.
     function _whenNotState(State expectNot_) internal view {
         if (state == expectNot_) revert InvalidState(state);
     }
 
-    // State Changes
+    /// @dev Enter `Reviewing` state from `Initializing` state only.
     function _review() internal whenState(State.Initializing) {
         _enterState(State.Reviewing);
     }
 
+    /// @dev Enter `Executing` state from `Reviewing` state only.
     function _finalize() internal whenState(State.Reviewing) {
         _enterState(State.Executing);
     }
 
+    /// @dev Enter `Pending` state from `Executing` state only.
     function _pend() internal whenState(State.Executing) {
         _enterState(State.Pending);
         pendingStartTime = block.timestamp;
     }
 
+    /// @dev Enter `Executing` state from `Pending` state only.
     function _resume() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Executing);
     }
 
+    /// @dev Enter `Liquidating` state from `Pending` state only.
     function _liquidate() internal whenState(State.Pending) {
         pendingStartTime = 0;
         _enterState(State.Liquidating);
     }
 
+    /// @dev Enter `Closed` state from `Executing` and `Liquidating` states only.
     function _close() internal whenStates(State.Executing, State.Liquidating) {
         _enterState(State.Closed);
     }
 
+    /// @dev Change the fund state and emit state transited event.
     function _enterState(State state_) internal {
         state = state_;
         emit StateTransited(state_);
     }
 
+    /////////////////////////////////////////////////////
     // Setters
+    /////////////////////////////////////////////////////
+    /// @notice Set the tier of the fund.
     function _setLevel(uint256 level_) internal {
         _checkZero(level);
         _checkNotZero(level_);
         level = level_;
     }
 
+    /// @notice Set the comptroller of the fund.
     function _setComptroller(IComptroller comptroller_) internal {
         _checkZero(address(comptroller));
         _checkNotZero(address(comptroller_));
         comptroller = comptroller_;
     }
 
+    /// @notice Set the denomination of the fund.
     function _setDenomination(IERC20 denomination_) internal {
         _checkZero(address(denomination));
         Errors._require(
@@ -117,17 +137,20 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         denomination = denomination_;
     }
 
+    /// @notice Set the share token of the fund.
     function _setShareToken(IShareToken shareToken_) internal {
         _checkZero(address(shareToken));
         _checkNotZero(address(shareToken_));
         shareToken = shareToken_;
     }
 
+    /// @notice Set the mortgage vault of the fund.
     function _setMortgageVault(IComptroller comptroller_) internal {
         _checkZero(address(mortgageVault));
         mortgageVault = comptroller_.mortgageVault();
     }
 
+    /// @notice Set the asset vault of the fund.
     function _setVault(IDSProxyRegistry dsProxyRegistry_) internal {
         _checkZero(address(vault));
         _checkNotZero(address(dsProxyRegistry_));
@@ -144,6 +167,7 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         }
     }
 
+    /// @notice Set the vault approval.
     function _setVaultApproval(ISetupAction setupAction_) internal {
         _checkNotZero(address(vault));
         _checkNotZero(address(setupAction_));
@@ -158,18 +182,22 @@ abstract contract FundProxyStorageUtils is FundProxyStorage {
         );
     }
 
+    /// @dev Check if the uint256 is zero.
     function _checkZero(uint256 param_) private pure {
         Errors._require(param_ == 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_NOT_ZERO);
     }
 
+    /// @dev Check if the address is zero address.
     function _checkZero(address param_) private pure {
         Errors._require(param_ == address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_NOT_ZERO);
     }
 
+    /// @dev Check if the uint256 is not zero.
     function _checkNotZero(uint256 param_) private pure {
         Errors._require(param_ > 0, Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_ZERO);
     }
 
+    /// @dev Check if the address is not zero address.
     function _checkNotZero(address param_) private pure {
         Errors._require(param_ != address(0), Errors.Code.FUND_PROXY_STORAGE_UTILS_IS_ZERO);
     }

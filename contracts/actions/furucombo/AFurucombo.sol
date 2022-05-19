@@ -11,6 +11,7 @@ import {IComptroller} from "../../interfaces/IComptroller.sol";
 import {IDebtToken} from "../../interfaces/IDebtToken.sol";
 import {IFurucombo} from "./IFurucombo.sol";
 
+/// @title The action of Furucombo
 contract AFurucombo is ActionBase, DestructibleAction, DelegateCallAction {
     using SafeERC20 for IERC20;
 
