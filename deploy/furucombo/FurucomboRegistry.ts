@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import {
+  MANAGEMENT,
   AAVE_LENDING_POOL,
   CURVE_AAVE_SWAP,
   CURVE_REN_SWAP,
@@ -49,6 +50,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_REN_SWAP);
     await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_ATRICRYPTO3_DEPOSIT);
     await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_EURTUSD_DEPOSIT);
+
+    // Transfer ownership
+    await registry.transferOwnership(MANAGEMENT);
   }
 };
 

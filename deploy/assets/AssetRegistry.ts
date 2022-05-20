@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
+import { MANAGEMENT } from '../Config';
 import { assets, aaveV2Asset, aaveV2Debt, curveStable, quickSwap, sushiSwap } from './AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -40,10 +41,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const rCurveStable = await deployments.get('RCurveStable');
     for (const info of Object.values(curveStable)) {
       await assetRegistry.register(info.address, rCurveStable.address);
-
-      // Set pool info for lp token
-      const rCurveStableInstance = await ethers.getContractAt('RCurveStable', rCurveStable.address);
-      await rCurveStableInstance.setPoolInfo(info.address, info.pool, info.valuedAsset, info.valuedAssetDecimals);
     }
 
     // Register to uniswap v2 like resolver
@@ -54,6 +51,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     for (const address of Object.values(sushiSwap)) {
       await assetRegistry.register(address, rUniSwapV2Like.address);
     }
+
+    // Transfer ownership
+    await assetRegistry.transferOwnership(MANAGEMENT);
   }
 };
 

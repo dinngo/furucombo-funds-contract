@@ -1,6 +1,9 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import {
+  EXEC_FEE_COLLECTOR,
+  PENDING_LIQUIDATOR,
+  FUND_CREATORS,
   WL_AAVE_V2_SIGS,
   WL_FUNDS_SIGS,
   WL_QUICKSWAP_SIGS,
@@ -25,9 +28,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const fundImplementation = await deployments.get('FundImplementation');
   const assetRouter = await deployments.get('AssetRouter');
-  const execFeeCollector = deployer;
+  const execFeeCollector = EXEC_FEE_COLLECTOR;
   const execFeePercentage = EXEC_FEE_PERCENTAGE;
-  const pendingLiquidator = deployer;
+  const pendingLiquidator = PENDING_LIQUIDATOR;
   const pendingExpiration = PENDING_EXPIRATION;
   const mortgageVault = await deployments.get('MortgageVault');
   const valueTolerance = VALUE_TOLERANCE;
@@ -80,7 +83,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await comptroller.permitDenominations(denominationArray, dustArray);
 
     // Permit creator
-    await comptroller.permitCreators([deployer]);
+    await comptroller.permitCreators(FUND_CREATORS);
 
     // Permit asset
     const assetArray = Object.values(assets);
