@@ -1,12 +1,13 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
+import { MANAGEMENT } from './Config';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const owner = deployer;
+  const owner = MANAGEMENT;
   const comptrollerProxy = await deployments.get('ComptrollerProxy');
   await deploy('TaskExecutor', {
     from: deployer,
