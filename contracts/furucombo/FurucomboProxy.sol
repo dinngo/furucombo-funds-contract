@@ -20,9 +20,6 @@ contract FurucomboProxy is IFurucomboProxy, Storage, Config {
     using LibStack for bytes32[];
     using Strings for uint256;
 
-    event LogBegin(address indexed handler, bytes4 indexed selector, bytes payload);
-    event LogEnd(address indexed handler, bytes4 indexed selector, bytes result);
-
     modifier isNotBanned() {
         require(registry.bannedAgents(address(this)) == 0, "Banned");
         _;
@@ -123,16 +120,10 @@ contract FurucomboProxy is IFurucomboProxy, Storage, Config {
                 // If so, trim the exectution data base on the configuration and stack content
                 _trim(data, config, localStack, index);
             }
-            // Emit the execution log before call
-            bytes4 selector = _getSelector(data);
-            emit LogBegin(to, selector, data);
 
             // Check if the output will be referenced afterwards
             bytes memory result = _exec(to, data, counter);
             counter++;
-
-            // Emit the execution log after call
-            emit LogEnd(to, selector, result);
 
             if (config.isReferenced()) {
                 // If so, parse the output and place it into local stack
@@ -339,10 +330,5 @@ contract FurucomboProxy is IFurucomboProxy, Storage, Config {
     /// @notice Check if the caller is valid in registry.
     function _isValidCaller(address caller) internal view returns (bool) {
         return registry.isValidCaller(caller);
-    }
-
-    /// @notice Get payload function selector.
-    function _getSelector(bytes memory payload) internal pure returns (bytes4 selector) {
-        selector = payload[0] | (bytes4(payload[1]) >> 8) | (bytes4(payload[2]) >> 16) | (bytes4(payload[3]) >> 24);
     }
 }
