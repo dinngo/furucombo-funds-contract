@@ -15,7 +15,7 @@ import {
   Chainlink,
 } from '../../typechain';
 
-import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
+import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, expectEqWithinBps } from '../utils/utils';
 
 import {
   createFund,
@@ -517,7 +517,7 @@ describe('InvestorRedeemFund', function () {
         const user1Share = await shareToken.balanceOf(user1.address);
         const user2Share = await shareToken.balanceOf(user2.address);
 
-        expect(user1ExpectedRedeemBalance).to.be.eq(user1Balance);
+        expectEqWithinBps(user1Balance, user1ExpectedRedeemBalance, 1);
         expect(user2ExpectedRedeemBalance).to.be.gt(user2Balance);
         expect(fundShareTokenAfter).to.be.gt(fundShareTokenBefore);
         expect(user1Share).to.be.eq(0);
@@ -555,8 +555,8 @@ describe('InvestorRedeemFund', function () {
         const user2Share = await shareToken.balanceOf(user2.address);
         const user3Share = await shareToken.balanceOf(user3.address);
 
-        expect(user1And2ExpectedRedeemBalance).to.be.eq(user1Balance);
-        expect(user1And2ExpectedRedeemBalance).to.be.eq(user2Balance);
+        expectEqWithinBps(user1Balance, user1And2ExpectedRedeemBalance, 1);
+        expectEqWithinBps(user2Balance, user1And2ExpectedRedeemBalance, 1);
         expect(user3ExpectedRedeemBalance).to.be.gt(user3Balance);
         expect(fundShareTokenAfter).to.be.gt(fundShareTokenBefore);
         expect(user1Share).to.be.eq(0);
@@ -617,7 +617,11 @@ describe('InvestorRedeemFund', function () {
       const user1ShareAfter = await shareToken.balanceOf(user1.address);
       const fundState = await fundProxy.state();
 
-      expect(expectedClaimableAmount.add(expectedRedeemBalance)).to.be.eq(user1BalanceAfter.sub(user1BalanceBefore));
+      expectEqWithinBps(
+        user1BalanceAfter.sub(user1BalanceBefore),
+        expectedClaimableAmount.add(expectedRedeemBalance),
+        1
+      );
       expect(redeemTx).to.emit(fundProxy, 'RedemptionClaimed').withArgs(user1.address);
       expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
       expect(user1ShareAfter).to.be.eq(0);
