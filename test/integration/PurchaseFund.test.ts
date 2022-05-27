@@ -16,7 +16,6 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, expectEqWithinBps } from '../utils/utils';
-
 import {
   createFund,
   purchaseFund,
@@ -26,6 +25,7 @@ import {
   setLiquidatingAssetFund,
   setClosedDenominationFund,
 } from './fund';
+
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,
@@ -259,6 +259,7 @@ describe('InvestorPurchaseFund', function () {
         const reserveAmount = purchaseAmount.sub(swapAmount);
         const redeemAmount = reserveAmount.add(mwei('500'));
         const pendingPurchaseAmount = mwei('100');
+
         beforeEach(async function () {
           await setPendingAssetFund(
             manager,
@@ -394,6 +395,7 @@ describe('InvestorPurchaseFund', function () {
 
       describe('Executing state, funds with other asset', function () {
         const swapAmount = purchaseAmount.div(2);
+
         beforeEach(async function () {
           await setExecutingAssetFund(
             manager,
@@ -486,6 +488,7 @@ describe('InvestorPurchaseFund', function () {
         const reserveAmount = purchaseAmount.sub(swapAmount);
         const redeemAmount = reserveAmount.add(mwei('500'));
         const pendingPurchaseAmount = mwei('100');
+
         beforeEach(async function () {
           await setPendingAssetFund(
             manager,
@@ -720,6 +723,7 @@ describe('InvestorPurchaseFund', function () {
       }); // describe('Dead oracle') end
     });
   });
+
   describe('Funds with management fee', function () {
     const purchaseAmount = mwei('2000');
 
@@ -882,6 +886,7 @@ describe('InvestorPurchaseFund', function () {
         const reserveAmount = purchaseAmount.sub(swapAmount);
         const redeemAmount = reserveAmount.add(mwei('500'));
         const pendingPurchaseAmount = mwei('100');
+
         beforeEach(async function () {
           [
             fundProxy,

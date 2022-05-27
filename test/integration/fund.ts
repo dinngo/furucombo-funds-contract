@@ -25,7 +25,6 @@ import {
 } from '../../typechain';
 
 import { WL_ANY_SIG, FUND_STATE, FUND_PERCENTAGE_BASE, ONE_YEAR } from '../utils/constants';
-
 import {
   deployAssetOracleAndRouterAndRegistry,
   deployComptrollerAndFundProxyFactory,
@@ -37,6 +36,7 @@ import {
   registerHandlers,
   registerResolvers,
 } from './deploy';
+
 import { ComptrollerImplementation } from '../../typechain/ComptrollerImplementation';
 
 export async function createFund(

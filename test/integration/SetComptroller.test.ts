@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -15,7 +14,6 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther } from '../utils/utils';
-
 import { purchaseFund, createReviewingFund, getSwapData } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -32,6 +30,7 @@ import {
   WL_ANY_SIG,
   FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
+
 import { ComptrollerImplementation } from '../../typechain/ComptrollerImplementation';
 
 describe('SetComptroller', function () {
@@ -134,6 +133,7 @@ describe('SetComptroller', function () {
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
   });
+
   beforeEach(async function () {
     await setupTest();
   });
@@ -152,6 +152,7 @@ describe('SetComptroller', function () {
       await fundProxy.connect(manager).finalize();
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.EXECUTING);
     });
+
     it('ban & unban fundProxy', async function () {
       // ban fund proxy
       await comptrollerProxy.banFundProxy(fundProxy.address);
@@ -161,6 +162,7 @@ describe('SetComptroller', function () {
       await comptrollerProxy.unbanFundProxy(fundProxy.address);
       expect(await fundProxy.comptroller()).to.be.eq(comptrollerProxy.address);
     });
+
     it('halt and unhalt', async function () {
       // halt
       await comptrollerProxy.halt();
@@ -172,6 +174,7 @@ describe('SetComptroller', function () {
         await comptrollerProxy.implementation()
       );
     });
+
     it('permit and forbid asset', async function () {
       await fundProxy.connect(manager).finalize();
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
@@ -203,6 +206,7 @@ describe('SetComptroller', function () {
       await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
     });
+
     it('set initial asset check', async function () {
       await fundProxy.connect(manager).finalize();
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
@@ -234,6 +238,7 @@ describe('SetComptroller', function () {
       await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
     });
+
     it('permit and forbid delegate calls', async function () {
       await fundProxy.connect(manager).finalize();
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
@@ -265,9 +270,11 @@ describe('SetComptroller', function () {
       await fundProxy.connect(manager).execute(data);
       expect(await denomination.balanceOf(fundVault)).to.be.eq(0);
     });
+
     it.skip('permit and forbid contract calls', async function () {
       // Currently no permitted contract call
     });
+
     it('permit and forbid handlers', async function () {
       await fundProxy.connect(manager).finalize();
       await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);

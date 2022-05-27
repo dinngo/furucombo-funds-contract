@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
 import { deployments, ethers } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -17,7 +16,6 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther, ether } from '../utils/utils';
-
 import { createFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -219,6 +217,7 @@ describe('ManagerOperateAsset', function () {
     beforeEach(async function () {
       await _addAsset(tokenA, tokenAProvider, transferAmount);
     });
+
     it('from assetList', async function () {
       const beforeAssetList = await fundProxy.getAssetList();
       const beforeAssetAmount = await tokenA.balanceOf(fundVaultAddress);
@@ -266,10 +265,12 @@ describe('ManagerOperateAsset', function () {
       await expect(fundProxy.removeAsset(tokenA.address)).to.be.revertedWith('Ownable: caller is not the owner');
     });
   });
+
   async function _addAsset(token: IERC20, tokenProvider: Signer, transferAmount: any) {
     await token.connect(tokenProvider).transfer(fundVaultAddress, transferAmount);
     await fundProxy.connect(manager).addAsset(token.address);
   }
+
   async function _removeAsset(token: IERC20, transferAmount: any) {
     await token.connect(fundVault).transfer(manager.address, transferAmount);
     await fundProxy.connect(manager).removeAsset(token.address);

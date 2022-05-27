@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
 import { deployments, ethers } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -17,7 +16,6 @@ import {
 } from '../../typechain';
 
 import { expectEqWithinBps, mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, ether } from '../utils/utils';
-
 import {
   purchaseFund,
   redeemFund,
@@ -26,6 +24,7 @@ import {
   execSwap,
   setExecutingDenominationFund,
 } from './fund';
+
 import { deployFurucomboProxyAndRegistry, createFundProxyMock } from './deploy';
 import {
   BAT_TOKEN,
@@ -855,10 +854,10 @@ describe('ManagerClaimPerformanceFee', function () {
 
   async function _assetValueGrowTestII(purchaseAmount: any, acceptPending: any, feeRate: number): Promise<any> {
     const [share] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
-    const initiAssetValue = await fundProxy.getGrossAssetValue();
+    const initAssetValue = await fundProxy.getGrossAssetValue();
 
     // asset value grows to double
-    const afterValue = initiAssetValue.mul(2);
+    const afterValue = initAssetValue.mul(2);
     await fundProxy.setGrossAssetValueMock(afterValue);
 
     // get expected pFee

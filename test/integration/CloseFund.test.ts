@@ -1,7 +1,6 @@
 import { Wallet, Signer } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -16,7 +15,6 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, ether } from '../utils/utils';
-
 import {
   setPendingAssetFund,
   setExecutingDenominationFund,
@@ -25,6 +23,7 @@ import {
   createReviewingFund,
   setLiquidatingAssetFund,
 } from './fund';
+
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,

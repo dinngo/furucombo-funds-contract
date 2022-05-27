@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -450,6 +449,7 @@ describe('InvestorRedeemFund', function () {
       const acceptPending = true;
       const swapAmount = initialFunds.div(2);
       let totalShare: BigNumber;
+
       beforeEach(async function () {
         await setExecutingAssetFund(
           manager,
@@ -699,6 +699,7 @@ describe('InvestorRedeemFund', function () {
     const purchaseAmount = mwei('2000');
     const swapAmount = purchaseAmount.div(2);
     const redeemAmount = purchaseAmount.sub(swapAmount).add(mwei('100'));
+
     it('should revert: redeem in liquidating', async function () {
       await setLiquidatingAssetFund(
         manager,

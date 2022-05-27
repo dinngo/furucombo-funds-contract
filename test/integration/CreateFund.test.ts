@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber, constants } from 'ethers';
 import { deployments, ethers } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
