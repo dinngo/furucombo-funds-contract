@@ -12,6 +12,7 @@ import {
   SUSHISWAP_FACTORY,
   RecordHandlerResultSig,
   CURVE_ADDRESS_PROVIDER,
+  ONE_YEAR,
 } from './constants';
 const hre = require('hardhat');
 
@@ -49,6 +50,11 @@ export function ether(num: any) {
 
 export function mwei(num: any) {
   return ethers.utils.parseUnits(num, 6);
+}
+
+export function getEffectiveMgmtFeeRate(feeRate: any): BigNumber {
+  const effRate = new BigNumberJs(Math.exp((-1 * Math.log(1 - feeRate)) / ONE_YEAR));
+  return get64x64FromBig(effRate);
 }
 
 export async function getTaskExecutorAssetQuotas(proxy: any, taskExecutor: any, tokensIn: string[]) {
