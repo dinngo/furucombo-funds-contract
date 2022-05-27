@@ -46,7 +46,7 @@ import {
   MINIMUM_SHARE,
 } from '../utils/constants';
 
-describe('UpgradeFund', function () {
+describe('ResumeFund', function () {
   let owner: Wallet;
   let collector: Wallet;
   let manager: Wallet;
@@ -92,92 +92,23 @@ describe('UpgradeFund', function () {
   let denomination: IERC20;
   let shareToken: ShareToken;
 
-  describe('ResumeFund', function () {
-    const purchaseAmount = mwei('2000');
-    const swapAmount = purchaseAmount.div(2);
-    // const reserveAmount = purchaseAmount.sub(swapAmount);
-    const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
+  const purchaseAmount = mwei('2000');
+  const swapAmount = purchaseAmount.div(2);
+  const redeemAmount = purchaseAmount.sub(MINIMUM_SHARE);
 
-    const setupSuccessTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
-      [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
+  const setupSuccessTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    [owner, collector, manager, investor, liquidator] = await (ethers as any).getSigners();
 
-      // Setup tokens and providers
-      denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
-      // tokenAProvider = await impersonateAndInjectEther(tokenAProviderAddress);
+    // Setup tokens and providers
+    denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
+    // tokenAProvider = await impersonateAndInjectEther(tokenAProviderAddress);
 
-      // Deploy furucombo
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
 
-      // Deploy furucombo funds contracts
-      [fundProxyFactory, taskExecutor, aFurucombo, hFunds, denomination /*tokenA*/, , , , , hQuickSwap, oracle] =
-        await createMockFundInfra(
-          owner,
-          collector,
-          manager,
-          liquidator,
-          denominationAddress,
-          mortgageAddress,
-          tokenAAddress,
-          tokenBAddress,
-          denominationAggregator,
-          tokenAAggregator,
-          tokenBAggregator,
-          level,
-          mortgageAmount,
-          execFeePercentage,
-          pendingExpiration,
-          fRegistry,
-          furucombo
-        );
-
-      // Create and finalize furucombo fund
-      fundProxyMock = await createFundProxyMock(
-        fundProxyFactory,
-        manager,
-        denominationAddress,
-        level,
-        mFeeRate,
-        pFeeRate,
-        crystallizationPeriod,
-        shareTokenName
-      );
-
-      shareToken = await ethers.getContractAt('ShareToken', await fundProxyMock.shareToken());
-
-      await fundProxyMock.connect(manager).finalize();
-
-      // Transfer token to investor
-      await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
-      await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
-    });
-
-    const setupFailTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
-      await deployments.fixture(''); // ensure you start from a fresh deployments
-      [owner, collector, investor, manager, liquidator] = await (ethers as any).getSigners();
-
-      // Setup tokens and providers
-      denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
-
-      // Deploy furucombo
-      [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
-
-      // Deploy furucombo funds contracts
-      [
-        fundProxy,
-        ,
-        denomination,
-        shareToken,
-        taskExecutor,
-        aFurucombo,
-        hFunds,
-        ,
-        ,
-        oracle,
-        comptroller,
-        ,
-        hQuickSwap,
-        ,
-      ] = await createFund(
+    // Deploy furucombo funds contracts
+    [fundProxyFactory, taskExecutor, aFurucombo, hFunds, denomination /*tokenA*/, , , , , hQuickSwap, oracle] =
+      await createMockFundInfra(
         owner,
         collector,
         manager,
@@ -191,124 +122,190 @@ describe('UpgradeFund', function () {
         tokenBAggregator,
         level,
         mortgageAmount,
-        mFeeRate,
-        pFeeRate,
         execFeePercentage,
         pendingExpiration,
-        valueTolerance,
-        crystallizationPeriod,
-        shareTokenName,
         fRegistry,
         furucombo
       );
 
-      // Transfer token to investors
-      await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
-      await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
+    // Create and finalize furucombo fund
+    fundProxyMock = await createFundProxyMock(
+      fundProxyFactory,
+      manager,
+      denominationAddress,
+      level,
+      mFeeRate,
+      pFeeRate,
+      crystallizationPeriod,
+      shareTokenName
+    );
+
+    shareToken = await ethers.getContractAt('ShareToken', await fundProxyMock.shareToken());
+
+    await fundProxyMock.connect(manager).finalize();
+
+    // Transfer token to investor
+    await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
+  });
+
+  const setupFailTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
+    await deployments.fixture(''); // ensure you start from a fresh deployments
+    [owner, collector, investor, manager, liquidator] = await (ethers as any).getSigners();
+
+    // Setup tokens and providers
+    denominationProvider = await impersonateAndInjectEther(denominationProviderAddress);
+
+    // Deploy furucombo
+    [fRegistry, furucombo] = await deployFurucomboProxyAndRegistry();
+
+    // Deploy furucombo funds contracts
+    [
+      fundProxy,
+      ,
+      denomination,
+      shareToken,
+      taskExecutor,
+      aFurucombo,
+      hFunds,
+      ,
+      ,
+      oracle,
+      comptroller,
+      ,
+      hQuickSwap,
+      ,
+    ] = await createFund(
+      owner,
+      collector,
+      manager,
+      liquidator,
+      denominationAddress,
+      mortgageAddress,
+      tokenAAddress,
+      tokenBAddress,
+      denominationAggregator,
+      tokenAAggregator,
+      tokenBAggregator,
+      level,
+      mortgageAmount,
+      mFeeRate,
+      pFeeRate,
+      execFeePercentage,
+      pendingExpiration,
+      valueTolerance,
+      crystallizationPeriod,
+      shareTokenName,
+      fRegistry,
+      furucombo
+    );
+
+    // Transfer token to investors
+    await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
+    await denomination.connect(denominationProvider).transfer(manager.address, initialFunds);
+  });
+
+  describe('success', function () {
+    beforeEach(async function () {
+      await setupSuccessTest();
     });
 
-    describe('success', function () {
-      beforeEach(async function () {
-        await setupSuccessTest();
-      });
+    it('in pending state due to gross asset value decline', async function () {
+      // Init env.
+      await setPendingAssetFund(
+        manager,
+        investor,
+        fundProxyMock,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap
+      );
 
-      it('in pending state due to gross asset value decline', async function () {
-        // Init env.
-        await setPendingAssetFund(
-          manager,
-          investor,
-          fundProxyMock,
-          denomination,
-          shareToken,
-          purchaseAmount,
-          swapAmount,
-          redeemAmount,
-          execFeePercentage,
-          denominationAddress,
-          tokenAAddress,
-          hFunds,
-          aFurucombo,
-          taskExecutor,
-          hQuickSwap
-        );
+      // another user purchase fund but not be able to solve pending
+      await purchaseFund(manager, fundProxyMock, denomination, shareToken, swapAmount.div(2));
+      expect(await fundProxyMock.state()).to.be.eq(FUND_STATE.PENDING);
 
-        // another user purchase fund but not be able to solve pending
-        await purchaseFund(manager, fundProxyMock, denomination, shareToken, swapAmount.div(2));
-        expect(await fundProxyMock.state()).to.be.eq(FUND_STATE.PENDING);
+      await expect(fundProxyMock.resume()).to.be.revertedWith('RevertCode(9)'); // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
 
-        await expect(fundProxyMock.resume()).to.be.revertedWith('RevertCode(9)'); // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
+      // Simulate gross asset value down enough to resolve pending
+      await fundProxyMock.setGrossAssetValueMock(MINIMUM_SHARE);
 
-        // Simulate gross asset value down enough to resolve pending
-        await fundProxyMock.setGrossAssetValueMock(MINIMUM_SHARE);
+      // Resume fund
+      await fundProxyMock.resume();
 
-        // Resume fund
-        await fundProxyMock.resume();
+      // Verify state
+      const state = await fundProxyMock.state();
+      expect(state).to.be.eq(FUND_STATE.EXECUTING);
+    });
+  });
 
-        // Verify state
-        const state = await fundProxyMock.state();
-        expect(state).to.be.eq(FUND_STATE.EXECUTING);
-      });
+  describe('fail', function () {
+    beforeEach(async function () {
+      await setupFailTest();
     });
 
-    describe('fail', function () {
-      beforeEach(async function () {
-        await setupFailTest();
-      });
+    it('should revert: in pending state due to insufficient reserve', async function () {
+      await setPendingAssetFund(
+        manager,
+        investor,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        hQuickSwap
+      );
+      await expect(fundProxy.resume()).to.be.revertedWith('RevertCode(9)'); // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
+    });
 
-      it('should revert: in pending state due to insufficient reserve', async function () {
-        await setPendingAssetFund(
-          manager,
-          investor,
-          fundProxy,
-          denomination,
-          shareToken,
-          purchaseAmount,
-          swapAmount,
-          redeemAmount,
-          execFeePercentage,
-          denominationAddress,
-          tokenAAddress,
-          hFunds,
-          aFurucombo,
-          taskExecutor,
-          hQuickSwap
-        );
-        await expect(fundProxy.resume()).to.be.revertedWith('RevertCode(9)'); // IMPLEMENTATION_PENDING_SHARE_NOT_RESOLVABLE
-      });
+    it('should revert: in executing state', async function () {
+      await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
+      await expect(fundProxy.resume()).to.be.revertedWith('InvalidState(2)'); // EXECUTING
+    });
 
-      it('should revert: in executing state', async function () {
-        await setExecutingDenominationFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
-        await expect(fundProxy.resume()).to.be.revertedWith('InvalidState(2)'); // EXECUTING
-      });
+    it('should revert: in liquidating state', async function () {
+      await setLiquidatingAssetFund(
+        manager,
+        investor,
+        liquidator,
+        fundProxy,
+        denomination,
+        shareToken,
+        purchaseAmount,
+        swapAmount,
+        redeemAmount,
+        execFeePercentage,
+        denominationAddress,
+        tokenAAddress,
+        hFunds,
+        aFurucombo,
+        taskExecutor,
+        oracle,
+        hQuickSwap,
+        pendingExpiration
+      );
+      await expect(fundProxy.resume()).to.be.revertedWith('InvalidState(4)'); // LIQUIDATING
+    });
 
-      it('should revert: in liquidating state', async function () {
-        await setLiquidatingAssetFund(
-          manager,
-          investor,
-          liquidator,
-          fundProxy,
-          denomination,
-          shareToken,
-          purchaseAmount,
-          swapAmount,
-          redeemAmount,
-          execFeePercentage,
-          denominationAddress,
-          tokenAAddress,
-          hFunds,
-          aFurucombo,
-          taskExecutor,
-          oracle,
-          hQuickSwap,
-          pendingExpiration
-        );
-        await expect(fundProxy.resume()).to.be.revertedWith('InvalidState(4)'); // LIQUIDATING
-      });
-
-      it('should revert: in closed state', async function () {
-        await setClosedDenominationFund(manager, investor, fundProxy, denomination, shareToken, purchaseAmount);
-        await expect(fundProxy.resume()).to.be.revertedWith('InvalidState(5)'); // CLOSED
-      });
+    it('should revert: in closed state', async function () {
+      await setClosedDenominationFund(manager, investor, fundProxy, denomination, shareToken, purchaseAmount);
+      await expect(fundProxy.resume()).to.be.revertedWith('InvalidState(5)'); // CLOSED
     });
   });
 });
