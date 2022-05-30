@@ -25,10 +25,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
     const assetArray = pairs.map(([asset]) => asset);
     const aggregatorArray = pairs.map(([, aggregator]) => aggregator);
-    await chainlink.addAssets(assetArray, aggregatorArray);
+    await (await chainlink.addAssets(assetArray, aggregatorArray)).wait();
 
     // Transfer ownership
-    await chainlink.transferOwnership(MANAGEMENT);
+    await (await chainlink.transferOwnership(MANAGEMENT)).wait();
   }
 };
 

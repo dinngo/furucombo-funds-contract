@@ -22,34 +22,34 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Register to canonical resolver
     const rCanonical = await deployments.get('RCanonical');
     for (const address of Object.values(assets)) {
-      await assetRegistry.register(address, rCanonical.address);
+      await (await assetRegistry.register(address, rCanonical.address)).wait();
     }
 
     // Register to aave v2 asset resolver
     const rAaveV2Asset = await deployments.get('RAaveProtocolV2Asset');
     for (const address of Object.values(aaveV2Asset)) {
-      await assetRegistry.register(address, rAaveV2Asset.address);
+      await (await assetRegistry.register(address, rAaveV2Asset.address)).wait();
     }
 
     // Register to aave v2 debt resolver
     const rAaveProtocolV2Debt = await deployments.get('RAaveProtocolV2Debt');
     for (const address of Object.values(aaveV2Debt)) {
-      await assetRegistry.register(address, rAaveProtocolV2Debt.address);
+      await (await assetRegistry.register(address, rAaveProtocolV2Debt.address)).wait();
     }
 
     // Register to curve stable resolver
     const rCurveStable = await deployments.get('RCurveStable');
     for (const info of Object.values(curveStable)) {
-      await assetRegistry.register(info.address, rCurveStable.address);
+      await (await assetRegistry.register(info.address, rCurveStable.address)).wait();
     }
 
     // Register to uniswap v2 like resolver
     const rUniSwapV2Like = await deployments.get('RUniSwapV2Like');
     for (const address of Object.values(quickSwap)) {
-      await assetRegistry.register(address, rUniSwapV2Like.address);
+      await (await assetRegistry.register(address, rUniSwapV2Like.address)).wait();
     }
     for (const address of Object.values(sushiSwap)) {
-      await assetRegistry.register(address, rUniSwapV2Like.address);
+      await (await assetRegistry.register(address, rUniSwapV2Like.address)).wait();
     }
 
     // Transfer ownership
