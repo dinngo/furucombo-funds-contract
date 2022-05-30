@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const assetRouter = await ethers.getContractAt('AssetRouter', result.address);
 
     // Transfer ownership
-    await assetRouter.transferOwnership(MANAGEMENT);
+    await (await assetRouter.transferOwnership(MANAGEMENT)).wait();
   }
 };
 

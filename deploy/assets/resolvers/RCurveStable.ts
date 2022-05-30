@@ -21,11 +21,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     for (const info of Object.values(curveStable)) {
       // Set pool info for lp token
-      await rCurveStable.setPoolInfo(info.address, info.pool, info.valuedAsset, info.valuedAssetDecimals);
+      await (
+        await rCurveStable.setPoolInfo(info.address, info.pool, info.valuedAsset, info.valuedAssetDecimals)
+      ).wait();
     }
 
     // Transfer ownership
-    await rCurveStable.transferOwnership(MANAGEMENT);
+    await (await rCurveStable.transferOwnership(MANAGEMENT)).wait();
   }
 };
 
