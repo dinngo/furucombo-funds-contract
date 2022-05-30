@@ -259,7 +259,7 @@ describe('ClaimPendingShare', function () {
 
     describe('Pending', function () {
       const acceptPending = true;
-      it('claim pending share', async function () {
+      it('claim pending share after fund goes to pending twice', async function () {
         await setPendingAssetFund(
           manager,
           user1,
