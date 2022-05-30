@@ -417,6 +417,9 @@ describe('CloseFund', function () {
         pendingExpiration
       );
 
+      // Get pendingRoundList length
+      const pendingRoundListLengthBefore = await fundProxy.currentPendingRound();
+
       // Set Chainlink stale period
       const stalePeriod = pendingExpiration * 2;
       await oracle.setStalePeriod(stalePeriod);
@@ -447,8 +450,10 @@ describe('CloseFund', function () {
       const afterBalance = await mortgage.balanceOf(liquidator.address);
 
       // Verify states
+      const pendingRoundListLengthAfter = await fundProxy.currentPendingRound();
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.CLOSED);
       expect(afterBalance.sub(beforeBalance)).to.be.eq(mortgageAmount);
+      expect(pendingRoundListLengthAfter.sub(pendingRoundListLengthBefore)).to.be.eq(1);
     });
   });
 });

@@ -618,7 +618,11 @@ describe('InvestorPurchaseFund', function () {
 
         it('user1 purchase', async function () {
           const solvePendingPurchaseAmount = mwei('600');
+
+          // Get states
           const user1ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
+          const pendingRoundListLengthBefore = await fundProxy.currentPendingRound();
+
           const [user1Share, user1State] = await purchaseFund(
             user1,
             fundProxy,
@@ -627,8 +631,11 @@ describe('InvestorPurchaseFund', function () {
             solvePendingPurchaseAmount
           );
 
+          // Verify states
+          const pendingRoundListLengthAfter = await fundProxy.currentPendingRound();
           expect(user1Share).to.be.eq(user1ExpectedShare);
           expect(user1State).to.be.eq(FUND_STATE.EXECUTING);
+          expect(pendingRoundListLengthAfter.sub(pendingRoundListLengthBefore)).to.be.eq(1);
         });
 
         it('user1 and user2 purchase', async function () {
@@ -641,6 +648,10 @@ describe('InvestorPurchaseFund', function () {
 
           // user2 purchase
           const user2ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
+
+          // Get pendingRoundList length
+          const pendingRoundListLengthBefore = await fundProxy.currentPendingRound();
+
           const [user2Share, user2State] = await purchaseFund(
             user2,
             fundProxy,
@@ -649,11 +660,14 @@ describe('InvestorPurchaseFund', function () {
             solvePendingPurchaseAmount
           );
 
+          const pendingRoundListLengthAfter = await fundProxy.currentPendingRound();
+
           expect(user1Share).to.be.eq(user1ExpectedShare);
           expect(user2Share).to.be.eq(user2ExpectedShare);
 
           expect(user1State).to.be.eq(FUND_STATE.PENDING);
           expect(user2State).to.be.eq(FUND_STATE.EXECUTING);
+          expect(pendingRoundListLengthAfter.sub(pendingRoundListLengthBefore)).to.be.eq(1);
         });
 
         it('user1, user2 and user3 purchase', async function () {
@@ -670,6 +684,10 @@ describe('InvestorPurchaseFund', function () {
 
           // user3 purchase
           const user3ExpectedShare = await getExpectedShareWhenPending(solvePendingPurchaseAmount);
+
+          // Get pendingRoundList length
+          const pendingRoundListLengthBefore = await fundProxy.currentPendingRound();
+
           const [user3Share, user3State] = await purchaseFund(
             user3,
             fundProxy,
@@ -678,6 +696,8 @@ describe('InvestorPurchaseFund', function () {
             solvePendingPurchaseAmount
           );
 
+          const pendingRoundListLengthAfter = await fundProxy.currentPendingRound();
+
           expect(user1Share).to.be.eq(user1ExpectedShare);
           expect(user2Share).to.be.eq(user2ExpectedShare);
           expect(user3Share).to.be.eq(user3ExpectedShare);
@@ -685,6 +705,7 @@ describe('InvestorPurchaseFund', function () {
           expect(user1State).to.be.eq(FUND_STATE.PENDING);
           expect(user2State).to.be.eq(FUND_STATE.PENDING);
           expect(user3State).to.be.eq(FUND_STATE.EXECUTING);
+          expect(pendingRoundListLengthAfter.sub(pendingRoundListLengthBefore)).to.be.eq(1);
         });
       });
     }); // describe('With state change') end

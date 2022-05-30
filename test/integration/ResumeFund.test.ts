@@ -237,12 +237,23 @@ describe('ResumeFund', function () {
       // Simulate gross asset value down enough to resolve pending
       await fundProxyMock.setGrossAssetValueMock(MINIMUM_SHARE);
 
+      // Get states before resuming fund
+      const pendingRoundListLengthBefore = await fundProxyMock.currentPendingRound();
+
       // Resume fund
       await fundProxyMock.resume();
 
-      // Verify state
+      // Get states after resuming fund
+      const currentTotalPendingShare = await fundProxyMock.currentTotalPendingShare();
+      const currentTotalPendingBonus = await fundProxyMock.currentTotalPendingBonus();
+      const pendingRoundListLengthAfter = await fundProxyMock.currentPendingRound();
       const state = await fundProxyMock.state();
+
+      // Verify state
       expect(state).to.be.eq(FUND_STATE.EXECUTING);
+      expect(currentTotalPendingShare).to.be.eq(0);
+      expect(currentTotalPendingBonus).to.be.eq(0);
+      expect(pendingRoundListLengthAfter.sub(pendingRoundListLengthBefore)).to.be.eq(1);
     });
   });
 
