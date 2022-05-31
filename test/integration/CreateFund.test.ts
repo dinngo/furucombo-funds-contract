@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber, constants } from 'ethers';
 import { deployments, ethers } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -12,7 +11,14 @@ import {
   ComptrollerImplementation,
 } from '../../typechain';
 
-import { ether, impersonateAndInjectEther, getEventArgs } from '../utils/utils';
+import {
+  ether,
+  impersonateAndInjectEther,
+  getEventArgs,
+  getEffectiveMgmtFeeRate,
+  expectEqWithinBps,
+  get64x64FromNumber,
+} from '../utils/utils';
 
 import { createFundInfra } from './fund';
 import { deployFurucomboProxyAndRegistry, createFundProxy } from './deploy';
@@ -193,7 +199,7 @@ describe('CreateFund', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.reverted;
+      ).to.be.revertedWith('reverted with an unrecognized custom error');
     });
 
     it('should revert: invalid performance fee rate', async function () {
@@ -202,7 +208,7 @@ describe('CreateFund', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.reverted;
+      ).to.be.revertedWith('reverted with an unrecognized custom error');
     });
 
     it('should revert: invalid crystallization period', async function () {
@@ -211,7 +217,7 @@ describe('CreateFund', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.reverted;
+      ).to.be.revertedWith('reverted with an unrecognized custom error');
     });
 
     it('should revert: invalid mortgage tier', async function () {
@@ -358,20 +364,25 @@ describe('CreateFund', function () {
         // setter finalized getter
         it('set the right management fee rate', async function () {
           const _feeRate = BigNumber.from('1000');
-          const _expectFeeRate = BigNumber.from('18446744135297203117');
+          const _expectFeeRate = getEffectiveMgmtFeeRate(_feeRate.toNumber() / FUND_PERCENTAGE_BASE);
+
           await fundProxy.connect(manager).setManagementFeeRate(_feeRate);
-          expect(await fundProxy.mFeeRate64x64()).to.be.eq(_expectFeeRate);
+          const _effectiveFeeRateBefore = await fundProxy.mFeeRate64x64();
+          expectEqWithinBps(_effectiveFeeRateBefore, _expectFeeRate, 1, 15);
+
           await fundProxy.connect(manager).finalize();
-          expect(await fundProxy.mFeeRate64x64()).to.be.eq(_expectFeeRate);
+          const _effectiveFeeRateAfter = await fundProxy.mFeeRate64x64();
+          expectEqWithinBps(_effectiveFeeRateAfter, _expectFeeRate, 1, 15);
         });
 
         it('set the right performance fee rate', async function () {
           const _pFeeRate = BigNumber.from('1000');
-          const expectedPFeeRate = BigNumber.from('1844674407370955161');
+          const _expectedPFeeRate = get64x64FromNumber(_pFeeRate.toNumber() / FUND_PERCENTAGE_BASE);
+
           await fundProxy.connect(manager).setPerformanceFeeRate(_pFeeRate);
-          expect(await fundProxy.pFeeRate64x64()).to.be.eq(expectedPFeeRate);
+          expect(await fundProxy.pFeeRate64x64()).to.be.eq(_expectedPFeeRate);
           await fundProxy.connect(manager).finalize();
-          expect(await fundProxy.pFeeRate64x64()).to.be.eq(expectedPFeeRate);
+          expect(await fundProxy.pFeeRate64x64()).to.be.eq(_expectedPFeeRate);
         });
 
         it('set the right crystallization period', async function () {

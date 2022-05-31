@@ -1,7 +1,6 @@
 import { Wallet, Signer } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   Chainlink,
   FurucomboRegistry,
@@ -16,7 +15,6 @@ import {
 } from '../../typechain';
 
 import { expectEqWithinBps, mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
-
 import { createFund, redeemFund, setLiquidatingAssetFund, setClosedDenominationFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -34,6 +32,7 @@ import {
   FUND_STATE,
   MINIMUM_SHARE,
 } from '../utils/constants';
+
 import { setPendingAssetFund, purchaseFund } from './fund';
 
 describe('ManagerClaimManagementFee', function () {

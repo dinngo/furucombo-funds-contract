@@ -224,6 +224,7 @@ describe('FundExecuteStrategy', function () {
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
     [purchasedShare] = await purchaseFund(investor, fundProxy, denomination, shareToken, purchaseAmount);
   });
+
   beforeEach(async function () {
     await setupTest();
   });

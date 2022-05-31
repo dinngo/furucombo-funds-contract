@@ -16,8 +16,7 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther } from '../utils/utils';
-
-import { createFund, setPendingAssetFund } from './fund';
+import { createFund, setPendingAssetFund, setExecutingAssetFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,
@@ -30,6 +29,7 @@ import {
   USDC_PROVIDER,
   ONE_DAY,
   FUND_PERCENTAGE_BASE,
+  FUND_STATE,
 } from '../utils/constants';
 
 describe('UpgradeFund', function () {
@@ -151,22 +151,86 @@ describe('UpgradeFund', function () {
       it('same state after upgrade', async function () {
         let beacon: UpgradeableBeacon;
 
-        const beforePendingUserInfo = await fundProxy.pendingUsers(investor.address);
+        // Get states before upgrading fund
+        const currentTotalPendingShareBefore = await fundProxy.currentTotalPendingShare();
+        const currentTotalPendingBonusBefore = await fundProxy.currentTotalPendingBonus();
+        const pendingRoundListLengthBefore = await fundProxy.currentPendingRound();
+        const pendingUserInfoBefore = await fundProxy.pendingUsers(investor.address);
 
-        // deploy a new fund implementation
+        // Deploy a new fund implementation
         const newFundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
         await newFundImplementation.deployed();
 
-        // upgrade fund implementation
+        // Upgrade fund implementation
         const beaconAddress = await comptroller.beacon();
         beacon = await (await ethers.getContractFactory('UpgradeableBeacon')).attach(beaconAddress);
         await expect(await beacon.upgradeTo(newFundImplementation.address))
           .to.emit(beacon, 'Upgraded')
           .withArgs(newFundImplementation.address);
 
-        // verify state
+        // Get states after upgrading fund
+        const currentTotalPendingShareAfter = await fundProxy.currentTotalPendingShare();
+        const currentTotalPendingBonusAfter = await fundProxy.currentTotalPendingBonus();
+        const pendingRoundListLengthAfter = await fundProxy.currentPendingRound();
         const afterPendingUserInfo = await fundProxy.pendingUsers(investor.address);
-        expect(afterPendingUserInfo).to.be.deep.eq(beforePendingUserInfo);
+
+        // Verify state
+        expect(await fundProxy.state()).to.be.eq(FUND_STATE.PENDING);
+        expect(currentTotalPendingShareAfter).to.be.eq(currentTotalPendingShareBefore);
+        expect(currentTotalPendingBonusAfter).to.be.eq(currentTotalPendingBonusBefore);
+        expect(pendingRoundListLengthAfter).to.be.eq(pendingRoundListLengthBefore);
+        expect(afterPendingUserInfo).to.be.deep.eq(pendingUserInfoBefore);
+      });
+    });
+
+    describe('Executing state', function () {
+      const swapAmount = purchaseAmount.div(2);
+      const reserveAmount = purchaseAmount.sub(swapAmount);
+
+      beforeEach(async function () {
+        await setExecutingAssetFund(
+          manager,
+          investor,
+          fundProxy,
+          denomination,
+          shareToken,
+          purchaseAmount,
+          swapAmount,
+          execFeePercentage,
+          denominationAddress,
+          tokenBAddress,
+          hFunds,
+          aFurucombo,
+          taskExecutor,
+          hQuickSwap
+        );
+      });
+
+      it('same state after upgrade', async function () {
+        let beacon: UpgradeableBeacon;
+
+        // Get states before upgrading fund
+        const [shareLeftBefore, redeemableBalanceBefore] = await fundProxy.calculateRedeemableBalance(purchaseAmount);
+
+        // Deploy a new fund implementation
+        const newFundImplementation = await (await ethers.getContractFactory('FundImplementation')).deploy();
+        await newFundImplementation.deployed();
+
+        // Upgrade fund implementation
+        const beaconAddress = await comptroller.beacon();
+        beacon = await (await ethers.getContractFactory('UpgradeableBeacon')).attach(beaconAddress);
+        await expect(await beacon.upgradeTo(newFundImplementation.address))
+          .to.emit(beacon, 'Upgraded')
+          .withArgs(newFundImplementation.address);
+
+        // Get states after upgrading fund
+        const [shareLeftAfter, redeemableBalanceAfter] = await fundProxy.calculateRedeemableBalance(purchaseAmount);
+
+        // Verify state
+        expect(await fundProxy.state()).to.be.eq(FUND_STATE.EXECUTING);
+        expect(redeemableBalanceAfter).to.be.eq(redeemableBalanceBefore);
+        expect(redeemableBalanceAfter).to.be.eq(reserveAmount);
+        expect(shareLeftAfter).to.be.eq(shareLeftBefore);
       });
     });
   });
