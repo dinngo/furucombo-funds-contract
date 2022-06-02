@@ -14,6 +14,7 @@ import {AssetQuotaAction} from "./utils/AssetQuotaAction.sol";
 import {DealingAssetAction} from "./utils/DealingAssetAction.sol";
 import {LibParam} from "./libraries/LibParam.sol";
 
+/// @title The fund action task executor
 contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, AssetQuotaAction, DealingAssetAction {
     using Address for address;
     using SafeERC20 for IERC20;
@@ -31,29 +32,30 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         comptroller = IComptroller(comptroller_);
     }
 
-    /**
-     * @notice task execution function.
-     * @param tos_ The address of action.
-     * @param configs_ The configurations of executing actions.
-     * @param datas_ The action datas.
-     */
+    /// @notice Task execution function, will charge execution fee first.
+    /// @param tokensIn_ The list of tokens used in execution.
+    /// @param amountsIn_ The amount of tokens used in execution.
+    /// @param tos_ The address of action.
+    /// @param configs_ The configurations of executing actions.
+    /// @param datas_ The action datas.
+    /// @return The address of dealing asset list.
+    /// inheritdoc ITaskExecutor, DelegateCallAction, AssetQuotaAction, DealingAssetAction.
     function batchExec(
         address[] calldata tokensIn_,
         uint256[] calldata amountsIn_,
         address[] calldata tos_,
         bytes32[] calldata configs_,
         bytes[] memory datas_
-    ) external payable delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory a) {
+    ) external payable delegateCallOnly quotaCleanUp assetCleanUp returns (address[] memory) {
         _chargeExecutionFee(tokensIn_, amountsIn_);
         return _execs(tos_, configs_, datas_);
     }
 
-    /**
-     * @notice The execution phase.
-     * @param tos_ The address of action.
-     * @param configs_ The configurations of executing actions.
-     * @param datas_ The action datas.
-     */
+    /// @notice The execution phase.
+    /// @param tos_ The address of action.
+    /// @param configs_ The configurations of executing actions.
+    /// @param datas_ The action datas.
+    /// @return The address of dealing asset list.
     function _execs(
         address[] memory tos_,
         bytes32[] memory configs_,
@@ -122,13 +124,11 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         return dealingAssets;
     }
 
-    /**
-     * @notice Trimming the execution parameter if needed.
-     * @param data_ The execution data.
-     * @param config_ The configuration.
-     * @param localStack_ The stack the be referenced.
-     * @param index_ Current element count of localStack.
-     */
+    /// @notice Trimming the execution parameter if needed.
+    /// @param data_ The execution data.
+    /// @param config_ The configuration.
+    /// @param localStack_ The stack the be referenced.
+    /// @param index_ Current element count of localStack.
     function _trimParams(
         bytes memory data_,
         bytes32 config_,
@@ -167,13 +167,12 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         }
     }
 
-    /**
-     * @notice Parse the execution return data to the local stack if needed.
-     * @param ret_ The return data.
-     * @param config_ The configuration.
-     * @param localStack_ The local stack to place the return values.
-     * @param index_ The current tail.
-     */
+    /// @notice Parse the execution return data into the local stack if needed.
+    /// @param ret_ The return data.
+    /// @param config_ The configuration.
+    /// @param localStack_ The local stack to place the return values.
+    /// @param index_ The current tail.
+    /// @return The new index.
     function _parseReturn(
         bytes memory ret_,
         bytes32 config_,
@@ -193,12 +192,11 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         return index_;
     }
 
-    /**
-     * @notice Parse the return data to the local stack.
-     * @param localStack_ The local stack to place the return values.
-     * @param ret_ The return data.
-     * @param index_ The current tail.
-     */
+    /// @notice Parse the return data into the local stack.
+    /// @param localStack_ The local stack to place the return values.
+    /// @param ret_ The return data.
+    /// @param index_ The current tail.
+    /// @return newIndex The new index.
     function _parse(
         bytes32[256] memory localStack_,
         bytes memory ret_,
@@ -223,19 +221,17 @@ contract TaskExecutor is ITaskExecutor, DestructibleAction, DelegateCallAction, 
         }
     }
 
-    /**
-     * @notice decode eth value from the execution data.
-     * @param data_ The execution data.
-     */
+    /// @notice Decode eth value from the execution data.
+    /// @param data_ The execution data.
+    /// @return The first return uint256 value mean eth value,
+    ///         the second return bytes value means execution data.
     function _decodeEthValue(bytes memory data_) internal pure returns (uint256, bytes memory) {
         return abi.decode(data_, (uint256, bytes));
     }
 
-    /**
-     * @notice charge execution from input tokens
-     * @param tokensIn_ The input tokens.
-     * @param amountsIn_ The input token amounts.
-     */
+    /// @notice Charge execution fee from input tokens.
+    /// @param tokensIn_ The input tokens.
+    /// @param amountsIn_ The input token amounts.
     function _chargeExecutionFee(address[] calldata tokensIn_, uint256[] calldata amountsIn_) internal {
         // Check initial asset from white list
         uint256 level = IFund(msg.sender).level();

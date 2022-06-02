@@ -1,6 +1,9 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import {
+  EXEC_FEE_COLLECTOR,
+  PENDING_LIQUIDATOR,
+  FUND_CREATORS,
   WL_AAVE_V2_SIGS,
   WL_FUNDS_SIGS,
   WL_QUICKSWAP_SIGS,
@@ -25,9 +28,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const fundImplementation = await deployments.get('FundImplementation');
   const assetRouter = await deployments.get('AssetRouter');
-  const execFeeCollector = deployer;
+  const execFeeCollector = EXEC_FEE_COLLECTOR;
   const execFeePercentage = EXEC_FEE_PERCENTAGE;
-  const pendingLiquidator = deployer;
+  const pendingLiquidator = PENDING_LIQUIDATOR;
   const pendingExpiration = PENDING_EXPIRATION;
   const mortgageVault = await deployments.get('MortgageVault');
   const valueTolerance = VALUE_TOLERANCE;
@@ -68,7 +71,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const comptroller = await ethers.getContractAt('ComptrollerImplementation', result.address);
 
     // Set mortgage tier
-    await comptroller.setMortgageTier(LEVEL, LEVEL_AMOUNT);
+    await (await comptroller.setMortgageTier(LEVEL, LEVEL_AMOUNT)).wait();
 
     // Permit denomination and dust pair
     const mappedDenominations = Object.keys(denominations).map((denomination) => {
@@ -77,36 +80,36 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
     const denominationArray = mappedDenominations.map(([denomination]) => denomination);
     const dustArray = mappedDenominations.map(([, dust]) => dust);
-    await comptroller.permitDenominations(denominationArray, dustArray);
+    await (await comptroller.permitDenominations(denominationArray, dustArray)).wait();
 
     // Permit creator
-    await comptroller.permitCreators([deployer]);
+    await (await comptroller.permitCreators(FUND_CREATORS)).wait();
 
     // Permit asset
     const assetArray = Object.values(assets);
-    await comptroller.permitAssets(LEVEL, assetArray);
+    await (await comptroller.permitAssets(LEVEL, assetArray)).wait();
 
     // Permit aave v2 asset
     const aaveV2AssetArray = Object.values(aaveV2Asset);
-    await comptroller.permitAssets(LEVEL, aaveV2AssetArray);
+    await (await comptroller.permitAssets(LEVEL, aaveV2AssetArray)).wait();
 
     // Permit aave v2 debt
     const aaveV2DebtArray = Object.values(aaveV2Debt);
-    await comptroller.permitAssets(LEVEL, aaveV2DebtArray);
+    await (await comptroller.permitAssets(LEVEL, aaveV2DebtArray)).wait();
 
     // Permit curve stable
     const curveStableAddressArray = Object.values(curveStable).map((info) => {
       return info.address as string;
     });
-    await comptroller.permitAssets(LEVEL, curveStableAddressArray);
+    await (await comptroller.permitAssets(LEVEL, curveStableAddressArray)).wait();
 
     // Permit quickSwap
     const quickSwapArray = Object.values(quickSwap);
-    await comptroller.permitAssets(LEVEL, quickSwapArray);
+    await (await comptroller.permitAssets(LEVEL, quickSwapArray)).wait();
 
     // Permit sushiSwap
     const sushiSwapArray = Object.values(sushiSwap);
-    await comptroller.permitAssets(LEVEL, sushiSwapArray);
+    await (await comptroller.permitAssets(LEVEL, sushiSwapArray)).wait();
 
     // Permit handler
     const hAaveProtocolV2 = await deployments.get('HAaveProtocolV2');
@@ -131,7 +134,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ...WL_CURVE_SIGS,
       ...WL_PARASWAP_V5_SIGS,
     ];
-    await comptroller.permitHandlers(LEVEL, wlAddressList, wlSigList);
+    await (await comptroller.permitHandlers(LEVEL, wlAddressList, wlSigList)).wait();
   }
 };
 

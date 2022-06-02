@@ -23,7 +23,15 @@ import {
   AAVEPROTOCOL_V2_PROVIDER,
 } from './../utils/constants';
 
-import { ether, simpleEncode, asciiToHex32, tokenProviderQuick, balanceDelta, padRightZero } from './../utils/utils';
+import {
+  ether,
+  simpleEncode,
+  asciiToHex32,
+  tokenProviderQuick,
+  balanceDelta,
+  padRightZero,
+  expectEqWithinBps,
+} from './../utils/utils';
 
 describe('Aave V2 Flashloan', function () {
   let owner: Wallet;
@@ -193,7 +201,7 @@ describe('Aave V2 Flashloan', function () {
       expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
       expect(await tokenA.balanceOf(proxy.address)).to.be.eq(0);
       expect(await tokenA.balanceOf(user.address)).to.be.eq(tokenAUser.add(value).add(value));
-      expect(await variableDebtTokenA.balanceOf(user.address)).to.be.eq(value);
+      expectEqWithinBps(await variableDebtTokenA.balanceOf(user.address), value, 1);
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
     });
 

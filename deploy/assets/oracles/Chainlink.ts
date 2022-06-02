@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
+import { MANAGEMENT } from '../../Config';
 import { chainlinkAggregators } from '../AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -24,7 +25,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
     const assetArray = pairs.map(([asset]) => asset);
     const aggregatorArray = pairs.map(([, aggregator]) => aggregator);
-    await chainlink.addAssets(assetArray, aggregatorArray);
+    await (await chainlink.addAssets(assetArray, aggregatorArray)).wait();
+
+    // Transfer ownership
+    await (await chainlink.transferOwnership(MANAGEMENT)).wait();
   }
 };
 

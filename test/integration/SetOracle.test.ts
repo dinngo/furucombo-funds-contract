@@ -1,7 +1,6 @@
 import { Wallet, Signer } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -16,7 +15,6 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther } from '../utils/utils';
-
 import { createFund, purchaseFund, getSwapData } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -31,6 +29,7 @@ import {
   ONE_DAY,
   FUND_PERCENTAGE_BASE,
 } from '../utils/constants';
+
 import { ComptrollerImplementation } from '../../typechain/ComptrollerImplementation';
 
 describe('SetComptroller', function () {
@@ -134,6 +133,7 @@ describe('SetComptroller', function () {
     // Transfer token to investor
     await denomination.connect(denominationProvider).transfer(investor.address, initialFunds);
   });
+
   beforeEach(async function () {
     await setupTest();
   });

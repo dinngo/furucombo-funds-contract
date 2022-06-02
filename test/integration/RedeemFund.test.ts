@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -15,7 +14,7 @@ import {
   Chainlink,
 } from '../../typechain';
 
-import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
+import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, expectEqWithinBps } from '../utils/utils';
 
 import {
   createFund,
@@ -166,6 +165,7 @@ describe('InvestorRedeemFund', function () {
         const vaultBalanceAfter = await denomination.balanceOf(fundVault);
         const user1Share = await shareToken.balanceOf(user1.address);
 
+        expect(user1RedeemAmount).to.be.gt(0);
         expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
         expect(vaultBalanceBefore.sub(vaultBalanceAfter)).to.be.eq(user1RedeemAmount);
         expect(user1Share).to.be.eq(0);
@@ -194,6 +194,7 @@ describe('InvestorRedeemFund', function () {
 
         expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
         expect(user2BalanceAfter).to.be.eq(user2BalanceBefore.add(user2RedeemAmount));
+        expect(user1RedeemAmount).to.be.gt(0);
         expect(user1RedeemAmount).to.be.eq(user2RedeemAmount);
         expect(user1Share).to.be.eq(0);
         expect(user2Share).to.be.eq(0);
@@ -228,6 +229,7 @@ describe('InvestorRedeemFund', function () {
         expect(user1BalanceAfter).to.be.eq(user1BalanceBefore.add(user1RedeemAmount));
         expect(user2BalanceAfter).to.be.eq(user2BalanceBefore.add(user2RedeemAmount));
         expect(user3BalanceAfter).to.be.eq(user3BalanceBefore.add(user3RedeemAmount));
+        expect(user1RedeemAmount).to.be.gt(0);
         expect(user1RedeemAmount).to.be.eq(user2RedeemAmount);
         expect(user3RedeemAmount).to.be.eq(user1RedeemAmount.mul(2));
         expect(user1Share).to.be.eq(0);
@@ -280,7 +282,7 @@ describe('InvestorRedeemFund', function () {
         const user1BalanceBefore = await denomination.balanceOf(user1.address);
         const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
 
-        await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
+        const [, fundState] = await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
 
         const user1BalanceAfter = await denomination.balanceOf(user1.address);
         const fundShareTokenAfter = await shareToken.balanceOf(fundProxy.address);
@@ -289,6 +291,7 @@ describe('InvestorRedeemFund', function () {
         expect(user1BalanceAfter).to.be.eq(user1BalanceBefore);
         expect(user1Share).to.be.eq(0);
         expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares);
+        expect(fundState).to.be.eq(FUND_STATE.PENDING);
       });
 
       it('redeem same share', async function () {
@@ -297,7 +300,7 @@ describe('InvestorRedeemFund', function () {
         const fundShareTokenBefore = await shareToken.balanceOf(fundProxy.address);
 
         await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
-        await redeemFund(user2, fundProxy, denomination, eachUserShares, acceptPending);
+        const [, fundState] = await redeemFund(user2, fundProxy, denomination, eachUserShares, acceptPending);
 
         const user1BalanceAfter = await denomination.balanceOf(user1.address);
         const user2BalanceAfter = await denomination.balanceOf(user2.address);
@@ -312,6 +315,7 @@ describe('InvestorRedeemFund', function () {
         expect(user1Share).to.be.eq(0);
         expect(user2Share).to.be.eq(0);
         expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares.mul(2));
+        expect(fundState).to.be.eq(FUND_STATE.PENDING);
       });
 
       it('redeem double share', async function () {
@@ -322,7 +326,7 @@ describe('InvestorRedeemFund', function () {
 
         await redeemFund(user1, fundProxy, denomination, eachUserShares, acceptPending);
         await redeemFund(user2, fundProxy, denomination, eachUserShares, acceptPending);
-        await redeemFund(user3, fundProxy, denomination, eachUserSharesDouble, acceptPending);
+        const [, fundState] = await redeemFund(user3, fundProxy, denomination, eachUserSharesDouble, acceptPending);
 
         const user1BalanceAfter = await denomination.balanceOf(user1.address);
         const user2BalanceAfter = await denomination.balanceOf(user2.address);
@@ -341,6 +345,7 @@ describe('InvestorRedeemFund', function () {
         expect(user2Share).to.be.eq(0);
         expect(user3Share).to.be.eq(0);
         expect(fundShareTokenAfter.sub(fundShareTokenBefore)).to.be.eq(eachUserShares.mul(4));
+        expect(fundState).to.be.eq(FUND_STATE.PENDING);
       });
     }); // describe('Pending state') end
 
@@ -450,6 +455,7 @@ describe('InvestorRedeemFund', function () {
       const acceptPending = true;
       const swapAmount = initialFunds.div(2);
       let totalShare: BigNumber;
+
       beforeEach(async function () {
         await setExecutingAssetFund(
           manager,
@@ -517,7 +523,7 @@ describe('InvestorRedeemFund', function () {
         const user1Share = await shareToken.balanceOf(user1.address);
         const user2Share = await shareToken.balanceOf(user2.address);
 
-        expect(user1ExpectedRedeemBalance).to.be.eq(user1Balance);
+        expectEqWithinBps(user1Balance, user1ExpectedRedeemBalance, 1);
         expect(user2ExpectedRedeemBalance).to.be.gt(user2Balance);
         expect(fundShareTokenAfter).to.be.gt(fundShareTokenBefore);
         expect(user1Share).to.be.eq(0);
@@ -555,8 +561,8 @@ describe('InvestorRedeemFund', function () {
         const user2Share = await shareToken.balanceOf(user2.address);
         const user3Share = await shareToken.balanceOf(user3.address);
 
-        expect(user1And2ExpectedRedeemBalance).to.be.eq(user1Balance);
-        expect(user1And2ExpectedRedeemBalance).to.be.eq(user2Balance);
+        expectEqWithinBps(user1Balance, user1And2ExpectedRedeemBalance, 1);
+        expectEqWithinBps(user2Balance, user1And2ExpectedRedeemBalance, 1);
         expect(user3ExpectedRedeemBalance).to.be.gt(user3Balance);
         expect(fundShareTokenAfter).to.be.gt(fundShareTokenBefore);
         expect(user1Share).to.be.eq(0);
@@ -617,7 +623,11 @@ describe('InvestorRedeemFund', function () {
       const user1ShareAfter = await shareToken.balanceOf(user1.address);
       const fundState = await fundProxy.state();
 
-      expect(expectedClaimableAmount.add(expectedRedeemBalance)).to.be.eq(user1BalanceAfter.sub(user1BalanceBefore));
+      expectEqWithinBps(
+        user1BalanceAfter.sub(user1BalanceBefore),
+        expectedClaimableAmount.add(expectedRedeemBalance),
+        1
+      );
       expect(redeemTx).to.emit(fundProxy, 'RedemptionClaimed').withArgs(user1.address);
       expect(fundState).to.be.eq(FUND_STATE.EXECUTING);
       expect(user1ShareAfter).to.be.eq(0);
@@ -695,6 +705,7 @@ describe('InvestorRedeemFund', function () {
     const purchaseAmount = mwei('2000');
     const swapAmount = purchaseAmount.div(2);
     const redeemAmount = purchaseAmount.sub(swapAmount).add(mwei('100'));
+
     it('should revert: redeem in liquidating', async function () {
       await setLiquidatingAssetFund(
         manager,

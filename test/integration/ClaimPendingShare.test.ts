@@ -1,7 +1,6 @@
 import { Wallet, Signer, BigNumber } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -17,7 +16,6 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy } from '../utils/utils';
-
 import { createFund, purchaseFund, setPendingAssetFund, execSwap, redeemFund } from './fund';
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
@@ -261,7 +259,7 @@ describe('ClaimPendingShare', function () {
 
     describe('Pending', function () {
       const acceptPending = true;
-      it('claim pending share', async function () {
+      it('claim pending share after fund goes to pending twice', async function () {
         await setPendingAssetFund(
           manager,
           user1,

@@ -1,7 +1,6 @@
 import { Wallet, Signer } from 'ethers';
 import { deployments } from 'hardhat';
 import { expect } from 'chai';
-
 import {
   FurucomboRegistry,
   FurucomboProxy,
@@ -16,7 +15,6 @@ import {
 } from '../../typechain';
 
 import { mwei, impersonateAndInjectEther, increaseNextBlockTimeBy, ether } from '../utils/utils';
-
 import {
   setPendingAssetFund,
   setExecutingDenominationFund,
@@ -25,6 +23,7 @@ import {
   createReviewingFund,
   setLiquidatingAssetFund,
 } from './fund';
+
 import { deployFurucomboProxyAndRegistry } from './deploy';
 import {
   BAT_TOKEN,
@@ -418,6 +417,9 @@ describe('CloseFund', function () {
         pendingExpiration
       );
 
+      // Get pendingRoundList length
+      const pendingRoundListLengthBefore = await fundProxy.currentPendingRound();
+
       // Set Chainlink stale period
       const stalePeriod = pendingExpiration * 2;
       await oracle.setStalePeriod(stalePeriod);
@@ -448,8 +450,10 @@ describe('CloseFund', function () {
       const afterBalance = await mortgage.balanceOf(liquidator.address);
 
       // Verify states
+      const pendingRoundListLengthAfter = await fundProxy.currentPendingRound();
       expect(await fundProxy.state()).to.be.eq(FUND_STATE.CLOSED);
       expect(afterBalance.sub(beforeBalance)).to.be.eq(mortgageAmount);
+      expect(pendingRoundListLengthAfter.sub(pendingRoundListLengthBefore)).to.be.eq(1);
     });
   });
 });

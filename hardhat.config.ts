@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1,
+        runs: 200,
       },
     },
   },
@@ -43,9 +43,14 @@ const config: HardhatUserConfig = {
       initialBaseFeePerGas: 0,
       allowUnlimitedContractSize: true,
     },
+    polygon: {
+      url: process.env.POLYGON_URL || '',
+      accounts: process.env.POLYGON_SECRET !== undefined ? [process.env.POLYGON_SECRET] : [],
+      gas: 6000000,
+    },
     beta: {
       url: process.env.BETA_URL || '',
-      accounts: process.env.SECRET_BETA !== undefined ? [process.env.SECRET_BETA] : [],
+      accounts: process.env.BETA_SECRET !== undefined ? [process.env.BETA_SECRET] : [],
       gas: 6000000,
     },
     localhost: {
