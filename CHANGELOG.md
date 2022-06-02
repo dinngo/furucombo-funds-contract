@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+## [1.0.1] - 2022-06-02
+
 ### Change
 
 - Remove FurucomboProxy event log.
