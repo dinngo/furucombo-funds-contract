@@ -1,6 +1,6 @@
 # Furucombo Funds
 
-This repository contains the smart contract source code for the Furucombo Fund protocol. This repository uses Hardhat as a development environment for compilation, testing, and deployment tasks.
+This repository contains the smart contract source code for the Furucombo Funds protocol. This repository uses Hardhat for compilation, testing, and deployment.
 
 ## What is Furucombo Funds?
 
@@ -19,7 +19,7 @@ This repository is subject to the [Immunefi bug bounty](TBD) program, per the te
 You can find all audit reports under the audit folder
 
 - [Dedaub](./audit/Dedaub/Furucombo_Funds_Audit_Final_Report.pdf)
-- [PeckShield](./audit//PeckShield/PeckShield-Audit-Report-Furucombo-Funds-v1.0.pdf)
+- [PeckShield](./audit/PeckShield/PeckShield-Audit-Report-Furucombo-Funds-v1.0.pdf)
 
 ## Installation
 
@@ -46,29 +46,29 @@ Furucombo is released under the [MIT License](LICENSE).
 
 ## Comptroller
 
-The configuration center of Furucombo funds system. The comptroller is implemented through an [upgradable proxy](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy/transparent) structure.
+The configuration center of Furucombo Funds system. The comptroller is implemented through an [upgradable proxy](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy/transparent) structure.
 
 ## Mortgage Vault
 
-The vault to keep the creator’s mortgage. Before creators [create funds](#fund-manager), they need to prepare the corresponding amount of assets to their desired tier. The assets will be transferred to the [mortgage vault](#mortgage-vault) when the fund is [created](#create-fund).
+The vault to keep the creator’s mortgage. Before creators [create fund](#create-fund), they need to prepare the corresponding amount of assets to their desired tier. The assets will be transferred to the [mortgage vault](#mortgage-vault) when the fund is created.
 
 ## Fund Proxy Factory
 
-Creators [create funds](#create-fund) through [Fund Proxy Factory](#fund-proxy-factory). When the fund is created, [Fund Proxy](#fund-proxy), [Share Token](#share-token) is created, and the mortgage asset is transferred to the [Mortgage Vault](#mortgage-vault). Certain attributes of the fund are assigned and set at the same time.
+Creators [create fund](#create-fund) through Fund Proxy Factory. When the fund is created, [Fund Proxy](#fund-proxy), [Share Token](#share-token) are created, and the mortgage asset is transferred to the [Mortgage Vault](#mortgage-vault). Certain attributes of the fund are set at the same time.
 
 ## Fund Proxy
 
-The logic unit of Furucombo funds. The fund is implemented through a [beacon proxy](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy/beacon) structure.The implementation target is set at the beacon defined in the [comptroller](#comptroller). For more details, see the explanation [below](#fund-implementation).
+The logic unit of Furucombo Funds. The fund is implemented through a [beacon proxy](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy/beacon) structure. The implementation target is set at the beacon defined in the [comptroller](#comptroller). For more details, see the explanation [below](#fund-implementation).
 
 ## Asset Router
 
-The value calculation unit, which calculates the asset value for the fund by assigning asset, amount, and quote. The system is composed of Oracle, Resolver, and Registry. Oracle is responsible for getting asset prices through interacting with external Oracle protocol (only ChainLink currently). Resolver parses assets and resolves into a specific set (for example, Aave token). Resolvers need to be registered to the Registry to be valid resolvers and used in the Asset Router.
+The value calculation unit, which calculates the asset value for the fund by assigning asset, amount, and quote. The system is composed of `Oracle`, `Resolver`, and `Registry`. `Oracle` is responsible for getting asset prices through interacting with external oracle protocol (only ChainLink currently). `Resolver` parses assets and resolves into a specific set (for example, Aave token). Resolvers need to be registered to the `Registry` to be valid resolvers and used in the Asset Router.
 
 ## Furucombo Proxy
 
-The strategy executor unit. May refer to Furucombo. Slightly customized for the asset management in the Furucombo fund system.
+The strategy executor unit. May refer to [Furucombo](https://github.com/dinngodev/furucombo-contract) for more details. This is slightly customized for the asset management in the Furucombo fund system.
 
-# Fund Implementation
+## Fund Implementation
 
 FundImplementation is composed of different modules: `ShareModule`, `AssetModule`, `ExecutionModule`, `ManagementFeeModule` and `PerformanceFeeModule`. The strategy executed by the fund manager will be passed to the vault for action as shown below.
 
@@ -80,7 +80,7 @@ Each fund has its own share token. The address(1) is reserved as the outstanding
 
 ## Vault
 
-The execution unit of Furucombo funds. The vault is implemented through the DSProxy structure. All the fund assets are kept in the vault for the execution.
+The execution unit of Furucombo Funds. The vault is implemented through the [DSProxy](https://github.com/dapphub/ds-proxy) structure. All the fund assets are kept in the vault for the execution.
 
 ## TaskExecutor
 
@@ -88,7 +88,7 @@ An action that enables DSProxy to handle the strategy execution, including calls
 
 # State machine
 
-Fund itself has several states to represent the lifecycle, which are [Initializing](#initializing), [Reviewing](#reviewing), [Executing](#executing), [Pending](#pending), [Liquidating](#liquidating) and [Closed](#closed) as the below graph. Every action to the fund should be a call to the [FundProxy](#fund-proxy), which will trigger the logic defined in [FundImplementation](#fund-implementation).
+Fund itself has several states to represent the lifecycle, which are [Initializing](#initializing), [Reviewing](#reviewing), [Executing](#executing), [Pending](#pending), [Liquidating](#liquidating) and [Closed](#closed) as the graph below. Every action to the fund should be a call to the [FundProxy](#fund-proxy), which will trigger the logic defined in [FundImplementation](#fund-implementation).
 
 ![image](./image/State%20machine.png)
 
@@ -98,19 +98,19 @@ The initial state of a newly created fund, set the basic parameters of Fund.
 
 ## Reviewing
 
-After initialization, only the fee parameter can be adjusted.
+After initialization, only the fee parameters can be adjusted.
 
 ## Executing
 
-Normal operation, when the remaining amount of denomination is positive.
+After the manager finalized the fund, the fund enters the Executing state and starts to operate. In this state, the remaining denomination is positive.
 
 ## Pending
 
-Unable to fulfill [redemption](#redeem-share) will enter pending state. When the purchase amount is sufficient or the strategy is executed to settle the debt, it will resume to Executing state.
+When the fund is unable to fulfill [redemption](#redeem-share), it will enter Pending state. When the pending redemption is settled(by purchase, strategy execution), it will resume to Executing state.
 
 ## Liquidating
 
-When the fund stays in pending state over pendingExpiration, it enters liquidation process. The fund will be transferred to the [liquidator](#liquidator), who is responsible for exchanging assets back to denomination tokens.
+When the fund stays in pending state over a defined expiration time, it enters liquidation process. The fund will be transferred to the [liquidator](#liquidator), who is responsible for exchanging assets back to denomination tokens.
 
 ## Closed
 
@@ -402,7 +402,7 @@ function liquidate() external
 - Management fees can also be claimed manually.
 - The management fee is updated with the effective fee rate and the time interval between current time and last claim time
 - Effective fee rate is calculated by
-  $$r_e=e^{\frac{\ln(1-r)}{t_m}}$$
+  $$r_e=e^{\frac{-\ln(1-r)}{t_m}}$$
   $r_e$: Effective fee rate
 
   $r$: Management fee rate
@@ -426,9 +426,12 @@ function liquidate() external
 - Performance fees are updated when
   - Before total share amount changes, like purchase and redeem
   - Before crystallization
-- Performance fees are updated by - Calculating the current share price - Calculating the price difference with the last time performance fee is updated, in order to get the accumulated wealth
-  $$\Delta w=(max(p_{hwm},p)-max(p_{hwm},p_l))\cdot s_n$$
-  $\Delta w$: Accumulated wealth since last time
+- Performance fees are updated by
+
+  - Calculating the current share price
+  - Calculating the price difference with the last time performance fee is updated, in order to get the accumulated wealth.
+    $$\Delta w=(max(p_{hwm},p)-max(p_{hwm},p_l))\cdot s_n$$
+    $\Delta w$: Accumulated wealth since last time
 
   $p$: Current share price
 
@@ -461,5 +464,7 @@ function liquidate() external
   - Fund manager can crystallize once every crystallization period
 - Crystallization is processed by
   - Payout the outstanding share to the manager
-  - Update the gross share price $p_l=\frac{v_g}{s_n}$
-  - Update the high water mark if the gross share price is greater $p_{hwm}=max(p_{hwm},p_l)$
+  - Update the gross share price
+    $$p_l=\frac{v_g}{s_n}$$
+  - Update the high water mark if the gross share price is greater
+    $$p_{hwm}=max(p_{hwm},p_l)$$
