@@ -7,8 +7,6 @@ import {HandlerBase} from "../HandlerBase.sol";
 import {ISwapRouter} from "../../../interfaces/ISwapRouter.sol";
 import {BytesLib} from "./libraries/BytesLib.sol";
 
-import "hardhat/console.sol";
-
 // @title: UniswapV3 Handler
 contract HUniswapV3 is HandlerBase {
     using BytesLib for bytes;
@@ -32,6 +30,8 @@ contract HUniswapV3 is HandlerBase {
         uint256 amountOutMinimum,
         uint160 sqrtPriceLimitX96
     ) external payable returns (uint256 amountOut) {
+        _notMaticToken(tokenIn);
+
         // Get tokenIn balance
         amountIn = _getBalance(tokenIn, amountIn);
 
@@ -55,6 +55,7 @@ contract HUniswapV3 is HandlerBase {
     ) external payable returns (uint256 amountOut) {
         // Get tokenIn and tokenOut
         address tokenIn = _getFirstToken(path);
+        _notMaticToken(tokenIn);
 
         // Get tokenIn balance
         amountIn = _getBalance(tokenIn, amountIn);
@@ -68,8 +69,9 @@ contract HUniswapV3 is HandlerBase {
         // Reset approved amount
         _tokenApproveZero(tokenIn, address(ROUTER));
 
-        // From the 2nd token of addressPath, because addressPath[0] will be update by previous cubes
         address[] memory addressPath = _bytesPathToAddressPath(path);
+
+        // From the 2nd token of addressPath, because addressPath[0] will be update by previous cubes
         for (uint256 i = 1; i < addressPath.length; i++) {
             _updateToken(addressPath[i]);
         }
@@ -83,6 +85,8 @@ contract HUniswapV3 is HandlerBase {
         uint256 amountInMaximum,
         uint160 sqrtPriceLimitX96
     ) external payable returns (uint256 amountIn) {
+        _notMaticToken(tokenIn);
+
         // Get tokenIn balance
         amountInMaximum = _getBalance(tokenIn, amountInMaximum);
 
@@ -106,6 +110,7 @@ contract HUniswapV3 is HandlerBase {
     ) external payable returns (uint256 amountIn) {
         // Get tokenIn
         address tokenIn = _getLastToken(path);
+        _notMaticToken(tokenIn);
 
         // Get tokenIn balance
         amountInMaximum = _getBalance(tokenIn, amountInMaximum);
@@ -119,7 +124,9 @@ contract HUniswapV3 is HandlerBase {
         // Reset approved amount
         _tokenApproveZero(tokenIn, address(ROUTER));
 
-        // From the second to last token of addressPath, because addressPath[length - 1] will be update by previous cubes
+        address[] memory addressPath = _bytesPathToAddressPath(path);
+
+        // The exactOutput() path is reverse with exactInput(). From the second to last token of addressPath, because addressPath[length - 1] will be update by previous cubes.
         for (int256 i = (addressPath.length - 2).toInt256(); i >= 0; i--) {
             _updateToken(addressPath[i.toUint256()]);
         }
@@ -134,6 +141,9 @@ contract HUniswapV3 is HandlerBase {
         return path.toAddress(path.length - ADDRESS_SIZE);
     }
 
+    /// @notice Convert bytes format path to address array format path.
+    /// @dev UniswapV3 bytes format path is in "address + fee(uint24) + address + fee(uint24) + ... + address".
+    /// @return The address array path.
     function _bytesPathToAddressPath(bytes memory path) internal pure returns (address[] memory) {
         _requireMsg(path.length >= PATH_SIZE, "_bytesPathToAddressPath", "Path size too small");
 

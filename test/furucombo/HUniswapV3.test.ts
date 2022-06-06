@@ -216,7 +216,7 @@ describe('UniswapV3 Swap', function () {
             sqrtPriceLimitX96,
           ]);
 
-          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_hUniswapV3_exactInputSingle: STF');
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_HUniswapV3_exactInputSingle: STF');
         });
 
         it('should revert: desired amount too high', async function () {
@@ -244,7 +244,7 @@ describe('UniswapV3 Swap', function () {
           ]);
 
           await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(
-            '0_hUniswapV3_exactInputSingle: Too little received'
+            '0_HUniswapV3_exactInputSingle: Too little received'
           );
         });
       });
@@ -345,7 +345,7 @@ describe('UniswapV3 Swap', function () {
           // Execution
           const data = getCallData(hUniswapV3, 'exactInput', [path, amountIn, amountOutMinimum]);
 
-          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_hUniswapV3_exactInput: STF');
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_HUniswapV3_exactInput: STF');
         });
 
         it('should revert: desired amount too high', async function () {
@@ -366,7 +366,7 @@ describe('UniswapV3 Swap', function () {
           const data = getCallData(hUniswapV3, 'exactInput', [path, amountIn, amountOutMinimum]);
 
           await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(
-            '0_hUniswapV3_exactInput: Too little received'
+            '0_HUniswapV3_exactInput: Too little received'
           );
         });
       });
@@ -509,7 +509,7 @@ describe('UniswapV3 Swap', function () {
           ]);
 
           await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(
-            '0_hUniswapV3_exactOutputSingle: STF'
+            '0_HUniswapV3_exactOutputSingle: STF'
           );
         });
 
@@ -538,13 +538,13 @@ describe('UniswapV3 Swap', function () {
           ]);
 
           await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(
-            '0_hUniswapV3_exactOutputSingle: STF'
+            '0_HUniswapV3_exactOutputSingle: STF'
           );
         });
       });
 
       describe('multi-path', function () {
-        it.only('normal', async function () {
+        it('normal', async function () {
           const value = ether('1');
           const to = hUniswapV3.address;
 
@@ -553,7 +553,6 @@ describe('UniswapV3 Swap', function () {
           const tokens = [tokenCAddress, tokenBAddress, tokenAddress];
           const fees = [BigNumber.from('500') /* 0.05% */, BigNumber.from('500') /* 0.05% */];
           const path = encodePath(tokens, fees);
-          console.log('path:' + path);
           const amountOut = ether('1');
           const amountInMaximum = ether('10000');
           await token.connect(tokenProvider).transfer(proxy.address, amountInMaximum);
@@ -645,7 +644,7 @@ describe('UniswapV3 Swap', function () {
           // Execution
           const data = getCallData(hUniswapV3, 'exactOutput', [path, amountOut, amountInMaximum]);
 
-          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_hUniswapV3_exactOutput: STF');
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_HUniswapV3_exactOutput: STF');
         });
 
         it('should revert: desired amount too high', async function () {
@@ -664,7 +663,7 @@ describe('UniswapV3 Swap', function () {
           // Execution
           const data = getCallData(hUniswapV3, 'exactOutput', [path, amountOut, amountInMaximum]);
 
-          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_hUniswapV3_exactOutput: STF');
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_HUniswapV3_exactOutput: STF');
         });
       });
     });
@@ -681,12 +680,7 @@ function encodePath(path: string[], fees: BigNumber[]) {
     // 20 byte encoding of the address
     encoded += path[i].slice(2);
     // 3 byte encoding of the fee
-    // encoded += fees[i].toString(16).padStart(2 * 3, '0');
     encoded += ethers.utils.hexZeroPad(fees[i].toHexString(), 3).replace('0x', '');
-
-    console.log('fee:' + fees[i]);
-    console.log('fee after:' + ethers.utils.hexZeroPad(fees[i].toHexString(), 3).replace('0x', ''));
-    console.log('encoded:' + encoded);
   }
   // encode the final token
   encoded += path[path.length - 1].slice(2);
