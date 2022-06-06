@@ -2,13 +2,18 @@
 
 pragma solidity 0.8.10;
 
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {HandlerBase} from "../HandlerBase.sol";
 import {ISwapRouter} from "../../../interfaces/ISwapRouter.sol";
 import {BytesLib} from "./libraries/BytesLib.sol";
 
+import "hardhat/console.sol";
+
 // @title: UniswapV3 Handler
 contract HUniswapV3 is HandlerBase {
     using BytesLib for bytes;
+    using SafeCast for int256;
+    using SafeCast for uint256;
 
     ISwapRouter public constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
@@ -99,7 +104,7 @@ contract HUniswapV3 is HandlerBase {
         uint256 amountOut,
         uint256 amountInMaximum
     ) external payable returns (uint256 amountIn) {
-        // Get tokenIn and tokenOut
+        // Get tokenIn
         address tokenIn = _getLastToken(path);
 
         // Get tokenIn balance
@@ -114,10 +119,9 @@ contract HUniswapV3 is HandlerBase {
         // Reset approved amount
         _tokenApproveZero(tokenIn, address(ROUTER));
 
-        // From the 2nd token of addressPath, because addressPath[0] will be update by previous cubes
-        address[] memory addressPath = _bytesPathToAddressPath(path);
-        for (uint256 i = 1; i < addressPath.length; i++) {
-            _updateToken(addressPath[i]);
+        // From the second to last token of addressPath, because addressPath[length - 1] will be update by previous cubes
+        for (int256 i = (addressPath.length - 2).toInt256(); i >= 0; i--) {
+            _updateToken(addressPath[i.toUint256()]);
         }
     }
 

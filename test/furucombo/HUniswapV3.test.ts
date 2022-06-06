@@ -544,7 +544,7 @@ describe('UniswapV3 Swap', function () {
       });
 
       describe('multi-path', function () {
-        it('normal', async function () {
+        it.only('normal', async function () {
           const value = ether('1');
           const to = hUniswapV3.address;
 
@@ -553,6 +553,7 @@ describe('UniswapV3 Swap', function () {
           const tokens = [tokenCAddress, tokenBAddress, tokenAddress];
           const fees = [BigNumber.from('500') /* 0.05% */, BigNumber.from('500') /* 0.05% */];
           const path = encodePath(tokens, fees);
+          console.log('path:' + path);
           const amountOut = ether('1');
           const amountInMaximum = ether('10000');
           await token.connect(tokenProvider).transfer(proxy.address, amountInMaximum);
