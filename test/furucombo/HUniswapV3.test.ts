@@ -5,8 +5,8 @@ import {
   UNISWAPV3_ROUTER,
   UNISWAPV3_QUOTER,
   USDC_TOKEN,
-  WMATIC_TOKEN,
   WETH_TOKEN,
+  MATIC_TOKEN,
 } from './../utils/constants';
 import { ethers, deployments } from 'hardhat';
 import {
@@ -25,9 +25,6 @@ describe('UniswapV3 Swap', function () {
   const tokenBAddress = USDC_TOKEN;
   const tokenCAddress = WETH_TOKEN;
 
-  const fee = 100; // 0.01%
-  const fee2 = 500; // 0.05%
-
   let balanceUser: BigNumber;
   let balanceProxy: BigNumber;
   let tokenUser: BigNumber;
@@ -42,8 +39,8 @@ describe('UniswapV3 Swap', function () {
   let registry: FurucomboRegistry;
 
   let token: IERC20, tokenB: IERC20, tokenC: IERC20;
-  let ISwapRouter: ISwapRouter;
-  let IQuoter: IQuoter;
+  let swapRouter: ISwapRouter;
+  let quoter: IQuoter;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
@@ -65,8 +62,8 @@ describe('UniswapV3 Swap', function () {
     await hUniswapV3.deployed();
     await registry.register(hUniswapV3.address, asciiToHex32('HUniswapV3'));
 
-    ISwapRouter = await ethers.getContractAt('ISwapRouter', UNISWAPV3_ROUTER);
-    IQuoter = await ethers.getContractAt('IQuoter', UNISWAPV3_QUOTER);
+    swapRouter = await ethers.getContractAt('ISwapRouter', UNISWAPV3_ROUTER);
+    quoter = await ethers.getContractAt('IQuoter', UNISWAPV3_QUOTER);
 
     token = await ethers.getContractAt('IERC20', tokenAddress);
     tokenB = await ethers.getContractAt('IERC20', tokenBAddress);
@@ -101,7 +98,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(tokenB.address);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactInputSingle(
+          const result = await quoter.callStatic.quoteExactInputSingle(
             tokenIn,
             tokenOut,
             fee,
@@ -154,7 +151,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(tokenB.address);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactInputSingle(
+          const result = await quoter.callStatic.quoteExactInputSingle(
             tokenIn,
             tokenOut,
             fee,
@@ -247,6 +244,30 @@ describe('UniswapV3 Swap', function () {
             '0_HUniswapV3_exactInputSingle: Too little received'
           );
         });
+
+        it('should revert: not support MRC20', async function () {
+          const to = hUniswapV3.address;
+
+          // Set swap info
+          const tokenIn = MATIC_TOKEN;
+          const tokenOut = tokenCAddress;
+          const fee = BigNumber.from('500'); // 0.05%
+          const amountIn = mwei('1');
+          const amountOutMinimum = ether('1');
+          const sqrtPriceLimitX96 = BigNumber.from('0');
+
+          // Execution
+          const data = getCallData(hUniswapV3, 'exactInputSingle', [
+            tokenIn,
+            tokenOut,
+            fee,
+            amountIn,
+            amountOutMinimum,
+            sqrtPriceLimitX96,
+          ]);
+
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('Not support matic token');
+        });
       });
 
       describe('multi-path', function () {
@@ -264,7 +285,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(token.address);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactInput(path, amountIn);
+          const result = await quoter.callStatic.quoteExactInput(path, amountIn);
 
           // Execution
           const data = getCallData(hUniswapV3, 'exactInput', [path, amountIn, amountOutMinimum]);
@@ -303,7 +324,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(token.address);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactInput(path, amountIn);
+          const result = await quoter.callStatic.quoteExactInput(path, amountIn);
 
           // Execution
           const data = getCallData(hUniswapV3, 'exactInput', [path, constants.MaxUint256, amountOutMinimum]);
@@ -369,6 +390,22 @@ describe('UniswapV3 Swap', function () {
             '0_HUniswapV3_exactInput: Too little received'
           );
         });
+
+        it('should revert: not support MRC20', async function () {
+          const to = hUniswapV3.address;
+
+          // Set swap info
+          const tokens = [MATIC_TOKEN, tokenBAddress, tokenCAddress];
+          const fees = [BigNumber.from(500) /* 0.05% */, BigNumber.from(500) /* 0.05% */];
+          const path = encodePath(tokens, fees);
+          const amountIn = ether('1');
+          const amountOutMinimum = ether('100');
+
+          // Execution
+          const data = getCallData(hUniswapV3, 'exactInput', [path, amountIn, amountOutMinimum]);
+
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('Not support matic token');
+        });
       });
     });
 
@@ -389,7 +426,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(tokenBAddress);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactOutputSingle(
+          const result = await quoter.callStatic.quoteExactOutputSingle(
             tokenIn,
             tokenOut,
             fee,
@@ -444,7 +481,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(tokenBAddress);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactOutputSingle(
+          const result = await quoter.callStatic.quoteExactOutputSingle(
             tokenIn,
             tokenOut,
             fee,
@@ -541,6 +578,30 @@ describe('UniswapV3 Swap', function () {
             '0_HUniswapV3_exactOutputSingle: STF'
           );
         });
+
+        it('should revert: not support MRC20', async function () {
+          const to = hUniswapV3.address;
+
+          // Set swap info
+          const tokenIn = MATIC_TOKEN;
+          const tokenOut = tokenCAddress;
+          const fee = BigNumber.from('500'); // 0.05%
+          const amountOut = ether('100');
+          const amountInMaximum = mwei('10000');
+          const sqrtPriceLimitX96 = BigNumber.from('0');
+
+          // Execution
+          const data = getCallData(hUniswapV3, 'exactOutputSingle', [
+            tokenIn,
+            tokenOut,
+            fee,
+            amountOut,
+            amountInMaximum,
+            sqrtPriceLimitX96,
+          ]);
+
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('Not support matic token');
+        });
       });
 
       describe('multi-path', function () {
@@ -560,7 +621,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(tokenAddress);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactOutput(path, amountOut);
+          const result = await quoter.callStatic.quoteExactOutput(path, amountOut);
 
           // Execution
           const data = getCallData(hUniswapV3, 'exactOutput', [path, amountOut, amountInMaximum]);
@@ -601,7 +662,7 @@ describe('UniswapV3 Swap', function () {
           await proxy.updateTokenMock(tokenAddress);
 
           // Estimate result
-          const result = await IQuoter.callStatic.quoteExactOutput(path, amountOut);
+          const result = await quoter.callStatic.quoteExactOutput(path, amountOut);
 
           // Execution
           const data = getCallData(hUniswapV3, 'exactOutput', [path, amountOut, constants.MaxUint256]);
@@ -665,6 +726,80 @@ describe('UniswapV3 Swap', function () {
 
           await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('0_HUniswapV3_exactOutput: STF');
         });
+
+        it('should revert: not support MRC20', async function () {
+          const to = hUniswapV3.address;
+
+          // Set swap info
+          const tokens = [tokenCAddress, tokenBAddress, MATIC_TOKEN];
+          const fees = [BigNumber.from('500') /* 0.05% */, BigNumber.from('500') /* 0.05% */];
+          const path = encodePath(tokens, fees);
+          const amountOut = ether('100');
+          const amountInMaximum = ether('10000');
+
+          // Execution
+          const data = getCallData(hUniswapV3, 'exactOutput', [path, amountOut, amountInMaximum]);
+
+          await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith('Not support matic token');
+        });
+      });
+    });
+  });
+
+  describe('dealing token', function () {
+    const configs = [constants.HashZero];
+
+    describe('swap', function () {
+      it('exactInput', async function () {
+        const value = ether('1');
+        const to = hUniswapV3.address;
+
+        //   Set swap info
+        const tokens = [tokenAddress, tokenBAddress, tokenCAddress];
+        const fees = [BigNumber.from('500') /* 0.05% */, BigNumber.from('500') /* 0.05% */];
+        const path = encodePath(tokens, fees);
+        const amountIn = value;
+        const amountOutMinimum = BigNumber.from('1');
+        await token.connect(tokenProvider).transfer(proxy.address, amountIn);
+
+        const expectTokens = tokens.slice(1, -1);
+
+        // Execution
+        const data = getCallData(hUniswapV3, 'exactInput', [path, amountIn, amountOutMinimum]);
+
+        const dealingTokens = await proxy.connect(user).callStatic.batchExec([to], configs, [data]);
+
+        for (let i = 0; i < expectTokens.length; i++) {
+          expect(expectTokens[i]).to.be.eq(
+            dealingTokens[dealingTokens.length - (i + 1)] // returnTokens = dealingTokens.reverse()
+          );
+        }
+      });
+
+      it('exactOutput', async function () {
+        const to = hUniswapV3.address;
+
+        // Set swap info
+        // Path is in reverse order
+        const tokens = [tokenCAddress, tokenBAddress, tokenAddress];
+        const fees = [BigNumber.from('500') /* 0.05% */, BigNumber.from('500') /* 0.05% */];
+        const path = encodePath(tokens, fees);
+        const amountOut = ether('1');
+        const amountInMaximum = ether('10000');
+        await token.connect(tokenProvider).transfer(proxy.address, amountInMaximum);
+
+        const expectTokens = tokens.slice(0, 2);
+
+        // Execution
+        const data = getCallData(hUniswapV3, 'exactOutput', [path, amountOut, amountInMaximum]);
+
+        const dealingTokens = await proxy.connect(user).callStatic.batchExec([to], configs, [data]);
+
+        for (let i = 0; i < expectTokens.length; i++) {
+          expect(expectTokens[i]).to.be.eq(
+            dealingTokens[dealingTokens.length - (i + 1)] // returnTokens = dealingTokens.reverse()
+          );
+        }
       });
     });
   });

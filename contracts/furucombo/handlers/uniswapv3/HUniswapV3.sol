@@ -2,16 +2,13 @@
 
 pragma solidity 0.8.10;
 
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {HandlerBase} from "../HandlerBase.sol";
-import {ISwapRouter} from "../../../interfaces/ISwapRouter.sol";
+import {ISwapRouter} from "./ISwapRouter.sol";
 import {BytesLib} from "./libraries/BytesLib.sol";
 
 // @title: UniswapV3 Handler
 contract HUniswapV3 is HandlerBase {
     using BytesLib for bytes;
-    using SafeCast for int256;
-    using SafeCast for uint256;
 
     ISwapRouter public constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
@@ -48,12 +45,14 @@ contract HUniswapV3 is HandlerBase {
         _updateToken(tokenOut);
     }
 
+    /// @notice Swap token with exact input, path can be multiple tokens.
+    /// @dev Need to do _updateToken() in every token of path except input token for checking dealing assets.
     function exactInput(
         bytes memory path,
         uint256 amountIn,
         uint256 amountOutMinimum
     ) external payable returns (uint256 amountOut) {
-        // Get tokenIn and tokenOut
+        // Get tokenIn
         address tokenIn = _getFirstToken(path);
         _notMaticToken(tokenIn);
 
@@ -126,9 +125,9 @@ contract HUniswapV3 is HandlerBase {
 
         address[] memory addressPath = _bytesPathToAddressPath(path);
 
-        // The exactOutput() path is reverse with exactInput(). From the second to last token of addressPath, because addressPath[length - 1] will be update by previous cubes.
-        for (int256 i = (addressPath.length - 2).toInt256(); i >= 0; i--) {
-            _updateToken(addressPath[i.toUint256()]);
+        // The exactOutput() path is reverse with exactInput(). From the 1st to the last two token of addressPath, because addressPath[length - 1] will be update by previous cubes.
+        for (uint256 i = 0; i < addressPath.length - 1; i++) {
+            _updateToken(addressPath[i]);
         }
     }
 
