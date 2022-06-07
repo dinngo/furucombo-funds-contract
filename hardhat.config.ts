@@ -42,6 +42,11 @@ const config: HardhatUserConfig = {
     hardhat: {
       initialBaseFeePerGas: 0,
       allowUnlimitedContractSize: true,
+      accounts: {
+        mnemonic: 'dice shove sheriff police boss indoor hospital vivid tenant method game matter',
+        path: "m/44'/60'/0'/0",
+        initialIndex: 0,
+      },
     },
     polygon: {
       url: process.env.POLYGON_URL || '',
