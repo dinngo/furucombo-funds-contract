@@ -754,7 +754,7 @@ describe('UniswapV3 Swap', function () {
         const value = ether('1');
         const to = hUniswapV3.address;
 
-        //   Set swap info
+        // Set swap info
         const tokens = [tokenAddress, tokenBAddress, tokenCAddress];
         const fees = [BigNumber.from('500') /* 0.05% */, BigNumber.from('500') /* 0.05% */];
         const path = encodePath(tokens, fees);
