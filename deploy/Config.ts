@@ -48,6 +48,12 @@ export const WL_CURVE_SIGS = [
 export const WL_PARASWAP_V5_SIGS = [
   '0x7f0f41d7', // swap(address,uint256,address,bytes)
 ];
+export const WL_UNISWAP_V3_SIGS = [
+  '0xa2608210', // exactInputSingle(address,address,uint24,uint256,uint256,uint160)
+  '0xdf58a96f', // exactInput(bytes,uint256,uint256)
+  '0xf900e577', // exactOutputSingle(address,address,uint24,uint256,uint256,uint160)
+  '0x110cb594', // exactOutput(bytes,uint256,uint256)
+];
 export const LEVEL = 1;
 export const LEVEL_AMOUNT = 0;
 export const EXEC_FEE_PERCENTAGE = 20; // 0.2%

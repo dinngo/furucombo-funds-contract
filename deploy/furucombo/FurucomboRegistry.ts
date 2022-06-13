@@ -34,6 +34,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hSushiSwap = await deployments.get('HSushiSwap');
     const hCurve = await deployments.get('HCurve');
     const hParaSwapV5 = await deployments.get('HParaSwapV5');
+    const hUniswapV3 = await deployments.get('HUniswapV3');
 
     await (await registry.register(hAaveProtocolV2.address, hash)).wait();
     await (await registry.register(hFunds.address, hash)).wait();
@@ -41,6 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await (await registry.register(hSushiSwap.address, hash)).wait();
     await (await registry.register(hCurve.address, hash)).wait();
     await (await registry.register(hParaSwapV5.address, hash)).wait();
+    await (await registry.register(hUniswapV3.address, hash)).wait();
 
     // Register caller
     await (await registry.registerCaller(AAVE_LENDING_POOL, hAaveProtocolV2.address.padEnd(66, '0'))).wait();
@@ -70,4 +72,4 @@ function getGitHash(): string {
 export default func;
 
 func.tags = ['FurucomboRegistry'];
-func.dependencies = ['HAaveProtocolV2', 'HFunds', 'HQuickSwap', 'HSushiSwap', 'HCurve', 'HParaSwapV5'];
+func.dependencies = ['HAaveProtocolV2', 'HFunds', 'HQuickSwap', 'HSushiSwap', 'HCurve', 'HParaSwapV5', 'HUniswapV3'];
