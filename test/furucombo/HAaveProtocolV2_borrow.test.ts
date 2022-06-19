@@ -129,9 +129,9 @@ describe('Aave V2 Borrow', function () {
       // Verify user balance
       expect(borrowTokenUserAfter.sub(borrowTokenUserBefore)).to.be.eq(borrowAmount);
 
-      //  borrowAmount <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
+      // borrowAmount - 1 <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
       const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
-      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.gte(borrowAmount);
+      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.gte(borrowAmount.sub(1));
       expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.lt(borrowAmount.add(interestMax));
 
       await profileGas(receipt);
@@ -157,9 +157,9 @@ describe('Aave V2 Borrow', function () {
       // Verify user balance
       expect(borrowWMATICUserAfter.sub(borrowWMATICUserBefore)).to.be.eq(borrowAmount);
 
-      //  borrowAmount <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
+      // borrowAmount - 1 <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
       const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
-      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.gte(borrowAmount);
+      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.gte(borrowAmount.sub(1));
       expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.lt(borrowAmount.add(interestMax));
 
       await profileGas(receipt);
