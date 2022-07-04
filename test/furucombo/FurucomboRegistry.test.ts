@@ -1,6 +1,6 @@
 import { constants, Wallet } from 'ethers';
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import { ethers, deployments } from 'hardhat';
 import { FurucomboRegistry } from '../../typechain';
 
 import { ether, asciiToHex32 } from '../utils/utils';
@@ -17,11 +17,15 @@ describe('FurucomboRegistry', function () {
   const infoPaddedHex = asciiToHex32('test');
   const deprecatedPaddedHex = asciiToHex32('deprecated');
 
-  beforeEach(async function () {
+  const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     [owner, contract1, contract2, someone] = await (ethers as any).getSigners();
 
     registry = await (await ethers.getContractFactory('FurucomboRegistry')).deploy();
     await registry.deployed();
+  });
+
+  beforeEach(async function () {
+    await setupTest();
   });
 
   describe('register', function () {
