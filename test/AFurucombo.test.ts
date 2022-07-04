@@ -176,10 +176,10 @@ describe('AFurucombo', function () {
     await proxy.setLevel(1);
 
     // Permit delegate calls
-    comptroller.permitDelegateCalls(await proxy.level(), [aFurucombo.address], [WL_ANY_SIG]);
+    await comptroller.permitDelegateCalls(await proxy.level(), [aFurucombo.address], [WL_ANY_SIG]);
 
     // Permit handler
-    comptroller.permitHandlers(
+    await comptroller.permitHandlers(
       await proxy.level(),
       [hFunds.address, hQuickSwap.address, hMock.address],
       [getFuncSig(hFunds, 'updateTokens(address[])'), WL_ANY_SIG, WL_ANY_SIG]
