@@ -131,9 +131,9 @@ describe('Task Executor', function () {
     await proxy.setVault(DS_PROXY_REGISTRY);
 
     // Permit delegate calls
-    comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
+    await comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
 
-    comptroller.permitContractCalls(await proxy.level(), [foo.address], [WL_ANY_SIG]);
+    await comptroller.permitContractCalls(await proxy.level(), [foo.address], [WL_ANY_SIG]);
   });
 
   // `beforeEach` will run before each test, re-deploying the contract every
@@ -220,7 +220,7 @@ describe('Task Executor', function () {
     });
 
     it('should revert: no contract code', async function () {
-      comptroller.permitDelegateCalls(await proxy.level(), [collector.address], [WL_ANY_SIG]);
+      await comptroller.permitDelegateCalls(await proxy.level(), [collector.address], [WL_ANY_SIG]);
 
       // Prepare action data
       const value = ether('1');
@@ -265,7 +265,7 @@ describe('Task Executor', function () {
     });
 
     it('should revert: non existed function', async function () {
-      comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
+      await comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
 
       // Prepare action data
       const actionData = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("'noExistedfunc()'")).substr(0, 10);

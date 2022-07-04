@@ -103,8 +103,8 @@ describe('FundProxyStorageUtils', function () {
     await comptroller.permitDenominations([tokenD.address], [0]);
 
     // Permit delegate calls
-    comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
-    comptroller.permitContractCalls(await proxy.level(), [foo.address], [WL_ANY_SIG]);
+    await comptroller.permitDelegateCalls(await proxy.level(), [fooAction.address], [WL_ANY_SIG]);
+    await comptroller.permitContractCalls(await proxy.level(), [foo.address], [WL_ANY_SIG]);
   });
 
   // `beforeEach` will run before each test, re-deploying the contract every
