@@ -7,6 +7,7 @@ import { DAI_TOKEN, USDC_TOKEN } from './../utils/constants';
 import { ether, mulPercent, getHandlerReturn, tokenProviderQuick, getCallData, asciiToHex32 } from './../utils/utils';
 import fetch from 'node-fetch';
 import queryString from 'query-string';
+import { Address } from 'hardhat-deploy/types';
 
 const POLYGON_NETWORK_ID = 137;
 const URL_PARASWAP = 'https://apiv5.paraswap.io/';
@@ -61,7 +62,7 @@ async function getPriceData(
   return priceData;
 }
 
-async function getTransactionData(priceData: any, slippageInBps: any) {
+async function getTransactionData(priceData: any, slippageInBps: any, userAddress: Address, txOrigin: Address) {
   const body = {
     srcToken: priceData.priceRoute.srcToken,
     srcDecimals: priceData.priceRoute.srcDecimals,
@@ -69,7 +70,8 @@ async function getTransactionData(priceData: any, slippageInBps: any) {
     destDecimals: priceData.priceRoute.destDecimals,
     srcAmount: priceData.priceRoute.srcAmount,
     slippage: slippageInBps,
-    userAddress: ethers.constants.AddressZero,
+    userAddress: userAddress,
+    txOrigin: txOrigin,
     priceRoute: priceData.priceRoute,
   };
 
@@ -140,7 +142,7 @@ describe('ParaSwapV5', function () {
       const expectReceivedAmount = priceData.priceRoute.destAmount;
 
       // Call Paraswap transaction API
-      const txData = await getTransactionData(priceData, slippageInBps);
+      const txData = await getTransactionData(priceData, slippageInBps, proxy.address, user.address);
 
       // Prepare handler data
       const callData = getCallData(hParaSwap, 'swap(address,uint256,address,bytes)', [
