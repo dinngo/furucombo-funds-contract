@@ -199,7 +199,7 @@ describe('CreateFund', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.revertedWith('reverted with an unrecognized custom error');
+      ).to.be.revertedWith('RevertCode(64)');
     });
 
     it('should revert: invalid performance fee rate', async function () {
@@ -208,7 +208,7 @@ describe('CreateFund', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.revertedWith('reverted with an unrecognized custom error');
+      ).to.be.revertedWith('RevertCode(67)');
     });
 
     it('should revert: invalid crystallization period', async function () {
@@ -217,7 +217,7 @@ describe('CreateFund', function () {
         fundProxyFactory
           .connect(manager)
           .createFund(denominationAddress, level, mFeeRate, pFeeRate, crystallizationPeriod, shareTokenName)
-      ).to.be.revertedWith('reverted with an unrecognized custom error');
+      ).to.be.revertedWith('RevertCode(68)');
     });
 
     it('should revert: invalid mortgage tier', async function () {
