@@ -8,6 +8,7 @@
     "build": "scripts/build.sh",
     "check-compile": "scripts/check.sh",
     "compile": "npx hardhat compile",
+    "coverage": "npx hardhat coverage",
     "lint:solhint": "solhint \"contracts/**/*.sol\"",
     "lint:prettier": "scripts/prettier.sh",
     "deploy": "scripts/deploy.sh",
