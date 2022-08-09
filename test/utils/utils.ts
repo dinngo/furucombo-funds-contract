@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { BigNumber, Signer, constants } from 'ethers';
 import { BigNumber as BigNumberJs } from 'bignumber.js';
-import { ethers } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import {
   RecordActionResultSig,
   DeltaGasSig,
@@ -282,7 +282,6 @@ export async function increaseNextBlockTimeBy(interval: number) {
   for (let i = 0; block == null; i++) {
     block = await ethers.provider.getBlock(blockNumber - i);
   }
-  const jsonRpc = new ethers.providers.JsonRpcProvider();
-  await jsonRpc.send('evm_setNextBlockTimestamp', [block.timestamp + interval]);
-  await jsonRpc.send('evm_mine', []);
+  await network.provider.send('evm_setNextBlockTimestamp', [block.timestamp + interval]);
+  await network.provider.send('evm_mine', []);
 }

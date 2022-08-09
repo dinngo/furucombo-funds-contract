@@ -40,6 +40,12 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      forking: {
+        url: process.env.RPC_NODE || '',
+      },
+      chainId: 137,
+      gasPrice: 0,
+      gas: 30000000,
       initialBaseFeePerGas: 0,
       allowUnlimitedContractSize: true,
       accounts: {
@@ -57,11 +63,6 @@ const config: HardhatUserConfig = {
       url: process.env.BETA_URL || '',
       accounts: process.env.BETA_SECRET !== undefined ? [process.env.BETA_SECRET] : [],
       gas: 6000000,
-    },
-    localhost: {
-      gasPrice: 0,
-      gas: 30000000,
-      timeout: 900000,
     },
   },
   gasReporter: {
