@@ -16,6 +16,8 @@ interface IVariableDebtTokenV3 {
         uint256 index
     ) external returns (uint256);
 
+    function UNDERLYING_ASSET_ADDRESS() external view returns (address);
+
     // IScaledBalanceToken
     function scaledBalanceOf(address user) external view returns (uint256);
 
