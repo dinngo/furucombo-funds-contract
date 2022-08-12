@@ -1,7 +1,16 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { MANAGEMENT } from '../Config';
-import { assets, aaveV2Asset, aaveV2Debt, curveStable, quickSwap, sushiSwap } from './AssetConfig';
+import {
+  assets,
+  aaveV2Asset,
+  aaveV2Debt,
+  aaveV3Asset,
+  aaveV3Debt,
+  curveStable,
+  quickSwap,
+  sushiSwap,
+} from './AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -37,6 +46,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       await (await assetRegistry.register(address, rAaveProtocolV2Debt.address)).wait();
     }
 
+    // Register to aave v3 asset resolver
+    const rAaveV3Asset = await deployments.get('RAaveProtocolV3Asset');
+    for (const address of Object.values(aaveV3Asset)) {
+      await (await assetRegistry.register(address, rAaveV3Asset.address)).wait();
+    }
+
+    // Register to aave v3 debt resolver
+    const rAaveProtocolV3Debt = await deployments.get('RAaveProtocolV3Debt');
+    for (const address of Object.values(aaveV3Debt)) {
+      await (await assetRegistry.register(address, rAaveProtocolV3Debt.address)).wait();
+    }
+
     // Register to curve stable resolver
     const rCurveStable = await deployments.get('RCurveStable');
     for (const info of Object.values(curveStable)) {
@@ -60,4 +81,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func;
 
 func.tags = ['AssetRegistry'];
-func.dependencies = ['RAaveProtocolV2Asset', 'RAaveProtocolV2Debt', 'RCanonical', 'RCurveStable', 'RUniSwapV2Like'];
+func.dependencies = [
+  'RAaveProtocolV2Asset',
+  'RAaveProtocolV2Debt',
+  'RAaveProtocolV3Asset',
+  'RAaveProtocolV3Debt',
+  'RCanonical',
+  'RCurveStable',
+  'RUniSwapV2Like',
+];

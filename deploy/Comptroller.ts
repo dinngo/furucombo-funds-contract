@@ -5,6 +5,7 @@ import {
   PENDING_LIQUIDATOR,
   FUND_CREATORS,
   WL_AAVE_V2_SIGS,
+  WL_AAVE_V3_SIGS,
   WL_FUNDS_SIGS,
   WL_QUICKSWAP_SIGS,
   WL_SUSHISWAP_SIGS,
@@ -20,7 +21,16 @@ import {
   DS_PROXY_REGISTRY,
 } from './Config';
 
-import { assets, aaveV2Asset, aaveV2Debt, curveStable, quickSwap, sushiSwap } from './assets/AssetConfig';
+import {
+  assets,
+  aaveV2Asset,
+  aaveV2Debt,
+  aaveV3Asset,
+  aaveV3Debt,
+  curveStable,
+  quickSwap,
+  sushiSwap,
+} from './assets/AssetConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -98,6 +108,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const aaveV2DebtArray = Object.values(aaveV2Debt);
     await (await comptroller.permitAssets(LEVEL, aaveV2DebtArray)).wait();
 
+    // Permit aave v3 asset
+    const aaveV3AssetArray = Object.values(aaveV3Asset);
+    await (await comptroller.permitAssets(LEVEL, aaveV3AssetArray)).wait();
+
+    // Permit aave v3 debt
+    const aaveV3DebtArray = Object.values(aaveV3Debt);
+    await (await comptroller.permitAssets(LEVEL, aaveV3DebtArray)).wait();
+
     // Permit curve stable
     const curveStableAddressArray = Object.values(curveStable).map((info) => {
       return info.address as string;
@@ -114,6 +132,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Permit handler
     const hAaveProtocolV2 = await deployments.get('HAaveProtocolV2');
+    const hAaveProtocolV3 = await deployments.get('HAaveProtocolV3');
     const hFunds = await deployments.get('HFunds');
     const hQuickSwap = await deployments.get('HQuickSwap');
     const hSushiSwap = await deployments.get('HSushiSwap');
@@ -121,6 +140,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hParaSwapV5 = await deployments.get('HParaSwapV5');
     const hUniswapV3 = await deployments.get('HUniswapV3');
     const wlAddressList = [
+      ...Array(WL_AAVE_V3_SIGS.length).fill(hAaveProtocolV3.address),
       ...Array(WL_AAVE_V2_SIGS.length).fill(hAaveProtocolV2.address),
       ...Array(WL_FUNDS_SIGS.length).fill(hFunds.address),
       ...Array(WL_QUICKSWAP_SIGS.length).fill(hQuickSwap.address),
@@ -130,6 +150,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ...Array(WL_UNISWAP_V3_SIGS.length).fill(hUniswapV3.address),
     ];
     const wlSigList = [
+      ...WL_AAVE_V3_SIGS,
       ...WL_AAVE_V2_SIGS,
       ...WL_FUNDS_SIGS,
       ...WL_QUICKSWAP_SIGS,
@@ -151,6 +172,7 @@ func.dependencies = [
   'MortgageVault',
   'SetupAction',
   'HAaveProtocolV2',
+  'HAaveProtocolV3',
   'HFunds',
   'HQuickSwap',
   'HSushiSwap',

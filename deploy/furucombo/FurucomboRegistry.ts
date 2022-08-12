@@ -4,6 +4,7 @@ import { DeployFunction } from 'hardhat-deploy/types';
 import {
   MANAGEMENT,
   AAVE_LENDING_POOL,
+  AAVE_POOL_V3,
   CURVE_AAVE_SWAP,
   CURVE_REN_SWAP,
   CURVE_ATRICRYPTO3_DEPOSIT,
@@ -29,6 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Register handler
     const hAaveProtocolV2 = await deployments.get('HAaveProtocolV2');
+    const hAaveProtocolV3 = await deployments.get('HAaveProtocolV3');
     const hFunds = await deployments.get('HFunds');
     const hQuickSwap = await deployments.get('HQuickSwap');
     const hSushiSwap = await deployments.get('HSushiSwap');
@@ -37,6 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const hUniswapV3 = await deployments.get('HUniswapV3');
 
     await (await registry.register(hAaveProtocolV2.address, hash)).wait();
+    await (await registry.register(hAaveProtocolV3.address, hash)).wait();
     await (await registry.register(hFunds.address, hash)).wait();
     await (await registry.register(hQuickSwap.address, hash)).wait();
     await (await registry.register(hSushiSwap.address, hash)).wait();
@@ -46,6 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Register caller
     await (await registry.registerCaller(AAVE_LENDING_POOL, hAaveProtocolV2.address.padEnd(66, '0'))).wait();
+    await (await registry.registerCaller(AAVE_POOL_V3, hAaveProtocolV3.address.padEnd(66, '0'))).wait();
 
     // Set HCurve callee
     await (await registry.registerHandlerCalleeWhitelist(hCurve.address, CURVE_AAVE_SWAP)).wait();
@@ -72,4 +76,13 @@ function getGitHash(): string {
 export default func;
 
 func.tags = ['FurucomboRegistry'];
-func.dependencies = ['HAaveProtocolV2', 'HFunds', 'HQuickSwap', 'HSushiSwap', 'HCurve', 'HParaSwapV5', 'HUniswapV3'];
+func.dependencies = [
+  'HAaveProtocolV2',
+  'HAaveProtocolV3',
+  'HFunds',
+  'HQuickSwap',
+  'HSushiSwap',
+  'HCurve',
+  'HParaSwapV5',
+  'HUniswapV3',
+];
