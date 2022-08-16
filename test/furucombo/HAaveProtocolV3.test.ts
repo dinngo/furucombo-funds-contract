@@ -95,7 +95,7 @@ describe('Aave V3', function () {
 
         expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
-        expectEqWithinBps(await aToken.balanceOf(user.address), value, 100);
+        expectEqWithinBps(await aToken.balanceOf(user.address), value, 10);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -114,7 +114,7 @@ describe('Aave V3', function () {
 
         expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
-        expectEqWithinBps(await aToken.balanceOf(user.address), value, 100);
+        expectEqWithinBps(await aToken.balanceOf(user.address), value, 10);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });

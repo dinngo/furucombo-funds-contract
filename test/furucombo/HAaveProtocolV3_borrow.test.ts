@@ -156,7 +156,7 @@ describe('Aave V3 Borrow', function () {
     it('should revert: borrow token approveDelegation < borrow amount', async function () {
       const borrowAmount = mwei('2');
       const to = hAaveV3.address;
-      const data = simpleEncode('borrow(address,uint256,uint256)', [COMP_TOKEN, borrowAmount, rateMode]);
+      const data = simpleEncode('borrow(address,uint256,uint256)', [borrowToken.address, borrowAmount, rateMode]);
       await debtToken.connect(user).approveDelegation(proxy.address, borrowAmount.sub(mwei('1')));
 
       await expect(proxy.connect(user).execMock(to, data)).to.be.revertedWith(

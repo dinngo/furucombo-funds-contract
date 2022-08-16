@@ -86,7 +86,7 @@ describe('Aave V3 Repay', function () {
     await setupTest();
   });
 
-  describe('Repay Variable Rate', function () {
+  describe('Repay Stable Rate', function () {
     let supplyAmount = ether('10000');
     const borrowAmount = mwei('2');
     const borrowTokenAddr = USDC_TOKEN;
@@ -111,7 +111,7 @@ describe('Aave V3 Repay', function () {
       await pool.connect(user).borrow(borrowToken.address, borrowAmount, rateMode, 0, user.address);
 
       expect(await borrowToken.balanceOf(user.address)).to.be.eq(borrowAmount);
-      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 100);
+      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 10);
 
       borrowTokenUserBefore = await borrowToken.balanceOf(user.address);
       debtTokenUserBefore = await debtToken.balanceOf(user.address);
@@ -250,7 +250,7 @@ describe('Aave V3 Repay', function () {
       await pool.connect(user).borrow(borrowToken.address, borrowAmount, rateMode, 0, user.address);
 
       expect(await borrowToken.balanceOf(user.address)).to.be.eq(borrowAmount);
-      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 100);
+      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 10);
 
       borrowTokenUserBefore = await borrowToken.balanceOf(user.address);
       debtTokenUserBefore = await debtToken.balanceOf(user.address);
