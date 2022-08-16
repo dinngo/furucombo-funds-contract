@@ -24,13 +24,12 @@ import {
   AAVEPROTOCOL_V2_PROVIDER,
 } from './../utils/constants';
 
-import { ether, profileGas, simpleEncode, asciiToHex32, tokenProviderQuick } from './../utils/utils';
+import { ether, profileGas, simpleEncode, asciiToHex32, expectEqWithinBps, tokenProviderQuick } from './../utils/utils';
 
 describe('Aave V2 Borrow', function () {
   const aTokenAddress = ADAI_V2_TOKEN;
   const tokenAddress = DAI_TOKEN;
 
-  let owner: Wallet;
   let user: Wallet;
   let someone: Wallet;
 
@@ -52,7 +51,7 @@ describe('Aave V2 Borrow', function () {
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
-    [owner, user, someone] = await (ethers as any).getSigners();
+    [user, someone] = await (ethers as any).getSigners();
 
     // Setup token and unlock provider
     providerAddress = await tokenProviderQuick(tokenAddress);
@@ -121,6 +120,7 @@ describe('Aave V2 Borrow', function () {
       });
       const borrowTokenUserAfter = await borrowToken.balanceOf(user.address);
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
+
       // Verify proxy balance
       expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
       expect(await borrowToken.balanceOf(proxy.address)).to.be.eq(0);
@@ -128,12 +128,7 @@ describe('Aave V2 Borrow', function () {
 
       // Verify user balance
       expect(borrowTokenUserAfter.sub(borrowTokenUserBefore)).to.be.eq(borrowAmount);
-
-      // borrowAmount - 1 <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
-      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
-      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.gte(borrowAmount.sub(1));
-      expect(debtTokenUserAfter.sub(debtTokenUserBefore)).to.be.lt(borrowAmount.add(interestMax));
-
+      expectEqWithinBps(debtTokenUserAfter.sub(debtTokenUserBefore), borrowAmount, 1);
       await profileGas(receipt);
     });
 
@@ -156,12 +151,7 @@ describe('Aave V2 Borrow', function () {
 
       // Verify user balance
       expect(borrowWMATICUserAfter.sub(borrowWMATICUserBefore)).to.be.eq(borrowAmount);
-
-      // borrowAmount - 1 <= (debtTokenUserAfter-debtTokenUserBefore) < borrowAmount + interestMax
-      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
-      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.gte(borrowAmount.sub(1));
-      expect(debtWMATICUserAfter.sub(debtWMATICUserBefore)).to.be.lt(borrowAmount.add(interestMax));
-
+      expectEqWithinBps(debtWMATICUserAfter.sub(debtWMATICUserBefore), borrowAmount, 1);
       await profileGas(receipt);
     });
 

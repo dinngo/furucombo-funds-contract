@@ -15,7 +15,6 @@ import { DAI_TOKEN, ADAI_V3_TOKEN, AAVEPROTOCOL_V3_PROVIDER } from '../utils/con
 
 import {
   ether,
-  mulPercent,
   profileGas,
   simpleEncode,
   asciiToHex32,
@@ -95,7 +94,7 @@ describe('Aave V3', function () {
 
         expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
-        expectEqWithinBps(await aToken.balanceOf(user.address), value, 10);
+        expectEqWithinBps(await aToken.balanceOf(user.address), value, 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -114,7 +113,7 @@ describe('Aave V3', function () {
 
         expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
-        expectEqWithinBps(await aToken.balanceOf(user.address), value, 10);
+        expectEqWithinBps(await aToken.balanceOf(user.address), value, 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -158,19 +157,17 @@ describe('Aave V3', function () {
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await aToken.balanceOf(user.address);
         const tokenUserAfter = await token.balanceOf(user.address);
-        const interestMax = supplyAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
         // Verify handler return
         expect(value).to.be.eq(handlerReturn);
+
         // Verify proxy balance
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token.balanceOf(proxy.address)).to.be.eq(0);
 
         // Verify user balance
-        // (supply - withdraw) <= aTokenAfter < (supply + interestMax - withdraw)
-        expect(aTokenUserAfter).to.be.gte(supplyAmount.sub(value));
-        expect(aTokenUserAfter).to.be.lt(supplyAmount.add(interestMax).sub(value));
         expect(tokenUserAfter).to.be.eq(value);
+        expectEqWithinBps(aTokenUserAfter, supplyAmount.sub(value), 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -191,23 +188,18 @@ describe('Aave V3', function () {
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await aToken.balanceOf(user.address);
         const tokenUserAfter = await token.balanceOf(user.address);
-        const interestMax = supplyAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
         // Verify handler return
-        // value  <= handlerReturn  <= value*1.01
         // Because AToken could be increase by timestamp in proxy
-        expect(value).to.be.lte(handlerReturn);
-        expect(mulPercent(value, 101)).to.be.gte(handlerReturn);
+        expectEqWithinBps(handlerReturn, value, 1);
 
         // Verify proxy balance
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token.balanceOf(proxy.address)).to.be.eq(0);
+
         // Verify user balance
-        // (supply - withdraw -1) <= aTokenAfter < (supply + interestMax - withdraw)
-        // NOTE: aTokenUserAfter == (supplyAmount - withdraw - 1) (sometime, Ganache bug maybe)
-        expect(aTokenUserAfter).to.be.gte(supplyAmount.sub(handlerReturn.add(BigNumber.from(1))));
-        expect(aTokenUserAfter).to.be.lt(supplyAmount.add(interestMax).sub(handlerReturn));
         expect(tokenUserAfter).to.be.eq(handlerReturn);
+        expectEqWithinBps(aTokenUserAfter, supplyAmount.sub(handlerReturn), 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -231,9 +223,11 @@ describe('Aave V3', function () {
 
         // Verify handler return
         expect(handlerReturn).to.be.gte(supplyAmount);
+
         // Verify proxy balance
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token.balanceOf(proxy.address)).to.be.eq(0);
+
         // Verify user balance
         expect(aTokenUserAfter).to.be.lt(ATOKEN_DUST);
         expect(tokenUserAfter).to.be.eq(handlerReturn);

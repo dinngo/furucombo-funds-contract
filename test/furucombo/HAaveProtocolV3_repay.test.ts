@@ -109,9 +109,8 @@ describe('Aave V3 Repay', function () {
 
       // Borrow
       await pool.connect(user).borrow(borrowToken.address, borrowAmount, rateMode, 0, user.address);
-
       expect(await borrowToken.balanceOf(user.address)).to.be.eq(borrowAmount);
-      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 10);
+      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 1);
 
       borrowTokenUserBefore = await borrowToken.balanceOf(user.address);
       debtTokenUserBefore = await debtToken.balanceOf(user.address);
@@ -133,21 +132,15 @@ describe('Aave V3 Repay', function () {
       const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const borrowTokenUserAfter = await borrowToken.balanceOf(user.address);
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
-      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
       // Verify handler return
-      // (debtAmountBefore - repayAmount -1) <= remainDebtAmount < (debtAmountBefore - repayAmount + interestMax)
-      // NOTE: handlerReturn == (debtAmountBefore - repayAmount -1) (sometime, Ganache bug maybe)
-      expect(handlerReturn).to.be.gte(debtTokenUserBefore.sub(repayAmount.add(BigNumber.from(1))));
-      expect(handlerReturn).to.be.lt(debtTokenUserBefore.sub(repayAmount).add(interestMax));
+      expectEqWithinBps(handlerReturn, debtTokenUserBefore.sub(repayAmount), 1);
 
       // Verify proxy balance
       expect(await borrowToken.balanceOf(proxy.address)).to.be.eq(0);
 
       // Verify user balance
-      // (repayAmount - interestMax) < (debtTokenUserBefore - debtTokenUserAfter) <= repayAmount
-      expect(debtTokenUserBefore.sub(debtTokenUserAfter)).to.be.gt(repayAmount.sub(interestMax));
-      expect(debtTokenUserBefore.sub(debtTokenUserAfter)).to.be.lte(borrowAmount);
+      expectEqWithinBps(debtTokenUserBefore.sub(debtTokenUserAfter), repayAmount, 1);
       expect(borrowTokenUserBefore.sub(borrowTokenUserAfter)).to.be.eq(repayAmount);
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
       await profileGas(receipt);
@@ -171,7 +164,6 @@ describe('Aave V3 Repay', function () {
       const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const borrowTokenUserAfter = await borrowToken.balanceOf(user.address);
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
-      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
       // Verify handler return
       expect(handlerReturn).to.be.eq(0);
@@ -181,10 +173,7 @@ describe('Aave V3 Repay', function () {
 
       // Verify user balance
       expect(debtTokenUserAfter).to.be.eq(0);
-
-      // (extraNeed - interestMax) < borrowTokenUserAfter <= extraNeed
-      expect(borrowTokenUserAfter).to.be.gt(extraNeed.sub(interestMax));
-      expect(borrowTokenUserAfter).to.be.lte(extraNeed);
+      expectEqWithinBps(borrowTokenUserAfter, extraNeed, 1);
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
       await profileGas(receipt);
     });
@@ -250,7 +239,7 @@ describe('Aave V3 Repay', function () {
       await pool.connect(user).borrow(borrowToken.address, borrowAmount, rateMode, 0, user.address);
 
       expect(await borrowToken.balanceOf(user.address)).to.be.eq(borrowAmount);
-      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 10);
+      expectEqWithinBps(await debtToken.balanceOf(user.address), borrowAmount, 1);
 
       borrowTokenUserBefore = await borrowToken.balanceOf(user.address);
       debtTokenUserBefore = await debtToken.balanceOf(user.address);
@@ -273,21 +262,15 @@ describe('Aave V3 Repay', function () {
       const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const borrowTokenUserAfter = await borrowToken.balanceOf(user.address);
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
-      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
       // Verify handler return
-      // (debtAmountBefore - repayAmount -1) <= remainDebtAmount < (debtAmountBefore - repayAmount + interestMax)
-      // NOTE: handlerReturn == (debtAmountBefore - repayAmount -1) (sometime, Ganache bug maybe)
-      expect(handlerReturn).to.be.gte(debtTokenUserBefore.sub(repayAmount.add(BigNumber.from(1))));
-      expect(handlerReturn).to.be.lt(debtTokenUserBefore.sub(repayAmount).add(interestMax));
+      expectEqWithinBps(handlerReturn, debtTokenUserBefore.sub(repayAmount), 1);
 
       // Verify proxy balance
       expect(await borrowToken.balanceOf(proxy.address)).to.be.eq(0);
 
       // Verify user balance
-      // (repayAmount - interestMax) < (debtTokenUserBefore - debtTokenUserAfter) <= repayAmount
-      expect(debtTokenUserBefore.sub(debtTokenUserAfter)).to.be.gt(repayAmount.sub(interestMax));
-      expect(debtTokenUserBefore.sub(debtTokenUserAfter)).to.be.lte(borrowAmount);
+      expectEqWithinBps(debtTokenUserBefore.sub(debtTokenUserAfter), repayAmount, 1);
       expect(borrowTokenUserBefore.sub(borrowTokenUserAfter)).to.be.eq(repayAmount);
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
       await profileGas(receipt);
@@ -311,7 +294,6 @@ describe('Aave V3 Repay', function () {
       const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
       const borrowTokenUserAfter = await borrowToken.balanceOf(user.address);
       const debtTokenUserAfter = await debtToken.balanceOf(user.address);
-      const interestMax = borrowAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
       // Verify handler return
       expect(handlerReturn).to.be.eq(0);
@@ -321,10 +303,7 @@ describe('Aave V3 Repay', function () {
 
       // Verify user balance
       expect(debtTokenUserAfter).to.be.eq(0);
-
-      // (extraNeed - interestMax) < borrowTokenUserAfter <= extraNeed
-      expect(borrowTokenUserAfter).to.be.gt(extraNeed.sub(interestMax));
-      expect(borrowTokenUserAfter).to.be.lte(extraNeed);
+      expectEqWithinBps(borrowTokenUserAfter, extraNeed, 1);
       expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
       await profileGas(receipt);
     });

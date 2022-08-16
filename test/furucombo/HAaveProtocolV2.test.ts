@@ -15,7 +15,6 @@ import { DAI_TOKEN, WMATIC_TOKEN, ADAI_V2_TOKEN, AWMATIC_V2, AAVEPROTOCOL_V2_PRO
 
 import {
   ether,
-  mulPercent,
   profileGas,
   simpleEncode,
   asciiToHex32,
@@ -28,28 +27,22 @@ import {
 describe('Aave V2', function () {
   const aTokenAddress = ADAI_V2_TOKEN;
   const tokenAddress = DAI_TOKEN;
-  const awmaticAddress = AWMATIC_V2;
   const ATOKEN_DUST = ether('0.00001');
 
   let owner: Wallet;
   let user: Wallet;
 
   let token: IERC20;
-  let wmatic: IERC20;
   let aToken: IATokenV2;
-  let awmatic: IATokenV2;
   let mockToken: SimpleToken;
   let providerAddress: Signer;
-  let wmaticProviderAddress: Signer;
 
   let proxy: FurucomboProxyMock;
   let registry: FurucomboRegistry;
   let hAaveV2: HAaveProtocolV2;
-
   let lendingPool: ILendingPoolV2;
 
   let userBalance: BigNumber;
-  let proxyBalance: BigNumber;
 
   const setupTest = deployments.createFixture(async ({ deployments, ethers }, options) => {
     await deployments.fixture(''); // ensure you start from a fresh deployments
@@ -57,11 +50,8 @@ describe('Aave V2', function () {
 
     // Setup token and unlock provider
     providerAddress = await tokenProviderQuick(tokenAddress);
-    wmaticProviderAddress = await tokenProviderQuick(WMATIC_TOKEN);
     token = await ethers.getContractAt('IERC20', tokenAddress);
     aToken = await ethers.getContractAt('IATokenV2', aTokenAddress);
-    wmatic = await ethers.getContractAt('IERC20', WMATIC_TOKEN);
-    awmatic = await ethers.getContractAt('IATokenV2', awmaticAddress);
     mockToken = await (await ethers.getContractFactory('SimpleToken')).deploy();
     await mockToken.deployed();
 
@@ -77,7 +67,6 @@ describe('Aave V2', function () {
     await registry.register(hAaveV2.address, asciiToHex32('HAaveProtocolV2'));
 
     const provider = await ethers.getContractAt('ILendingPoolAddressesProviderV2', AAVEPROTOCOL_V2_PROVIDER);
-
     lendingPool = await ethers.getContractAt('ILendingPoolV2', await provider.getLendingPool());
   });
 
@@ -88,7 +77,6 @@ describe('Aave V2', function () {
   describe('Deposit', function () {
     beforeEach(async function () {
       userBalance = await ethers.provider.getBalance(user.address);
-      proxyBalance = await ethers.provider.getBalance(proxy.address);
     });
 
     describe('Token', function () {
@@ -105,7 +93,7 @@ describe('Aave V2', function () {
         });
         expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
-        expectEqWithinBps(await aToken.balanceOf(user.address), value, 100);
+        expectEqWithinBps(await aToken.balanceOf(user.address), value, 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -123,7 +111,7 @@ describe('Aave V2', function () {
         });
         expect(await ethers.provider.getBalance(proxy.address)).to.be.eq(0);
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
-        expectEqWithinBps(await aToken.balanceOf(user.address), value, 100);
+        expectEqWithinBps(await aToken.balanceOf(user.address), value, 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -167,19 +155,17 @@ describe('Aave V2', function () {
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await aToken.balanceOf(user.address);
         const tokenUserAfter = await token.balanceOf(user.address);
-        const interestMax = depositAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
         // Verify handler return
         expect(value).to.be.eq(handlerReturn);
+
         // Verify proxy balance
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token.balanceOf(proxy.address)).to.be.eq(0);
 
         // Verify user balance
-        // (deposit - withdraw) <= aTokenAfter < (deposit + interestMax - withdraw)
-        expect(aTokenUserAfter).to.be.gte(depositAmount.sub(value));
-        expect(aTokenUserAfter).to.be.lt(depositAmount.add(interestMax).sub(value));
         expect(tokenUserAfter).to.be.eq(value);
+        expectEqWithinBps(aTokenUserAfter, depositAmount.sub(value), 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -200,23 +186,18 @@ describe('Aave V2', function () {
         const handlerReturn = (await getHandlerReturn(receipt, ['uint256']))[0];
         const aTokenUserAfter = await aToken.balanceOf(user.address);
         const tokenUserAfter = await token.balanceOf(user.address);
-        const interestMax = depositAmount.mul(BigNumber.from(1)).div(BigNumber.from(10000));
 
         // Verify handler return
-        // value  <= handlerReturn  <= value*1.01
         // Because AToken could be increase by timestamp in proxy
-        expect(value).to.be.lte(handlerReturn);
-        expect(mulPercent(value, 101)).to.be.gte(handlerReturn);
+        expectEqWithinBps(handlerReturn, value, 1);
 
         // Verify proxy balance
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token.balanceOf(proxy.address)).to.be.eq(0);
+
         // Verify user balance
-        // (deposit - withdraw -1) <= aTokenAfter < (deposit + interestMax - withdraw)
-        // NOTE: aTokenUserAfter == (depositAmount - withdraw - 1) (sometime, Ganache bug maybe)
-        expect(aTokenUserAfter).to.be.gte(depositAmount.sub(handlerReturn.add(BigNumber.from(1))));
-        expect(aTokenUserAfter).to.be.lt(depositAmount.add(interestMax).sub(handlerReturn));
         expect(tokenUserAfter).to.be.eq(handlerReturn);
+        expectEqWithinBps(aTokenUserAfter, depositAmount.sub(handlerReturn), 1);
         expect(await balanceDelta(user.address, userBalance)).to.be.eq(ether('0'));
         await profileGas(receipt);
       });
@@ -240,9 +221,11 @@ describe('Aave V2', function () {
 
         // Verify handler return
         expect(handlerReturn).to.be.gte(depositAmount);
+
         // Verify proxy balance
         expect(await aToken.balanceOf(proxy.address)).to.be.eq(0);
         expect(await token.balanceOf(proxy.address)).to.be.eq(0);
+
         // Verify user balance
         expect(aTokenUserAfter).to.be.lt(ATOKEN_DUST);
         expect(tokenUserAfter).to.be.eq(handlerReturn);

@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Local network will dependencies by FurucomboRegistry to registry the register and caller
-  if (network.name == 'beta' || result.newlyDeployed) {
+  if (network.name == 'beta' && result.newlyDeployed) {
     console.log('executing "HAaveProtocolV3" newly deployed setup');
     const hAaveProtocolV3 = await ethers.getContractAt('HAaveProtocolV3', result.address);
     const registry = await ethers.getContractAt('FurucomboRegistry', registryAddress);
