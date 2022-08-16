@@ -8,6 +8,7 @@ export const FUND_CREATORS = ['0xbEEd6F924c7B101a3EA8E4761385C366b35F1b7C'];
 export const MORTGAGE_TOKEN = '0x6DdB31002abC64e1479Fc439692F7eA061e78165'; // COMBO
 export const DS_PROXY_REGISTRY = '0x7B4C6A6EB4aF9435a62bfAB09Fd2074f7752A784';
 export const AAVE_LENDING_POOL = '0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf';
+export const AAVE_POOL_V3 = '0x794a61358D6845594F94dc1DB02A252b5b4814aD';
 export const CURVE_AAVE_SWAP = '0x445FE580eF8d70FF569aB36e80c647af338db351';
 export const CURVE_REN_SWAP = '0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67';
 export const CURVE_ATRICRYPTO3_DEPOSIT = '0x1d8b86e3D88cDb2d34688e87E72F388Cb541B7C8';
@@ -16,6 +17,13 @@ export const WL_ANY_ADDRESS = '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF';
 export const WL_ANY_SIG = '0xffffffff';
 export const WL_AAVE_V2_SIGS = [
   '0x47e7ef24', // deposit(address,uint256)
+  '0xf3fef3a3', // withdraw(address,uint256)
+  '0x8cd2e0c7', // repay(address,uint256,uint256)
+  '0xc1bce0b7', // borrow(address,uint256,uint256)
+  '0x54296154', // flashLoan(address[],uint256[],uint256[],bytes)
+];
+export const WL_AAVE_V3_SIGS = [
+  '0xf2b9fdb8', // supply(address,uint256)
   '0xf3fef3a3', // withdraw(address,uint256)
   '0x8cd2e0c7', // repay(address,uint256,uint256)
   '0xc1bce0b7', // borrow(address,uint256,uint256)

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### Added
+
+- Support AaveV3.
+
 ## [1.1.0]
 
 ### Added
