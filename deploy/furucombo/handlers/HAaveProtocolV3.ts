@@ -40,7 +40,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // registerCaller to Registry
     const registerCallerData = registry.interface.encodeFunctionData('registerCaller', [
       AAVE_POOL_V3,
-      ethers.utils.formatBytes32String('HAaveProtocolV3'),
+      hAaveProtocolV3.address.padEnd(66, '0'),
     ]);
     await _sendOwnerTransaction(registryAddress, registerCallerData);
     console.log('registry aave V3 pool caller:', await registry.isValidCaller(AAVE_POOL_V3));
