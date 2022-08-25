@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+## [1.2.0]- 2022-08-26
+
 ### Added
 
 - Support AaveV3.
 
-## [1.1.0]
+## [1.1.0] - 2022-06-13
 
 ### Added
 
