@@ -43,6 +43,24 @@ describe('AssetRegistry', function () {
       expect(await registry.resolvers(assetAddress)).to.be.eq(resolver.address);
     });
 
+    it('multiple assets', async function () {
+      const asset0Address = token0Address;
+      const asset1Address = token1Address;
+
+      await expect(registry.connect(user).resolvers(asset0Address)).to.be.revertedWith('RevertCode(46)'); // ASSET_REGISTRY_UNREGISTERED
+      await expect(registry.connect(user).resolvers(asset1Address)).to.be.revertedWith('RevertCode(46)'); // ASSET_REGISTRY_UNREGISTERED
+      const assetAddresses = [asset0Address, asset1Address];
+      const resolverAddresses = [resolver.address, resolver.address];
+      await expect(registry.connect(owner).registerMulti(assetAddresses, resolverAddresses))
+        .to.emit(registry, 'Registered')
+        .withArgs(asset0Address, resolver.address)
+        .to.emit(registry, 'Registered')
+        .withArgs(asset1Address, resolver.address);
+
+      expect(await registry.resolvers(asset0Address)).to.be.eq(resolver.address);
+      expect(await registry.resolvers(asset1Address)).to.be.eq(resolver.address);
+    });
+
     it('should revert: resolver has been banned', async function () {
       const assetAddress = token0Address;
       await registry.connect(owner).banResolver(resolver.address);
@@ -73,6 +91,20 @@ describe('AssetRegistry', function () {
       ); // ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS
     });
 
+    it('should revert: asset and resolver length inconsistent', async function () {
+      const asset0Address = token0Address;
+      const asset1Address = token1Address;
+
+      await expect(registry.connect(user).resolvers(asset0Address)).to.be.revertedWith('RevertCode(46)'); // ASSET_REGISTRY_UNREGISTERED
+      await expect(registry.connect(user).resolvers(asset1Address)).to.be.revertedWith('RevertCode(46)'); // ASSET_REGISTRY_UNREGISTERED
+      const assetAddresses = [asset0Address, asset1Address];
+      const resolverAddresses = [resolver.address];
+
+      await expect(registry.connect(owner).registerMulti(assetAddresses, resolverAddresses)).to.be.revertedWith(
+        'RevertCode(77)'
+      ); // ASSET_REGISTRY_ASSETS_AND_RESOLVERS_LENGTH_INCONSISTENT
+    });
+
     it('should revert: non-owner', async function () {
       const assetAddress = token0Address;
       await expect(registry.connect(user).register(assetAddress, resolver.address)).to.be.revertedWith(
@@ -83,6 +115,7 @@ describe('AssetRegistry', function () {
 
   describe('unregister', function () {
     const assetAddress = token0Address;
+
     beforeEach(async function () {
       await expect(registry.connect(owner).register(assetAddress, resolver.address))
         .to.emit(registry, 'Registered')
@@ -98,6 +131,21 @@ describe('AssetRegistry', function () {
         .withArgs(assetAddress);
 
       await expect(registry.connect(user).resolvers(assetAddress)).to.be.revertedWith('RevertCode(46)'); // ASSET_REGISTRY_UNREGISTERED
+    });
+
+    it('multiple', async function () {
+      const asset1Address = token1Address;
+      await registry.connect(owner).register(asset1Address, resolver.address);
+
+      const assetAddresses = [assetAddress, asset1Address];
+      await expect(registry.connect(owner).unregisterMulti(assetAddresses))
+        .to.emit(registry, 'Unregistered')
+        .withArgs(assetAddress)
+        .to.emit(registry, 'Unregistered')
+        .withArgs(asset1Address);
+
+      await expect(registry.connect(user).resolvers(assetAddress)).to.be.revertedWith('RevertCode(46)'); // ASSET_REGISTRY_UNREGISTERED
+      await expect(registry.connect(user).resolvers(asset1Address)).to.be.revertedWith('RevertCode(46)'); // ASSET_REGISTRY_UNREGISTERED
     });
 
     it('should revert: resolver is not registered', async function () {
