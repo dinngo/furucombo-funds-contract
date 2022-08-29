@@ -26,26 +26,38 @@ contract AssetRegistry is IAssetRegistry, Ownable {
         return resolver;
     }
 
+    /// @notice Register assets with resolver.
+    /// @param assets_ The asset addresses.
+    /// @param resolvers_ The resolver addresses.
+    function registerMulti(address[] calldata assets_, address[] calldata resolvers_) external onlyOwner {
+        Errors._require(
+            assets_.length == resolvers_.length,
+            Errors.Code.ASSET_REGISTRY_ASSETS_AND_RESOLVERS_LENGTH_INCONSISTENT
+        );
+        for (uint256 i = 0; i < assets_.length; i++) {
+            _register(assets_[i], resolvers_[i]);
+        }
+    }
+
     /// @notice Register an asset with resolver.
     /// @param asset_ The asset address.
     /// @param resolver_ The resolver address.
     function register(address asset_, address resolver_) external onlyOwner {
-        Errors._require(resolver_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS);
-        Errors._require(asset_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS);
-        Errors._require(!bannedResolvers[resolver_], Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER);
-        Errors._require(_resolvers[asset_] == address(0), Errors.Code.ASSET_REGISTRY_REGISTERED_RESOLVER);
+        _register(asset_, resolver_);
+    }
 
-        _resolvers[asset_] = resolver_;
-        emit Registered(asset_, resolver_);
+    /// @notice Unregister assets.
+    /// @param assets_ The assets to be unregistered.
+    function unregisterMulti(address[] calldata assets_) external onlyOwner {
+        for (uint256 i = 0; i < assets_.length; i++) {
+            _unregister(assets_[i]);
+        }
     }
 
     /// @notice Unregister an asset.
     /// @param asset_ The asset to be unregistered.
     function unregister(address asset_) external onlyOwner {
-        Errors._require(asset_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS);
-        Errors._require(_resolvers[asset_] != address(0), Errors.Code.ASSET_REGISTRY_NON_REGISTERED_RESOLVER);
-        _resolvers[asset_] = address(0);
-        emit Unregistered(asset_);
+        _unregister(asset_);
     }
 
     /// @notice Ban specific resolver.
@@ -64,5 +76,23 @@ contract AssetRegistry is IAssetRegistry, Ownable {
         Errors._require(bannedResolvers[resolver_], Errors.Code.ASSET_REGISTRY_NON_BANNED_RESOLVER);
         bannedResolvers[resolver_] = false;
         emit UnbannedResolver(resolver_);
+    }
+
+    function _register(address asset_, address resolver_) internal {
+        Errors._require(resolver_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_RESOLVER_ADDRESS);
+        Errors._require(asset_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS);
+        Errors._require(!bannedResolvers[resolver_], Errors.Code.ASSET_REGISTRY_BANNED_RESOLVER);
+        Errors._require(_resolvers[asset_] == address(0), Errors.Code.ASSET_REGISTRY_REGISTERED_RESOLVER);
+
+        _resolvers[asset_] = resolver_;
+        emit Registered(asset_, resolver_);
+    }
+
+    function _unregister(address asset_) internal {
+        Errors._require(asset_ != address(0), Errors.Code.ASSET_REGISTRY_ZERO_ASSET_ADDRESS);
+        Errors._require(_resolvers[asset_] != address(0), Errors.Code.ASSET_REGISTRY_NON_REGISTERED_RESOLVER);
+
+        _resolvers[asset_] = address(0);
+        emit Unregistered(asset_);
     }
 }

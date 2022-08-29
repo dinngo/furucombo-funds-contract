@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 
 - Support AaveV3.
 
+### Change
+
+- Add register/unregister multiple resolvers to asset registry
+
 ## [1.1.0] - 2022-06-13
 
 ### Added

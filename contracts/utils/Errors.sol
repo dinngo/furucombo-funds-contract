@@ -80,8 +80,9 @@ library Errors {
         SHARE_MODULE_REDEEM_ZERO_SHARE, // 72: "The redeem share is zero"
         SHARE_MODULE_INSUFFICIENT_SHARE, // 73: "Insufficient share amount"
         SHARE_MODULE_REDEEM_IN_PENDING_WITHOUT_PERMISSION, // 74: "Redeem in pending without permission"
-        SHARE_MODULE_PENDING_ROUND_INCONSISTENT, // 75: "user pending round and current pending round are inconsistent"
-        SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE // 76: "Pending redemption is not claimable"
+        SHARE_MODULE_PENDING_ROUND_INCONSISTENT, // 75: "User pending round and current pending round are inconsistent"
+        SHARE_MODULE_PENDING_REDEMPTION_NOT_CLAIMABLE, // 76: "Pending redemption is not claimable"
+        ASSET_REGISTRY_ASSETS_AND_RESOLVERS_LENGTH_INCONSISTENT // 77: "Assets and resolvers are inconsistent"
     }
 
     function _require(bool condition_, Code errorCode_) internal pure {
